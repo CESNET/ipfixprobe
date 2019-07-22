@@ -70,6 +70,7 @@ void fillJsonVar(nlohmann::json &container, std::string typeName, std::string ty
 
 bool fileExists(const std::string &file);
 bool generateOutputFolder(const std::string &dir);
+bool copy(const std::string &src, const std::string &dst);
 
 /**
  * \brief Translates P4 types into C.

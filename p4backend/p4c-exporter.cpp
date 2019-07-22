@@ -114,9 +114,8 @@ void runBackend(const P4EOptions &options, const IR::ToplevelBlock *topLevel, P4
       return;
    }
 
-   if (!exporter::fileExists(options.templatesDir_ + "/main.c.tmplt") ||
-       !exporter::fileExists(options.templatesDir_ + "/Makefile.tmplt")) {
-      ::error("template files main.c.tmplt or Makefile.tmplt could not be read");
+   if (!exporter::fileExists(options.templatesDir_ + "/main.c.tmplt")) {
+      ::error("template file main.c.tmplt could not be read");
       return;
    }
 
@@ -126,8 +125,13 @@ void runBackend(const P4EOptions &options, const IR::ToplevelBlock *topLevel, P4
    inja::Template tmpltMain = env.parse_template("main.c.tmplt");
    env.write(tmpltMain, dummy, "main.c");
 
-   inja::Template tmpltMakefile = env.parse_template("Makefile.tmplt");
-   env.write(tmpltMakefile, dummy, "Makefile");
+   if (!exporter::copy(options.templatesDir_ + "/Makefile.am", options.genDir_ + "/Makefile.am") ||
+      !exporter::copy(options.templatesDir_ + "/configure.ac", options.genDir_ + "/configure.ac") ||
+      !exporter::copy(options.templatesDir_ + "/bootstrap.sh", options.genDir_ + "/bootstrap.sh") ||
+      !exporter::copy(options.templatesDir_ + "/README.md", options.genDir_ + "/README.md")) {
+      ::error("template files Makefile.am, configure.ac or bootstrap.sh could not be read");
+      return;
+   }
 }
 
 void compile(P4EOptions &options)

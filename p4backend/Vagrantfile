@@ -94,7 +94,7 @@ Vagrant.configure(2) do |config|
      )
 
      (
-        git clone https://github.com/protocolbuffers/protobuf.git &&
+        git clone --quiet https://github.com/protocolbuffers/protobuf.git &&
         cd protobuf &&
         git checkout v3.2.0 &&
         git submodule update --init --recursive &&
@@ -106,7 +106,7 @@ Vagrant.configure(2) do |config|
      )
 
      (
-        git clone --recursive https://github.com/p4lang/p4c.git &&
+        git clone --quiet --recursive https://github.com/p4lang/p4c.git &&
         cd p4c &&
         git checkout a7aa7d0d3ab8c8502bf15b9823a3b0012e7ad313 &&
         mkdir extensions &&
@@ -126,6 +126,8 @@ Vagrant.configure(2) do |config|
         p4c-p4e p4/exporter.p4  -v --Wdisable=uninitialized_use --Wdisable=uninitialized_out_param &&
         re2c -P -i exporter/regex.c.re -o exporter/regex.c &&
         cd exporter &&
+        ./bootstrap.sh &&
+        ./configure &&
         make
      )
   SHELL

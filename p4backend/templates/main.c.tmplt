@@ -58,7 +58,7 @@
    OPTION("s", "size", "Cache size exponent n. Values 1-31 (cache size=2^n).", REQUIRED_ARGUMENT) \
    OPTION("l", "line", "Cache line size. Must be power of two.", REQUIRED_ARGUMENT) \
    OPTION("o", "odid", "Set observation domain ID.", REQUIRED_ARGUMENT) \
-   OPTION("x", "ipfix", "Specify IPFIX exporter address and port. Format: IPv4:PORT' and '[IPv6]:PORT'", REQUIRED_ARGUMENT) \
+   OPTION("x", "ipfix", "Specify IPFIX exporter address and port. Format: `IPv4:PORT` and `[IPv6]:PORT`", REQUIRED_ARGUMENT) \
    OPTION("u", "udp", "Use UDP instead of default TCP protocol for collector connection.", NO_ARGUMENT) \
    OPTION("p", "plugins", "Activate parsing plugins. Specify list of names separated by comma. Available plugins: " PLUGINS_AVAILABLE, REQUIRED_ARGUMENT) \
 
@@ -87,7 +87,7 @@ void print_help(const char *program)
 {
    int max_option_len = 1;
    MODULE_OPTIONS(COUNT_MAX_LONG_HELP_STRING_LENGTH);
-   printf("Usage: %s [OPTIONS] PCAP-file(s)\nOPTIONS:\n"
+   printf("Usage: %s [OPTIONS]\nOPTIONS:\n"
            MODULE_OPTIONS(CREATE_PRINTF_STRING),
            program MODULE_OPTIONS(CREATE_PRINTF_ARGS));
 }

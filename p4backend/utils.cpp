@@ -117,7 +117,7 @@ bool generateOutputFolder(const std::string &dir)
 {
    std::error_code errorCode;
    // Check if the path exits, if yes, remove everything
-   if(fs::exists(dir)) {
+   if (fs::exists(dir)) {
       fs::remove_all(dir);
    }
 
@@ -127,6 +127,19 @@ bool generateOutputFolder(const std::string &dir)
       ::error("Could not create directory '%1%': %2%", dir, errorCode.message());
       return false;
    }
+   return true;
+}
+
+bool copy(const std::string &src, const std::string &dst)
+{
+   std::error_code errorCode;
+   fs::copy(src, dst, fs::copy_options::recursive, errorCode);
+
+   if (errorCode.value()) {
+      ::error("Could not copy '%1%' to '%2%': %3%", src, dst, errorCode.message());
+      return false;
+   }
+
    return true;
 }
 
