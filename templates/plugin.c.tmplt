@@ -1,0 +1,178 @@
+/**
+ * \file plugin.c
+ * \date 2019
+ * \author Jiri Havranek <havranek@cesnet.cz>
+ */
+/*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of the Company nor the names of its contributors
+ *    may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+
+ * This software is provided ``as is'', and any express or implied
+ * warranties, including, but not limited to, the implied warranties of
+ * merchantability and fitness for a particular purpose are disclaimed.
+ * In no event shall the company or contributors be liable for any
+ * direct, indirect, incidental, special, exemplary, or consequential
+ * damages (including, but not limited to, procurement of substitute
+ * goods or services; loss of use, data, or profits; or business
+ * interruption) however caused and on any theory of liability, whether
+ * in contract, strict liability, or tort (including negligence or
+ * otherwise) arising in any way out of the use of this software, even
+ * if advised of the possibility of such damage.
+*/
+
+#include <stdlib.h>
+#include <string.h>
+
+#include "types.h"
+#include "cache.h"
+#include "regex.h"
+#include "plugin.h"
+
+{% for plugin in plugins %}
+static {{ plugin/type }} *{{ plugin/name }}_ext = NULL;
+
+int parser_{{ plugin/name }}_create(struct flowrec_s *flow, const uint8_t *payload, int payload_len, {{ plugin/type }} *ext)
+{ {% for statement in plugin/create/statements %}
+   {{ statement }}{% endfor %}
+}
+int parser_{{ plugin/name }}_update(struct flowrec_s *flow, const uint8_t *payload, int payload_len, {{ plugin/type }} *ext)
+{ {% for statement in plugin/update/statements %}
+   {{ statement }}{% endfor %}
+}
+
+int {{ plugin/name }}_create(struct flowrec_s *flow, const uint8_t *payload, int payload_len)
+{
+   if ({{ plugin/name }}_ext == NULL) {
+      {{ plugin/name }}_ext = ({{ plugin/type }} *) malloc(sizeof({{ plugin/type }}));
+      memset({{ plugin/name }}_ext, 0, sizeof({{ plugin/type }}));
+   }
+
+   int ret = parser_{{ plugin/name }}_create(flow, payload, payload_len, {{ plugin/name }}_ext);
+   if (ret == resultAccept) {
+      flow_add_extension(flow, {{ plugin/name }}_ext, flow_ext_{{ plugin/name }});
+      {{ plugin/name }}_ext = NULL;
+      return 0;
+   } else if (ret == resultFlush) {
+      flow_add_extension(flow, {{ plugin/name }}_ext, flow_ext_{{ plugin/name }});
+      {{ plugin/name }}_ext = NULL;
+      return FLOW_FLUSH;
+   } else if (ret == resultExport) {
+      return FLOW_EXPORT;
+   }
+
+   return 0;
+}
+int {{ plugin/name }}_update(struct flowrec_s *flow, const uint8_t *payload, int payload_len)
+{
+   if ({{ plugin/name }}_ext == NULL) {
+      {{ plugin/name }}_ext = ({{ plugin/type }} *) malloc(sizeof({{ plugin/type }}));
+      memset({{ plugin/name }}_ext, 0, sizeof({{ plugin/type }}));
+   }
+
+   {{ plugin/type }} *ext = {{ plugin/name }}_ext;
+   int updateFlow = flow_get_extension(flow, (void **) &ext, flow_ext_{{ plugin/name }});
+
+   int ret = parser_{{ plugin/name }}_update(flow, payload, payload_len, ext);
+   if (ret == resultAccept) {
+      if (!updateFlow) {
+         flow_add_extension(flow, ext, flow_ext_{{ plugin/name }});
+         {{ plugin/name }}_ext = NULL;
+      }
+      return 0;
+   } else if (ret == resultFlush) {
+      return FLOW_FLUSH;
+   }
+
+   return 0;
+}
+{% endfor %}
+
+int check_plugins_string(const char *plugins)
+{
+   char tmp[sizeof(PLUGINS_AVAILABLE) + 1];
+   char *token;
+   uint8_t plugins_present[{{ length(plugins) }}] = { 0 };
+   uint8_t basic_present = 0;
+   size_t i;
+
+   for (i = 0; i < sizeof(tmp) && plugins[i]; i++) {
+      tmp[i] = plugins[i];
+   }
+   tmp[i] = 0;
+   if (i >= sizeof(tmp) || i == 0) {
+      return 0;
+   }
+
+   if (i > 0) {
+      token = strtok(tmp, ",");
+      while (token != NULL) {
+         if (!strcmp(token, "basic") && !basic_present) {
+            basic_present = 1;
+         {% for plugin in plugins %}} else if (!strcmp(token, "{{ plugin/name }}") && !plugins_present[flow_ext_{{ plugin/name }}]) {
+            plugins_present[flow_ext_{{ plugin/name }}] = 1;
+         {% endfor %}} else {
+            return 0;
+         }
+         token = strtok(NULL, ",");
+      }
+   }
+
+   return 1;
+}
+
+int add_plugins(struct flowcache_s *cache, const char *plugins)
+{
+   struct plugin_s *plugin;
+   (void) plugin;
+   if (cache->plugins == NULL) {
+      cache->plugins = (struct plugin_s *) malloc({{ length(plugins) }} * sizeof(struct plugin_s));
+      if (cache->plugins == NULL) {
+         return 0;
+      }
+      cache->plugin_cnt = 0;
+   } else {
+      struct plugin_s *tmp = (struct plugin_s *) realloc(cache->plugins, (cache->plugin_cnt + {{ length(plugins) }}) * sizeof(struct plugin_s));
+      if (tmp == NULL) {
+         return 0;
+      }
+      cache->plugins = tmp;
+   }
+
+   char tmp[sizeof(PLUGINS_AVAILABLE) + 1];
+   char *token;
+   size_t i;
+
+   for (i = 0; i < sizeof(tmp) && plugins[i]; i++) {
+      tmp[i] = plugins[i];
+   }
+   tmp[i] = 0;
+
+   token = strtok(tmp, ",");
+   while (token != NULL) { {% for plugin in plugins %}
+      if (!strcmp(token, "{{ plugin/name }}")) {
+         plugin = &cache->plugins[cache->plugin_cnt];
+         plugin->name = "{{ plugin/name }}";
+         plugin->create = {{ plugin/name }}_create;
+         plugin->update = {{ plugin/name }}_update;
+         cache->plugin_cnt += 1;
+      }{% endfor %}
+      token = strtok(NULL, ",");
+   }
+
+   return 1;
+}
+
+void finish_plugins()
+{ {% for plugin in plugins %}
+   free({{ plugin/name }}_ext);{% endfor %}
+}
