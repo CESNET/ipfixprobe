@@ -39,7 +39,7 @@ Compile.
 ```
 mkdir -p ../build
 cd ../build
-cmake -DCMAKE_BUILD_TYPE=DEBUG -DENABLE_GC=OFF -DENABLE_PROTOBUF_STATIC=OFF -DENABLE_DOCS=OFF -DENABLE_BMV2=OFF .
+cmake -DCMAKE_BUILD_TYPE=DEBUG -DENABLE_GC=OFF -DENABLE_PROTOBUF_STATIC=OFF -DENABLE_DOCS=OFF -DENABLE_BMV2=OFF ..
 make
 ```
 
@@ -50,13 +50,13 @@ Compile P4 program into exporter source codes. Then use re2c to source code file
 p4c/build/extensions/p4e/p4c-p4e p4/exporter.p4  -v --Wdisable=uninitialized_use --Wdisable=uninitialized_out_param
 re2c -P -i exporter/regex.c.re -o exporter/regex.c
 cd exporter
-./bootstrap
+./bootstrap.sh
 ./configure
 make
 ```
 
 ### Vagrant
-Easiest way to install is to use vagrant.
+Easiest way to install is to use vagrant virtual machine.
 ```
 vagrant up
 ```
