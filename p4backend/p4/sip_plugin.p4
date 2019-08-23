@@ -66,13 +66,13 @@ struct sip_extension_s
 {
    bit<16> msg_type;
    bit<16> status_code;
-   @string("128") bit<1> call_id;
-   @string("128") bit<1> calling_party;
-   @string("128") bit<1> called_party;
-   @string("128") bit<1> via;
-   @string("128") bit<1> user_agent;
-   @string("128") bit<1> cseq;
-   @string("128") bit<1> request_uri;
+   @stringbuf("128") bit<1> call_id;
+   @stringbuf("128") bit<1> calling_party;
+   @stringbuf("128") bit<1> called_party;
+   @stringbuf("128") bit<1> via;
+   @stringbuf("128") bit<1> user_agent;
+   @stringbuf("128") bit<1> cseq;
+   @stringbuf("128") bit<1> request_uri;
 }
 
 parser sip_plugin_parser(payload p, out sip_extension_s ext)
@@ -89,12 +89,12 @@ parser sip_plugin_parser(payload p, out sip_extension_s ext)
    @regex("\"\r\n\"")
    bit<1> end_of_header_fields;
 
-   @string("512") bit<1> key;
-   @string("512") bit<1> val;
+   @stringbuf("512") bit<1> key;
+   @stringbuf("512") bit<1> val;
 
-   @string("10") bit<1> method;
-   @string("128") bit<1> uri;
-   @string("10") bit<1> resp_code;
+   @stringbuf("10") bit<1> method;
+   @stringbuf("128") bit<1> uri;
+   @stringbuf("10") bit<1> resp_code;
 
    state start {
       transition parse_header_request;

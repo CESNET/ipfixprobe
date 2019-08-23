@@ -84,9 +84,9 @@ struct smtp_extension_s
    bit<32> mail_cmd_cnt;
    bit<32> mail_rcpt_cnt;
    bit<32> mail_code_flags;
-   @string("255") bit<2040> domain; // 255 bytes
-   @string("255") bit<2048> first_sender; // 255 bytes
-   @string("255") bit<2048> first_recipient; // 255 bytes
+   @stringbuf("255") bit<2040> domain; // 255 bytes
+   @stringbuf("255") bit<2048> first_sender; // 255 bytes
+   @stringbuf("255") bit<2048> first_recipient; // 255 bytes
    bit<8> data_transfer;
 }
 
@@ -137,13 +137,13 @@ parser smtp_plugin_parser(payload p, in flowrec_s flow, out smtp_extension_s ext
    @regex("\"\x00\"")
    bit<1> re_empty;
 
-   @string("512") bit<1> key;
-   @string("512") bit<1> val;
+   @stringbuf("512") bit<1> key;
+   @stringbuf("512") bit<1> val;
 
-   @string ("9") bit<1> command;
-   @string ("1") bit<1> dummy;
-   @string ("4") bit<1> code;
-   @string ("2") bit<1> delim;
+   @stringbuf ("9") bit<1> command;
+   @stringbuf ("1") bit<1> dummy;
+   @stringbuf ("4") bit<1> code;
+   @stringbuf ("2") bit<1> delim;
 
    state start {
       transition check_sport;

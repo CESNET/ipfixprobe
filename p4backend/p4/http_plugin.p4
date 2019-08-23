@@ -35,16 +35,16 @@
 
 header http_request_h
 {
-   @string("10") bit<80> method; // 10 bytes
-   @string("128") bit<1024> uri; // 128 bytes
-   @string("64") bit<512> host; // 64 bytes
-   @string("128") bit<1024> referer; // 128 bytes
-   @string("128") bit<1024> agent; // 128 bytes
+   @stringbuf("10") bit<80> method; // 10 bytes
+   @stringbuf("128") bit<1024> uri; // 128 bytes
+   @stringbuf("64") bit<512> host; // 64 bytes
+   @stringbuf("128") bit<1024> referer; // 128 bytes
+   @stringbuf("128") bit<1024> agent; // 128 bytes
 }
 header http_response_h
 {
    bit<16> code;
-   @string("64") bit<512> content_type; // 64 bytes
+   @stringbuf("64") bit<512> content_type; // 64 bytes
 }
 header_union http_u
 {
@@ -74,12 +74,12 @@ parser http_plugin_parser(payload p, out http_extension_s ext)
    @regex("\"\r\n\"")
    bit<1> end_of_header_fields;
 
-   @string("512") bit<1> key;
-   @string("512") bit<1> val;
+   @stringbuf("512") bit<1> key;
+   @stringbuf("512") bit<1> val;
 
-   @string("10") bit<1> method;
-   @string("128") bit<1> uri;
-   @string("10") bit<1> resp_code;
+   @stringbuf("10") bit<1> method;
+   @stringbuf("128") bit<1> uri;
+   @stringbuf("10") bit<1> resp_code;
 
    state start {
       transition parse_header_request;

@@ -181,7 +181,7 @@ void TypeTranslator::initialize()
 
 void TypeTranslator::compileTypeWithAnnotations(const IR::Declaration *decl)
 {
-   auto stringAnnotation = decl->getAnnotation("string");
+   auto stringAnnotation = decl->getAnnotation(ANNOTATION_STRING);
    if (stringAnnotation != nullptr) {
       long len = std::stol(stringAnnotation->body.at(0)->text.c_str());
       if (len <= 0) {

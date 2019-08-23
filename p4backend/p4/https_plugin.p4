@@ -35,7 +35,7 @@
 
 struct https_extension_s
 {
-   @string("255") bit<1> sni;
+   @stringbuf("255") bit<1> sni;
 }
 
 #define TLS_HANDSHAKE 22

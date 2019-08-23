@@ -225,7 +225,7 @@ std::string LexerBuilder::getRegex(const IR::Expression *arg1)
    }
 
    auto decl = refMap_->getDeclaration(path->path);
-   auto regexAnnotation = decl->getAnnotation("regex");
+   auto regexAnnotation = decl->getAnnotation(ANNOTATION_REGEX);
    if (regexAnnotation == nullptr) {
       ::error("first argument of parse extern method has to be annotated with regex: %1%", arg1);
       return "";
@@ -651,7 +651,7 @@ bool PluginVisitor::preorder(const IR::Declaration *s)
       ::error("unexpected declaration %1%", s);
       return false;
    }
-   auto regex = tmpDecl->getAnnotation("regex");
+   auto regex = tmpDecl->getAnnotation(ANNOTATION_REGEX);
 
    if (regex == nullptr) {
       TypeTranslator type(tmpDecl, typeMap_);
@@ -1046,7 +1046,7 @@ bool PluginVisitor::checkVarIsString(const IR::Expression *expr)
          auto structDef = type->to<IR::Type_StructLike>();
          for (auto f : structDef->fields) {
             if (f->name == member->member.name) {
-               auto annot = f->getAnnotation("string");
+               auto annot = f->getAnnotation(ANNOTATION_STRING);
                if (annot == nullptr) {
                   ::error("expected string: %1%", expr);
                   return false;
@@ -1059,7 +1059,7 @@ bool PluginVisitor::checkVarIsString(const IR::Expression *expr)
       }
    } else if (pathExpr != nullptr) {
       auto decl = refMap_->getDeclaration(pathExpr->path);
-      auto annot = decl->getAnnotation("string");
+      auto annot = decl->getAnnotation(ANNOTATION_STRING);
       if (annot == nullptr) {
          ::error("expected string: %1%", expr);
          return false;

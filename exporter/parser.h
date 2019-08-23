@@ -69,7 +69,8 @@ enum fpp_return_code {
     NoMatch,
     StackOutOfBounds,
     HeaderTooShort,
-    ParserTimeout
+    ParserTimeout,
+    ParserInvalidArgument
 };
 
 enum fpp_header { 

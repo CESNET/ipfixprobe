@@ -509,7 +509,7 @@ bool ExporterFillVisitor::varIsString(const IR::Expression *expr)
          auto structDef = type->to<IR::Type_StructLike>();
          for (auto f : structDef->fields) {
             if (f->name == member->member.name) {
-               auto annot = f->getAnnotation("string");
+               auto annot = f->getAnnotation(ANNOTATION_STRING);
                if (annot == nullptr) {
                   return false;
                }
@@ -519,7 +519,7 @@ bool ExporterFillVisitor::varIsString(const IR::Expression *expr)
       }
    } else if (pathExpr != nullptr) {
       auto decl = refMap_->getDeclaration(pathExpr->path);
-      auto annot = decl->getAnnotation("string");
+      auto annot = decl->getAnnotation(ANNOTATION_STRING);
       if (annot == nullptr) {
          return false;
       }

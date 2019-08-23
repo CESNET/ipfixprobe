@@ -47,6 +47,9 @@
 namespace exporter
 {
 
+#define ANNOTATION_STRING "stringbuf"
+#define ANNOTATION_REGEX "regex"
+
 enum variableType
 {
    typeUnknown = 0,

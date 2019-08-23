@@ -24,7 +24,7 @@ Download P4 compiler source codes.
 ```
 git clone --recursive https://github.com/p4lang/p4c.git
 cd p4c
-git checkout a7aa7d0d3ab8c8502bf15b9823a3b0012e7ad313
+git checkout d47142709a6c1f9ceb3f7a779cc5c220f0712f05
 ```
 
 Put this backend folder into p4c/extensions folder or create symlink to it.
