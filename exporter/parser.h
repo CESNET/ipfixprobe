@@ -33,9 +33,19 @@
 #ifndef P4E_GENERATED_PARSER
 #define P4E_GENERATED_PARSER
 
+#include <stdio.h>
 #include <stdint.h>
 #include <arpa/inet.h>
 #include "types.h"
+
+//#define DEBUG_PARSER
+
+#ifdef DEBUG_PARSER
+// Print debug message if debugging is allowed.
+#define DEBUG_MSG(format, ...) fprintf(stderr, format, ##__VA_ARGS__)
+#else
+#define DEBUG_MSG(format, ...)
+#endif
 
 #define FPP_MASK(type, bits) (((type)(1) << (bits)) - (type)(1))
 #define BYTES(w) ((w) / 8)

@@ -408,6 +408,12 @@ void ParserStateVisitor::processExtract(const IR::Vector<IR::Argument> *args)
       processExtractField(expr, tmp, field->name.name.c_str(), alignment);
       alignment += tmp.getWidth();
       alignment %= 8;
+
+      ParserExpressionHelper ins(refMap_, typeMap_);
+      expr->apply(ins);
+      std::string path = format("%1%.%2%", ins.getExpression(), field->name.name.c_str());
+
+      addDebugParserField(parserState_, tmp, path);
    }
    if (alignment != 0) {
       std::cerr << "warning: extracted header " << type->to<IR::Type_StructLike>()->name.name << " is not aligned to 8 bits" << std::endl;

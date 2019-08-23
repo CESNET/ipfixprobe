@@ -899,6 +899,12 @@ void PluginVisitor::compileExtract(const IR::MethodCallExpression *expr)
          alignment += tmp.getWidth();
          offset_bits += tmp.getWidth();
          alignment %= 8;
+
+         PluginExpressionHelper ins(refMap_, typeMap_);
+         argExpr->apply(ins);
+         std::string path = format("%1%.%2%", ins.getExpression(), field->name.name.c_str());
+
+         addDebugParserField(container_, tmp, path);
       }
    }
 

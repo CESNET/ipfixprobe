@@ -1437,9 +1437,13 @@ int parser_https_create(struct flowrec_s *flow, const uint8_t *payload, int payl
    check_record: {
       if (payload + 5 > payload_end) { goto reject; }
       tls_rec_0.type = ((uint8_t)(load_byte(payload, 0)));
+   DEBUG_MSG("tls_rec_0.type = %#02x\n", tls_rec_0.type);
       tls_rec_0.v_major = ((uint8_t)(load_byte(payload, 1)));
+   DEBUG_MSG("tls_rec_0.v_major = %#02x\n", tls_rec_0.v_major);
       tls_rec_0.v_minor = ((uint8_t)(load_byte(payload, 2)));
+   DEBUG_MSG("tls_rec_0.v_minor = %#02x\n", tls_rec_0.v_minor);
       tls_rec_0.length = ntohs((uint16_t)(load_half(payload, 3)));
+   DEBUG_MSG("tls_rec_0.length = %#04x\n", tls_rec_0.length);
       payload += 5;
       switch (tls_rec_0.type) {
          case 22: goto check_version_1;
@@ -1467,9 +1471,13 @@ int parser_https_create(struct flowrec_s *flow, const uint8_t *payload, int payl
    check_hello: {
       if (payload + 6 > payload_end) { goto reject; }
       tls_hs_0.type = ((uint8_t)(load_byte(payload, 0)));
+   DEBUG_MSG("tls_hs_0.type = %#02x\n", tls_hs_0.type);
       tls_hs_0.length = (uint32_t)(ntohl(load_word(payload, 1)) >> 8) & FPP_MASK(uint32_t, 24);
+   DEBUG_MSG("tls_hs_0.length = %#08x\n", tls_hs_0.length);
       tls_hs_0.v_major = ((uint8_t)(load_byte(payload, 4)));
+   DEBUG_MSG("tls_hs_0.v_major = %#02x\n", tls_hs_0.v_major);
       tls_hs_0.v_minor = ((uint8_t)(load_byte(payload, 5)));
+   DEBUG_MSG("tls_hs_0.v_minor = %#02x\n", tls_hs_0.v_minor);
       payload += 6;
       switch (tls_hs_0.type) {
          case 1: goto check_hello_version_1;
@@ -1523,7 +1531,9 @@ int parser_https_create(struct flowrec_s *flow, const uint8_t *payload, int payl
    parse_extensions: {
       if (payload + 4 > payload_end) { goto reject; }
       tls_ext_0.type = ntohs((uint16_t)(load_half(payload, 0)));
+   DEBUG_MSG("tls_ext_0.type = %#04x\n", tls_ext_0.type);
       tls_ext_0.length = ntohs((uint16_t)(load_half(payload, 2)));
+   DEBUG_MSG("tls_ext_0.length = %#04x\n", tls_ext_0.length);
       payload += 4;
       switch (tls_ext_0.type) {
          case 0: goto parse_sni_check;
@@ -1560,7 +1570,9 @@ int parser_https_create(struct flowrec_s *flow, const uint8_t *payload, int payl
    parse_sni_list: {
       if (payload + 3 > payload_end) { goto reject; }
       tls_sni_0.type = ((uint8_t)(load_byte(payload, 0)));
+   DEBUG_MSG("tls_sni_0.type = %#02x\n", tls_sni_0.type);
       tls_sni_0.length = ntohs((uint16_t)(load_half(payload, 1)));
+   DEBUG_MSG("tls_sni_0.length = %#04x\n", tls_sni_0.length);
       payload += 3;
       switch (tls_sni_0.type) {
          case 0: goto parse_sni_list_elem_check;
@@ -1633,9 +1645,13 @@ int parser_https_update(struct flowrec_s *flow, const uint8_t *payload, int payl
    check_record: {
       if (payload + 5 > payload_end) { goto reject; }
       tls_rec_0.type = ((uint8_t)(load_byte(payload, 0)));
+   DEBUG_MSG("tls_rec_0.type = %#02x\n", tls_rec_0.type);
       tls_rec_0.v_major = ((uint8_t)(load_byte(payload, 1)));
+   DEBUG_MSG("tls_rec_0.v_major = %#02x\n", tls_rec_0.v_major);
       tls_rec_0.v_minor = ((uint8_t)(load_byte(payload, 2)));
+   DEBUG_MSG("tls_rec_0.v_minor = %#02x\n", tls_rec_0.v_minor);
       tls_rec_0.length = ntohs((uint16_t)(load_half(payload, 3)));
+   DEBUG_MSG("tls_rec_0.length = %#04x\n", tls_rec_0.length);
       payload += 5;
       switch (tls_rec_0.type) {
          case 22: goto check_version_1;
@@ -1663,9 +1679,13 @@ int parser_https_update(struct flowrec_s *flow, const uint8_t *payload, int payl
    check_hello: {
       if (payload + 6 > payload_end) { goto reject; }
       tls_hs_0.type = ((uint8_t)(load_byte(payload, 0)));
+   DEBUG_MSG("tls_hs_0.type = %#02x\n", tls_hs_0.type);
       tls_hs_0.length = (uint32_t)(ntohl(load_word(payload, 1)) >> 8) & FPP_MASK(uint32_t, 24);
+   DEBUG_MSG("tls_hs_0.length = %#08x\n", tls_hs_0.length);
       tls_hs_0.v_major = ((uint8_t)(load_byte(payload, 4)));
+   DEBUG_MSG("tls_hs_0.v_major = %#02x\n", tls_hs_0.v_major);
       tls_hs_0.v_minor = ((uint8_t)(load_byte(payload, 5)));
+   DEBUG_MSG("tls_hs_0.v_minor = %#02x\n", tls_hs_0.v_minor);
       payload += 6;
       switch (tls_hs_0.type) {
          case 1: goto check_hello_version_1;
@@ -1719,7 +1739,9 @@ int parser_https_update(struct flowrec_s *flow, const uint8_t *payload, int payl
    parse_extensions: {
       if (payload + 4 > payload_end) { goto reject; }
       tls_ext_0.type = ntohs((uint16_t)(load_half(payload, 0)));
+   DEBUG_MSG("tls_ext_0.type = %#04x\n", tls_ext_0.type);
       tls_ext_0.length = ntohs((uint16_t)(load_half(payload, 2)));
+   DEBUG_MSG("tls_ext_0.length = %#04x\n", tls_ext_0.length);
       payload += 4;
       switch (tls_ext_0.type) {
          case 0: goto parse_sni_check;
@@ -1756,7 +1778,9 @@ int parser_https_update(struct flowrec_s *flow, const uint8_t *payload, int payl
    parse_sni_list: {
       if (payload + 3 > payload_end) { goto reject; }
       tls_sni_0.type = ((uint8_t)(load_byte(payload, 0)));
+   DEBUG_MSG("tls_sni_0.type = %#02x\n", tls_sni_0.type);
       tls_sni_0.length = ntohs((uint16_t)(load_half(payload, 1)));
+   DEBUG_MSG("tls_sni_0.length = %#04x\n", tls_sni_0.length);
       payload += 3;
       switch (tls_sni_0.type) {
          case 0: goto parse_sni_list_elem_check;
@@ -1858,18 +1882,31 @@ int parser_ntp_create(struct flowrec_s *flow, const uint8_t *payload, int payloa
    start: {
       if (payload + 48 > payload_end) { goto reject; }
       ext[0].li = (uint8_t)((load_byte(payload, 0)) >> 6) & FPP_MASK(uint8_t, 2);
+   DEBUG_MSG("ext[0].li = %#02x\n", ext[0].li);
       ext[0].vn = (uint8_t)((load_byte(payload, 0)) >> 3) & FPP_MASK(uint8_t, 3);
+   DEBUG_MSG("ext[0].vn = %#02x\n", ext[0].vn);
       ext[0].mode = ((uint8_t)(load_byte(payload, 0)) & FPP_MASK(uint8_t, 3));
+   DEBUG_MSG("ext[0].mode = %#02x\n", ext[0].mode);
       ext[0].stratum = ((uint8_t)(load_byte(payload, 1)));
+   DEBUG_MSG("ext[0].stratum = %#02x\n", ext[0].stratum);
       ext[0].poll = ((uint8_t)(load_byte(payload, 2)));
+   DEBUG_MSG("ext[0].poll = %#02x\n", ext[0].poll);
       ext[0].precision = ((uint8_t)(load_byte(payload, 3)));
+   DEBUG_MSG("ext[0].precision = %#02x\n", ext[0].precision);
       ext[0].root_delay = ntohl((uint32_t)(load_word(payload, 4)));
+   DEBUG_MSG("ext[0].root_delay = %#08x\n", ext[0].root_delay);
       ext[0].root_dispersion = ntohl((uint32_t)(load_word(payload, 8)));
+   DEBUG_MSG("ext[0].root_dispersion = %#08x\n", ext[0].root_dispersion);
       ext[0].reference_id = ntohl((uint32_t)(load_word(payload, 12)));
+   DEBUG_MSG("ext[0].reference_id = %#08x\n", ext[0].reference_id);
       ext[0].reference_ts = ntohll((uint64_t)(load_dword(payload, 16)));
+   DEBUG_MSG("ext[0].reference_ts = %#016lx\n", ext[0].reference_ts);
       ext[0].origin_ts = ntohll((uint64_t)(load_dword(payload, 24)));
+   DEBUG_MSG("ext[0].origin_ts = %#016lx\n", ext[0].origin_ts);
       ext[0].receive_ts = ntohll((uint64_t)(load_dword(payload, 32)));
+   DEBUG_MSG("ext[0].receive_ts = %#016lx\n", ext[0].receive_ts);
       ext[0].transmit_ts = ntohll((uint64_t)(load_dword(payload, 40)));
+   DEBUG_MSG("ext[0].transmit_ts = %#016lx\n", ext[0].transmit_ts);
       payload += 48;
       switch (ext[0].vn) {
          case 4: goto parse_ntp_check_mode;
@@ -1920,18 +1957,31 @@ int parser_ntp_update(struct flowrec_s *flow, const uint8_t *payload, int payloa
    start: {
       if (payload + 48 > payload_end) { goto reject; }
       ext[0].li = (uint8_t)((load_byte(payload, 0)) >> 6) & FPP_MASK(uint8_t, 2);
+   DEBUG_MSG("ext[0].li = %#02x\n", ext[0].li);
       ext[0].vn = (uint8_t)((load_byte(payload, 0)) >> 3) & FPP_MASK(uint8_t, 3);
+   DEBUG_MSG("ext[0].vn = %#02x\n", ext[0].vn);
       ext[0].mode = ((uint8_t)(load_byte(payload, 0)) & FPP_MASK(uint8_t, 3));
+   DEBUG_MSG("ext[0].mode = %#02x\n", ext[0].mode);
       ext[0].stratum = ((uint8_t)(load_byte(payload, 1)));
+   DEBUG_MSG("ext[0].stratum = %#02x\n", ext[0].stratum);
       ext[0].poll = ((uint8_t)(load_byte(payload, 2)));
+   DEBUG_MSG("ext[0].poll = %#02x\n", ext[0].poll);
       ext[0].precision = ((uint8_t)(load_byte(payload, 3)));
+   DEBUG_MSG("ext[0].precision = %#02x\n", ext[0].precision);
       ext[0].root_delay = ntohl((uint32_t)(load_word(payload, 4)));
+   DEBUG_MSG("ext[0].root_delay = %#08x\n", ext[0].root_delay);
       ext[0].root_dispersion = ntohl((uint32_t)(load_word(payload, 8)));
+   DEBUG_MSG("ext[0].root_dispersion = %#08x\n", ext[0].root_dispersion);
       ext[0].reference_id = ntohl((uint32_t)(load_word(payload, 12)));
+   DEBUG_MSG("ext[0].reference_id = %#08x\n", ext[0].reference_id);
       ext[0].reference_ts = ntohll((uint64_t)(load_dword(payload, 16)));
+   DEBUG_MSG("ext[0].reference_ts = %#016lx\n", ext[0].reference_ts);
       ext[0].origin_ts = ntohll((uint64_t)(load_dword(payload, 24)));
+   DEBUG_MSG("ext[0].origin_ts = %#016lx\n", ext[0].origin_ts);
       ext[0].receive_ts = ntohll((uint64_t)(load_dword(payload, 32)));
+   DEBUG_MSG("ext[0].receive_ts = %#016lx\n", ext[0].receive_ts);
       ext[0].transmit_ts = ntohll((uint64_t)(load_dword(payload, 40)));
+   DEBUG_MSG("ext[0].transmit_ts = %#016lx\n", ext[0].transmit_ts);
       payload += 48;
       switch (ext[0].vn) {
          case 4: goto parse_ntp_check_mode;

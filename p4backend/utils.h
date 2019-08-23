@@ -115,6 +115,10 @@ public:
     * \brief Get short name of variable. For example `ethernet_h`.
     */
    std::string getNameShort() const;
+   /**
+    * \brief Get type code.
+    */
+   variableType getTypeCode() const;
 
 private:
    const IR::Type *type_;
@@ -248,6 +252,7 @@ public:
    ConstructExpression(P4::ReferenceMap *refMap, P4::TypeMap *typeMap);
 };
 
+void addDebugParserField(nlohmann::json &container, TypeTranslator &type, const std::string &path);
 
 inline std::string formatHelper(boost::format &msg)
 {
