@@ -51,6 +51,7 @@ class P4EOptions : public CompilerOptions
  public:
    std::string genDir_; /**< Directory where source codes will be generated. */
    std::string templatesDir_; /**< Path to directory with templates of exporter code. */
+   bool parserOnly_; /**< Generate packet parser and quit. */
 
    std::string get_plain_version_number()
    {
@@ -69,6 +70,7 @@ class P4EOptions : public CompilerOptions
          + get_version()).c_str());
       registerOption("--gen-dir", "dir", [this](const char *arg){genDir_ = arg; return true;}, "Output directory with generated files.");
       registerOption("--template-dir", "dir", [this](const char *arg){templatesDir_ = arg; return true;}, "Input directory with template files.");
+      registerOption("--parser-only", NULL, [this](const char *arg){parserOnly_ = true; return true;}, "Generate packet parser only.");
    }
 };
 

@@ -93,6 +93,10 @@ void runBackend(const P4EOptions &options, const IR::ToplevelBlock *topLevel, P4
       return;
    }
 
+   if (options.parserOnly_) {
+      return;
+   }
+
    exporter::log("Compiling cache");
    exporter::CacheGenerator cacheGen(options, topLevel, refMap, typeMap);
    cacheGen.generate();
