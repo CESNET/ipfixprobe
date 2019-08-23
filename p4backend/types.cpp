@@ -79,7 +79,7 @@ void TypesGenerator::generate()
             last["name"] = "last";
             id["name"] = "id";
             parent["name"] = "parent";
-            
+
             tmp["fields"] += ext;
             tmp["fields"] += first;
             tmp["fields"] += last;

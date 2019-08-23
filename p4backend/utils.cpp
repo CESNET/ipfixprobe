@@ -688,7 +688,7 @@ void addDebugParserField(nlohmann::json &container, TypeTranslator &type, const 
       container["statements"] += format("DEBUG_MSG(\"%1% =\");", path);
       int elems = width / 8 + (width % 8 ? 1 : 0);
       for (int i = 0; i < elems; i++) {
-         container["statements"] += format("DEBUG_MSG(\" %1%\", %2%[%3%]);", "%#04x", path, i);
+         container["statements"] += format("DEBUG_MSG(\" %1%\", %2%[%3%]);", "%#04x", path, elems - 1 - i);
       }
       container["statements"] += format("DEBUG_MSG(\"\\n\");");
       return;
