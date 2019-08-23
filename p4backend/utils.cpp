@@ -677,24 +677,24 @@ void addDebugParserField(nlohmann::json &container, TypeTranslator &type, const 
    std::string formatLength = "";
 
    if (width <= 8) {
-      formatLength = "02";
+      formatLength = "#04";
    } else if (width <= 16) {
-      formatLength = "04";
+      formatLength = "#06";
    } else if (width <= 32) {
-      formatLength = "08";
+      formatLength = "#010";
    } else if (width == 64) {
-      formatLength = "016l";
+      formatLength = "#018l";
    } else {
       container["statements"] += format("DEBUG_MSG(\"%1% =\");", path);
       int elems = width / 8 + (width % 8 ? 1 : 0);
       for (int i = 0; i < elems; i++) {
-         container["statements"] += format("DEBUG_MSG(\" %1%\", %2%[%3%]);", "%#02x", path, i);
+         container["statements"] += format("DEBUG_MSG(\" %1%\", %2%[%3%]);", "%#04x", path, i);
       }
       container["statements"] += format("DEBUG_MSG(\"\\n\");");
       return;
    }
 
-   container["statements"] += format("DEBUG_MSG(\"%1% = %2%\\n\", %1%);", path, "%#" + formatLength + "x");
+   container["statements"] += format("DEBUG_MSG(\"%1% = %2%\\n\", %1%);", path, "%" + formatLength + "x");
 }
 
 } // namespace exporter
