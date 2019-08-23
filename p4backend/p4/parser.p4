@@ -32,6 +32,10 @@
 
 #include "headers.p4"
 
+#define IP4_FLAG_MF  0x1
+#define IP4_FLAG_DF  0x2
+#define IP4_FLAG_RES 0x4
+
 #define SWITCH_IPV6 \
    IPPROTO_TCP: parse_tcp; \
    IPPROTO_UDP: parse_udp; \
@@ -250,6 +254,14 @@ parser prs(packet_in packet, out headers_s headers)
       /* Skip IP options. */
       packet.advance((bit<32>)(((int<32>)(bit<32>)headers.ipv4.ihl - (int<32>)5) * 32));
 
+      /* Check if packet is fragmented. */
+      transition select(headers.ipv4.frag_offset == 0) {
+         true: parse_ipv4_next;
+         default: accept;
+      }
+   }
+
+   state parse_ipv4_next {
       transition select(headers.ipv4.protocol) {
          IPPROTO_TCP: parse_tcp;
          IPPROTO_UDP: parse_udp;
