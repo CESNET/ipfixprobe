@@ -994,14 +994,14 @@ void PluginVisitor::compileExtractField(const IR::Expression *expr, TypeTranslat
       }
       if (shiftBits != 0) {
          if (toLoad <= 64) {
-            code = format("%1% = (%3%)(%2%(%4%(payload, %5%)) >> %6%)%7%;",
-               path, transformFunc, type.getName(), loaderFunc, offset_bits / 8, shiftBits, mask);
+            code = format("%1% = (%2%)(%3%(%4%(payload, %5%)) >> %6%)%7%;",
+               path, type.getName(), transformFunc, loaderFunc, offset_bits / 8, shiftBits, mask);
          } else {
             // This code is used when bits to load are > 64 (width + alignment > 64).
             // This means we have to load 64 bits and 8 additional bits and put it together.
 
             // Load 64 bits
-            std::string part1 = format("%1%((%2%)(%3%(payload, %4%) << %5%)%6%)",
+            std::string part1 = format("(%1%((%2%)(%3%(payload, %4%))) << %5%)%6%",
                transformFunc, type.getName(), loaderFunc, offset_bits / 8, 8 - shiftBits, mask);
 
             // Load 8 bits
@@ -1011,7 +1011,7 @@ void PluginVisitor::compileExtractField(const IR::Expression *expr, TypeTranslat
             code = format("%1% = (%2%)(%3%) | (%2%)(%4%);", path, type.getName(), part1, part2);
          }
       } else {
-         code = format("%1% = %2%((%3%)(%4%(payload, %5%))%6%);",
+         code = format("%1% = %2%((%3%)(%4%(payload, %5%)))%6%;",
          path, transformFunc, type.getName(), loaderFunc, offset_bits / 8, mask);
       }
 

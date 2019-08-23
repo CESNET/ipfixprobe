@@ -1885,7 +1885,7 @@ int parser_ntp_create(struct flowrec_s *flow, const uint8_t *payload, int payloa
    DEBUG_MSG("ext[0].li = %#02x\n", ext[0].li);
       ext[0].vn = (uint8_t)((load_byte(payload, 0)) >> 3) & FPP_MASK(uint8_t, 3);
    DEBUG_MSG("ext[0].vn = %#02x\n", ext[0].vn);
-      ext[0].mode = ((uint8_t)(load_byte(payload, 0)) & FPP_MASK(uint8_t, 3));
+      ext[0].mode = ((uint8_t)(load_byte(payload, 0))) & FPP_MASK(uint8_t, 3);
    DEBUG_MSG("ext[0].mode = %#02x\n", ext[0].mode);
       ext[0].stratum = ((uint8_t)(load_byte(payload, 1)));
    DEBUG_MSG("ext[0].stratum = %#02x\n", ext[0].stratum);
@@ -1960,7 +1960,7 @@ int parser_ntp_update(struct flowrec_s *flow, const uint8_t *payload, int payloa
    DEBUG_MSG("ext[0].li = %#02x\n", ext[0].li);
       ext[0].vn = (uint8_t)((load_byte(payload, 0)) >> 3) & FPP_MASK(uint8_t, 3);
    DEBUG_MSG("ext[0].vn = %#02x\n", ext[0].vn);
-      ext[0].mode = ((uint8_t)(load_byte(payload, 0)) & FPP_MASK(uint8_t, 3));
+      ext[0].mode = ((uint8_t)(load_byte(payload, 0))) & FPP_MASK(uint8_t, 3);
    DEBUG_MSG("ext[0].mode = %#02x\n", ext[0].mode);
       ext[0].stratum = ((uint8_t)(load_byte(payload, 1)));
    DEBUG_MSG("ext[0].stratum = %#02x\n", ext[0].stratum);

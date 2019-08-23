@@ -311,16 +311,14 @@ void ParserStateVisitor::processExtractField(const IR::Expression *expr, TypeTra
       }
       if (shiftBits != 0) {
          if (toLoad <= 64) {
-            code = format("%1% = (%3%)(%2%(%4%(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> %5%)%6%;",
-               path, transformFunc, type.getName(), loaderFunc, shiftBits, mask); // TODO: test
-            //code = format("%1% = %2%((%3%)(%4%(fpp_packet_start, BYTES(fpp_packet_offset_bits)) >> %5%)%6%);",
-            //   path, transformFunc, type.getName(), loaderFunc, shiftBits, mask);
+            code = format("%1% = (%2%)(%3%(%4%(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> %5%)%6%;",
+               path, type.getName(), transformFunc, loaderFunc, shiftBits, mask);
          } else {
             // This code is used when bits to load are > 64 (width + alignment > 64).
             // This means we have to load 64 bits and 8 additional bits and put it together.
 
             // Load 64 bits
-            std::string part1 = format("%1%((%2%)(%3%(fpp_packet_start, BYTES(fpp_packet_offset_bits)) << %4%)%5%)",
+            std::string part1 = format("(%1%((%2%)(%3%(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) << %4%)%5%",
                transformFunc, type.getName(), loaderFunc, 8 - shiftBits, mask);
 
             // Load 8 bits
@@ -330,7 +328,7 @@ void ParserStateVisitor::processExtractField(const IR::Expression *expr, TypeTra
             code = format("%1% = (%2%)(%3%) | (%2%)(%4%);", path, type.getName(), part1, part2);
          }
       } else {
-         code = format("%1% = %2%((%3%)(%4%(fpp_packet_start, BYTES(fpp_packet_offset_bits)))%5%);",
+         code = format("%1% = %2%((%3%)(%4%(fpp_packet_start, BYTES(fpp_packet_offset_bits))))%5%;",
          path, transformFunc, type.getName(), loaderFunc, mask);
       }
 

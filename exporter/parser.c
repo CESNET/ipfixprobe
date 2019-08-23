@@ -193,7 +193,7 @@ parse_vlan_q:
       vlan_q_0.cfi = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
       DEBUG_MSG("vlan_q_0.cfi = %#02x\n", vlan_q_0.cfi);
-      vlan_q_0.vid = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint16_t, 12));
+      vlan_q_0.vid = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint16_t, 12);
       fpp_packet_offset_bits += 12;
       DEBUG_MSG("vlan_q_0.vid = %#04x\n", vlan_q_0.vid);
       vlan_q_0.ethertype = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -222,7 +222,7 @@ parse_vlan_ad:
       vlan_ad_0.cfi = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
       DEBUG_MSG("vlan_ad_0.cfi = %#02x\n", vlan_ad_0.cfi);
-      vlan_ad_0.vid = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint16_t, 12));
+      vlan_ad_0.vid = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint16_t, 12);
       fpp_packet_offset_bits += 12;
       DEBUG_MSG("vlan_ad_0.vid = %#04x\n", vlan_ad_0.vid);
       vlan_ad_0.ethertype = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -257,7 +257,7 @@ parse_vlan_ah:
       vlan_ah_0.res1 = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 2) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
       DEBUG_MSG("vlan_ah_0.res1 = %#02x\n", vlan_ah_0.res1);
-      vlan_ah_0.res2 = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 2));
+      vlan_ah_0.res2 = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 2);
       fpp_packet_offset_bits += 2;
       DEBUG_MSG("vlan_ah_0.res2 = %#02x\n", vlan_ah_0.res2);
       vlan_ah_0.isid = (uint32_t)(ntohl(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 8) & FPP_MASK(uint32_t, 24);
@@ -280,7 +280,7 @@ parse_trill:
       trill_0.op_len = (uint8_t)(ntohs(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 6) & FPP_MASK(uint8_t, 5);
       fpp_packet_offset_bits += 5;
       DEBUG_MSG("trill_0.op_len = %#02x\n", trill_0.op_len);
-      trill_0.hop_cnt = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 6));
+      trill_0.hop_cnt = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 6);
       fpp_packet_offset_bits += 6;
       DEBUG_MSG("trill_0.hop_cnt = %#02x\n", trill_0.hop_cnt);
       trill_0.egress_nick = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -301,7 +301,7 @@ parse_mpls:
       mpls_0.tc = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 1) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
       DEBUG_MSG("mpls_0.tc = %#02x\n", mpls_0.tc);
-      mpls_0.bos = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 1));
+      mpls_0.bos = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
       DEBUG_MSG("mpls_0.bos = %#02x\n", mpls_0.bos);
       mpls_0.ttl = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -332,7 +332,7 @@ parse_eompls:
       eompls_0.zero = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
       DEBUG_MSG("eompls_0.zero = %#02x\n", eompls_0.zero);
-      eompls_0.res = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint16_t, 12));
+      eompls_0.res = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint16_t, 12);
       fpp_packet_offset_bits += 12;
       DEBUG_MSG("eompls_0.res = %#04x\n", eompls_0.res);
       eompls_0.seq_num = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -346,7 +346,7 @@ parse_pppoe:
       pppoe_0.version = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
       DEBUG_MSG("pppoe_0.version = %#02x\n", pppoe_0.version);
-      pppoe_0.type = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 4));
+      pppoe_0.type = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
       DEBUG_MSG("pppoe_0.type = %#02x\n", pppoe_0.type);
       pppoe_0.code = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -442,7 +442,7 @@ parse_ipv4:
       headers.ipv4[0].version = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
       DEBUG_MSG("headers.ipv4[0].version = %#02x\n", headers.ipv4[0].version);
-      headers.ipv4[0].ihl = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 4));
+      headers.ipv4[0].ihl = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
       DEBUG_MSG("headers.ipv4[0].ihl = %#02x\n", headers.ipv4[0].ihl);
       headers.ipv4[0].diffserv = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -457,7 +457,7 @@ parse_ipv4:
       headers.ipv4[0].flags = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 5) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
       DEBUG_MSG("headers.ipv4[0].flags = %#02x\n", headers.ipv4[0].flags);
-      headers.ipv4[0].frag_offset = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint16_t, 13));
+      headers.ipv4[0].frag_offset = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint16_t, 13);
       fpp_packet_offset_bits += 13;
       DEBUG_MSG("headers.ipv4[0].frag_offset = %#04x\n", headers.ipv4[0].frag_offset);
       headers.ipv4[0].ttl = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -721,7 +721,7 @@ parse_ipv6_fragment:
       ipv6_fragment_0.res2 = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 1) & FPP_MASK(uint8_t, 2);
       fpp_packet_offset_bits += 2;
       DEBUG_MSG("ipv6_fragment_0.res2 = %#02x\n", ipv6_fragment_0.res2);
-      ipv6_fragment_0.m = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 1));
+      ipv6_fragment_0.m = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
       DEBUG_MSG("ipv6_fragment_0.m = %#02x\n", ipv6_fragment_0.m);
       ipv6_fragment_0.id = ntohl((uint32_t)(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -772,7 +772,7 @@ parse_etherip:
       etherip_0.version = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
       DEBUG_MSG("etherip_0.version = %#02x\n", etherip_0.version);
-      etherip_0.reserved = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint16_t, 12));
+      etherip_0.reserved = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint16_t, 12);
       fpp_packet_offset_bits += 12;
       DEBUG_MSG("etherip_0.reserved = %#04x\n", etherip_0.reserved);
 
@@ -799,7 +799,7 @@ parse_gre:
       gre_0.s = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 3) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
       DEBUG_MSG("gre_0.s = %#02x\n", gre_0.s);
-      gre_0.recur = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 3));
+      gre_0.recur = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
       DEBUG_MSG("gre_0.recur = %#02x\n", gre_0.recur);
       gre_0.A = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 7) & FPP_MASK(uint8_t, 1);
@@ -808,7 +808,7 @@ parse_gre:
       gre_0.flags = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 3) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
       DEBUG_MSG("gre_0.flags = %#02x\n", gre_0.flags);
-      gre_0.ver = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 3));
+      gre_0.ver = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
       DEBUG_MSG("gre_0.ver = %#02x\n", gre_0.ver);
       gre_0.proto = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -904,13 +904,13 @@ parse_l2tp:
       l2tp_0.offset = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 1) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
       DEBUG_MSG("l2tp_0.offset = %#02x\n", l2tp_0.offset);
-      l2tp_0.priority = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 1));
+      l2tp_0.priority = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
       DEBUG_MSG("l2tp_0.priority = %#02x\n", l2tp_0.priority);
       l2tp_0.res3 = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
       DEBUG_MSG("l2tp_0.res3 = %#02x\n", l2tp_0.res3);
-      l2tp_0.version = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 4));
+      l2tp_0.version = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
       DEBUG_MSG("l2tp_0.version = %#02x\n", l2tp_0.version);
 
@@ -958,7 +958,7 @@ parse_gtp_v0:
       gtp_v0_0.res1 = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 1) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
       DEBUG_MSG("gtp_v0_0.res1 = %#02x\n", gtp_v0_0.res1);
-      gtp_v0_0.snn = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 1));
+      gtp_v0_0.snn = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
       DEBUG_MSG("gtp_v0_0.snn = %#02x\n", gtp_v0_0.snn);
       gtp_v0_0.type = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -1006,7 +1006,7 @@ parse_gtp_v1:
       gtp_v1_0.S = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 1) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
       DEBUG_MSG("gtp_v1_0.S = %#02x\n", gtp_v1_0.S);
-      gtp_v1_0.PN = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 1));
+      gtp_v1_0.PN = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
       DEBUG_MSG("gtp_v1_0.PN = %#02x\n", gtp_v1_0.PN);
       gtp_v1_0.type = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -1080,7 +1080,7 @@ parse_gtp_v2:
       gtp_v2_0.TEID_flag = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 3) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
       DEBUG_MSG("gtp_v2_0.TEID_flag = %#02x\n", gtp_v2_0.TEID_flag);
-      gtp_v2_0.spare = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 3));
+      gtp_v2_0.spare = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
       DEBUG_MSG("gtp_v2_0.spare = %#02x\n", gtp_v2_0.spare);
       gtp_v2_0.type = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -1201,7 +1201,7 @@ parse_vxlan:
       vxlan_0.policy_applied = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 3) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
       DEBUG_MSG("vxlan_0.policy_applied = %#02x\n", vxlan_0.policy_applied);
-      vxlan_0.res4 = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 3));
+      vxlan_0.res4 = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
       DEBUG_MSG("vxlan_0.res4 = %#02x\n", vxlan_0.res4);
       vxlan_0.gpolicy_id = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -1221,7 +1221,7 @@ parse_genv:
       genv_0.version = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 6) & FPP_MASK(uint8_t, 2);
       fpp_packet_offset_bits += 2;
       DEBUG_MSG("genv_0.version = %#02x\n", genv_0.version);
-      genv_0.opt_len = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 6));
+      genv_0.opt_len = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 6);
       fpp_packet_offset_bits += 6;
       DEBUG_MSG("genv_0.opt_len = %#02x\n", genv_0.opt_len);
       genv_0.oam = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 7) & FPP_MASK(uint8_t, 1);
@@ -1230,7 +1230,7 @@ parse_genv:
       genv_0.critical = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 6) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
       DEBUG_MSG("genv_0.critical = %#02x\n", genv_0.critical);
-      genv_0.res1 = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 6));
+      genv_0.res1 = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 6);
       fpp_packet_offset_bits += 6;
       DEBUG_MSG("genv_0.res1 = %#02x\n", genv_0.res1);
       genv_0.proto = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
@@ -1278,7 +1278,7 @@ parse_tcp:
       headers.tcp[0].data_offset = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
       DEBUG_MSG("headers.tcp[0].data_offset = %#02x\n", headers.tcp[0].data_offset);
-      headers.tcp[0].res = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) & FPP_MASK(uint8_t, 4));
+      headers.tcp[0].res = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
       DEBUG_MSG("headers.tcp[0].res = %#02x\n", headers.tcp[0].res);
       headers.tcp[0].flags = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
