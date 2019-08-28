@@ -471,7 +471,11 @@ int main(int argc, char *argv[])
       export_basic = (strstr(plugins, "basic") != NULL ? 1 : 0);
    }
 
-   ipfix_init(&ipfix, odid, host, port, udp, verbose, dir, export_basic);
+   if (ipfix_init(&ipfix, odid, host, port, udp, verbose, dir, export_basic) != 0) {
+      fprintf(stderr, "Error: unable to initialize ipfix\n");
+      status = 1;
+      goto EXIT;
+   }
    if (!cache_init(&cache, cache_size, cache_line_size, timeout_active, timeout_inactive, &ipfix, plugins)) {
       fprintf(stderr, "Error: unable to initialize cache\n");
       status = 1;
