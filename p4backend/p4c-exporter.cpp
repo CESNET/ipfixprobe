@@ -129,13 +129,10 @@ void runBackend(const P4EOptions &options, const IR::ToplevelBlock *topLevel, P4
    inja::Template tmpltMain = env.parse_template("main.c.tmplt");
    env.write(tmpltMain, dummy, "main.c");
 
-   if (!exporter::copy(options.templatesDir_ + "/Makefile.am", options.genDir_ + "/Makefile.am") ||
-      !exporter::copy(options.templatesDir_ + "/configure.ac", options.genDir_ + "/configure.ac") ||
-      !exporter::copy(options.templatesDir_ + "/bootstrap.sh", options.genDir_ + "/bootstrap.sh") ||
-      !exporter::copy(options.templatesDir_ + "/README.md", options.genDir_ + "/README.md")) {
-      ::error("template files Makefile.am, configure.ac or bootstrap.sh could not be read");
-      return;
-   }
+   exporter::copy(options.templatesDir_ + "/Makefile.am", options.genDir_ + "/Makefile.am");
+   exporter::copy(options.templatesDir_ + "/configure.ac", options.genDir_ + "/configure.ac");
+   exporter::copy(options.templatesDir_ + "/bootstrap.sh", options.genDir_ + "/bootstrap.sh");
+   exporter::copy(options.templatesDir_ + "/README.md", options.genDir_ + "/README.md");
 }
 
 void compile(P4EOptions &options)
