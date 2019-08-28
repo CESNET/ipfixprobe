@@ -674,27 +674,27 @@ ConstructExpression::ConstructExpression(P4::ReferenceMap *refMap, P4::TypeMap *
 void addDebugParserField(nlohmann::json &container, TypeTranslator &type, const std::string &path)
 {
    int width = type.getImplementationWidth();
-   std::string formatLength = "";
+   std::string printFormat = "";
 
    if (width <= 8) {
-      formatLength = "#04";
+      printFormat = "%#04\" PRIx8 \"";
    } else if (width <= 16) {
-      formatLength = "#06";
+      printFormat = "%#06\" PRIx16\"";
    } else if (width <= 32) {
-      formatLength = "#010";
+      printFormat = "%#010\" PRIx32 \"";
    } else if (width == 64) {
-      formatLength = "#018l";
+      printFormat = "%#018\" PRIx64 \"";
    } else {
       container["statements"] += format("DEBUG_MSG(\"%1% =\");", path);
       int elems = width / 8 + (width % 8 ? 1 : 0);
       for (int i = 0; i < elems; i++) {
-         container["statements"] += format("DEBUG_MSG(\" %1%\", %2%[%3%]);", "%#04x", path, elems - 1 - i);
+         container["statements"] += format("DEBUG_MSG(\" %1%, %2%[%3%]);", "%#04\" PRIx8", path, elems - 1 - i);
       }
       container["statements"] += format("DEBUG_MSG(\"\\n\");");
       return;
    }
 
-   container["statements"] += format("DEBUG_MSG(\"%1% = %2%\\n\", %1%);", path, "%" + formatLength + "x");
+   container["statements"] += format("DEBUG_MSG(\"%1% = %2%\\n\", %1%);", path, printFormat);
 }
 
 } // namespace exporter

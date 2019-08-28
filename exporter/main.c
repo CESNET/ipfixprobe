@@ -30,6 +30,7 @@
  * if advised of the possibility of such damage.
 */
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -502,9 +503,9 @@ int main(int argc, char *argv[])
    cache_export_all(&cache);
 
    printf("%s:\n", pcap_uri);
-   printf("   %lu packets read (%lu bytes)\n", total_packets, total_bytes);
-   printf("   %lu packets processed in cache\n", cache.packets_total);
-   printf("   %lu flow records created\n", cache.flows_total);
+   printf("   %" PRIu64 " packets read (%" PRIu64 " bytes)\n", total_packets, total_bytes);
+   printf("   %" PRIu64 " packets processed in cache\n", cache.packets_total);
+   printf("   %" PRIu64 " flow records created\n", cache.flows_total);
 
 EXIT:
    fpp_clear(&parser);

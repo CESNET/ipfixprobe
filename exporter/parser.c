@@ -162,13 +162,13 @@ parse_ethernet:
       if (last_hdr != NULL) { last_hdr->next = hdr; last_hdr = hdr; } else { *out = hdr; last_hdr = hdr; }
       headers.eth[0].dst_addr = (uint64_t)(ntohll(load_dword(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 16) & FPP_MASK(uint64_t, 48);
       fpp_packet_offset_bits += 48;
-      DEBUG_MSG("headers.eth[0].dst_addr = %#018lx\n", headers.eth[0].dst_addr);
+      DEBUG_MSG("headers.eth[0].dst_addr = %#018" PRIx64 "\n", headers.eth[0].dst_addr);
       headers.eth[0].src_addr = (uint64_t)(ntohll(load_dword(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 16) & FPP_MASK(uint64_t, 48);
       fpp_packet_offset_bits += 48;
-      DEBUG_MSG("headers.eth[0].src_addr = %#018lx\n", headers.eth[0].src_addr);
+      DEBUG_MSG("headers.eth[0].src_addr = %#018" PRIx64 "\n", headers.eth[0].src_addr);
       headers.eth[0].ethertype = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.eth[0].ethertype = %#06x\n", headers.eth[0].ethertype);
+      DEBUG_MSG("headers.eth[0].ethertype = %#06" PRIx16"\n", headers.eth[0].ethertype);
 
       switch (headers.eth[0].ethertype) { 
          case 2048: goto parse_ipv4;
@@ -189,16 +189,16 @@ parse_vlan_q:
    { 
       vlan_q_0.pcp = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 5) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
-      DEBUG_MSG("vlan_q_0.pcp = %#04x\n", vlan_q_0.pcp);
+      DEBUG_MSG("vlan_q_0.pcp = %#04" PRIx8 "\n", vlan_q_0.pcp);
       vlan_q_0.cfi = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("vlan_q_0.cfi = %#04x\n", vlan_q_0.cfi);
+      DEBUG_MSG("vlan_q_0.cfi = %#04" PRIx8 "\n", vlan_q_0.cfi);
       vlan_q_0.vid = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint16_t, 12);
       fpp_packet_offset_bits += 12;
-      DEBUG_MSG("vlan_q_0.vid = %#06x\n", vlan_q_0.vid);
+      DEBUG_MSG("vlan_q_0.vid = %#06" PRIx16"\n", vlan_q_0.vid);
       vlan_q_0.ethertype = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("vlan_q_0.ethertype = %#06x\n", vlan_q_0.ethertype);
+      DEBUG_MSG("vlan_q_0.ethertype = %#06" PRIx16"\n", vlan_q_0.ethertype);
 
       switch (vlan_q_0.ethertype) { 
          case 2048: goto parse_ipv4;
@@ -218,16 +218,16 @@ parse_vlan_ad:
    { 
       vlan_ad_0.pcp = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 5) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
-      DEBUG_MSG("vlan_ad_0.pcp = %#04x\n", vlan_ad_0.pcp);
+      DEBUG_MSG("vlan_ad_0.pcp = %#04" PRIx8 "\n", vlan_ad_0.pcp);
       vlan_ad_0.cfi = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("vlan_ad_0.cfi = %#04x\n", vlan_ad_0.cfi);
+      DEBUG_MSG("vlan_ad_0.cfi = %#04" PRIx8 "\n", vlan_ad_0.cfi);
       vlan_ad_0.vid = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint16_t, 12);
       fpp_packet_offset_bits += 12;
-      DEBUG_MSG("vlan_ad_0.vid = %#06x\n", vlan_ad_0.vid);
+      DEBUG_MSG("vlan_ad_0.vid = %#06" PRIx16"\n", vlan_ad_0.vid);
       vlan_ad_0.ethertype = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("vlan_ad_0.ethertype = %#06x\n", vlan_ad_0.ethertype);
+      DEBUG_MSG("vlan_ad_0.ethertype = %#06" PRIx16"\n", vlan_ad_0.ethertype);
 
       switch (vlan_ad_0.ethertype) { 
          case 2048: goto parse_ipv4;
@@ -247,22 +247,22 @@ parse_vlan_ah:
    { 
       vlan_ah_0.prio = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 5) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
-      DEBUG_MSG("vlan_ah_0.prio = %#04x\n", vlan_ah_0.prio);
+      DEBUG_MSG("vlan_ah_0.prio = %#04" PRIx8 "\n", vlan_ah_0.prio);
       vlan_ah_0.drop = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("vlan_ah_0.drop = %#04x\n", vlan_ah_0.drop);
+      DEBUG_MSG("vlan_ah_0.drop = %#04" PRIx8 "\n", vlan_ah_0.drop);
       vlan_ah_0.nca = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 3) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("vlan_ah_0.nca = %#04x\n", vlan_ah_0.nca);
+      DEBUG_MSG("vlan_ah_0.nca = %#04" PRIx8 "\n", vlan_ah_0.nca);
       vlan_ah_0.res1 = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 2) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("vlan_ah_0.res1 = %#04x\n", vlan_ah_0.res1);
+      DEBUG_MSG("vlan_ah_0.res1 = %#04" PRIx8 "\n", vlan_ah_0.res1);
       vlan_ah_0.res2 = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 2);
       fpp_packet_offset_bits += 2;
-      DEBUG_MSG("vlan_ah_0.res2 = %#04x\n", vlan_ah_0.res2);
+      DEBUG_MSG("vlan_ah_0.res2 = %#04" PRIx8 "\n", vlan_ah_0.res2);
       vlan_ah_0.isid = (uint32_t)(ntohl(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 8) & FPP_MASK(uint32_t, 24);
       fpp_packet_offset_bits += 24;
-      DEBUG_MSG("vlan_ah_0.isid = %#010x\n", vlan_ah_0.isid);
+      DEBUG_MSG("vlan_ah_0.isid = %#010" PRIx32 "\n", vlan_ah_0.isid);
 
       goto parse_ethernet;
    }
@@ -270,25 +270,25 @@ parse_trill:
    { 
       trill_0.version = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 6) & FPP_MASK(uint8_t, 2);
       fpp_packet_offset_bits += 2;
-      DEBUG_MSG("trill_0.version = %#04x\n", trill_0.version);
+      DEBUG_MSG("trill_0.version = %#04" PRIx8 "\n", trill_0.version);
       trill_0.res = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 2);
       fpp_packet_offset_bits += 2;
-      DEBUG_MSG("trill_0.res = %#04x\n", trill_0.res);
+      DEBUG_MSG("trill_0.res = %#04" PRIx8 "\n", trill_0.res);
       trill_0.m = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 3) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("trill_0.m = %#04x\n", trill_0.m);
+      DEBUG_MSG("trill_0.m = %#04" PRIx8 "\n", trill_0.m);
       trill_0.op_len = (uint8_t)(ntohs(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 6) & FPP_MASK(uint8_t, 5);
       fpp_packet_offset_bits += 5;
-      DEBUG_MSG("trill_0.op_len = %#04x\n", trill_0.op_len);
+      DEBUG_MSG("trill_0.op_len = %#04" PRIx8 "\n", trill_0.op_len);
       trill_0.hop_cnt = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 6);
       fpp_packet_offset_bits += 6;
-      DEBUG_MSG("trill_0.hop_cnt = %#04x\n", trill_0.hop_cnt);
+      DEBUG_MSG("trill_0.hop_cnt = %#04" PRIx8 "\n", trill_0.hop_cnt);
       trill_0.egress_nick = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("trill_0.egress_nick = %#06x\n", trill_0.egress_nick);
+      DEBUG_MSG("trill_0.egress_nick = %#06" PRIx16"\n", trill_0.egress_nick);
       trill_0.ingress_nick = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("trill_0.ingress_nick = %#06x\n", trill_0.ingress_nick);
+      DEBUG_MSG("trill_0.ingress_nick = %#06" PRIx16"\n", trill_0.ingress_nick);
       fpp_packet_offset_bits += ((uint32_t)(trill_0.op_len)) << (5);
 
       goto parse_ethernet;
@@ -297,16 +297,16 @@ parse_mpls:
    { 
       mpls_0.label = (uint32_t)(ntohl(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 12) & FPP_MASK(uint32_t, 20);
       fpp_packet_offset_bits += 20;
-      DEBUG_MSG("mpls_0.label = %#010x\n", mpls_0.label);
+      DEBUG_MSG("mpls_0.label = %#010" PRIx32 "\n", mpls_0.label);
       mpls_0.tc = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 1) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
-      DEBUG_MSG("mpls_0.tc = %#04x\n", mpls_0.tc);
+      DEBUG_MSG("mpls_0.tc = %#04" PRIx8 "\n", mpls_0.tc);
       mpls_0.bos = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("mpls_0.bos = %#04x\n", mpls_0.bos);
+      DEBUG_MSG("mpls_0.bos = %#04" PRIx8 "\n", mpls_0.bos);
       mpls_0.ttl = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("mpls_0.ttl = %#04x\n", mpls_0.ttl);
+      DEBUG_MSG("mpls_0.ttl = %#04" PRIx8 "\n", mpls_0.ttl);
 
       switch (mpls_0.bos) { 
          case 0: goto parse_mpls;
@@ -331,13 +331,13 @@ parse_eompls:
    { 
       eompls_0.zero = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
-      DEBUG_MSG("eompls_0.zero = %#04x\n", eompls_0.zero);
+      DEBUG_MSG("eompls_0.zero = %#04" PRIx8 "\n", eompls_0.zero);
       eompls_0.res = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint16_t, 12);
       fpp_packet_offset_bits += 12;
-      DEBUG_MSG("eompls_0.res = %#06x\n", eompls_0.res);
+      DEBUG_MSG("eompls_0.res = %#06" PRIx16"\n", eompls_0.res);
       eompls_0.seq_num = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("eompls_0.seq_num = %#06x\n", eompls_0.seq_num);
+      DEBUG_MSG("eompls_0.seq_num = %#06" PRIx16"\n", eompls_0.seq_num);
 
       goto parse_ethernet;
    }
@@ -345,19 +345,19 @@ parse_pppoe:
    { 
       pppoe_0.version = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
-      DEBUG_MSG("pppoe_0.version = %#04x\n", pppoe_0.version);
+      DEBUG_MSG("pppoe_0.version = %#04" PRIx8 "\n", pppoe_0.version);
       pppoe_0.type = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
-      DEBUG_MSG("pppoe_0.type = %#04x\n", pppoe_0.type);
+      DEBUG_MSG("pppoe_0.type = %#04" PRIx8 "\n", pppoe_0.type);
       pppoe_0.code = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("pppoe_0.code = %#04x\n", pppoe_0.code);
+      DEBUG_MSG("pppoe_0.code = %#04" PRIx8 "\n", pppoe_0.code);
       pppoe_0.sid = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("pppoe_0.sid = %#06x\n", pppoe_0.sid);
+      DEBUG_MSG("pppoe_0.sid = %#06" PRIx16"\n", pppoe_0.sid);
       pppoe_0.len = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("pppoe_0.len = %#06x\n", pppoe_0.len);
+      DEBUG_MSG("pppoe_0.len = %#06" PRIx16"\n", pppoe_0.len);
 
       switch (pppoe_0.code) { 
          case 0: goto parse_pptp;
@@ -402,7 +402,7 @@ parse_pptp_uncomp_proto:
    { 
       pptp_uncomp_proto_0.proto = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("pptp_uncomp_proto_0.proto = %#06x\n", pptp_uncomp_proto_0.proto);
+      DEBUG_MSG("pptp_uncomp_proto_0.proto = %#06" PRIx16"\n", pptp_uncomp_proto_0.proto);
 
       switch (pptp_uncomp_proto_0.proto) { 
          case 33: goto parse_ipv4;
@@ -417,7 +417,7 @@ parse_pptp_comp_proto:
    { 
       pptp_comp_proto_0.proto = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("pptp_comp_proto_0.proto = %#04x\n", pptp_comp_proto_0.proto);
+      DEBUG_MSG("pptp_comp_proto_0.proto = %#04" PRIx8 "\n", pptp_comp_proto_0.proto);
 
       switch ((uint16_t)(pptp_comp_proto_0.proto)) { 
          case 33: goto parse_ipv4;
@@ -441,40 +441,40 @@ parse_ipv4:
       if (last_hdr != NULL) { last_hdr->next = hdr; last_hdr = hdr; } else { *out = hdr; last_hdr = hdr; }
       headers.ipv4[0].version = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
-      DEBUG_MSG("headers.ipv4[0].version = %#04x\n", headers.ipv4[0].version);
+      DEBUG_MSG("headers.ipv4[0].version = %#04" PRIx8 "\n", headers.ipv4[0].version);
       headers.ipv4[0].ihl = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
-      DEBUG_MSG("headers.ipv4[0].ihl = %#04x\n", headers.ipv4[0].ihl);
+      DEBUG_MSG("headers.ipv4[0].ihl = %#04" PRIx8 "\n", headers.ipv4[0].ihl);
       headers.ipv4[0].diffserv = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("headers.ipv4[0].diffserv = %#04x\n", headers.ipv4[0].diffserv);
+      DEBUG_MSG("headers.ipv4[0].diffserv = %#04" PRIx8 "\n", headers.ipv4[0].diffserv);
       headers.ipv4[0].total_len = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.ipv4[0].total_len = %#06x\n", headers.ipv4[0].total_len);
+      DEBUG_MSG("headers.ipv4[0].total_len = %#06" PRIx16"\n", headers.ipv4[0].total_len);
       headers.ipv4[0].identification = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.ipv4[0].identification = %#06x\n", headers.ipv4[0].identification);
+      DEBUG_MSG("headers.ipv4[0].identification = %#06" PRIx16"\n", headers.ipv4[0].identification);
       headers.ipv4[0].flags = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 5) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
-      DEBUG_MSG("headers.ipv4[0].flags = %#04x\n", headers.ipv4[0].flags);
+      DEBUG_MSG("headers.ipv4[0].flags = %#04" PRIx8 "\n", headers.ipv4[0].flags);
       headers.ipv4[0].frag_offset = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint16_t, 13);
       fpp_packet_offset_bits += 13;
-      DEBUG_MSG("headers.ipv4[0].frag_offset = %#06x\n", headers.ipv4[0].frag_offset);
+      DEBUG_MSG("headers.ipv4[0].frag_offset = %#06" PRIx16"\n", headers.ipv4[0].frag_offset);
       headers.ipv4[0].ttl = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("headers.ipv4[0].ttl = %#04x\n", headers.ipv4[0].ttl);
+      DEBUG_MSG("headers.ipv4[0].ttl = %#04" PRIx8 "\n", headers.ipv4[0].ttl);
       headers.ipv4[0].protocol = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("headers.ipv4[0].protocol = %#04x\n", headers.ipv4[0].protocol);
+      DEBUG_MSG("headers.ipv4[0].protocol = %#04" PRIx8 "\n", headers.ipv4[0].protocol);
       headers.ipv4[0].hdr_checksum = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.ipv4[0].hdr_checksum = %#06x\n", headers.ipv4[0].hdr_checksum);
+      DEBUG_MSG("headers.ipv4[0].hdr_checksum = %#06" PRIx16"\n", headers.ipv4[0].hdr_checksum);
       headers.ipv4[0].src_addr = ntohl((uint32_t)(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 32;
-      DEBUG_MSG("headers.ipv4[0].src_addr = %#010x\n", headers.ipv4[0].src_addr);
+      DEBUG_MSG("headers.ipv4[0].src_addr = %#010" PRIx32 "\n", headers.ipv4[0].src_addr);
       headers.ipv4[0].dst_addr = ntohl((uint32_t)(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 32;
-      DEBUG_MSG("headers.ipv4[0].dst_addr = %#010x\n", headers.ipv4[0].dst_addr);
+      DEBUG_MSG("headers.ipv4[0].dst_addr = %#010" PRIx32 "\n", headers.ipv4[0].dst_addr);
       fpp_packet_offset_bits += (uint32_t)((((int32_t)((uint32_t)(headers.ipv4[0].ihl))) + (-5)) << (5));
 
       switch ((uint8_t)((headers.ipv4[0].frag_offset) == (0))) { 
@@ -511,22 +511,22 @@ parse_ipv6:
       if (last_hdr != NULL) { last_hdr->next = hdr; last_hdr = hdr; } else { *out = hdr; last_hdr = hdr; }
       headers.ipv6[0].version = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
-      DEBUG_MSG("headers.ipv6[0].version = %#04x\n", headers.ipv6[0].version);
+      DEBUG_MSG("headers.ipv6[0].version = %#04" PRIx8 "\n", headers.ipv6[0].version);
       headers.ipv6[0].traffic_class = (uint8_t)(ntohs(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 8);
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("headers.ipv6[0].traffic_class = %#04x\n", headers.ipv6[0].traffic_class);
+      DEBUG_MSG("headers.ipv6[0].traffic_class = %#04" PRIx8 "\n", headers.ipv6[0].traffic_class);
       headers.ipv6[0].flow_label = (uint32_t)(ntohl(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 8) & FPP_MASK(uint32_t, 20);
       fpp_packet_offset_bits += 20;
-      DEBUG_MSG("headers.ipv6[0].flow_label = %#010x\n", headers.ipv6[0].flow_label);
+      DEBUG_MSG("headers.ipv6[0].flow_label = %#010" PRIx32 "\n", headers.ipv6[0].flow_label);
       headers.ipv6[0].payload_len = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.ipv6[0].payload_len = %#06x\n", headers.ipv6[0].payload_len);
+      DEBUG_MSG("headers.ipv6[0].payload_len = %#06" PRIx16"\n", headers.ipv6[0].payload_len);
       headers.ipv6[0].next_hdr = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("headers.ipv6[0].next_hdr = %#04x\n", headers.ipv6[0].next_hdr);
+      DEBUG_MSG("headers.ipv6[0].next_hdr = %#04" PRIx8 "\n", headers.ipv6[0].next_hdr);
       headers.ipv6[0].hop_limit = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("headers.ipv6[0].hop_limit = %#04x\n", headers.ipv6[0].hop_limit);
+      DEBUG_MSG("headers.ipv6[0].hop_limit = %#04" PRIx8 "\n", headers.ipv6[0].hop_limit);
       headers.ipv6[0].src_addr[0] = (uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits + 0)) >> 0);
       headers.ipv6[0].src_addr[1] = (uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits + 8)) >> 0);
       headers.ipv6[0].src_addr[2] = (uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits + 16)) >> 0);
@@ -545,22 +545,22 @@ parse_ipv6:
       headers.ipv6[0].src_addr[15] = (uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits + 120)) >> 0);
       fpp_packet_offset_bits += 128;
       DEBUG_MSG("headers.ipv6[0].src_addr =");
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[15]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[14]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[13]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[12]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[11]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[10]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[9]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[8]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[7]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[6]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[5]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[4]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[3]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[2]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[1]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].src_addr[0]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[15]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[14]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[13]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[12]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[11]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[10]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[9]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[8]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[7]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[6]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[5]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[4]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[3]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[2]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[1]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].src_addr[0]);
       DEBUG_MSG("\n");
       headers.ipv6[0].dst_addr[0] = (uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits + 0)) >> 0);
       headers.ipv6[0].dst_addr[1] = (uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits + 8)) >> 0);
@@ -580,22 +580,22 @@ parse_ipv6:
       headers.ipv6[0].dst_addr[15] = (uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits + 120)) >> 0);
       fpp_packet_offset_bits += 128;
       DEBUG_MSG("headers.ipv6[0].dst_addr =");
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[15]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[14]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[13]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[12]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[11]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[10]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[9]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[8]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[7]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[6]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[5]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[4]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[3]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[2]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[1]);
-      DEBUG_MSG(" %#04x", headers.ipv6[0].dst_addr[0]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[15]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[14]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[13]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[12]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[11]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[10]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[9]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[8]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[7]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[6]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[5]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[4]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[3]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[2]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[1]);
+      DEBUG_MSG(" %#04" PRIx8, headers.ipv6[0].dst_addr[0]);
       DEBUG_MSG("\n");
 
       switch (headers.ipv6[0].next_hdr) { 
@@ -621,10 +621,10 @@ parse_ipv6_hop_opt:
    { 
       ipv6_hop_opt_0.next_hdr = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("ipv6_hop_opt_0.next_hdr = %#04x\n", ipv6_hop_opt_0.next_hdr);
+      DEBUG_MSG("ipv6_hop_opt_0.next_hdr = %#04" PRIx8 "\n", ipv6_hop_opt_0.next_hdr);
       ipv6_hop_opt_0.hdr_len = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("ipv6_hop_opt_0.hdr_len = %#04x\n", ipv6_hop_opt_0.hdr_len);
+      DEBUG_MSG("ipv6_hop_opt_0.hdr_len = %#04" PRIx8 "\n", ipv6_hop_opt_0.hdr_len);
       fpp_packet_offset_bits += (((uint32_t)(ipv6_hop_opt_0.hdr_len)) << (6)) + (48);
       headers.ipv6[0].next_hdr = ipv6_hop_opt_0.next_hdr;
 
@@ -651,10 +651,10 @@ parse_ipv6_dst_opt:
    { 
       ipv6_dst_opt_0.next_hdr = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("ipv6_dst_opt_0.next_hdr = %#04x\n", ipv6_dst_opt_0.next_hdr);
+      DEBUG_MSG("ipv6_dst_opt_0.next_hdr = %#04" PRIx8 "\n", ipv6_dst_opt_0.next_hdr);
       ipv6_dst_opt_0.hdr_len = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("ipv6_dst_opt_0.hdr_len = %#04x\n", ipv6_dst_opt_0.hdr_len);
+      DEBUG_MSG("ipv6_dst_opt_0.hdr_len = %#04" PRIx8 "\n", ipv6_dst_opt_0.hdr_len);
       fpp_packet_offset_bits += (((uint32_t)(ipv6_dst_opt_0.hdr_len)) << (6)) + (48);
       headers.ipv6[0].next_hdr = ipv6_dst_opt_0.next_hdr;
 
@@ -681,10 +681,10 @@ parse_ipv6_routing:
    { 
       ipv6_routing_0.next_hdr = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("ipv6_routing_0.next_hdr = %#04x\n", ipv6_routing_0.next_hdr);
+      DEBUG_MSG("ipv6_routing_0.next_hdr = %#04" PRIx8 "\n", ipv6_routing_0.next_hdr);
       ipv6_routing_0.hdr_len = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("ipv6_routing_0.hdr_len = %#04x\n", ipv6_routing_0.hdr_len);
+      DEBUG_MSG("ipv6_routing_0.hdr_len = %#04" PRIx8 "\n", ipv6_routing_0.hdr_len);
       fpp_packet_offset_bits += (((uint32_t)(ipv6_routing_0.hdr_len)) << (6)) + (48);
       headers.ipv6[0].next_hdr = ipv6_routing_0.next_hdr;
 
@@ -711,22 +711,22 @@ parse_ipv6_fragment:
    { 
       ipv6_fragment_0.next_hdr = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("ipv6_fragment_0.next_hdr = %#04x\n", ipv6_fragment_0.next_hdr);
+      DEBUG_MSG("ipv6_fragment_0.next_hdr = %#04" PRIx8 "\n", ipv6_fragment_0.next_hdr);
       ipv6_fragment_0.res1 = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("ipv6_fragment_0.res1 = %#04x\n", ipv6_fragment_0.res1);
+      DEBUG_MSG("ipv6_fragment_0.res1 = %#04" PRIx8 "\n", ipv6_fragment_0.res1);
       ipv6_fragment_0.frag_offset = (uint16_t)(ntohs(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 3) & FPP_MASK(uint16_t, 13);
       fpp_packet_offset_bits += 13;
-      DEBUG_MSG("ipv6_fragment_0.frag_offset = %#06x\n", ipv6_fragment_0.frag_offset);
+      DEBUG_MSG("ipv6_fragment_0.frag_offset = %#06" PRIx16"\n", ipv6_fragment_0.frag_offset);
       ipv6_fragment_0.res2 = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 1) & FPP_MASK(uint8_t, 2);
       fpp_packet_offset_bits += 2;
-      DEBUG_MSG("ipv6_fragment_0.res2 = %#04x\n", ipv6_fragment_0.res2);
+      DEBUG_MSG("ipv6_fragment_0.res2 = %#04" PRIx8 "\n", ipv6_fragment_0.res2);
       ipv6_fragment_0.m = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("ipv6_fragment_0.m = %#04x\n", ipv6_fragment_0.m);
+      DEBUG_MSG("ipv6_fragment_0.m = %#04" PRIx8 "\n", ipv6_fragment_0.m);
       ipv6_fragment_0.id = ntohl((uint32_t)(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 32;
-      DEBUG_MSG("ipv6_fragment_0.id = %#010x\n", ipv6_fragment_0.id);
+      DEBUG_MSG("ipv6_fragment_0.id = %#010" PRIx32 "\n", ipv6_fragment_0.id);
       headers.ipv6[0].next_hdr = ipv6_fragment_0.next_hdr;
 
       goto accept;
@@ -735,16 +735,16 @@ parse_ipv6_ah:
    { 
       ipv6_ah_0.next_hdr = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("ipv6_ah_0.next_hdr = %#04x\n", ipv6_ah_0.next_hdr);
+      DEBUG_MSG("ipv6_ah_0.next_hdr = %#04" PRIx8 "\n", ipv6_ah_0.next_hdr);
       ipv6_ah_0.len = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("ipv6_ah_0.len = %#04x\n", ipv6_ah_0.len);
+      DEBUG_MSG("ipv6_ah_0.len = %#04" PRIx8 "\n", ipv6_ah_0.len);
       ipv6_ah_0.res = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("ipv6_ah_0.res = %#06x\n", ipv6_ah_0.res);
+      DEBUG_MSG("ipv6_ah_0.res = %#06" PRIx16"\n", ipv6_ah_0.res);
       ipv6_ah_0.spi = ntohl((uint32_t)(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 32;
-      DEBUG_MSG("ipv6_ah_0.spi = %#010x\n", ipv6_ah_0.spi);
+      DEBUG_MSG("ipv6_ah_0.spi = %#010" PRIx32 "\n", ipv6_ah_0.spi);
       fpp_packet_offset_bits += ((uint32_t)(ipv6_ah_0.len)) << (5);
       headers.ipv6[0].next_hdr = ipv6_ah_0.next_hdr;
 
@@ -771,10 +771,10 @@ parse_etherip:
    { 
       etherip_0.version = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
-      DEBUG_MSG("etherip_0.version = %#04x\n", etherip_0.version);
+      DEBUG_MSG("etherip_0.version = %#04" PRIx8 "\n", etherip_0.version);
       etherip_0.reserved = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint16_t, 12);
       fpp_packet_offset_bits += 12;
-      DEBUG_MSG("etherip_0.reserved = %#06x\n", etherip_0.reserved);
+      DEBUG_MSG("etherip_0.reserved = %#06" PRIx16"\n", etherip_0.reserved);
 
       switch (etherip_0.version) { 
          case 3: goto parse_ethernet;
@@ -786,34 +786,34 @@ parse_gre:
    { 
       gre_0.C = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 7) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gre_0.C = %#04x\n", gre_0.C);
+      DEBUG_MSG("gre_0.C = %#04" PRIx8 "\n", gre_0.C);
       gre_0.R = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 6) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gre_0.R = %#04x\n", gre_0.R);
+      DEBUG_MSG("gre_0.R = %#04" PRIx8 "\n", gre_0.R);
       gre_0.K = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 5) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gre_0.K = %#04x\n", gre_0.K);
+      DEBUG_MSG("gre_0.K = %#04" PRIx8 "\n", gre_0.K);
       gre_0.S = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gre_0.S = %#04x\n", gre_0.S);
+      DEBUG_MSG("gre_0.S = %#04" PRIx8 "\n", gre_0.S);
       gre_0.s = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 3) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gre_0.s = %#04x\n", gre_0.s);
+      DEBUG_MSG("gre_0.s = %#04" PRIx8 "\n", gre_0.s);
       gre_0.recur = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
-      DEBUG_MSG("gre_0.recur = %#04x\n", gre_0.recur);
+      DEBUG_MSG("gre_0.recur = %#04" PRIx8 "\n", gre_0.recur);
       gre_0.A = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 7) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gre_0.A = %#04x\n", gre_0.A);
+      DEBUG_MSG("gre_0.A = %#04" PRIx8 "\n", gre_0.A);
       gre_0.flags = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 3) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
-      DEBUG_MSG("gre_0.flags = %#04x\n", gre_0.flags);
+      DEBUG_MSG("gre_0.flags = %#04" PRIx8 "\n", gre_0.flags);
       gre_0.ver = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
-      DEBUG_MSG("gre_0.ver = %#04x\n", gre_0.ver);
+      DEBUG_MSG("gre_0.ver = %#04" PRIx8 "\n", gre_0.ver);
       gre_0.proto = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("gre_0.proto = %#06x\n", gre_0.proto);
+      DEBUG_MSG("gre_0.proto = %#06" PRIx16"\n", gre_0.proto);
 
       switch (gre_0.ver) { 
          case 0: goto parse_gre_v0;
@@ -869,13 +869,13 @@ parse_gre_sre:
    { 
       gre_sre_0.addr_family = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("gre_sre_0.addr_family = %#06x\n", gre_sre_0.addr_family);
+      DEBUG_MSG("gre_sre_0.addr_family = %#06" PRIx16"\n", gre_sre_0.addr_family);
       gre_sre_0.offset = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("gre_sre_0.offset = %#04x\n", gre_sre_0.offset);
+      DEBUG_MSG("gre_sre_0.offset = %#04" PRIx8 "\n", gre_sre_0.offset);
       gre_sre_0.length = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("gre_sre_0.length = %#04x\n", gre_sre_0.length);
+      DEBUG_MSG("gre_sre_0.length = %#04" PRIx8 "\n", gre_sre_0.length);
       fpp_packet_offset_bits += (uint32_t)(gre_sre_0.length);
 
       switch (gre_sre_0.length) { 
@@ -888,31 +888,31 @@ parse_l2tp:
    { 
       l2tp_0.type = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 7) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("l2tp_0.type = %#04x\n", l2tp_0.type);
+      DEBUG_MSG("l2tp_0.type = %#04" PRIx8 "\n", l2tp_0.type);
       l2tp_0.length = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 6) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("l2tp_0.length = %#04x\n", l2tp_0.length);
+      DEBUG_MSG("l2tp_0.length = %#04" PRIx8 "\n", l2tp_0.length);
       l2tp_0.res1 = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 2);
       fpp_packet_offset_bits += 2;
-      DEBUG_MSG("l2tp_0.res1 = %#04x\n", l2tp_0.res1);
+      DEBUG_MSG("l2tp_0.res1 = %#04" PRIx8 "\n", l2tp_0.res1);
       l2tp_0.seq = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 3) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("l2tp_0.seq = %#04x\n", l2tp_0.seq);
+      DEBUG_MSG("l2tp_0.seq = %#04" PRIx8 "\n", l2tp_0.seq);
       l2tp_0.res2 = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 2) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("l2tp_0.res2 = %#04x\n", l2tp_0.res2);
+      DEBUG_MSG("l2tp_0.res2 = %#04" PRIx8 "\n", l2tp_0.res2);
       l2tp_0.offset = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 1) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("l2tp_0.offset = %#04x\n", l2tp_0.offset);
+      DEBUG_MSG("l2tp_0.offset = %#04" PRIx8 "\n", l2tp_0.offset);
       l2tp_0.priority = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("l2tp_0.priority = %#04x\n", l2tp_0.priority);
+      DEBUG_MSG("l2tp_0.priority = %#04" PRIx8 "\n", l2tp_0.priority);
       l2tp_0.res3 = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
-      DEBUG_MSG("l2tp_0.res3 = %#04x\n", l2tp_0.res3);
+      DEBUG_MSG("l2tp_0.res3 = %#04" PRIx8 "\n", l2tp_0.res3);
       l2tp_0.version = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
-      DEBUG_MSG("l2tp_0.version = %#04x\n", l2tp_0.version);
+      DEBUG_MSG("l2tp_0.version = %#04" PRIx8 "\n", l2tp_0.version);
 
       switch (l2tp_0.version) { 
          case 2: goto parse_l2tp_v2;
@@ -951,37 +951,37 @@ parse_gtp_v0:
    { 
       gtp_v0_0.version = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 5) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
-      DEBUG_MSG("gtp_v0_0.version = %#04x\n", gtp_v0_0.version);
+      DEBUG_MSG("gtp_v0_0.version = %#04" PRIx8 "\n", gtp_v0_0.version);
       gtp_v0_0.proto_type = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gtp_v0_0.proto_type = %#04x\n", gtp_v0_0.proto_type);
+      DEBUG_MSG("gtp_v0_0.proto_type = %#04" PRIx8 "\n", gtp_v0_0.proto_type);
       gtp_v0_0.res1 = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 1) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
-      DEBUG_MSG("gtp_v0_0.res1 = %#04x\n", gtp_v0_0.res1);
+      DEBUG_MSG("gtp_v0_0.res1 = %#04" PRIx8 "\n", gtp_v0_0.res1);
       gtp_v0_0.snn = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gtp_v0_0.snn = %#04x\n", gtp_v0_0.snn);
+      DEBUG_MSG("gtp_v0_0.snn = %#04" PRIx8 "\n", gtp_v0_0.snn);
       gtp_v0_0.type = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("gtp_v0_0.type = %#04x\n", gtp_v0_0.type);
+      DEBUG_MSG("gtp_v0_0.type = %#04" PRIx8 "\n", gtp_v0_0.type);
       gtp_v0_0.length = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("gtp_v0_0.length = %#06x\n", gtp_v0_0.length);
+      DEBUG_MSG("gtp_v0_0.length = %#06" PRIx16"\n", gtp_v0_0.length);
       gtp_v0_0.seq_num = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("gtp_v0_0.seq_num = %#06x\n", gtp_v0_0.seq_num);
+      DEBUG_MSG("gtp_v0_0.seq_num = %#06" PRIx16"\n", gtp_v0_0.seq_num);
       gtp_v0_0.flow_label = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("gtp_v0_0.flow_label = %#06x\n", gtp_v0_0.flow_label);
+      DEBUG_MSG("gtp_v0_0.flow_label = %#06" PRIx16"\n", gtp_v0_0.flow_label);
       gtp_v0_0.sndcp_num = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("gtp_v0_0.sndcp_num = %#04x\n", gtp_v0_0.sndcp_num);
+      DEBUG_MSG("gtp_v0_0.sndcp_num = %#04" PRIx8 "\n", gtp_v0_0.sndcp_num);
       gtp_v0_0.res2 = (uint32_t)(ntohl(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 8) & FPP_MASK(uint32_t, 24);
       fpp_packet_offset_bits += 24;
-      DEBUG_MSG("gtp_v0_0.res2 = %#010x\n", gtp_v0_0.res2);
+      DEBUG_MSG("gtp_v0_0.res2 = %#010" PRIx32 "\n", gtp_v0_0.res2);
       gtp_v0_0.tid = ntohll((uint64_t)(load_dword(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 64;
-      DEBUG_MSG("gtp_v0_0.tid = %#018lx\n", gtp_v0_0.tid);
+      DEBUG_MSG("gtp_v0_0.tid = %#018" PRIx64 "\n", gtp_v0_0.tid);
 
       switch (gtp_v0_0.type) { 
          case 255: goto parse_gtp_fin;
@@ -993,31 +993,31 @@ parse_gtp_v1:
    { 
       gtp_v1_0.version = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 5) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
-      DEBUG_MSG("gtp_v1_0.version = %#04x\n", gtp_v1_0.version);
+      DEBUG_MSG("gtp_v1_0.version = %#04" PRIx8 "\n", gtp_v1_0.version);
       gtp_v1_0.proto_type = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gtp_v1_0.proto_type = %#04x\n", gtp_v1_0.proto_type);
+      DEBUG_MSG("gtp_v1_0.proto_type = %#04" PRIx8 "\n", gtp_v1_0.proto_type);
       gtp_v1_0.res = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 3) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gtp_v1_0.res = %#04x\n", gtp_v1_0.res);
+      DEBUG_MSG("gtp_v1_0.res = %#04" PRIx8 "\n", gtp_v1_0.res);
       gtp_v1_0.E = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 2) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gtp_v1_0.E = %#04x\n", gtp_v1_0.E);
+      DEBUG_MSG("gtp_v1_0.E = %#04" PRIx8 "\n", gtp_v1_0.E);
       gtp_v1_0.S = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 1) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gtp_v1_0.S = %#04x\n", gtp_v1_0.S);
+      DEBUG_MSG("gtp_v1_0.S = %#04" PRIx8 "\n", gtp_v1_0.S);
       gtp_v1_0.PN = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gtp_v1_0.PN = %#04x\n", gtp_v1_0.PN);
+      DEBUG_MSG("gtp_v1_0.PN = %#04" PRIx8 "\n", gtp_v1_0.PN);
       gtp_v1_0.type = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("gtp_v1_0.type = %#04x\n", gtp_v1_0.type);
+      DEBUG_MSG("gtp_v1_0.type = %#04" PRIx8 "\n", gtp_v1_0.type);
       gtp_v1_0.length = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("gtp_v1_0.length = %#06x\n", gtp_v1_0.length);
+      DEBUG_MSG("gtp_v1_0.length = %#06" PRIx16"\n", gtp_v1_0.length);
       gtp_v1_0.TEID = ntohl((uint32_t)(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 32;
-      DEBUG_MSG("gtp_v1_0.TEID = %#010x\n", gtp_v1_0.TEID);
+      DEBUG_MSG("gtp_v1_0.TEID = %#010" PRIx32 "\n", gtp_v1_0.TEID);
 
       switch ((((uint32_t)(gtp_v1_0.E)) | ((uint32_t)(gtp_v1_0.S))) | ((uint32_t)(gtp_v1_0.PN))) { 
          case 1: goto parse_gtp_v1_opt;
@@ -1051,7 +1051,7 @@ parse_gtp_v1_next_hdr:
       fpp_packet_offset_bits += (uint32_t)(((int32_t)(((uint32_t)(tmp_10)) << (5))) + (-8));
       gtp_v1_next_hdr_0.next_hdr = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("gtp_v1_next_hdr_0.next_hdr = %#04x\n", gtp_v1_next_hdr_0.next_hdr);
+      DEBUG_MSG("gtp_v1_next_hdr_0.next_hdr = %#04" PRIx8 "\n", gtp_v1_next_hdr_0.next_hdr);
 
       switch (gtp_v1_next_hdr_0.next_hdr) { 
          case 0: goto parse_gtp_v1_check_type;
@@ -1073,22 +1073,22 @@ parse_gtp_v2:
    { 
       gtp_v2_0.version = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 5) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
-      DEBUG_MSG("gtp_v2_0.version = %#04x\n", gtp_v2_0.version);
+      DEBUG_MSG("gtp_v2_0.version = %#04" PRIx8 "\n", gtp_v2_0.version);
       gtp_v2_0.piggy_flag = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gtp_v2_0.piggy_flag = %#04x\n", gtp_v2_0.piggy_flag);
+      DEBUG_MSG("gtp_v2_0.piggy_flag = %#04" PRIx8 "\n", gtp_v2_0.piggy_flag);
       gtp_v2_0.TEID_flag = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 3) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("gtp_v2_0.TEID_flag = %#04x\n", gtp_v2_0.TEID_flag);
+      DEBUG_MSG("gtp_v2_0.TEID_flag = %#04" PRIx8 "\n", gtp_v2_0.TEID_flag);
       gtp_v2_0.spare = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
-      DEBUG_MSG("gtp_v2_0.spare = %#04x\n", gtp_v2_0.spare);
+      DEBUG_MSG("gtp_v2_0.spare = %#04" PRIx8 "\n", gtp_v2_0.spare);
       gtp_v2_0.type = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("gtp_v2_0.type = %#04x\n", gtp_v2_0.type);
+      DEBUG_MSG("gtp_v2_0.type = %#04" PRIx8 "\n", gtp_v2_0.type);
       gtp_v2_0.length = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("gtp_v2_0.length = %#06x\n", gtp_v2_0.length);
+      DEBUG_MSG("gtp_v2_0.length = %#06" PRIx16"\n", gtp_v2_0.length);
       fpp_packet_offset_bits += ((uint32_t)(gtp_v2_0.TEID_flag)) << (5);
       fpp_packet_offset_bits += 32;
 
@@ -1135,16 +1135,16 @@ parse_teredo_auth_hdr:
    { 
       teredo_auth_0.zero = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("teredo_auth_0.zero = %#04x\n", teredo_auth_0.zero);
+      DEBUG_MSG("teredo_auth_0.zero = %#04" PRIx8 "\n", teredo_auth_0.zero);
       teredo_auth_0.type = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("teredo_auth_0.type = %#04x\n", teredo_auth_0.type);
+      DEBUG_MSG("teredo_auth_0.type = %#04" PRIx8 "\n", teredo_auth_0.type);
       teredo_auth_0.id_len = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("teredo_auth_0.id_len = %#04x\n", teredo_auth_0.id_len);
+      DEBUG_MSG("teredo_auth_0.id_len = %#04" PRIx8 "\n", teredo_auth_0.id_len);
       teredo_auth_0.auth_len = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("teredo_auth_0.auth_len = %#04x\n", teredo_auth_0.auth_len);
+      DEBUG_MSG("teredo_auth_0.auth_len = %#04" PRIx8 "\n", teredo_auth_0.auth_len);
       fpp_packet_offset_bits += ((((uint32_t)(teredo_auth_0.id_len)) << (3)) + (((uint32_t)(teredo_auth_0.auth_len)) << (3))) + (72);
       tmp_17 = (((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)) >> 4) & FPP_MASK(uint8_t, 4)));;
 
@@ -1159,16 +1159,16 @@ parse_teredo_origin_hdr:
    { 
       teredo_origin_0.zero = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("teredo_origin_0.zero = %#04x\n", teredo_origin_0.zero);
+      DEBUG_MSG("teredo_origin_0.zero = %#04" PRIx8 "\n", teredo_origin_0.zero);
       teredo_origin_0.type = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("teredo_origin_0.type = %#04x\n", teredo_origin_0.type);
+      DEBUG_MSG("teredo_origin_0.type = %#04" PRIx8 "\n", teredo_origin_0.type);
       teredo_origin_0.port = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("teredo_origin_0.port = %#06x\n", teredo_origin_0.port);
+      DEBUG_MSG("teredo_origin_0.port = %#06" PRIx16"\n", teredo_origin_0.port);
       teredo_origin_0.ip = ntohl((uint32_t)(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 32;
-      DEBUG_MSG("teredo_origin_0.ip = %#010x\n", teredo_origin_0.ip);
+      DEBUG_MSG("teredo_origin_0.ip = %#010" PRIx32 "\n", teredo_origin_0.ip);
       tmp_18 = (((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)) >> 4) & FPP_MASK(uint8_t, 4)));;
 
       switch (tmp_18) { 
@@ -1182,37 +1182,37 @@ parse_vxlan:
    { 
       vxlan_0.gbp_ext = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 7) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("vxlan_0.gbp_ext = %#04x\n", vxlan_0.gbp_ext);
+      DEBUG_MSG("vxlan_0.gbp_ext = %#04" PRIx8 "\n", vxlan_0.gbp_ext);
       vxlan_0.res1 = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
-      DEBUG_MSG("vxlan_0.res1 = %#04x\n", vxlan_0.res1);
+      DEBUG_MSG("vxlan_0.res1 = %#04" PRIx8 "\n", vxlan_0.res1);
       vxlan_0.vni_flag = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 3) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("vxlan_0.vni_flag = %#04x\n", vxlan_0.vni_flag);
+      DEBUG_MSG("vxlan_0.vni_flag = %#04" PRIx8 "\n", vxlan_0.vni_flag);
       vxlan_0.res2 = (uint8_t)(ntohs(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 7) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
-      DEBUG_MSG("vxlan_0.res2 = %#04x\n", vxlan_0.res2);
+      DEBUG_MSG("vxlan_0.res2 = %#04" PRIx8 "\n", vxlan_0.res2);
       vxlan_0.dont_learn = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 6) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("vxlan_0.dont_learn = %#04x\n", vxlan_0.dont_learn);
+      DEBUG_MSG("vxlan_0.dont_learn = %#04" PRIx8 "\n", vxlan_0.dont_learn);
       vxlan_0.res3 = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 2);
       fpp_packet_offset_bits += 2;
-      DEBUG_MSG("vxlan_0.res3 = %#04x\n", vxlan_0.res3);
+      DEBUG_MSG("vxlan_0.res3 = %#04" PRIx8 "\n", vxlan_0.res3);
       vxlan_0.policy_applied = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 3) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("vxlan_0.policy_applied = %#04x\n", vxlan_0.policy_applied);
+      DEBUG_MSG("vxlan_0.policy_applied = %#04" PRIx8 "\n", vxlan_0.policy_applied);
       vxlan_0.res4 = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 3);
       fpp_packet_offset_bits += 3;
-      DEBUG_MSG("vxlan_0.res4 = %#04x\n", vxlan_0.res4);
+      DEBUG_MSG("vxlan_0.res4 = %#04" PRIx8 "\n", vxlan_0.res4);
       vxlan_0.gpolicy_id = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("vxlan_0.gpolicy_id = %#06x\n", vxlan_0.gpolicy_id);
+      DEBUG_MSG("vxlan_0.gpolicy_id = %#06" PRIx16"\n", vxlan_0.gpolicy_id);
       vxlan_0.vni = (uint32_t)(ntohl(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 8) & FPP_MASK(uint32_t, 24);
       fpp_packet_offset_bits += 24;
-      DEBUG_MSG("vxlan_0.vni = %#010x\n", vxlan_0.vni);
+      DEBUG_MSG("vxlan_0.vni = %#010" PRIx32 "\n", vxlan_0.vni);
       vxlan_0.res5 = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("vxlan_0.res5 = %#04x\n", vxlan_0.res5);
+      DEBUG_MSG("vxlan_0.res5 = %#04" PRIx8 "\n", vxlan_0.res5);
 
       goto parse_ethernet;
    }
@@ -1220,28 +1220,28 @@ parse_genv:
    { 
       genv_0.version = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 6) & FPP_MASK(uint8_t, 2);
       fpp_packet_offset_bits += 2;
-      DEBUG_MSG("genv_0.version = %#04x\n", genv_0.version);
+      DEBUG_MSG("genv_0.version = %#04" PRIx8 "\n", genv_0.version);
       genv_0.opt_len = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 6);
       fpp_packet_offset_bits += 6;
-      DEBUG_MSG("genv_0.opt_len = %#04x\n", genv_0.opt_len);
+      DEBUG_MSG("genv_0.opt_len = %#04" PRIx8 "\n", genv_0.opt_len);
       genv_0.oam = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 7) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("genv_0.oam = %#04x\n", genv_0.oam);
+      DEBUG_MSG("genv_0.oam = %#04" PRIx8 "\n", genv_0.oam);
       genv_0.critical = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 6) & FPP_MASK(uint8_t, 1);
       fpp_packet_offset_bits += 1;
-      DEBUG_MSG("genv_0.critical = %#04x\n", genv_0.critical);
+      DEBUG_MSG("genv_0.critical = %#04" PRIx8 "\n", genv_0.critical);
       genv_0.res1 = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 6);
       fpp_packet_offset_bits += 6;
-      DEBUG_MSG("genv_0.res1 = %#04x\n", genv_0.res1);
+      DEBUG_MSG("genv_0.res1 = %#04" PRIx8 "\n", genv_0.res1);
       genv_0.proto = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("genv_0.proto = %#06x\n", genv_0.proto);
+      DEBUG_MSG("genv_0.proto = %#06" PRIx16"\n", genv_0.proto);
       genv_0.vni = (uint32_t)(ntohl(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 8) & FPP_MASK(uint32_t, 24);
       fpp_packet_offset_bits += 24;
-      DEBUG_MSG("genv_0.vni = %#010x\n", genv_0.vni);
+      DEBUG_MSG("genv_0.vni = %#010" PRIx32 "\n", genv_0.vni);
       genv_0.res2 = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("genv_0.res2 = %#04x\n", genv_0.res2);
+      DEBUG_MSG("genv_0.res2 = %#04" PRIx8 "\n", genv_0.res2);
       fpp_packet_offset_bits += ((uint32_t)(genv_0.opt_len)) << (5);
 
       switch (genv_0.proto) { 
@@ -1265,34 +1265,34 @@ parse_tcp:
       if (last_hdr != NULL) { last_hdr->next = hdr; last_hdr = hdr; } else { *out = hdr; last_hdr = hdr; }
       headers.tcp[0].src_port = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.tcp[0].src_port = %#06x\n", headers.tcp[0].src_port);
+      DEBUG_MSG("headers.tcp[0].src_port = %#06" PRIx16"\n", headers.tcp[0].src_port);
       headers.tcp[0].dst_port = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.tcp[0].dst_port = %#06x\n", headers.tcp[0].dst_port);
+      DEBUG_MSG("headers.tcp[0].dst_port = %#06" PRIx16"\n", headers.tcp[0].dst_port);
       headers.tcp[0].seq_num = ntohl((uint32_t)(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 32;
-      DEBUG_MSG("headers.tcp[0].seq_num = %#010x\n", headers.tcp[0].seq_num);
+      DEBUG_MSG("headers.tcp[0].seq_num = %#010" PRIx32 "\n", headers.tcp[0].seq_num);
       headers.tcp[0].ack_num = ntohl((uint32_t)(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 32;
-      DEBUG_MSG("headers.tcp[0].ack_num = %#010x\n", headers.tcp[0].ack_num);
+      DEBUG_MSG("headers.tcp[0].ack_num = %#010" PRIx32 "\n", headers.tcp[0].ack_num);
       headers.tcp[0].data_offset = (uint8_t)((load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))) >> 4) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
-      DEBUG_MSG("headers.tcp[0].data_offset = %#04x\n", headers.tcp[0].data_offset);
+      DEBUG_MSG("headers.tcp[0].data_offset = %#04" PRIx8 "\n", headers.tcp[0].data_offset);
       headers.tcp[0].res = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits)))) & FPP_MASK(uint8_t, 4);
       fpp_packet_offset_bits += 4;
-      DEBUG_MSG("headers.tcp[0].res = %#04x\n", headers.tcp[0].res);
+      DEBUG_MSG("headers.tcp[0].res = %#04" PRIx8 "\n", headers.tcp[0].res);
       headers.tcp[0].flags = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("headers.tcp[0].flags = %#04x\n", headers.tcp[0].flags);
+      DEBUG_MSG("headers.tcp[0].flags = %#04" PRIx8 "\n", headers.tcp[0].flags);
       headers.tcp[0].window = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.tcp[0].window = %#06x\n", headers.tcp[0].window);
+      DEBUG_MSG("headers.tcp[0].window = %#06" PRIx16"\n", headers.tcp[0].window);
       headers.tcp[0].checksum = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.tcp[0].checksum = %#06x\n", headers.tcp[0].checksum);
+      DEBUG_MSG("headers.tcp[0].checksum = %#06" PRIx16"\n", headers.tcp[0].checksum);
       headers.tcp[0].urgent_ptr = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.tcp[0].urgent_ptr = %#06x\n", headers.tcp[0].urgent_ptr);
+      DEBUG_MSG("headers.tcp[0].urgent_ptr = %#06" PRIx16"\n", headers.tcp[0].urgent_ptr);
       fpp_packet_offset_bits += (uint32_t)((((int32_t)((uint32_t)(headers.tcp[0].data_offset))) + (-5)) << (5));
 
       goto parse_payload;
@@ -1310,16 +1310,16 @@ parse_udp:
       if (last_hdr != NULL) { last_hdr->next = hdr; last_hdr = hdr; } else { *out = hdr; last_hdr = hdr; }
       headers.udp[0].src_port = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.udp[0].src_port = %#06x\n", headers.udp[0].src_port);
+      DEBUG_MSG("headers.udp[0].src_port = %#06" PRIx16"\n", headers.udp[0].src_port);
       headers.udp[0].dst_port = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.udp[0].dst_port = %#06x\n", headers.udp[0].dst_port);
+      DEBUG_MSG("headers.udp[0].dst_port = %#06" PRIx16"\n", headers.udp[0].dst_port);
       headers.udp[0].len = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.udp[0].len = %#06x\n", headers.udp[0].len);
+      DEBUG_MSG("headers.udp[0].len = %#06" PRIx16"\n", headers.udp[0].len);
       headers.udp[0].checksum = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.udp[0].checksum = %#06x\n", headers.udp[0].checksum);
+      DEBUG_MSG("headers.udp[0].checksum = %#06" PRIx16"\n", headers.udp[0].checksum);
       udp_src_port_0 = headers.udp[0].src_port;
 
       switch (headers.udp[0].dst_port) { 
@@ -1363,16 +1363,16 @@ parse_icmp:
       if (last_hdr != NULL) { last_hdr->next = hdr; last_hdr = hdr; } else { *out = hdr; last_hdr = hdr; }
       headers.icmp[0].type_ = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("headers.icmp[0].type_ = %#04x\n", headers.icmp[0].type_);
+      DEBUG_MSG("headers.icmp[0].type_ = %#04" PRIx8 "\n", headers.icmp[0].type_);
       headers.icmp[0].code = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("headers.icmp[0].code = %#04x\n", headers.icmp[0].code);
+      DEBUG_MSG("headers.icmp[0].code = %#04" PRIx8 "\n", headers.icmp[0].code);
       headers.icmp[0].hdr_checksum = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.icmp[0].hdr_checksum = %#06x\n", headers.icmp[0].hdr_checksum);
+      DEBUG_MSG("headers.icmp[0].hdr_checksum = %#06" PRIx16"\n", headers.icmp[0].hdr_checksum);
       headers.icmp[0].rest = ntohl((uint32_t)(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 32;
-      DEBUG_MSG("headers.icmp[0].rest = %#010x\n", headers.icmp[0].rest);
+      DEBUG_MSG("headers.icmp[0].rest = %#010" PRIx32 "\n", headers.icmp[0].rest);
 
       goto accept;
    }
@@ -1389,16 +1389,16 @@ parse_icmp6:
       if (last_hdr != NULL) { last_hdr->next = hdr; last_hdr = hdr; } else { *out = hdr; last_hdr = hdr; }
       headers.icmp6[0].type_ = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("headers.icmp6[0].type_ = %#04x\n", headers.icmp6[0].type_);
+      DEBUG_MSG("headers.icmp6[0].type_ = %#04" PRIx8 "\n", headers.icmp6[0].type_);
       headers.icmp6[0].code = ((uint8_t)(load_byte(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 8;
-      DEBUG_MSG("headers.icmp6[0].code = %#04x\n", headers.icmp6[0].code);
+      DEBUG_MSG("headers.icmp6[0].code = %#04" PRIx8 "\n", headers.icmp6[0].code);
       headers.icmp6[0].hdr_checksum = ntohs((uint16_t)(load_half(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 16;
-      DEBUG_MSG("headers.icmp6[0].hdr_checksum = %#06x\n", headers.icmp6[0].hdr_checksum);
+      DEBUG_MSG("headers.icmp6[0].hdr_checksum = %#06" PRIx16"\n", headers.icmp6[0].hdr_checksum);
       headers.icmp6[0].rest = ntohl((uint32_t)(load_word(fpp_packet_start, BYTES(fpp_packet_offset_bits))));
       fpp_packet_offset_bits += 32;
-      DEBUG_MSG("headers.icmp6[0].rest = %#010x\n", headers.icmp6[0].rest);
+      DEBUG_MSG("headers.icmp6[0].rest = %#010" PRIx32 "\n", headers.icmp6[0].rest);
 
       goto accept;
    }

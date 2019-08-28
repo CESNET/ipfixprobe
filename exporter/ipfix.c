@@ -31,6 +31,7 @@
 */
 
 //The following code was used https://dior.ics.muni.cz/~velan/flowmon-export-ipfix/
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -1041,7 +1042,7 @@ void ipfix_check_template_lifetime(struct ipfix_s *ipfix, template_t *tmpl)
    if (ipfix->templateRefreshTime != 0 &&
          (time_t) (ipfix->templateRefreshTime + tmpl->exportTime) <= time(NULL)) {
       if (ipfix->verbose) {
-         fprintf(stderr, "VERBOSE: Template %i refresh time expired (%is)\n", tmpl->id, ipfix->templateRefreshTime);
+         fprintf(stderr, "VERBOSE: Template %" PRIu16 " refresh time expired (%" PRIu32 "s)\n", tmpl->id, ipfix->templateRefreshTime);
       }
       tmpl->exported = 0;
    }
@@ -1049,7 +1050,7 @@ void ipfix_check_template_lifetime(struct ipfix_s *ipfix, template_t *tmpl)
    if (ipfix->templateRefreshPackets != 0 &&
          ipfix->templateRefreshPackets + tmpl->exportPacket <= ipfix->exportedPackets) {
       if (ipfix->verbose) {
-         fprintf(stderr, "VERBOSE: Template %i refresh packets expired (%i packets)\n", tmpl->id, ipfix->templateRefreshPackets);
+         fprintf(stderr, "VERBOSE: Template %" PRIu16 " refresh packets expired (%" PRIu32 " packets)\n", tmpl->id, ipfix->templateRefreshPackets);
       }
       tmpl->exported = 0;
    }
@@ -1140,7 +1141,7 @@ template_t *ipfix_create_template(struct ipfix_s *ipfix, const template_file_rec
       const template_file_record_t *tmpFileRecord = *tmp;
       if (tmpFileRecord != NULL) {
          if (ipfix->verbose) {
-            fprintf(stderr, "VERBOSE: Adding template field EN=%u ID=%u len=%d\n",
+            fprintf(stderr, "VERBOSE: Adding template field EN=%" PRIu16 " ID=%" PRIu16 " len=%" PRIi32 "\n",
                tmpFileRecord->enterpriseNumber, tmpFileRecord->elementID, tmpFileRecord->length);
          }
 
@@ -1292,7 +1293,7 @@ uint16_t ipfix_create_data_packet(struct ipfix_s *ipfix, ipfix_packet_t *packet)
          /* Set SET length */
          ((ipfix_template_set_header_t *) ptr)->length = htons(tmp->bufferSize);
          if (ipfix->verbose) {
-            fprintf(stderr, "VERBOSE: Adding template %i of length %i to data packet\n", tmp->id, tmp->bufferSize);
+            fprintf(stderr, "VERBOSE: Adding template %" PRIu16 " of length %" PRIu16 " to data packet\n", tmp->id, tmp->bufferSize);
          }
          ptr += tmp->bufferSize;
          /* Count size of the data copied to buffer */
@@ -1451,7 +1452,7 @@ int ipfix_send_packet(struct ipfix_s *ipfix, ipfix_packet_t *packet)
    ipfix->exportedPackets++;
 
    if (ipfix->verbose) {
-      fprintf(stderr, "VERBOSE: Packet (%" PRIu64 ") sent to %s on port %s. Next sequence number is %i\n",
+      fprintf(stderr, "VERBOSE: Packet (%" PRIu64 ") sent to %s on port %s. Next sequence number is %" PRIu32 "\n",
             ipfix->exportedPackets, ipfix->host, ipfix->port, ipfix->sequenceNum);
    }
 

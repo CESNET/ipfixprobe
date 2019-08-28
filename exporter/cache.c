@@ -30,6 +30,7 @@
  * if advised of the possibility of such damage.
 */
 
+#include <inttypes.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,16 +64,16 @@ void print_flow(struct flowrec_s *flow)
       flow->dst_addr.v4.addr = ntohl(flow->dst_addr.v4.addr);
       inet_ntop(AF_INET, (const void *) &flow->src_addr.v4.addr, src_ip, INET6_ADDRSTRLEN);
       inet_ntop(AF_INET, (const void *) &flow->dst_addr.v4.addr, dst_ip, INET6_ADDRSTRLEN);
-      fprintf(stderr, "%u@%s:%u->%s:%u#", flow->protocol, src_ip, flow->src_port, dst_ip, flow->dst_port);
+      fprintf(stderr, "%" PRIu8 "@%s:%" PRIu16 "->%s:%" PRIu16 "#", flow->protocol, src_ip, flow->src_port, dst_ip, flow->dst_port);
    } else {
       inet_ntop(AF_INET6, (const void *) &flow->src_addr.v6.addr, src_ip, INET6_ADDRSTRLEN);
       inet_ntop(AF_INET6, (const void *) &flow->dst_addr.v6.addr, dst_ip, INET6_ADDRSTRLEN);
-      fprintf(stderr, "%u@[%s]:%u->[%s]:%u#", flow->protocol, src_ip, flow->src_port, dst_ip, flow->dst_port);
+      fprintf(stderr, "%" PRIu8 "@[%s]:%" PRIu16 "->[%s]:%" PRIu16 "#", flow->protocol, src_ip, flow->src_port, dst_ip, flow->dst_port);
    }
    fprintf(stderr, " %s.%06lu<->%s.%06lu", timestamp_first, flow->first.tv_usec, timestamp_last, flow->last.tv_usec);
-   fprintf(stderr, " packets=%u bytes=%lu", flow->packets, flow->bytes);
-   fprintf(stderr, " tos=%u ttl=%u tcpflags=%u", flow->tos, flow->ttl, flow->tcpflags);
-   fprintf(stderr, " id=%lu parent=%lu", flow->id, flow->parent);
+   fprintf(stderr, " packets=%" PRIu32 " bytes=%" PRIu64, flow->packets, flow->bytes);
+   fprintf(stderr, " tos=%" PRIu8 " ttl=%" PRIu8 " tcpflags=%" PRIu8, flow->tos, flow->ttl, flow->tcpflags);
+   fprintf(stderr, " id=%" PRIu64 " parent=%" PRIu64, flow->id, flow->parent);
    fprintf(stderr, "\n");
 }
 
@@ -241,7 +242,6 @@ void cache_update_flow(struct packet_hdr_s *packet, struct flowrec_s *flow)
 void cache_export_flow(struct flowcache_s *cache, struct cacherec_s *rec)
 {
    ipfix_export_flow(cache->ipfix, rec->flow);
-   //print_flow(rec->flow);
 
    struct flowext_s *ext = rec->flow->ext;
    while (ext != NULL) {

@@ -33,6 +33,7 @@
 #ifndef P4E_GENERATED_PARSER
 #define P4E_GENERATED_PARSER
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <arpa/inet.h>
