@@ -61,6 +61,7 @@
    OPTION("f", "filter", "String containing filter expression to filter packets. See `man pcap-filter`.", REQUIRED_ARGUMENT) \
    OPTION("s", "size", "Cache size exponent n. Accept values 1-31 (cache size=2^n), default is 17.", REQUIRED_ARGUMENT) \
    OPTION("l", "line", "Cache line size. Must be power of two.", REQUIRED_ARGUMENT) \
+   OPTION("t", "timeout", "Active and inactive timeouts in seconds. Format 'active:inactive'.", REQUIRED_ARGUMENT) \
    OPTION("o", "odid", "Set observation domain ID.", REQUIRED_ARGUMENT) \
    OPTION("x", "ipfix", "Specify IPFIX exporter address and port. Format: `IPv4:PORT` and `[IPv6]:PORT`", REQUIRED_ARGUMENT) \
    OPTION("u", "udp", "Use UDP instead of default TCP protocol for collector connection.", NO_ARGUMENT) \
@@ -319,6 +320,31 @@ int main(int argc, char *argv[])
                      return 1;
                   }
                   tmp >>= 1;
+               }
+            }
+            break;
+         case 't':
+            {
+               trim_str(optarg);
+               if (!strcmp(optarg, "default")) {
+                  break;
+               }
+
+               char *check;
+               check = strchr(optarg, ':');
+               if (check == NULL) {
+                  fprintf(stderr, "Error: invalid argument for option -t\n");
+                  free(long_options);
+                  return 1;
+               }
+
+               *check = '\0';
+               trim_str(optarg);
+               trim_str(check + 1);
+               if (str_to_uint32(optarg, &timeout_active) || str_to_uint32(check + 1, &timeout_inactive)) {
+                  fprintf(stderr, "Error: invalid argument for option -t\n");
+                  free(long_options);
+                  return 1;
                }
             }
             break;
