@@ -48,6 +48,10 @@
 #include "plugin.h"
 #include "types.h"
 
+#ifndef DEFAULT_FLOWCACHE_SIZE
+#define DEFAULT_FLOWCACHE_SIZE (1 << 17) // 2 ^ 17
+#endif
+
 #define MODULE_OPTIONS(OPTION) \
    OPTION("h", "help", "Print this message.", NO_ARGUMENT) \
    OPTION("v", "verbose", "Set verbose mode.", NO_ARGUMENT) \
@@ -55,7 +59,7 @@
    OPTION("c", "count", "End after number of packets are processed.", REQUIRED_ARGUMENT) \
    OPTION("r", "pcap", "Read packets from pcap file.", REQUIRED_ARGUMENT) \
    OPTION("f", "filter", "String containing filter expression to filter packets. See `man pcap-filter`.", REQUIRED_ARGUMENT) \
-   OPTION("s", "size", "Cache size exponent n. Values 1-31 (cache size=2^n).", REQUIRED_ARGUMENT) \
+   OPTION("s", "size", "Cache size exponent n. Accept values 1-31 (cache size=2^n), default is 17.", REQUIRED_ARGUMENT) \
    OPTION("l", "line", "Cache line size. Must be power of two.", REQUIRED_ARGUMENT) \
    OPTION("o", "odid", "Set observation domain ID.", REQUIRED_ARGUMENT) \
    OPTION("x", "ipfix", "Specify IPFIX exporter address and port. Format: `IPv4:PORT` and `[IPv6]:PORT`", REQUIRED_ARGUMENT) \
@@ -214,7 +218,7 @@ int main(int argc, char *argv[])
    struct packet_hdr_s *parsed_hdr = NULL;
 
    struct flowcache_s cache;
-   uint32_t cache_size  = 1 << 17;
+   uint32_t cache_size  = DEFAULT_FLOWCACHE_SIZE;
    uint32_t cache_line_size = 16;
    uint32_t timeout_active = 300;
    uint32_t timeout_inactive = 30;

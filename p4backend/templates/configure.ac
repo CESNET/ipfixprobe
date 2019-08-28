@@ -26,6 +26,13 @@ AC_CHECK_LIB([pcap], [pcap_next_ex], [], [AC_MSG_ERROR([libpcap not found])])
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h inttypes.h netdb.h stddef.h stdint.h stdlib.h string.h sys/socket.h sys/time.h unistd.h])
 
+AC_ARG_WITH([flowcachesize],
+	AC_HELP_STRING([--with-flowcachesize=NUMBER],[Set default size of flow cache in number of flow records.]),
+	[
+	CPPFLAGS="$CPPFLAGS -DDEFAULT_FLOWCACHE_SIZE=$withval"
+	]
+)
+
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_INT32_T
 AC_C_RESTRICT

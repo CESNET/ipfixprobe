@@ -20,7 +20,7 @@ make install
 - `c` `count`     End after number of packets are processed
 - `r` `pcap`      Read packets from pcap file
 - `f` `filter`    String containing filter expression to filter packets. See `man pcap-filter`
-- `s` `size`      Cache size exponent n. Values 1-31 (cache size=2^n)
+- `s` `size`      Cache size exponent n. Accept values 1-31 (cache size=2^n), default is 17
 - `l` `line`      Cache line size. Must be power of two
 - `o` `odid`      Set observation domain ID
 - `x` `ipfix`     Specify IPFIX exporter address and port. Format: `IPv4:PORT` and `[IPv6]:PORT`
