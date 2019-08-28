@@ -59,7 +59,7 @@
 #define load_dword(ptr, bytes) (*(const uint64_t *)((const uint8_t *)(ptr) + bytes))
 
 #if __BYTE_ORDER == __BIG_ENDIAN
-#   define ntohll(x) __uint64_identity (x)
+#   define ntohll(x) (x)
 #else
 #   if __BYTE_ORDER == __LITTLE_ENDIAN
 #       define ntohll(x)  __bswap_64 (x)
