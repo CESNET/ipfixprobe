@@ -293,6 +293,9 @@ int main(int argc, char *argv[])
          case 's':
             {
                trim_str(optarg);
+               if (!strcmp(optarg, "default")) {
+                  break;
+               }
                uint32_t val;
                if (str_to_uint32(optarg, &val)) {
                   fprintf(stderr, "Error: invalid argument for option -s\n");
