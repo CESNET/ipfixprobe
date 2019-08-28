@@ -36,6 +36,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <arpa/inet.h>
+#include <endian.h>
+#include <byteswap.h>
+
 #include "types.h"
 
 //#define DEBUG_PARSER
@@ -53,10 +56,6 @@
 #define load_half(ptr, bytes) (*(const uint16_t *)((const uint8_t *)(ptr) + bytes))
 #define load_word(ptr, bytes) (*(const uint32_t *)((const uint8_t *)(ptr) + bytes))
 #define load_dword(ptr, bytes) (*(const uint64_t *)((const uint8_t *)(ptr) + bytes))
-
-#include <endian.h>
-
-#include <bits/byteswap.h>
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 #   define ntohll(x) __uint64_identity (x)
