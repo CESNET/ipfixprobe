@@ -60,6 +60,8 @@ void ipfix_shutdown(struct ipfix_s *ipfix)
 
       close(ipfix->fd);
       freeaddrinfo(ipfix->addrinfo);
+
+      ipfix->addrinfo = NULL;
       ipfix->fd = -1;
    }
    if (ipfix->templateArray != NULL) {
@@ -921,7 +923,7 @@ void ipfix_prepare(struct ipfix_s *ipfix)
    ipfix->host = "";
    ipfix->port = "";
    ipfix->protocol = IPPROTO_TCP;
-   ipfix->ip = AF_UNSPEC; //AF_INET;
+   ipfix->ip = AF_UNSPEC; // AF_INET or AF_INET6;
    ipfix->flags = 0;
    ipfix->reconnectTimeout = RECONNECT_TIMEOUT;
    ipfix->lastReconnect = 0;
@@ -931,18 +933,6 @@ void ipfix_prepare(struct ipfix_s *ipfix)
    ipfix->export_basic = 1;
 }
 
-/**
- * \brief Exporter initialization
- *
- * @param params plugins Flowcache export plugins.
- * @param basic_num Index of basic pseudoplugin
- * @param odid Exporter identification
- * @param host Collector address
- * @param port Collector port
- * @param udp Use UDP instead of TCP
- * @return Returns 0 on succes, non 0 otherwise.
- */
-
 int ipfix_init(struct ipfix_s *ipfix, uint32_t odid, const char *host, const char *port, int udp, int verbose, uint8_t dir, int export_basic)
 {
    int ret;
@@ -951,9 +941,6 @@ int ipfix_init(struct ipfix_s *ipfix, uint32_t odid, const char *host, const cha
    ipfix_prepare(ipfix);
 
    ipfix->verbose = verbose;
-   if (ipfix->verbose) {
-      fprintf(stderr, "VERBOSE: IPFIX export plugin init start\n");
-   }
 
    ipfix->templateArray = (template_t **) malloc(templateCnt * sizeof(template_t *));
    for (int i = 0; i < templateCnt; i++) {
@@ -970,6 +957,11 @@ int ipfix_init(struct ipfix_s *ipfix, uint32_t odid, const char *host, const cha
       ipfix->protocol = IPPROTO_UDP;
    }
 
+   if (ipfix->verbose) {
+      fprintf(stderr, "VERBOSE: IPFIX export plugin init start\n");
+   }
+
+
    ipfix->templateArray[0] = ipfix_create_template(ipfix, (const template_file_record_t *[]){ &(template_file_record_t){ 0, 10, 2 }, &(template_file_record_t){ 0, 152, 8 }, &(template_file_record_t){ 0, 153, 8 }, &(template_file_record_t){ 8057, 10000, 8 }, &(template_file_record_t){ 8057, 10001, 8 }, &(template_file_record_t){ 0, 8, 4 }, &(template_file_record_t){ 0, 12, 4 }, &(template_file_record_t){ 0, 60, 1 }, &(template_file_record_t){ 0, 192, 1 }, &(template_file_record_t){ 0, 1, 8 }, &(template_file_record_t){ 0, 2, 8 }, &(template_file_record_t){ 0, 4, 1 }, &(template_file_record_t){ 0, 7, 2 }, &(template_file_record_t){ 0, 11, 2 }, &(template_file_record_t){ 0, 6, 1 }, &(template_file_record_t){ 0, 56, 6 }, &(template_file_record_t){ 0, 80, 6 }, NULL });
    ipfix->templateArray[1] = ipfix_create_template(ipfix, (const template_file_record_t *[]){ &(template_file_record_t){ 0, 10, 2 }, &(template_file_record_t){ 0, 152, 8 }, &(template_file_record_t){ 0, 153, 8 }, &(template_file_record_t){ 8057, 10000, 8 }, &(template_file_record_t){ 8057, 10001, 8 }, &(template_file_record_t){ 0, 27, 16 }, &(template_file_record_t){ 0, 28, 16 }, &(template_file_record_t){ 0, 60, 1 }, &(template_file_record_t){ 0, 192, 1 }, &(template_file_record_t){ 0, 1, 8 }, &(template_file_record_t){ 0, 2, 8 }, &(template_file_record_t){ 0, 4, 1 }, &(template_file_record_t){ 0, 7, 2 }, &(template_file_record_t){ 0, 11, 2 }, &(template_file_record_t){ 0, 6, 1 }, &(template_file_record_t){ 0, 56, 6 }, &(template_file_record_t){ 0, 80, 6 }, NULL });
    ipfix->templateArray[2] = ipfix_create_template(ipfix, (const template_file_record_t *[]){ &(template_file_record_t){ 0, 10, 2 }, &(template_file_record_t){ 0, 152, 8 }, &(template_file_record_t){ 0, 153, 8 }, &(template_file_record_t){ 8057, 10000, 8 }, &(template_file_record_t){ 8057, 10001, 8 }, &(template_file_record_t){ 0, 8, 4 }, &(template_file_record_t){ 0, 12, 4 }, &(template_file_record_t){ 0, 60, 1 }, &(template_file_record_t){ 0, 192, 1 }, &(template_file_record_t){ 0, 1, 8 }, &(template_file_record_t){ 0, 2, 8 }, &(template_file_record_t){ 0, 4, 1 }, &(template_file_record_t){ 0, 7, 2 }, &(template_file_record_t){ 0, 11, 2 }, &(template_file_record_t){ 0, 6, 1 }, &(template_file_record_t){ 0, 56, 6 }, &(template_file_record_t){ 0, 80, 6 }, &(template_file_record_t){ 16982, 100, -1 }, &(template_file_record_t){ 16982, 101, -1 }, &(template_file_record_t){ 16982, 102, -1 }, &(template_file_record_t){ 16982, 103, -1 }, &(template_file_record_t){ 16982, 105, -1 }, &(template_file_record_t){ 16982, 104, -1 }, &(template_file_record_t){ 16982, 106, 2 }, NULL });
@@ -983,15 +975,15 @@ int ipfix_init(struct ipfix_s *ipfix, uint32_t odid, const char *host, const cha
    ipfix->templateArray[10] = ipfix_create_template(ipfix, (const template_file_record_t *[]){ &(template_file_record_t){ 0, 10, 2 }, &(template_file_record_t){ 0, 152, 8 }, &(template_file_record_t){ 0, 153, 8 }, &(template_file_record_t){ 8057, 10000, 8 }, &(template_file_record_t){ 8057, 10001, 8 }, &(template_file_record_t){ 0, 8, 4 }, &(template_file_record_t){ 0, 12, 4 }, &(template_file_record_t){ 0, 60, 1 }, &(template_file_record_t){ 0, 192, 1 }, &(template_file_record_t){ 0, 1, 8 }, &(template_file_record_t){ 0, 2, 8 }, &(template_file_record_t){ 0, 4, 1 }, &(template_file_record_t){ 0, 7, 2 }, &(template_file_record_t){ 0, 11, 2 }, &(template_file_record_t){ 0, 6, 1 }, &(template_file_record_t){ 0, 56, 6 }, &(template_file_record_t){ 0, 80, 6 }, &(template_file_record_t){ 8057, 100, 2 }, &(template_file_record_t){ 8057, 101, 2 }, &(template_file_record_t){ 8057, 102, -1 }, &(template_file_record_t){ 8057, 103, -1 }, &(template_file_record_t){ 8057, 104, -1 }, &(template_file_record_t){ 8057, 105, -1 }, &(template_file_record_t){ 8057, 106, -1 }, &(template_file_record_t){ 8057, 107, -1 }, &(template_file_record_t){ 8057, 108, -1 }, NULL });
    ipfix->templateArray[11] = ipfix_create_template(ipfix, (const template_file_record_t *[]){ &(template_file_record_t){ 0, 10, 2 }, &(template_file_record_t){ 0, 152, 8 }, &(template_file_record_t){ 0, 153, 8 }, &(template_file_record_t){ 8057, 10000, 8 }, &(template_file_record_t){ 8057, 10001, 8 }, &(template_file_record_t){ 0, 27, 16 }, &(template_file_record_t){ 0, 28, 16 }, &(template_file_record_t){ 0, 60, 1 }, &(template_file_record_t){ 0, 192, 1 }, &(template_file_record_t){ 0, 1, 8 }, &(template_file_record_t){ 0, 2, 8 }, &(template_file_record_t){ 0, 4, 1 }, &(template_file_record_t){ 0, 7, 2 }, &(template_file_record_t){ 0, 11, 2 }, &(template_file_record_t){ 0, 6, 1 }, &(template_file_record_t){ 0, 56, 6 }, &(template_file_record_t){ 0, 80, 6 }, &(template_file_record_t){ 8057, 100, 2 }, &(template_file_record_t){ 8057, 101, 2 }, &(template_file_record_t){ 8057, 102, -1 }, &(template_file_record_t){ 8057, 103, -1 }, &(template_file_record_t){ 8057, 104, -1 }, &(template_file_record_t){ 8057, 105, -1 }, &(template_file_record_t){ 8057, 106, -1 }, &(template_file_record_t){ 8057, 107, -1 }, &(template_file_record_t){ 8057, 108, -1 }, NULL });
 
+   if (ipfix->verbose) {
+      fprintf(stderr, "VERBOSE: IPFIX export plugin init end\n");
+   }
+
    ret = ipfix_connect_to_collector(ipfix);
    if (ret == 1) {
       return 1;
    } else if (ret == 2) {
       ipfix->lastReconnect = time(NULL);
-   }
-
-   if (ipfix->verbose) {
-      fprintf(stderr, "VERBOSE: IPFIX export plugin init end\n");
    }
    return 0;
 }
@@ -1422,6 +1414,7 @@ int ipfix_send_packet(struct ipfix_s *ipfix, ipfix_packet_t *packet)
             close(ipfix->fd);
             ipfix->fd = -1;
             freeaddrinfo(ipfix->addrinfo);
+            ipfix->addrinfo = NULL;
 
             /* Set last connection try time so that we would reconnect immediatelly */
             ipfix->lastReconnect = 1;
@@ -1459,6 +1452,89 @@ int ipfix_send_packet(struct ipfix_s *ipfix, ipfix_packet_t *packet)
    return 0;
 }
 
+int ipfix_resolve_address(struct ipfix_s *ipfix)
+{
+   struct addrinfo hints;
+   int err;
+
+   memset(&hints, 0, sizeof(hints));
+   hints.ai_family = ipfix->ip;
+   hints.ai_protocol = ipfix->protocol;
+   hints.ai_flags = AI_ADDRCONFIG | ipfix->flags;
+
+   err = getaddrinfo(ipfix->host, ipfix->port, &hints, &ipfix->addrinfo);
+   if (err) {
+      uint16_t port;
+      if (sscanf(ipfix->port, "%" SCNu16, &port) != 1) {
+         fprintf(stderr, "Invalid port '%s'\n", ipfix->port);
+         return 1;
+      }
+
+      ipfix->addrinfo = (struct addrinfo *) calloc(1, sizeof(struct addrinfo));
+      if (ipfix->addrinfo == NULL) {
+         return 1;
+      }
+
+      ipfix->addrinfo->ai_addr = (struct sockaddr *) calloc(1, sizeof(struct sockaddr_in6));
+      if (ipfix->addrinfo->ai_addr == NULL) {
+         free(ipfix->addrinfo);
+         ipfix->addrinfo = NULL;
+         return 1;
+      }
+
+      ipfix->addrinfo->ai_flags = 0;
+      ipfix->addrinfo->ai_protocol = ipfix->protocol;
+      switch (ipfix->addrinfo->ai_protocol) {
+         case IPPROTO_UDP:
+            ipfix->addrinfo->ai_socktype = SOCK_DGRAM;
+            break;
+         case IPPROTO_TCP:
+            ipfix->addrinfo->ai_socktype = SOCK_STREAM;
+            break;
+         case IPPROTO_SCTP:
+            ipfix->addrinfo->ai_socktype = SOCK_STREAM;
+            break;
+         default:
+            fprintf(stderr, "Unhandled protocol type %d\n", ipfix->addrinfo->ai_protocol);
+            return 1;
+      }
+
+      struct sockaddr_in *sa4 = (struct sockaddr_in *) ipfix->addrinfo->ai_addr;
+      struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *) ipfix->addrinfo->ai_addr;
+      if (inet_pton(AF_INET, ipfix->host, (void *) &sa4->sin_addr) == 1) {
+         ipfix->addrinfo->ai_family = AF_INET;
+         ipfix->addrinfo->ai_addrlen = sizeof(struct sockaddr_in);
+
+         sa4->sin_family = AF_INET;
+         sa4->sin_port = ntohs(port);
+      } else if (inet_pton(AF_INET6, ipfix->host,(void *) &sa6->sin6_addr) == 1) {
+         ipfix->addrinfo->ai_family = AF_INET6;
+         ipfix->addrinfo->ai_addrlen = sizeof(struct sockaddr_in6);
+
+         sa6->sin6_family = AF_INET6;
+         sa6->sin6_port = ntohs(port);
+         sa6->sin6_flowinfo = 0;
+         sa6->sin6_scope_id = 0;
+      } else {
+         if (err == EAI_SYSTEM) {
+            fprintf(stderr, "Error: Cannot get server info: %s\n", strerror(errno));
+         } else {
+            fprintf(stderr, "Error: Cannot get server info: %s\n", gai_strerror(err));
+         }
+
+         free(ipfix->addrinfo->ai_addr);
+         free(ipfix->addrinfo);
+         ipfix->addrinfo = NULL;
+         return 1;
+      }
+
+      ipfix->addrinfo->ai_canonname = NULL;
+      ipfix->addrinfo->ai_next = NULL;
+   }
+
+   return 0;
+}
+
 /**
  * \brief Create connection to collector
  *
@@ -1469,41 +1545,27 @@ int ipfix_send_packet(struct ipfix_s *ipfix, ipfix_packet_t *packet)
  */
 int ipfix_connect_to_collector(struct ipfix_s *ipfix)
 {
-   struct addrinfo hints;
    struct addrinfo *tmp;
-   int err;
 
-   memset(&hints, 0, sizeof(hints));
-   hints.ai_family = ipfix->ip;
-   hints.ai_protocol = ipfix->protocol;
-   hints.ai_flags = AI_ADDRCONFIG | ipfix->flags;
-
-   err = getaddrinfo(ipfix->host, ipfix->port, &hints, &ipfix->addrinfo);
-   if (err) {
-      if (err == EAI_SYSTEM) {
-         fprintf(stderr, "Cannot get server info: %s\n", strerror(errno));
-      } else {
-         fprintf(stderr, "Cannot get server info: %s\n", gai_strerror(err));
-      }
+   if (ipfix_resolve_address(ipfix) != 0) {
       return 1;
    }
 
    /* Try addrinfo strucutres one by one */
    for (tmp = ipfix->addrinfo; tmp != NULL; tmp = tmp->ai_next) {
-
       if (tmp->ai_family != AF_INET && tmp->ai_family != AF_INET6) {
          continue;
       }
 
-      /* Print information about target address */
-      char buff[INET6_ADDRSTRLEN];
-      inet_ntop(tmp->ai_family,
-            (tmp->ai_family == AF_INET) ?
-                  (void *) &((struct sockaddr_in *) tmp->ai_addr)->sin_addr :
-                  (void *) &((struct sockaddr_in6 *) tmp->ai_addr)->sin6_addr,
-            (char *) &buff, sizeof(buff));
-
       if (ipfix->verbose) {
+         /* Print information about target address */
+         char buff[INET6_ADDRSTRLEN];
+         inet_ntop(tmp->ai_family,
+               (tmp->ai_family == AF_INET) ?
+                     (void *) &((struct sockaddr_in *) tmp->ai_addr)->sin_addr :
+                     (void *) &((struct sockaddr_in6 *) tmp->ai_addr)->sin6_addr,
+               (char *) &buff, sizeof(buff));
+
          fprintf(stderr, "VERBOSE: Connecting to IP %s\n", buff);
          fprintf(stderr, "VERBOSE: Socket configuration: AI Family: %i, AI Socktype: %i, AI Protocol: %i\n",
                tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
@@ -1542,6 +1604,10 @@ int ipfix_connect_to_collector(struct ipfix_s *ipfix)
    if (tmp == NULL) {
       /* Free allocated resources */
       freeaddrinfo(ipfix->addrinfo);
+      ipfix->addrinfo = NULL;
+      if (ipfix->verbose) {
+         fprintf(stderr, "VERBOSE: Connection to collector was not successful\n");
+      }
       return 2;
    }
 

@@ -205,17 +205,6 @@ typedef struct ipfix_s {
 
 void ipfix_prepare(struct ipfix_s *ipfix);
 
-/**
- * \brief Exporter initialization
- *
- * @param params plugins Flowcache export plugins.
- * @param basic_num Index of basic pseudoplugin
- * @param odid Exporter identification
- * @param host Collector address
- * @param port Collector port
- * @param udp Use UDP instead of TCP
- * @return Returns 0 on succes, non 0 otherwise.
- */
 int ipfix_init(struct ipfix_s *ipfix, uint32_t odid, const char *host, const char *port, int udp, int verbose, uint8_t dir, int export_basic);
 
 
