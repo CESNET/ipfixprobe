@@ -935,6 +935,7 @@ void ipfix_prepare(struct ipfix_s *ipfix)
 
 int ipfix_init(struct ipfix_s *ipfix, uint32_t odid, const char *host, const char *port, int udp, int verbose, uint8_t dir, int export_basic)
 {
+   int i;
    int ret;
    int templateCnt = 12;
 
@@ -943,7 +944,7 @@ int ipfix_init(struct ipfix_s *ipfix, uint32_t odid, const char *host, const cha
    ipfix->verbose = verbose;
 
    ipfix->templateArray = (template_t **) malloc(templateCnt * sizeof(template_t *));
-   for (int i = 0; i < templateCnt; i++) {
+   for (i = 0; i < templateCnt; i++) {
       ipfix->templateArray[i] = NULL;
    }
    ipfix->verbose = verbose;

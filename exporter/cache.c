@@ -265,6 +265,7 @@ uint32_t cache_find_flow(struct flowcache_s *cache, uint64_t hash)
    uint32_t line_index = hash & cache->mask;
    uint32_t flow_index;
    uint32_t line_end = line_index + cache->line_size;
+   uint32_t i;
 
    // find if flow exists in cache
    for (flow_index = line_index; flow_index < line_end; flow_index++) {
@@ -276,7 +277,7 @@ uint32_t cache_find_flow(struct flowcache_s *cache, uint64_t hash)
    if (flow_index < line_end) {
       // flow was found
       rec = cache->cache[flow_index];
-      for (uint32_t i = flow_index; i > line_index; i--) {
+      for (i = flow_index; i > line_index; i--) {
          cache->cache[i] = cache->cache[i - 1];
       }
 
@@ -297,7 +298,7 @@ uint32_t cache_find_flow(struct flowcache_s *cache, uint64_t hash)
 
          cache_export_flow(cache, rec);
 
-         for (uint32_t i = flow_index; i > flow_index_new; i--) {
+         for (i = flow_index; i > flow_index_new; i--) {
             cache->cache[i] = cache->cache[i - 1];
          }
 
@@ -433,6 +434,8 @@ int cache_pre_update(struct flowcache_s *cache, struct flowrec_s *flow, const ui
 
 int cache_init(struct flowcache_s *cache, uint32_t cache_size, uint32_t line_size, uint32_t active, uint32_t inactive, struct ipfix_s *ipfix, const char *plugins)
 {
+   uint32_t i;
+
    cache->ipfix = ipfix;
 
    cache->cache_size = cache_size; // must be power of 2
@@ -466,7 +469,7 @@ int cache_init(struct flowcache_s *cache, uint32_t cache_size, uint32_t line_siz
       return 0;
    }
 
-   for (int i = 0; i < cache->cache_size; i++) {
+   for (i = 0; i < cache->cache_size; i++) {
       cache->flows_free[i] = &cache->flows[i];
       cache->cache[i] = &cache->records[i];
 
@@ -492,7 +495,9 @@ int cache_init(struct flowcache_s *cache, uint32_t cache_size, uint32_t line_siz
 
 void cache_export_expired(struct flowcache_s *cache, time_t time)
 {
-   for (uint32_t i = 0; i < cache->cache_size; i++) {
+   uint32_t i;
+
+   for (i = 0; i < cache->cache_size; i++) {
       struct cacherec_s *rec = cache->cache[i];
       if (rec->hash != 0 && time - rec->flow->last.tv_sec >= cache->inactive) {
          cache_export_flow(cache, rec);
@@ -503,7 +508,9 @@ void cache_export_expired(struct flowcache_s *cache, time_t time)
 
 void cache_export_all(struct flowcache_s *cache)
 {
-   for (uint32_t i = 0; i < cache->cache_size; i++) {
+   uint32_t i;
+
+   for (i = 0; i < cache->cache_size; i++) {
       struct cacherec_s *rec = cache->cache[i];
       if (rec->hash != 0) {
          cache_export_flow(cache, rec);
