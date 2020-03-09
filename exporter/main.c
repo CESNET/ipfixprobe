@@ -483,7 +483,8 @@ int main(int argc, char *argv[])
    }
 
    /* Packet reading loop. */
-   while (!stop && (ret = pcap_next_ex(handle, &hdr, &packet_raw))) {
+   while (!stop) {
+      ret = pcap_next_ex(handle, &hdr, &packet_raw);
       if (ret == 0) {
          // Timeout occured
          cache_export_expired(&cache, time(NULL));
