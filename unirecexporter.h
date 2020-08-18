@@ -47,6 +47,7 @@
 #ifndef UNIREC_EXPORTER_H
 #define UNIREC_EXPORTER_H
 
+#include <config.h>
 #include <string>
 #include <vector>
 #include <map>

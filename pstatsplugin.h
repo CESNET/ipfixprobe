@@ -46,8 +46,12 @@
 #define PSTATSPLUGIN_H
 
 #include <string>
+#include <cstring>
 
+#ifdef WITH_NEMEA
 #include "fields.h"
+#endif
+
 #include "flowifc.h"
 #include "flowcacheplugin.h"
 #include "packet.h"
@@ -136,9 +140,9 @@ struct RecordExtPSTATS : RecordExt {
       pkt_count = 0;
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-#ifndef DISABLE_UNIREC
       ur_array_allocate(tmplt, record, F_PPI_PKT_TIMES, pkt_count);
       ur_array_allocate(tmplt, record, F_PPI_PKT_LENGTHS, pkt_count);
       ur_array_allocate(tmplt, record, F_PPI_PKT_FLAGS, pkt_count);
@@ -151,8 +155,8 @@ struct RecordExtPSTATS : RecordExt {
          ur_array_set(tmplt, record, F_PPI_PKT_FLAGS, i, pkt_tcp_flgs[i]);
          ur_array_set(tmplt, record, F_PPI_PKT_DIRECTIONS, i, pkt_dirs[i]);
       }
-#endif
    }
+#endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {

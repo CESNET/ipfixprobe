@@ -45,7 +45,11 @@
 
 #include <cstdlib>
 #include <iostream>
+
+#ifdef WITH_NEMEA
 #include <fields.h>
+#endif
+
 #include <stdio.h>
 
 #include "flowcacheplugin.h"
@@ -106,9 +110,9 @@ struct RecordExtNTP : RecordExt {
       sent[0] = 9;
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-#ifndef DISABLE_UNIREC
       ur_set(tmplt, record, F_NTP_LEAP, leap);
       ur_set(tmplt, record, F_NTP_VERSION, version);
       ur_set(tmplt, record, F_NTP_MODE, mode);
@@ -122,8 +126,8 @@ struct RecordExtNTP : RecordExt {
       ur_set_string(tmplt, record, F_NTP_ORIG, origin);
       ur_set_string(tmplt, record, F_NTP_RECV, receive);
       ur_set_string(tmplt, record, F_NTP_SENT, sent);
-#endif
    }
+#endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {

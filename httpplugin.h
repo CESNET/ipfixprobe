@@ -45,10 +45,14 @@
 #ifndef HTTPPLUGIN_H
 #define HTTPPLUGIN_H
 
+#include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
-#include <fields.h>
+
+#ifdef WITH_NEMEA
+#include "fields.h"
+#endif
 
 #include "flowifc.h"
 #include "flowcacheplugin.h"
@@ -91,9 +95,9 @@ struct RecordExtHTTP : RecordExt {
       content_type[0] = 0;
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-#ifndef DISABLE_UNIREC
       ur_set_string(tmplt, record, F_HTTP_REQUEST_METHOD, method);
       ur_set_string(tmplt, record, F_HTTP_REQUEST_HOST, host);
       ur_set_string(tmplt, record, F_HTTP_REQUEST_URL, uri);
@@ -101,8 +105,8 @@ struct RecordExtHTTP : RecordExt {
       ur_set_string(tmplt, record, F_HTTP_REQUEST_REFERER, referer);
       ur_set_string(tmplt, record, F_HTTP_RESPONSE_CONTENT_TYPE, content_type);
       ur_set(tmplt, record, F_HTTP_RESPONSE_STATUS_CODE, code);
-#endif
    }
+#endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {

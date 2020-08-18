@@ -49,12 +49,17 @@
 
 /* Interface between flow cache and flow exporter. */
 
+#include <config.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <unirec/unirec.h>
 
-#include "ipaddr.h"
+#ifdef WITH_NEMEA
+#include <unirec/unirec.h>
 #include "fields.h"
+#endif
+
+#include <arpa/inet.h>
+#include "ipaddr.h"
 
 struct template_t;
 
@@ -94,6 +99,7 @@ struct RecordExt {
    {
    }
 
+#ifdef WITH_NEMEA
    /**
     * \brief Fill unirec record with stored extension data.
     * \param [in] tmplt Unirec template.
@@ -102,6 +108,7 @@ struct RecordExt {
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
    }
+#endif
 
    /**
     * \brief Add extension at the end of linked list.

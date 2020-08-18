@@ -47,7 +47,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
+
+#ifdef WITH_NEMEA
 #include <fields.h>
+#endif
 
 #include "flowifc.h"
 #include "flowcacheplugin.h"
@@ -90,9 +93,9 @@ struct RecordExtRTSP : RecordExt {
       server[0] = 0;
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-#ifndef DISABLE_UNIREC
       ur_set_string(tmplt, record, F_RTSP_REQUEST_METHOD, method);
       ur_set_string(tmplt, record, F_RTSP_REQUEST_AGENT, user_agent);
       ur_set_string(tmplt, record, F_RTSP_REQUEST_URI, uri);
@@ -100,8 +103,8 @@ struct RecordExtRTSP : RecordExt {
       ur_set(tmplt, record, F_RTSP_RESPONSE_STATUS_CODE, code);
       ur_set_string(tmplt, record, F_RTSP_RESPONSE_SERVER, server);
       ur_set_string(tmplt, record, F_RTSP_RESPONSE_CONTENT_TYPE, content_type);
-#endif
    }
+#endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {

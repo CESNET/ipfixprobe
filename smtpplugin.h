@@ -45,8 +45,12 @@
 #define SMTPPLUGIN_H
 
 #include <string>
+#include <string.h>
 
+#ifdef WITH_NEMEA
 #include "fields.h"
+#endif
+
 #include "flowifc.h"
 #include "flowcacheplugin.h"
 #include "packet.h"
@@ -132,9 +136,9 @@ struct RecordExtSMTP : RecordExt {
       data_transfer = 0;
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-#ifndef DISABLE_UNIREC
       ur_set(tmplt, record, F_SMTP_2XX_STAT_CODE_COUNT, code_2xx_cnt);
       ur_set(tmplt, record, F_SMTP_3XX_STAT_CODE_COUNT, code_3xx_cnt);
       ur_set(tmplt, record, F_SMTP_4XX_STAT_CODE_COUNT, code_4xx_cnt);
@@ -146,8 +150,8 @@ struct RecordExtSMTP : RecordExt {
       ur_set_string(tmplt, record, F_SMTP_DOMAIN, domain);
       ur_set_string(tmplt, record, F_SMTP_FIRST_SENDER, first_sender);
       ur_set_string(tmplt, record, F_SMTP_FIRST_RECIPIENT, first_recipient);
-#endif
    }
+#endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {

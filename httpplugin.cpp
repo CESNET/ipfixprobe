@@ -74,6 +74,7 @@ using namespace std;
 #define HTTP_LINE_DELIMITER   '\n'
 #define HTTP_KEYVAL_DELIMITER ':'
 
+#ifdef WITH_NEMEA
 UR_FIELDS (
    string HTTP_REQUEST_METHOD,
    string HTTP_REQUEST_HOST,
@@ -84,6 +85,7 @@ UR_FIELDS (
    uint16 HTTP_RESPONSE_STATUS_CODE,
    string HTTP_RESPONSE_CONTENT_TYPE
 )
+#endif
 
 /**
  * \brief Constructor.

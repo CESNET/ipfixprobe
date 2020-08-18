@@ -44,10 +44,14 @@
 #ifndef PASSIVEDNSPLUGIN_H
 #define PASSIVEDNSPLUGIN_H
 
+#include <config.h>
 #include <string>
 #include <sstream>
 
+#ifdef WITH_NEMEA
 #include "fields.h"
+#endif
+
 #include "flowifc.h"
 #include "flowcacheplugin.h"
 #include "packet.h"
@@ -79,9 +83,9 @@ struct RecordExtPassiveDNS : RecordExt {
       rr_ttl = 0;
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-#ifndef DISABLE_UNIREC
       ur_set(tmplt, record, F_DNS_ID, id);
       ur_set(tmplt, record, F_DNS_ATYPE, atype);
       ur_set_string(tmplt, record, F_DNS_NAME, aname);
@@ -91,8 +95,9 @@ struct RecordExtPassiveDNS : RecordExt {
       } else if (ip_version == 6) {
          ur_set(tmplt, record, F_DNS_IP, ip_from_16_bytes_be((char *) ip.v6));
       }
-#endif
    }
+#endif
+
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
       int length;

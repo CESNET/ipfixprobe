@@ -45,8 +45,12 @@
 #define SSDPPLUGIN_H
 
 #include <string>
+#include <cstring>
 
+#ifdef WITH_NEMEA
 #include "fields.h"
+#endif
+
 #include "flowifc.h"
 #include "flowcacheplugin.h"
 #include "packet.h"
@@ -80,16 +84,16 @@ struct RecordExtSSDP : RecordExt {
       user_agent[0]= 0;
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-#ifndef DISABLE_UNIREC
       ur_set(tmplt, record, F_SSDP_LOCATION_PORT, port);
       ur_set_string(tmplt, record, F_SSDP_NT, nt);
       ur_set_string(tmplt, record, F_SSDP_SERVER, server);
       ur_set_string(tmplt, record, F_SSDP_ST, st);
       ur_set_string(tmplt, record, F_SSDP_USER_AGENT, user_agent);
-#endif
    }
+#endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {

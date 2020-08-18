@@ -54,9 +54,11 @@ using namespace std;
 
 #define HTTPS_UNIREC_TEMPLATE "HTTPS_SNI"
 
+#ifdef WITH_NEMEA
 UR_FIELDS (
    string HTTPS_SNI
 )
+#endif
 
 HTTPSPlugin::HTTPSPlugin(const options_t &module_options)
 {

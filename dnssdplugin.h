@@ -50,7 +50,10 @@
 #include <list>
 #include <algorithm>
 
+#ifdef WITH_NEMEA
 #include "fields.h"
+#endif
+
 #include "flowifc.h"
 #include "flowcacheplugin.h"
 #include "packet.h"
@@ -162,13 +165,13 @@ struct RecordExtDNSSD : RecordExt {
       return ret;
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-#ifndef DISABLE_UNIREC
       ur_set_string(tmplt, record, F_DNSSD_QUERIES, queries_to_string(string::npos).c_str());
       ur_set_string(tmplt, record, F_DNSSD_RESPONSES, responses_to_string(string::npos).c_str());
-#endif
    }
+#endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {

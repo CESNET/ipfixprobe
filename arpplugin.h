@@ -46,7 +46,10 @@
 
 #include <string>
 
+#ifdef WITH_NEMEA
 #include "fields.h"
+#endif
+
 #include "flowifc.h"
 #include "flowcacheplugin.h"
 #include "packet.h"
@@ -75,9 +78,9 @@ struct RecordExtARP : RecordExt {
    {
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-#ifndef DISABLE_UNIREC
       ur_set(tmplt, record, F_ARP_HA_FORMAT, ha_type);
       ur_set(tmplt, record, F_ARP_PA_FORMAT, pa_type);
       ur_set(tmplt, record, F_ARP_OPCODE, opcode);
@@ -85,8 +88,8 @@ struct RecordExtARP : RecordExt {
       ur_set_var(tmplt, record, F_ARP_SRC_PA, src_pa, pa_len);
       ur_set_var(tmplt, record, F_ARP_DST_HA, dst_ha, ha_len);
       ur_set_var(tmplt, record, F_ARP_DST_PA, dst_pa, pa_len);
-#endif
    }
+#endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {

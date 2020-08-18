@@ -31,6 +31,10 @@ AM_CONDITIONAL(DEBUG, test x"$debug" = x"true")
 
 LT_INIT()
 
+bashcompldir=${sysconfdir}/bash_completion.d
+AC_SUBST(bashcompldir)
+
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CPP
@@ -46,7 +50,6 @@ AC_CHECK_HEADER_STDBOOL
 AC_C_INLINE
 AC_TYPE_INT32_T
 AC_TYPE_INT8_T
-AC_C_RESTRICT
 AC_TYPE_SIZE_T
 AC_TYPE_SSIZE_T
 AC_TYPE_UINT16_T
@@ -69,15 +72,16 @@ AC_ARG_WITH([ndp],
 
 if test x${withndp} = xyes; then
         AC_CHECK_HEADER(nfb/nfb.h, AC_CHECK_LIB(nfb, nfb_open, [libnfb=yes],
-          [AC_MSG_WARN([libnfb not found. The flow_meter module will not be compiled.])]
-        ), AC_MSG_WARN([nfb/nfb.h not found. The flow_meter module will not be compiled.]))
+          [AC_MSG_ERROR([libnfb not found. Try installing netcope-common.])]
+        ), AC_MSG_ERROR([nfb/nfb.h not found. Try installing netcope-common-devel.]))
 fi
 
 AM_CONDITIONAL(HAVE_NDP,  test x${libnfb} = xyes && test x${withndp} = xyes)
 if [[ -z "$HAVE_NDP_TRUE" ]]; then
-AC_DEFINE([HAVE_NDP], [1], [Define to 1 if the ndp is available])
-RPM_REQUIRES+=" netcope-common"
-RPM_BUILDREQ+=" netcope-common-devel"
+   AC_DEFINE([HAVE_NDP], [1], [Define to 1 if the ndp is available])
+   LIBS="-lnfb $LIBS"
+   RPM_REQUIRES+=" netcope-common"
+   RPM_BUILDREQ+=" netcope-common-devel"
 fi
 
 if test x${withndp} = xno; then
@@ -86,8 +90,9 @@ if test x${withndp} = xno; then
 
    AM_CONDITIONAL(HAVE_LIBPCAP, test x${libpcap} = xyes)
    if [[ -z "$HAVE_LIBPCAP_TRUE" ]]; then
-   RPM_REQUIRES+=" libpcap"
-   RPM_BUILDREQ+=" libpcap-devel"
+      LIBS="-lpcap $LIBS"
+      RPM_REQUIRES+=" libpcap"
+      RPM_BUILDREQ+=" libpcap-devel"
    fi
 else
    AM_CONDITIONAL(HAVE_LIBPCAP, false)
@@ -105,6 +110,9 @@ AC_ARG_WITH([nemea],
       fi
         ], [withnemea="no"]
 )
+if test x${withnemea} = xno; then
+AM_CONDITIONAL([HAVE_TRAP2MAN], [false])
+fi
 
 AM_CONDITIONAL(WITH_NEMEA,  test x${withnemea} = xyes)
 
@@ -112,8 +120,6 @@ if [[ -z "$WITH_NEMEA_TRUE" ]]; then
 AC_DEFINE([WITH_NEMEA], [1], [Define to 1 if the NEMEA is available])
 RPM_REQUIRES+=" libtrap"
 RPM_BUILDREQ+=" libtrap-devel unirec"
-else
-CPPFLAGS="-DDISABLE_UNIREC $CPPFLAGS"
 fi
 
 AM_CONDITIONAL(COMPILE_FLOWMETER,  test x${libpcap} = xyes || test x${libnfb} = xyes)
@@ -129,9 +135,38 @@ AC_FUNC_STRTOD
 AC_CHECK_FUNCS([gettimeofday inet_ntoa memset socket strchr strerror strncasecmp strstr strtol strtoul strtoull])
 
 AC_CONFIG_FILES([Makefile
+                 flow_meter.bash
                  nfbCInterface/Makefile
                  tests/Makefile])
 
 #AC_CONFIG_SUBDIRS([nfbCInterface])
 
 AC_OUTPUT
+
+echo
+echo
+echo "------------------------------------------------------------------------"
+echo "$PACKAGE $VERSION"
+echo "------------------------------------------------------------------------"
+echo
+echo
+echo "Configuration Options Summary:"
+echo
+echo "  ASM.(32 bit only)..: $ASM"
+echo "  Static binary......: $static"
+echo
+echo "Documentation..........: ${build_doc}"
+echo
+echo "UniRec processor.......: $UNIRECPROC"
+echo "trap2man.sh............: $TRAP2MAN"
+echo "Compilation............: make (or gmake)"
+echo "  CPPFLAGS.............: $CPPFLAGS"
+echo "  CFLAGS...............: $CFLAGS"
+echo "  CXXFLAGS.............: $CXXFLAGS"
+echo "  LDFLAGS..............: $LDFLAGS"
+echo "  LIBS.................: $LIBS"
+echo
+echo "Installation...........: make install (as root if needed, with 'su' or 'sudo')"
+echo "  prefix...............: $prefix"
+echo
+

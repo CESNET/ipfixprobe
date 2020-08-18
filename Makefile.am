@@ -14,8 +14,6 @@ else
 ipfixprobe_ldflags=-lpcap
 endif
 
-#LIBS=$(NONNEMEA_LIBS)
-ipfixprobe_LDADD=$(flow_meter_ldflags)
 ipfixprobe_CXXFLAGS=-std=c++98 -Wno-write-strings -I./nfbCInterface/include/
 
 
@@ -70,13 +68,15 @@ ipfixprobe_src=flow_meter.cpp \
 		dnssdplugin.h \
 		dnssdplugin.cpp
 
-ipfixprobe_SOURCES=$(flow_meter_src)
 
 if WITH_NEMEA
-ipfixprobe_SOURCES+=unirecexporter.h \
-		    unirecexporter.cpp \
-		    fields.c \
-		    fields.h
+ipfixprobe_SOURCES=$(ipfixprobe_src) \
+			fields.c \
+			fields.h \
+			unirecexporter.h \
+			unirecexporter.cpp
+else
+ipfixprobe_SOURCES=$(ipfixprobe_src)
 endif
 
 # flow_meter_LDADD=$(NEMEA_FRAMEWORK_LIBS) -ltrap -lunirec $(flow_meter_ldflags)

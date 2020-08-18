@@ -45,8 +45,13 @@
 #define HTTPSPLUGIN_H
 
 #include <string>
+#include <cstring>
+#include <arpa/inet.h>
 
+#ifdef WITH_NEMEA
 #include "fields.h"
+#endif
+
 #include "flowifc.h"
 #include "flowcacheplugin.h"
 #include "packet.h"
@@ -68,12 +73,12 @@ struct RecordExtHTTPS : RecordExt {
       sni[0] = 0;
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-#ifndef DISABLE_UNIREC
       ur_set_string(tmplt, record, F_HTTPS_SNI, sni);
-#endif
    }
+#endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {

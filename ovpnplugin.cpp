@@ -43,6 +43,7 @@
  */
 
 #include <iostream>
+#include <cstring>
 
 #include "ovpnplugin.h"
 #include "flowifc.h"
@@ -55,9 +56,11 @@ using namespace std;
 
 #define OVPN_UNIREC_TEMPLATE "OVPN_CONF_LEVEL"
 
+#ifdef WITH_NEMEA
 UR_FIELDS (
    uint8 OVPN_CONF_LEVEL
 )
+#endif
 
 OVPNPlugin::OVPNPlugin(const options_t &module_options)
 {

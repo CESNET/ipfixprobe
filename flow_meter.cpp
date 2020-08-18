@@ -54,6 +54,10 @@
 #include <signal.h>
 #include <stdlib.h>
 
+#ifdef WITH_NEMEA
+#include "fields.h"
+#endif
+
 #include "flow_meter.h"
 #include "packet.h"
 #include "flowifc.h"
@@ -62,7 +66,6 @@
 #include "unirecexporter.h"
 #include "ipfixexporter.h"
 #include "stats.h"
-#include "fields.h"
 #include "conversion.h"
 
 #include "httpplugin.h"
@@ -289,7 +292,7 @@ int main(int argc, char *argv[])
    options.snaplen = 0;
    options.eof = true;
 
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
    bool odid = false;
 #endif
    bool export_unirec = false, export_ipfix = false, help = false, udp = false;
@@ -325,7 +328,7 @@ int main(int argc, char *argv[])
       /* TRAP initialization */
       ifc_cnt = count_trap_interfaces(argc, argv);
       module_info->num_ifc_out = ifc_cnt;
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
       TRAP_DEFAULT_INITIALIZATION(argc, argv, *module_info);
 #else
       puts("ipfixprobe version " VERSION);
@@ -342,13 +345,13 @@ int main(int argc, char *argv[])
    }
 
    if (export_unirec && export_ipfix) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
       FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
       TRAP_DEFAULT_FINALIZATION();
 #endif
       return error("Cannot export to IPFIX and Unirec at the same time.");
    } else if (!export_unirec && !export_ipfix) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
       FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
 #endif
       return error("Specify exporter output Unirec (-i) or IPFIX (-x/--ipfix).");
@@ -359,20 +362,20 @@ int main(int argc, char *argv[])
    signal(SIGPIPE, SIG_IGN);
 
    signed char opt;
-   while ((opt = TRAP_GETOPT(argc, argv, module_getopt_string, long_options)) != -1) {
+   while ((opt = getopt_long(argc, argv, module_getopt_string, long_options, NULL)) != -1) {
       switch (opt) {
       case 'p':
          {
             options.basic_ifc_num = -1;
             int ret = parse_plugin_settings(string(optarg), plugin_wrapper.plugins, options);
             if (ret < 0) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
                TRAP_DEFAULT_FINALIZATION();
 #endif
                return error("Invalid argument for option -p");
             }
             if (ifc_cnt && ret != ifc_cnt) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
                FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
                TRAP_DEFAULT_FINALIZATION();
 #endif
@@ -384,7 +387,7 @@ int main(int argc, char *argv[])
          {
             uint32_t tmp;
             if (!str_to_uint32(optarg, tmp)) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
                FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
                TRAP_DEFAULT_FINALIZATION();
 #endif
@@ -405,7 +408,7 @@ int main(int argc, char *argv[])
             char *check;
             check = strchr(optarg, ':');
             if (check == NULL) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
                FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
                TRAP_DEFAULT_FINALIZATION();
 #endif
@@ -415,7 +418,7 @@ int main(int argc, char *argv[])
             *check = '\0';
             double tmp1, tmp2;
             if (!str_to_double(optarg, tmp1) || !str_to_double(check + 1, tmp2) || tmp1 < 0 || tmp2 < 0) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
                FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
                TRAP_DEFAULT_FINALIZATION();
 #endif
@@ -434,7 +437,7 @@ int main(int argc, char *argv[])
          break;
       case 'l':
          if (!str_to_uint32(optarg, options.snaplen)) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
             FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
             TRAP_DEFAULT_FINALIZATION();
 #endif
@@ -452,7 +455,7 @@ int main(int argc, char *argv[])
          if (strcmp(optarg, "default")) {
             uint32_t tmp;
             if (!str_to_uint32(optarg, tmp) || tmp <= 3 || tmp > 30) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
                FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
                TRAP_DEFAULT_FINALIZATION();
 #endif
@@ -468,7 +471,7 @@ int main(int argc, char *argv[])
          {
             double tmp;
             if (!str_to_double(optarg, tmp)) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
                FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
                TRAP_DEFAULT_FINALIZATION();
 #endif
@@ -483,7 +486,7 @@ int main(int argc, char *argv[])
          break;
       case 'L':
          if (!str_to_uint64(optarg, link)) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
             FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
             TRAP_DEFAULT_FINALIZATION();
 #endif
@@ -492,7 +495,7 @@ int main(int argc, char *argv[])
          break;
       case 'D':
          if (!str_to_uint8(optarg, dir)) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
             FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
             TRAP_DEFAULT_FINALIZATION();
 #endif
@@ -503,7 +506,7 @@ int main(int argc, char *argv[])
          filter = string(optarg);
          break;
       case 'O':
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
          odid = true;
 #endif
          break;
@@ -512,7 +515,7 @@ int main(int argc, char *argv[])
             host = optarg;
             size_t tmp = host.find_last_of(":");
             if (tmp == string::npos) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
                FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
                TRAP_DEFAULT_FINALIZATION();
 #endif
@@ -526,7 +529,7 @@ int main(int argc, char *argv[])
             trim_str(port);
 
             if (host == "" || port == "") {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
                FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
                TRAP_DEFAULT_FINALIZATION();
 #endif
@@ -543,7 +546,7 @@ int main(int argc, char *argv[])
          udp = true;
          break;
       default:
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
          FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
          TRAP_DEFAULT_FINALIZATION();
 #endif
@@ -554,12 +557,12 @@ int main(int argc, char *argv[])
    FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
 
    if (options.interface != "" && options.pcap_file != "") {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
       TRAP_DEFAULT_FINALIZATION();
 #endif
       return error("Cannot capture from file and from interface at the same time.");
    } else if (options.interface == "" && options.pcap_file == "") {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
       TRAP_DEFAULT_FINALIZATION();
 #endif
       return error("Specify capture interface (-I) or file for reading (-r). ");
@@ -597,13 +600,13 @@ int main(int argc, char *argv[])
 
    if (options.interface == "") {
       if (packetloader->open_file(options.pcap_file, parse_every_pkt) != 0) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
          TRAP_DEFAULT_FINALIZATION();
 #endif
          return error("Can't open input file: " + options.pcap_file);
       }
    } else {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
       if (export_unirec) {
          for (int i = 0; i < ifc_cnt; i++) {
             trap_ifcctl(TRAPIFC_OUTPUT, i, TRAPCTL_SETTIMEOUT, TRAP_HALFWAIT);
@@ -612,7 +615,7 @@ int main(int argc, char *argv[])
 #endif
 
       if (packetloader->init_interface(options.interface, options.snaplen, parse_every_pkt) != 0) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
          TRAP_DEFAULT_FINALIZATION();
 #endif
          return error("Unable to initialize libpcap: " + packetloader->error_msg);
@@ -621,7 +624,7 @@ int main(int argc, char *argv[])
 
    if (filter != "") {
       if (packetloader->set_filter(filter) != 0) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
          TRAP_DEFAULT_FINALIZATION();
 #endif
          return error(packetloader->error_msg);
@@ -629,13 +632,13 @@ int main(int argc, char *argv[])
    }
 
    NHTFlowCache flowcache(options);
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
    UnirecExporter flowwriter(options.eof);
 #endif
    IPFIXExporter flow_writer_ipfix;
 
    if (export_unirec) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
       if (flowwriter.init(plugin_wrapper.plugins, ifc_cnt, options.basic_ifc_num, link, dir, odid) != 0) {
          TRAP_DEFAULT_FINALIZATION();
          return error("Unable to initialize UnirecExporter.");
@@ -644,7 +647,7 @@ int main(int argc, char *argv[])
 #endif
    } else {
       if (flow_writer_ipfix.init(plugin_wrapper.plugins, options.basic_ifc_num, link, host, port, udp, (verbose >= 0), dir) != 0) {
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
          TRAP_DEFAULT_FINALIZATION();
 #endif
          return error("Unable to initialize IPFIXExporter.");
@@ -694,11 +697,11 @@ int main(int argc, char *argv[])
 
    if (ret < 0) {
       packetloader->close();
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
       flowwriter.close();
 #endif
       delete [] packet.packet;
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
       TRAP_DEFAULT_FINALIZATION();
 #endif
       return error("Error during reading: " + packetloader->error_msg);
@@ -706,13 +709,13 @@ int main(int argc, char *argv[])
 
    /* Cleanup. */
    flowcache.finish();
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
    flowwriter.close();
 #endif
    packetloader->close();
    delete packetloader;
    delete [] packet.packet;
-#ifndef DISABLE_UNIREC
+#ifdef WITH_NEMEA
    TRAP_DEFAULT_FINALIZATION();
 #endif
 

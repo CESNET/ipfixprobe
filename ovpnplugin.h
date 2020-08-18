@@ -47,7 +47,10 @@
 
 #include <string>
 
+#ifdef WITH_NEMEA
 #include "fields.h"
+#endif
+
 #include "flowifc.h"
 #include "flowcacheplugin.h"
 #include "packet.h"
@@ -76,12 +79,12 @@ struct RecordExtOVPN : RecordExt
       status = 0;
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-      #ifndef DISABLE_UNIREC
       ur_set(tmplt, record, F_OVPN_CONF_LEVEL, possible_vpn);
-      #endif
    }
+#endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
