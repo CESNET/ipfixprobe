@@ -1,0 +1,28 @@
+# file: nemea-completion.sh
+# flow_meter parameter-completion
+
+_flow_meter ()
+{
+    local cur prev words cword
+    _init_completion || return
+
+    case "$prev" in
+    -I)
+        COMPREPLY=( $( compgen -W "$(cat /proc/net/dev | cut -f1 -d: |tail -n +3)" -- $cur ) )
+        return 0;;
+    -r)
+        COMPREPLY=( $( compgen -f -- "$cur" ) )
+	return 0;;
+    -p)
+        startpart=$(echo $cur | grep , | sed 's/,[^,]*$/,/')
+
+        COMPREPLY=( $( compgen -W "${startpart}basic ${startpart}sip ${startpart}http ${startpart}ntp ${startpart}arp ${startpart}dns" --  $cur ) )
+        return 0;;
+    esac
+    case "$cur" in
+    -*)
+        COMPREPLY=( $( compgen -W '-p -c -I -r -t -s -S -m -V -v --help -h -i' -- $cur ) );;
+    esac
+    return 0
+} && complete -F _flow_meter -o filenames ./flow_meter @BINDIR@/flow_meter
+
