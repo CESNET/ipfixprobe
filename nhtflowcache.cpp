@@ -161,7 +161,9 @@ void NHTFlowCache::flush(Packet &pkt, FlowRecord *flow, int ret, bool source_flo
       flow->soft_clean(); // Clean counters, set time first to last
       flow->update(pkt, source_flow); // Set new counters from packet
       ret = plugins_post_create(flow->flow, pkt);
-      flush(pkt, flow, ret, source_flow);
+      if (ret & FLOW_FLUSH) {
+         flush(pkt, flow, ret, source_flow);
+      }
    } else {
       flow->erase();
    }
