@@ -135,6 +135,7 @@ AC_FUNC_STRTOD
 AC_CHECK_FUNCS([gettimeofday inet_ntoa memset socket strchr strerror strncasecmp strstr strtol strtoul strtoull])
 
 AC_CONFIG_FILES([Makefile
+                 ipfixprobe.spec
                  ipfixprobe.bash
                  nfbCInterface/Makefile
                  tests/Makefile])
