@@ -100,6 +100,7 @@ static int stop = 0;
   " Some plugins have features activated with additional parameters. Format: plugin_name[:plugin_param=value[:...]][,...] If plugin does not support parameters, any parameters given will be ignored."\
   " Supported plugin parameters are listed in README", required_argument, "string")\
   PARAM('c', "count", "Quit after number of packets are captured.", required_argument, "uint32")\
+  PARAM('h', "help", "Print this help.", no_argument, "none")\
   PARAM('I', "interface", "Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can channel after interface delimited by : (/dev/nfb0:1) default is 0", required_argument, "string")\
   PARAM('r', "file", "Pcap file to read. - to read from stdin.", required_argument, "string") \
   PARAM('n', "no_eof", "Don't send NULL record message when flow_meter exits.", no_argument, "none") \
@@ -113,7 +114,16 @@ static int stop = 0;
   PARAM('F', "filter", "String containing filter expression to filter traffic. See man pcap-filter.", required_argument, "string") \
   PARAM('O', "odid", "Send ODID field instead of LINK_BIT_FIELD in unirec message.", no_argument, "none") \
   PARAM('x', "ipfix", "Export to IPFIX collector. Format: HOST:PORT or [HOST]:PORT", required_argument, "string") \
-  PARAM('u', "udp", "Use UDP when exporting to IPFIX collector.", no_argument, "none")
+  PARAM('u', "udp", "Use UDP when exporting to IPFIX collector.", no_argument, "none") \
+  PARAM('V', "version", "Print version.", no_argument, "none")\
+  PARAM('v', "verbose", "Increase verbosity of the output, it can be duplicated like -vv / -vvv.", no_argument, "none")\
+
+#define PRINT_HELP_PARAM(p_short_opt, p_long_opt, p_description, p_required_argument, p_argument_type) \
+if (p_required_argument == no_argument) { \
+   printf("  -%c, --%s\t\t\t%s\n", p_short_opt, p_long_opt, p_description); \
+} else { \
+   printf("  -%c, --%s=%s\t\t%s\n", p_short_opt, p_long_opt, p_argument_type, p_description); \
+}
 
 /**
  * \brief Parse input plugin settings.
@@ -309,6 +319,12 @@ int main(int argc, char *argv[])
          export_ipfix = true;
       } else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
          help = true;
+      } else if (!strcmp(argv[i], "-V") || !strcmp(argv[i], "--version")) {
+         help = true;
+         printf("%s (%s) %s\n", PACKAGE, PACKAGE_NAME, VERSION);
+         puts ("");
+         return 0;
+
       } else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "-vv") || !strcmp(argv[i], "-vvv")) {
          if (verbose >= 0) {
             for (int j = verbose; j + 1 < argc; j++) {
@@ -332,10 +348,13 @@ int main(int argc, char *argv[])
       TRAP_DEFAULT_INITIALIZATION(argc, argv, *module_info);
 #else
       puts("ipfixprobe version " VERSION);
-      puts("ipfixprobe is a simplified flow exporter (flow_meter) without libtrap&UniRec support.");
+      puts("ipfixprobe is an IPFIX flow exporter support supporting various custom IPFIX elements.");
       puts("");
       puts("Usage: ipfixprobe [-I interface] -x host:port [-u] [-p " SUPPORTED_PLUGINS_LIST "] [-r file]");
       puts("");
+
+      MODULE_PARAMS(PRINT_HELP_PARAM)
+
 #endif
    } else if (verbose >= 0) {
       for (int i = verbose; i + 1 < argc; i++) {
@@ -350,7 +369,7 @@ int main(int argc, char *argv[])
       TRAP_DEFAULT_FINALIZATION();
 #endif
       return error("Cannot export to IPFIX and Unirec at the same time.");
-   } else if (!export_unirec && !export_ipfix) {
+   } else if (!export_unirec && !export_ipfix && !help) {
 #ifdef WITH_NEMEA
       FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
 #endif
@@ -550,7 +569,11 @@ int main(int argc, char *argv[])
          FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
          TRAP_DEFAULT_FINALIZATION();
 #endif
-         return error("Invalid arguments");
+         if (!help) {
+            return error("Invalid arguments");
+         } else {
+            return 0;
+         }
       }
    }
 
