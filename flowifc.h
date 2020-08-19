@@ -52,6 +52,8 @@
 #include <config.h>
 #include <stdint.h>
 #include <stdlib.h>
+/* struct timeval */
+#include <sys/time.h>
 
 #ifdef WITH_NEMEA
 #include <unirec/unirec.h>
