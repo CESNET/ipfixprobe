@@ -1,19 +1,61 @@
-# flow_meter module - README
+# ipfixprobe - IPFIX flow exporter - README
 
 ## Description
 This NEMEA module creates biflows from input PCAP file / network interface and exports them to output interface.
 
 ## Requirements
-- To compile this module you will need [libpcap](http://www.tcpdump.org/) development library installed.
-- Root priviliges are needed when capturing from network interface.
+- To compile this module you will need [libpcap](http://www.tcpdump.org/) development library installed,
+  OR netcope-common to support high-speed transfers from [COMBO cards](https://www.liberouter.org/technologies/cards/) (NDP interface).
 
-## Interfaces
-### Inputs
-- PCAP file
-- Network interface
+## Build & Installation
 
-### Outputs
-- UniRec containing `<COLLECTOR_FLOW>` + fields added by active plugins
+### Source codes
+
+This project uses a standard process of:
+
+```
+autoreconf -i
+./configure
+make
+sudo make install
+```
+
+Check `./configure --help` for more details and settings.
+
+### RPM packages
+
+RPM package can be created in the following versions using `--with` parameter of `rpmbuild`:
+- `--with ndp` enables RPM with netcope-common, i.e., NDP communication interface; this disables libpcap input.
+- `--with nemea` enables RPM with NEMEA interface (output)
+
+These parameters affect required dependencies of the RPM and build process.
+
+The default configuration of the RPM can be created using simply: `make rpm`
+
+Information about public repository will be added soon.
+
+## Input / Output of the flow exporter
+
+Input and output interfaces are dependent on the configuration (by `configure`).
+The default setting uses libpcap and the output is in IPFIX format only.
+
+When the project is configured with `./configure --with-nemea`, the flow
+exporter supports NEMEA output via TRAP IFC besides the default IPFIX output.
+For more information about NEMEA, visit
+[https://nemea.liberouter.org](https://nemea.liberouter.org).
+
+By default, the flow exporter uses libpcap, which allows for receiving packets
+from PCAP file or network interface card.
+
+When the project is configured with `./configure --with-ndp`, the flow exporter
+does not link libpcap. Contrary, it is prepared for high-speed packet transfer
+from special HW acceleration FPGA cards.  For more information about the cards,
+visit [COMBO cards](https://www.liberouter.org/technologies/cards/) or contact
+us.
+
+### Output
+
+- For NEMEA, the output is in UniRec format using [https://nemea.liberouter.org/trap-ifcspec/](https://nemea.liberouter.org/trap-ifcspec/)
 - IPFIX [RFC 5101](https://tools.ietf.org/html/rfc5101)
 
 ## Parameters
@@ -23,7 +65,7 @@ This NEMEA module creates biflows from input PCAP file / network interface and e
 - `-c NUMBER`        Quit after `NUMBER` of packets are captured.
 - `-I STRING`        Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can channel after interface delimited by : (/dev/nfb0:1) default is 0.
 - `-r STRING`        Pcap file to read. `-` to read from stdin.
-- `-n`               Don't send NULL record when flow_meter exits.
+- `-n`               Don't send NULL record when ipfixprobe exits (for NEMEA output).
 - `-l NUMBER`        Snapshot length when reading packets. Set value between `120`-`65535`.
 - `-t NUM:NUM`       Active and inactive timeout in seconds. Format: DOUBLE:DOUBLE. Value default means use default value 300.0:30.0.
 - `-s STRING`        Size of flow cache. Parameter is used as an exponent to the power of two. Valid numbers are in range 4-30. default is 17 (131072 records).
@@ -48,7 +90,7 @@ Stores packets from input PCAP file / network interface in flow cache to create 
 When capturing from network interface, flows are continuously send to output interfaces until N (or unlimited number of packets if the -c option is not specified) packets are captured and exported.
 
 ## Extension
-`flow_meter` can be extended by new plugins for exporting various new information from flow.
+`ipfixprobe` can be extended by new plugins for exporting various new information from flow.
 There are already some existing plugins that export e.g. `DNS`, `HTTP`, `SIP`, `NTP`, `PassiveDNS`.
 
 ## Adding new plugin
@@ -59,11 +101,12 @@ file template and will also print `TODO` guide what needs to be done.
 It is possible to export single packet with additional information using plugins (`ARP`).
 
 ## Possible issues
-### Flows are not send to output interface when reading small pcap file
+### Flows are not send to output interface when reading small pcap file (NEMEA output)
+
 Turn off message buffering using `buffer=off` option on output interfaces.
 
 ```
-./flow_meter -i u:abc:buffer=off -r traffic.pcap
+./ipfixprobe -i u:abc:buffer=off -r traffic.pcap
 ```
 
 ## Output data
@@ -349,7 +392,7 @@ List of UniRec fields exported together with basic flow fields on interface by O
 | OVPN_CONF_LEVEL    | uint8  | level of confidence that the flow record is an OpenVPN tunnel |
 
 ## Simplified function diagram
-Diagram below shows how `flow_meter` works.
+Diagram below shows how `ipfixprobe` works.
 
 1. `Packet` is read from pcap file or network interface
 2. `Packet` is processed by PcapReader and is about to put to flow cache
