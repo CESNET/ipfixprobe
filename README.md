@@ -32,6 +32,10 @@ These parameters affect required dependencies of the RPM and build process.
 
 The default configuration of the RPM can be created using simply: `make rpm`
 
+Alternative versions (described in the following section) can be created by:
+- NEMEA version of RPM: `make rpm-nemea`
+- NDP version of RPM: `make rpm-ndp`
+
 Information about public repository will be added soon.
 
 ## Input / Output of the flow exporter

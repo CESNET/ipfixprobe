@@ -115,6 +115,14 @@ srpm:
 .PHONY: rpm
 rpm: srpm
 	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm;
+
+.PHONY: rpm-nemea
+rpm-nemea: srpm
+	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm --with nemea;
+
+.PHONY: rpm-ndp
+rpm-ndp: srpm
+	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm --with ndp;
 else
 endif
 
