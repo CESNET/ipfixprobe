@@ -56,7 +56,7 @@
 #include "flowifc.h"
 #include "flowcacheplugin.h"
 #include "packet.h"
-#include "flow_meter.h"
+#include "ipfixprobe.h"
 #include "ipfix-elements.h"
 #include "conversion.h"
 

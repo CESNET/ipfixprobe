@@ -4,7 +4,7 @@
 AC_PREREQ([2.69])
 AC_INIT([ipfixprobe], [2.16.0], [nemea@cesnet.cz])
 
-AC_CONFIG_SRCDIR([xxhash.h])
+AC_CONFIG_SRCDIR([ipfixprobe.h])
 AC_CONFIG_HEADERS([config.h])
 
 RELEASE=1
@@ -60,7 +60,7 @@ AC_TYPE_UINT8_T
 AX_C_BIGENDIAN_CROSS
 
 AC_ARG_WITH([ndp],
-        AC_HELP_STRING([--with-ndp],[Compile flow_meter with ndp library.]),
+        AC_HELP_STRING([--with-ndp],[Compile ipfixprobe with ndp library.]),
         [
       if test "$withval" = "yes"; then
          withndp="yes"
@@ -86,7 +86,7 @@ fi
 
 if test x${withndp} = xno; then
    AC_CHECK_HEADER(pcap.h,
-              AC_CHECK_LIB(pcap, pcap_open_live, [libpcap=yes], AC_MSG_WARN([libpcap not found. The flow_meter module will not be compiled.])), AC_MSG_WARN([pcap.h not found. The flow_meter module will not be compiled.]))
+              AC_CHECK_LIB(pcap, pcap_open_live, [libpcap=yes], AC_MSG_WARN([libpcap not found. The ipfixprobe flow exporter will not be compiled.])), AC_MSG_WARN([pcap.h not found. The ipfixprobe flow exporter will not be compiled.]))
 
    AM_CONDITIONAL(HAVE_LIBPCAP, test x${libpcap} = xyes)
    if [[ -z "$HAVE_LIBPCAP_TRUE" ]]; then
@@ -135,7 +135,7 @@ AC_FUNC_STRTOD
 AC_CHECK_FUNCS([gettimeofday inet_ntoa memset socket strchr strerror strncasecmp strstr strtol strtoul strtoull])
 
 AC_CONFIG_FILES([Makefile
-                 flow_meter.bash
+                 ipfixprobe.bash
                  nfbCInterface/Makefile
                  tests/Makefile])
 

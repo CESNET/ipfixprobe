@@ -49,7 +49,7 @@
 
 #include <string>
 
-#include "flow_meter.h"
+#include "ipfixprobe.h"
 #include "flowcache.h"
 #include "flowifc.h"
 #include "flowexporter.h"

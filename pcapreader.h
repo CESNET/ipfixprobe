@@ -53,7 +53,7 @@
 #include <pcap/pcap.h>
 #endif /* HAVE_NDP */
 
-#include "flow_meter.h"
+#include "ipfixprobe.h"
 #include "packet.h"
 #include "packetreceiver.h"
 

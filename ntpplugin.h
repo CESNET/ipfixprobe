@@ -54,7 +54,7 @@
 
 #include "flowcacheplugin.h"
 #include "flowifc.h"
-#include "flow_meter.h"
+#include "ipfixprobe.h"
 #include "packet.h"
 
 using namespace std;

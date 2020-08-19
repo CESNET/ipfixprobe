@@ -50,7 +50,7 @@
 
 #include "flowifc.h"
 #include "flowcacheplugin.h"
-#include "flow_meter.h"
+#include "ipfixprobe.h"
 #include "ntpplugin.h"
 #include "packet.h"
 #include "ipfix-elements.h"

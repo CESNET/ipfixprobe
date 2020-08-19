@@ -5,8 +5,12 @@ export LANG=C
 
 test -z "$srcdir" && export srcdir=.
 
-flow_meter_bin=../flow_meter
-logger_bin=../../logger/logger
+ipfixprobe_bin=../ipfixprobe
+if [ -x ../../logger/logger ]; then
+   logger_bin=../../logger/logger
+else
+   logger_bin=/usr/bin/nemea/logger
+fi
 
 pcap_dir=$srcdir/../traffic-samples
 ref_dir=$srcdir/test_reference
@@ -15,8 +19,8 @@ file_out="$$.data"
 
 # Usage: run_plugin_test <plugin> <data file>
 run_plugin_test() {
-   if ! [ -f "$flow_meter_bin" ]; then
-      echo "flow_meter not compiled"
+   if ! [ -f "$ipfixprobe_bin" ]; then
+      echo "ipfixprobe not compiled"
       return 77
    fi
 
@@ -29,7 +33,7 @@ run_plugin_test() {
       mkdir "$output_dir"
    fi
 
-   "$flow_meter_bin" -i f:"$output_dir/$file_out":buffer=off:timeout=WAIT -p "$1" -L 0 -r "$2" >/dev/null
+   "$ipfixprobe_bin" -i f:"$output_dir/$file_out":buffer=off:timeout=WAIT -p "$1" -L 0 -r "$2" >/dev/null
    "$logger_bin"     -i f:"$output_dir/$file_out" -t | sort > "$output_dir/$1"
    rm "$output_dir/$file_out"
 

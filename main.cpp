@@ -58,7 +58,7 @@
 #include "fields.h"
 #endif
 
-#include "flow_meter.h"
+#include "ipfixprobe.h"
 #include "packet.h"
 #include "flowifc.h"
 #include "pcapreader.h"

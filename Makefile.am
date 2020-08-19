@@ -17,8 +17,8 @@ endif
 ipfixprobe_CXXFLAGS=-std=c++98 -Wno-write-strings -I./nfbCInterface/include/
 
 
-ipfixprobe_src=flow_meter.cpp \
-		flow_meter.h \
+ipfixprobe_src=main.cpp \
+		ipfixprobe.h \
 		packet.h \
 		packetreceiver.h \
 		pcapreader.h \
@@ -79,10 +79,7 @@ else
 ipfixprobe_SOURCES=$(ipfixprobe_src)
 endif
 
-# flow_meter_LDADD=$(NEMEA_FRAMEWORK_LIBS) -ltrap -lunirec $(flow_meter_ldflags)
-# flow_meter_CXXFLAGS=-std=c++98 -Wno-write-strings -I./nfbCInterface/include/
-
-pkgdocdir=${docdir}/flow_meter
+pkgdocdir=${docdir}/ipfixprobe
 pkgdoc_DATA=README.md
 EXTRA_DIST=README.md \
 	traffic-samples/README.md \
@@ -99,7 +96,7 @@ EXTRA_DIST=README.md \
 	traffic-samples/smtp-sample.pcap \
 	traffic-samples/ovpn-sample.pcap
 
-bashcompl_DATA=flow_meter.bash
+bashcompl_DATA=ipfixprobe.bash
 
 if WITH_NEMEA
 include ./aminclude.am

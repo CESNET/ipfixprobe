@@ -55,7 +55,7 @@
 #include "fields.h"
 #include "flowexporter.h"
 #include "flowifc.h"
-#include "flow_meter.h"
+#include "ipfixprobe.h"
 
 using namespace std;
 
