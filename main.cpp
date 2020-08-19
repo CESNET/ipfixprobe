@@ -84,7 +84,10 @@
 
 using namespace std;
 
+#ifdef WITH_NEMEA
 trap_module_info_t *module_info = NULL;
+#endif
+
 static int stop = 0;
 
 #define MODULE_BASIC_INFO(BASIC) \
@@ -229,6 +232,7 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
    return ifc_num;
 }
 
+#ifdef WITH_NEMEA
 /**
  * \brief Count trap interfaces.
  * \param [in] argc Number of parameters.
@@ -255,6 +259,7 @@ int count_trap_interfaces(int argc, char *argv[])
 
    return ifc_cnt;
 }
+#endif
 
 /**
  * \brief Convert double to struct timeval.
@@ -287,8 +292,30 @@ void signal_handler(int sig)
    stop = 1;
 }
 
+typedef struct module_param_s {
+   char   short_opt;
+   char  *long_opt;
+   char  *description;
+   int param_required_argument;
+   char  *argument_type;
+} module_param_t;
+
+#define GEN_LONG_OPT_STRUCT_LINE(p_short_opt, p_long_opt, p_description, p_required_argument, p_argument_type) \
+   {p_long_opt, p_required_argument, 0, p_short_opt},
+
+#define GEN_LONG_OPT_STRUCT(PARAMS) \
+   static struct option long_options[] __attribute__((used)) = { \
+      PARAMS(GEN_LONG_OPT_STRUCT_LINE) \
+      {0, 0, 0, 0} \
+   }
+
+#define FILL_PARAMS(p_short_opt, p_long_opt, p_description, p_required_argument, p_argument_type) \
+   module_getopt_string[optidx++] = p_short_opt; \
+   if (p_required_argument == required_argument) {module_getopt_string[optidx++] = ':';}
+
 int main(int argc, char *argv[])
 {
+
    plugins_t plugin_wrapper;
    options_t options;
    options.flow_cache_size = DEFAULT_FLOW_CACHE_SIZE;
@@ -304,7 +331,10 @@ int main(int argc, char *argv[])
 
 #ifdef WITH_NEMEA
    bool odid = false;
+#else
+   GEN_LONG_OPT_STRUCT(MODULE_PARAMS);
 #endif
+
    bool export_unirec = false, export_ipfix = false, help = false, udp = false;
    int ifc_cnt = 0, verbose = -1;
    uint64_t link = 1;
@@ -338,13 +368,19 @@ int main(int argc, char *argv[])
       }
    }
 
+#ifdef WITH_NEMEA
    INIT_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
+#else
+   char module_getopt_string[100];
+   int optidx = 0;
+   MODULE_PARAMS(FILL_PARAMS)
+#endif
 
    if ((export_unirec && !export_ipfix) || help) {
+#ifdef WITH_NEMEA
       /* TRAP initialization */
       ifc_cnt = count_trap_interfaces(argc, argv);
       module_info->num_ifc_out = ifc_cnt;
-#ifdef WITH_NEMEA
       TRAP_DEFAULT_INITIALIZATION(argc, argv, *module_info);
 #else
       puts("ipfixprobe version " VERSION);
@@ -577,7 +613,9 @@ int main(int argc, char *argv[])
       }
    }
 
+#ifdef WITH_NEMEA
    FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
+#endif
 
    if (options.interface != "" && options.pcap_file != "") {
 #ifdef WITH_NEMEA

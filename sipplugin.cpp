@@ -44,7 +44,10 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef WITH_NEMEA
 #include <unirec/unirec.h>
+#endif
 
 #include "packet.h"
 #include "flowifc.h"

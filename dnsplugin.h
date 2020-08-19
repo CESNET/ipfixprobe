@@ -46,6 +46,7 @@
 #define DNSPLUGIN_H
 
 #include <string>
+#include <cstring>
 #include <sstream>
 
 #ifdef WITH_NEMEA

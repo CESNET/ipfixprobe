@@ -48,6 +48,9 @@
 #define UNIREC_EXPORTER_H
 
 #include <config.h>
+
+#ifdef WITH_NEMEA
+
 #include <string>
 #include <vector>
 #include <map>
@@ -89,4 +92,5 @@ private:
    uint8_t dir_bit_field;     /**< Direction bit field value. */
 };
 
+#endif
 #endif

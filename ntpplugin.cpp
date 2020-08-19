@@ -46,7 +46,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef WITH_NEMEA
 #include <unirec/unirec.h>
+#endif
 
 #include "flowifc.h"
 #include "flowcacheplugin.h"

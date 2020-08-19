@@ -64,14 +64,12 @@ using namespace std;
 
 #define PSTATS_UNIREC_TEMPLATE "PPI_PKT_LENGTHS,PPI_PKT_TIMES,PPI_PKT_FLAGS,PPI_PKT_DIRECTIONS"
 
-#ifdef WITH_NEMEA
 UR_FIELDS (
    uint16* PPI_PKT_LENGTHS,
    time* PPI_PKT_TIMES,
    uint8* PPI_PKT_FLAGS,
    int8* PPI_PKT_DIRECTIONS,
 )
-#endif
 
 PSTATSPlugin::PSTATSPlugin(const options_t &module_options)
 {

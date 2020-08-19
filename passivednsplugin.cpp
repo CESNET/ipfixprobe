@@ -45,8 +45,13 @@
 #include <stdio.h>
 #include <iostream>
 #include <sstream>
+#include <cstring>
 #include <arpa/inet.h>
+
+#ifdef WITH_NEMEA
 #include <unirec/unirec.h>
+#endif
+
 #include <limits>
 #include <stdlib.h>
 #include <stdint.h>

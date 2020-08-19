@@ -43,9 +43,13 @@
 
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <net/if_arp.h>
 #include <netinet/if_ether.h>
+
+#ifdef WITH_NEMEA
 #include <unirec/unirec.h>
+#endif
 
 #include "arpplugin.h"
 #include "flowifc.h"

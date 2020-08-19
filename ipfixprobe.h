@@ -108,4 +108,8 @@ struct plugins_t {
    }
 };
 
+#ifndef WITH_NEMEA
+#define UR_FIELDS(...)
+#endif
+
 #endif

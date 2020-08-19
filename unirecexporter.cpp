@@ -45,6 +45,9 @@
  */
 
 #include <config.h>
+
+#ifdef WITH_NEMEA
+
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -360,4 +363,6 @@ void UnirecExporter::fill_packet_fields(Packet &pkt, ur_template_t *tmplt_ptr, v
    ur_set(tmplt_ptr, record_ptr, F_ETHERTYPE, pkt.ethertype);
    ur_set(tmplt_ptr, record_ptr, F_TIME, tmp_time);
 }
+
+#endif
 

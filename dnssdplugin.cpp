@@ -47,7 +47,11 @@
 #include <iostream>
 #include <sstream>
 #include <arpa/inet.h>
+
+#ifdef WITH_NEMEA
 #include <unirec/unirec.h>
+#endif
+
 #include <errno.h>
 
 #include "dnssdplugin.h"

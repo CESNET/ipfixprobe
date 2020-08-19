@@ -45,6 +45,7 @@
 #define DNSSDPLUGIN_H
 
 #include <string>
+#include <cstring>
 #include <sstream>
 #include <fstream>
 #include <list>

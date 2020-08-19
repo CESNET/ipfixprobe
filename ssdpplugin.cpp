@@ -63,7 +63,6 @@ using namespace std;
 
 #define SSDP_UNIREC_TEMPLATE "SSDP_LOCATION_PORT,SSDP_NT,SSDP_SERVER,SSDP_ST,SSDP_USER_AGENT"
 
-#ifdef WITH_NEMEA
 UR_FIELDS (
    uint16 SSDP_LOCATION_PORT,
    string SSDP_NT,
@@ -71,7 +70,6 @@ UR_FIELDS (
    string SSDP_ST,
    string SSDP_USER_AGENT
 )
-#endif
 
 enum header_types {
    LOCATION,
