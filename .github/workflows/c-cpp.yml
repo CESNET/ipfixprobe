@@ -13,6 +13,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        apt-get update
+        apt-get -y install build-essential autoconf libtool libpcap-dev pkg-config
+      
     - name: autoreconf
       run: autoreconf -i
     - name: configure
