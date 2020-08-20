@@ -1,0 +1,95 @@
+%bcond_with ndp
+%bcond_with nemea
+
+%if %{with ndp}
+%global compile_ndp yes
+%else
+%global compile_ndp no
+%endif
+
+%if %{with nemea}
+%global compile_nemea yes
+%else
+%global compile_nemea no
+%endif
+
+Name: ipfixprobe
+Version: @PACKAGE_VERSION@
+Release: @RELEASE@
+URL: http://nemea.liberouter.org/
+Source: https://www.liberouter.org/repo/SOURCES/%{name}-%{version}-%{release}.tar.gz
+Group: Liberouter
+License: BSD
+Vendor: CESNET, z.s.p.o.
+Packager: @USERNAME@ <@USERMAIL@>
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}
+Summary: IPFIX flow exporter with various extending IPFIX elements exported by plugins.
+BuildRequires: gcc gcc-c++ make doxygen pkgconfig
+Provides: ipfixprobe
+
+%if %{with ndp}
+Requires: netcope-common
+BuildRequires: netcope-common
+%else
+Requires: libpcap
+BuildRequires: libpcap-devel
+%endif
+
+%if %{with nemea}
+Requires: libtrap
+BuildRequires: libtrap-devel
+BuildRequires: unirec
+%endif
+
+%description
+This package contains nemea flow exporter.
+
+%prep
+%setup
+
+%build
+./configure -q --enable-silent-rules --prefix=%{_prefix} --libdir=%{_libdir} --bindir=%{_bindir} --sysconfdir=%{_sysconfdir} --docdir=%{_docdir} --mandir=%{_mandir} --datadir=%{_datadir} --with-ndp=%{compile_ndp} --with-nemea=%{compile_nemea};
+make clean
+make -j5
+
+%install
+make -j5 DESTDIR=$RPM_BUILD_ROOT install
+
+%post
+test -x %{_bindir}/ipfixprobe && setcap "CAP_NET_RAW+eip" %{_bindir}/ipfixprobe || true
+ldconfig
+
+%if %{with ndp}
+%package devel
+Summary: Devel package of ipfixprobe containing header files of libndpRI interface and devel files.
+
+Group: Liberouter
+Requires: ipfixprobe = %{version}-%{release}
+
+%description devel
+This package contains header file for liburfilter.
+
+%endif
+
+%files
+%attr(0755, root, nemead) %{_bindir}/ipfixprobe
+%{_sysconfdir}/bash_completion.d/ipfixprobe.bash
+%{_docdir}/ipfixprobe/README.md
+%if %{with nemea}
+%{_mandir}/man1/ipfixprobe-nemea.1.gz
+%endif
+
+%if %{with ndp}
+%files devel
+%{_includedir}/ndpheader.h
+%{_includedir}/ndpreader.h
+%{_includedir}/ndpreader.hpp
+%{_libdir}/libndpRI.a
+%{_libdir}/libndpRI.la
+%{_libdir}/libndpRI.so
+%{_libdir}/libndpRI.so.0
+%{_libdir}/libndpRI.so.0.0.0
+%endif
+
+
+
