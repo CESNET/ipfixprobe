@@ -36,7 +36,15 @@ Alternative versions (described in the following section) can be created by:
 - NEMEA version of RPM: `make rpm-nemea`
 - NDP version of RPM: `make rpm-ndp`
 
-Information about public repository will be added soon.
+We use [COPR infrastructure](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/) to build and serve RPM packages for EPEL7 and EPEL8.
+It is not possible to pass arguments to rpmbuild, so there is an option in configure to enforce NEMEA dependency:
+
+`./configure --enable-nemearpm && make srpm`
+
+The output source RPM can be uploaded to copr.
+
+To install ipfixprobe with NEMEA dependency from binary RPM packages, it is possible to follow instructions on:
+[https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/)
 
 ## Input / Output of the flow exporter
 

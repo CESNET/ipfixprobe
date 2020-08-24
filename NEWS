@@ -1,0 +1,30 @@
+2020-08-04 (Karel Hynek): flow_meter: renamed vpndetector plugin to ovpn plugin
+2020-08-03 (Tomáš Čejka): flow_meter: BUGFIX inconsistent TRILL struct for BIG_ENDIAN
+2020-07-31 (xsedla1o): flow_meter: ssdp: added stats
+2020-07-31 (xsedla1o): flow_meter: ssdp: Reworked parse_loc_port()
+2020-07-29 (Jiri Havranek): flow_meter: added RTSP parsing plugin prototype
+2020-07-29 (Jiri Havranek): flow_meter: exporting 8 bits of TCP flags
+2020-07-27 (Tomas Cejka): flow_meter: MAINTENANCE deduplicate list of supported plugins
+2020-07-27 (Jiri Havranek): flow_meter: http: now parsing protocol on all ports
+2020-07-17 (xsedla1o): flow_meter: dns-sd: adopted code from dnsplugin
+2020-07-15 (xsedla1o): flow_meter: dns-sd: created plugin files
+2020-07-14 (xsedla1o): flow_meter: ssdp: implemented export functions
+2020-07-14 (xsedla1o): flow_meter: created ssdp plugin files
+2020-06-08 (Tomas Cejka): flow_meter: pstats: update readme - list of UniRec fields
+2020-06-03 (Jiri Havranek): flow_meter: added support for trill
+2020-06-03 (optical-o): flow_meter: Added support for selecting NDP DMA channel
+2020-06-02 (Tomas Benes): flow_meter: Added NDP Packet receiver
+2020-06-02 (Tomas Benes): flow_meter: Added nfbCInterface library
+2020-05-05 (Jiri Havranek): flow_meter: added test for pstats plugin
+2020-05-05 (Tomáš Čejka): flow_meter: ppi: rename fields to ipfixcol2-unirec-output
+2020-05-04 (Tomáš Čejka): flow_meter: ppi: merge stats array and add directions
+2020-05-04 (Jiri Havranek): flow_meter: plugins updated to work correctly with biflow related modifications, fixed tests
+2020-04-30 (Jiri Havranek): flow_meter: updated pstats plugin to export stats for biflow
+2020-04-27 (Karel Hynek): flow_meter: Changed numbers of IPFIX elements in pstats plugin
+2020-04-26 (Jiri Havranek): flow_meter: fixed export of total byte count for IPv6 flows
+2020-04-26 (Jiri Havranek): flow_meter: now exporting biflow only
+2020-04-07 (Tomáš Čejka): flow_meter: bugfix: check return value of UR create template
+2020-04-07 (Tomáš Čejka): flow_meter: create_plugin - updated guide
+2019-04-12 (Tomas Cejka): flow_meter: update test references - MAC address representation
+2018-12-23 (Tomas Cejka): flow_meter: ipfixprobe without libtrap dependency
+2018-09-17 (Filip Šuster): [flow_meter] Fix exported HTTP field names (#91)

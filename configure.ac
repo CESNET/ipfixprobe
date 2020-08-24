@@ -174,6 +174,7 @@ echo "  CFLAGS...............: $CFLAGS"
 echo "  CXXFLAGS.............: $CXXFLAGS"
 echo "  LDFLAGS..............: $LDFLAGS"
 echo "  LIBS.................: $LIBS"
+echo "Enforced NEMEA (for copr): $NEMEARPM"
 echo
 echo "Installation...........: make install (as root if needed, with 'su' or 'sudo')"
 echo "  prefix...............: $prefix"

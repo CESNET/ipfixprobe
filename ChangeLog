@@ -1,0 +1,120 @@
+2020-08-24 ipfixprobe-2.16.0
+	* migration from nemea-modules
+
+2020-07-30 nemea-modules-2.16.0
+	* flow_meter:
+		bugfixes, biflow support, added ppi feature, ssdp and dns-sd
+		improvements, added ovpn plugin, maintenance of plugins
+
+2020-04-21 nemea-modules-2.15.0
+	* flow_meter:
+		minor bugfixes
+
+2019-04-21 nemea-modules-2.11.0
+	* flow_meter:
+		Updated test references because of MAC UniRec type conversion.
+	* flow_meter&ipfixprobe:
+		Improved build - linker parameters.
+
+2019-02-25 nemea-modules-2.10.0
+	* rpm:
+		Add ipfixprobe module, the simplified flow_meter.
+
+2018-09-18 nemea-modules-2.8.0
+	* flow_meter:
+		Change HTTP template: compatibility with CESNET/FlowMon settings
+
+2018-03-20 Nemea-modules-2.6.2
+	* flow_meter:
+		added export of DNS PTR
+		added SMTP plugin
+		modified some test scripts
+
+2017-07-24 Nemea-modules-2.5.7
+	* flow_meter:
+		long IPFIX option (by Ulrik Haugen)
+		file attributes in spec (by Ulrik Haugen)
+
+2017-07-11 Nemea-modules-2.5.6
+	* flow_meter: 
+		fix build with older gcc
+
+2017-06-30 Nemea-modules-2.5.5
+	* flow_meter:
+		parser is now parsing packets without transport layer
+
+2017-06-08 Nemea-modules-2.5.4
+	* flow_meter:
+		flow cache hash function changed to xxHash
+		added handler for SIGPIPE signal 
+		add support for IPv6 address in -x parameter
+		added export to IPFIX
+		optimizations
+		simplifications
+		bugfixes
+	
+2017-03-01 Nemea-modules-2.5.3
+	* flow_meter:
+		added -O option (see documentation)
+		bash completion feature
+		BUGFIX distcheck failed
+		added traffic filtering using -F parameter
+		default timeout on output interfaces set to HALF_WAIT
+		fixed exporting expired flows while no packets are captured
+		added output unirec field description to README
+
+2017-02-05 Nemea-modules-2.5.2
+	* flow_meter:
+		add support: IPv6 extension headers
+		add support: double tagged frames (VLAN)
+		optimizations
+		bugfixes
+
+2016-10-07 Nemea-modules-2.5.0
+	* flow_meter
+		extended tests coverage
+		updated README
+		many bugfixes and overall improvements
+
+2016-10-04 Nemea-modules-2.4.2
+	* flow_meter:
+		added arp plugin
+		bugfixes in http and ntp plugin
+
+2016-08-05 Nemea-modules-2.4.1
+	* flow_meter:
+		code revision
+		memory optimizations
+		fixing byte order issues
+
+2016-07-28 Nemea-modules-2.4.0
+	* flow_meter:
+		optimization and improvement
+		add NTP plugin
+
+2016-04-03 Nemea-modules-2.3.4
+	* flow_meter bugfixed
+
+
+2016-03-20 Nemea-modules-2.3.3
+	* flow_meter sip plugin bugfixed - no longer causes segfault
+
+
+2016-03-10 Nemea-modules-2.3
+	* documentation for creating flow_meter plugins
+
+
+2016-02-16 Nemea-modules-2.1
+	* Contained modules:
+		anonymizer
+		debug_sender
+		flow_meter
+		flowcounter
+		logger
+		logreplay
+		merger
+		nfreader
+		report2idea
+		traffic_repeater
+		unirecfilter
+
