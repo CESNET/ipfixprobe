@@ -292,6 +292,7 @@ void signal_handler(int sig)
    stop = 1;
 }
 
+#ifndef WITH_NEMEA
 typedef struct module_param_s {
    char   short_opt;
    char  *long_opt;
@@ -312,6 +313,7 @@ typedef struct module_param_s {
 #define FILL_PARAMS(p_short_opt, p_long_opt, p_description, p_required_argument, p_argument_type) \
    module_getopt_string[optidx++] = p_short_opt; \
    if (p_required_argument == required_argument) {module_getopt_string[optidx++] = ':';}
+#endif
 
 int main(int argc, char *argv[])
 {
