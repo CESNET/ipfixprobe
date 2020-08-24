@@ -29,6 +29,14 @@ AC_ARG_ENABLE([debug],
               CPPFLAGS="-DNDEBUG=1 $CPPFLAGS"])
 AM_CONDITIONAL(DEBUG, test x"$debug" = x"true")
 
+AC_ARG_ENABLE([nemearpm],
+        AC_HELP_STRING([--enable-nemearpm],
+        [Enable NEMEA as a default dependency of RPM. This option simplifies copr build without parameters.]),
+        [if test "$enableval" = "yes"; then
+                NEMEARPM=yes
+        fi], [NEMEARPM=no])
+AC_SUBST(NEMEARPM)
+
 LT_INIT()
 
 bashcompldir=${sysconfdir}/bash_completion.d

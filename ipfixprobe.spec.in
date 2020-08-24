@@ -10,7 +10,7 @@
 %if %{with nemea}
 %global compile_nemea yes
 %else
-%global compile_nemea no
+%global compile_nemea @NEMEARPM@
 %endif
 
 Name: ipfixprobe
@@ -35,7 +35,7 @@ Requires: libpcap
 BuildRequires: libpcap-devel
 %endif
 
-%if %{with nemea}
+%if %{with nemea} || "@NEMEARPM@" == "yes"
 Requires: libtrap
 BuildRequires: libtrap-devel
 BuildRequires: unirec
@@ -75,8 +75,8 @@ This package contains header file for liburfilter.
 %attr(0755, root, nemead) %{_bindir}/ipfixprobe
 %{_sysconfdir}/bash_completion.d/ipfixprobe.bash
 %{_docdir}/ipfixprobe/README.md
-%if %{with nemea}
-%{_mandir}/man1/ipfixprobe-nemea.1.gz
+%if %{with nemea} || "@NEMEARPM@" == "yes"
+%{_mandir}/man1/ipfixprobe-nemea.1*
 %endif
 
 %if %{with ndp}
