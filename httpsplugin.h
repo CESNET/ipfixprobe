@@ -123,6 +123,9 @@ struct __attribute__ ((packed)) tls_handshake {
 };
 
 #define TLS_EXT_SERVER_NAME 0
+#define TLS_EXT_ECLIPTIC_CURVES 10 // AKA supported_groups
+#define TLS_EXT_EC_POINT_FORMATS 11
+
 struct __attribute__ ((packed)) tls_ext {
    uint16_t type;
    uint16_t length;

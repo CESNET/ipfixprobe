@@ -42,6 +42,7 @@
  */
 
 #include <iostream>
+#include <sstream>
 
 #include "httpsplugin.h"
 #include "flowifc.h"
@@ -128,6 +129,9 @@ bool HTTPSPlugin::parse_sni(const char *data, int payload_len, RecordExtHTTPS *r
    }
    data += sizeof(tls_handshake);
 
+   stringstream ja3;
+   ja3 << (uint16_t) tls_hs->version.version << ',';
+
    data += 32; // Skip random
 
    int tmp = *(uint8_t *) data;
@@ -141,7 +145,16 @@ bool HTTPSPlugin::parse_sni(const char *data, int payload_len, RecordExtHTTPS *r
       return false;
    }
 
-   data += tmp + 2; // Skip cipher suites
+   // Get cipher suites
+   data += 2;
+   for(; tmp > 0; tmp -= 2, data += 2){
+      ja3 << ntohs(*(uint16_t *) (data));
+      if(tmp != 2){
+         ja3 << '-';
+      }
+   }
+   ja3 << ',';
+
    tmp = *(uint8_t *) data;
    if (data + tmp + 2 > data_end) {
       return false;
@@ -156,45 +169,90 @@ bool HTTPSPlugin::parse_sni(const char *data, int payload_len, RecordExtHTTPS *r
       return false;
    }
 
-   while (data + sizeof(tls_ext) < ext_end) {
+   int sni_parsed = 0;
+   stringstream ecliptic_curves;
+   stringstream ec_point_formats;
+
+   while (data + sizeof(tls_ext) <= ext_end) {
       tls_ext *ext = (tls_ext *) data;
       uint16_t length = ntohs(ext->length);
+      uint16_t type = ntohs(ext->type);
+
+      ja3 << type;
 
       data += sizeof(tls_ext);
-      if (ntohs(ext->type) == TLS_EXT_SERVER_NAME) {
-         const char *list_end = data + ntohs(*(uint16_t *) data) + 2;
-         int sni_parsed = 0;
-         data += 2;
-
+      if (type == TLS_EXT_SERVER_NAME) {
+         uint16_t sn_list_len = ntohs(*(uint16_t *) data);
+         uint16_t offset = sizeof(sn_list_len);
+         const char *list_end = data + sn_list_len + offset;
+         
          if (list_end > data_end) {
             return false;
          }
 
-         while (data + sizeof(tls_ext_sni) < list_end) {
-            tls_ext_sni *sni = (tls_ext_sni *) data;
+         while (data + sizeof(tls_ext_sni) + offset < list_end) {
+            tls_ext_sni *sni = (tls_ext_sni *) (data + offset);
             uint16_t sni_len = ntohs(sni->length);
 
-            data += sizeof(tls_ext_sni);
-            if (data + ntohs(sni->length) > list_end) {
-               return sni_parsed != 0;
+            offset += sizeof(tls_ext_sni);
+            if (data + offset + ntohs(sni->length) > list_end) {
+               break;
             }
             if (rec->sni[0] != 0) {
                RecordExtHTTPS *tmp_rec = new RecordExtHTTPS();
                rec->next = tmp_rec;
                rec = tmp_rec;
             }
-            memcpy(rec->sni, data, sni_len);
+            memcpy(rec->sni, data + offset, sni_len);
             rec->sni[sni_len] = 0;
             sni_parsed++;
             parsed_sni++;
          }
-         return sni_parsed != 0;
+      }
+      else if (type == TLS_EXT_ECLIPTIC_CURVES) {
+         uint16_t ec_list_length = ntohs(*(uint16_t *) data);
+         const char *list_end = data + ec_list_length + sizeof(ec_list_length);
+         uint16_t offset = sizeof(ec_list_length);
+
+         if (list_end > data_end) {
+            return false;
+         }
+
+         while (data + sizeof(uint16_t) + offset <= list_end) {
+            ecliptic_curves << ntohs(*(uint16_t *) (data + offset));
+            offset += sizeof(uint16_t);
+            if (data + sizeof(uint16_t) + offset <= list_end) {
+               ecliptic_curves << '-';
+            }
+         }
+      }
+      else if (type == TLS_EXT_EC_POINT_FORMATS) {
+         uint8_t ec_pf_list_len = *data;
+         uint16_t offset = sizeof(ec_pf_list_len);
+         const char *list_end = data + ec_pf_list_len + offset;
+
+         if (list_end > data_end) {
+            return false;
+         }
+
+         while (data + sizeof(uint8_t) + offset <= list_end) {
+            uint8_t format = *(data + offset);
+            ec_point_formats << (int) format;
+            offset += sizeof(uint8_t);
+            if (data + sizeof(uint8_t) + offset <= list_end) {
+               ecliptic_curves << '-';
+            }
+         }
       }
 
       data += length;
+      if (data + sizeof(tls_ext) <= ext_end) {
+         ja3 << '-';
+      }
    }
-
-   return false;
+   ja3 << ',' << ecliptic_curves.str() << ',' << ec_point_formats.str() << endl;
+   cerr << ja3.str();
+   return sni_parsed != 0;
 }
 
 void HTTPSPlugin::add_https_record(Flow &rec, const Packet &pkt)
