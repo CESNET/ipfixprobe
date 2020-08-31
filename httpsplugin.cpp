@@ -50,6 +50,16 @@
 #include "packet.h"
 #include "ipfixprobe.h"
 #include "ipfix-elements.h"
+#include "md5.h"
+
+#define DEBUG_HTTPS
+
+// Print debug message if debugging is allowed.
+#ifdef DEBUG_HTTPS
+#define DEBUG_MSG(format, ...) fprintf(stderr, format, ##__VA_ARGS__)
+#else
+#define DEBUG_MSG(format, ...)
+#endif
 
 using namespace std;
 
@@ -250,8 +260,9 @@ bool HTTPSPlugin::parse_sni(const char *data, int payload_len, RecordExtHTTPS *r
          ja3 << '-';
       }
    }
-   ja3 << ',' << ecliptic_curves.str() << ',' << ec_point_formats.str() << endl;
-   cerr << ja3.str();
+   ja3 << ',' << ecliptic_curves.str() << ',' << ec_point_formats.str();
+   DEBUG_MSG("%s\n", ja3.str().c_str());
+   DEBUG_MSG("%s\n", md5(ja3.str()).c_str());
    return sni_parsed != 0;
 }
 
