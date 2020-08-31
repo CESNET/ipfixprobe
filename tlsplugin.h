@@ -1,5 +1,5 @@
 /**
- * \file httpsplugin.h
+ * \file tlsplugin.h
  * \brief Plugin for parsing https traffic.
  * \author Jiri Havranek <havraji6@fit.cvut.cz>
  * \date 2018
@@ -41,8 +41,8 @@
  *
  */
 
-#ifndef HTTPSPLUGIN_H
-#define HTTPSPLUGIN_H
+#ifndef TLSPLUGIN_H
+#define TLSPLUGIN_H
 
 #include <string>
 #include <cstring>
@@ -62,7 +62,7 @@ using namespace std;
 /**
  * \brief Flow record extension header for storing parsed HTTPS packets.
  */
-struct RecordExtHTTPS : RecordExt {
+struct RecordExtTLS : RecordExt {
    char sni[255];
    char ja3_hash[32];
    string ja3;
@@ -70,7 +70,7 @@ struct RecordExtHTTPS : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtHTTPS() : RecordExt(https)
+   RecordExtTLS() : RecordExt(tls)
    {
       sni[0] = 0;
       ja3_hash[0] = 0;
@@ -151,12 +151,12 @@ struct __attribute__ ((packed)) tls_ext_sni {
 /**
  * \brief Flow cache plugin for parsing HTTPS packets.
  */
-class HTTPSPlugin : public FlowCachePlugin
+class TLSPlugin : public FlowCachePlugin
 {
 public:
-   HTTPSPlugin(const options_t &module_options);
-   HTTPSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
-   ~HTTPSPlugin();
+   TLSPlugin(const options_t &module_options);
+   TLSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   ~TLSPlugin();
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    void finish();
@@ -165,14 +165,14 @@ public:
    bool include_basic_flow_fields();
 
 private:
-   void add_https_record(Flow &rec, const Packet &pkt);
-   bool parse_sni(const char *data, int payload_len, RecordExtHTTPS *rec);
+   void add_tls_record(Flow &rec, const Packet &pkt);
+   bool parse_sni(const char *data, int payload_len, RecordExtTLS *rec);
    void get_ja3_cipher_suites(stringstream &ja3, payload_data &data);
-   string get_ja3_ecpliptic_curves(payload_data &data, RecordExtHTTPS *rec);
-   string get_ja3_ec_point_formats(payload_data &data, RecordExtHTTPS *rec);
-   void get_tls_server_name(payload_data &data, RecordExtHTTPS *rec);
+   string get_ja3_ecpliptic_curves(payload_data &data, RecordExtTLS *rec);
+   string get_ja3_ec_point_formats(payload_data &data, RecordExtTLS *rec);
+   void get_tls_server_name(payload_data &data, RecordExtTLS *rec);
 
-   RecordExtHTTPS *ext_ptr;
+   RecordExtTLS *ext_ptr;
    bool print_stats;       /**< Indicator whether to print stats when flow cache is finishing or not. */
    uint32_t total;
    uint32_t parsed_sni;

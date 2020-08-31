@@ -1,5 +1,5 @@
 /**
- * \file httpsplugin.cpp
+ * \file tlsplugin.cpp
  * \brief Plugin for parsing https traffic.
  * \author Jiri Havranek <havraji6@fit.cvut.cz>
  * \date 2018
@@ -46,7 +46,7 @@
 
 #include <stdio.h>
 
-#include "httpsplugin.h"
+#include "tlsplugin.h"
 #include "flowifc.h"
 #include "flowcacheplugin.h"
 #include "packet.h"
@@ -54,10 +54,10 @@
 #include "ipfix-elements.h"
 #include "md5.h"
 
-#define DEBUG_HTTPS
+#define DEBUG_TLS
 
 // Print debug message if debugging is allowed.
-#ifdef DEBUG_HTTPS
+#ifdef DEBUG_TLS
 #define DEBUG_MSG(format, ...) fprintf(stderr, format, ##__VA_ARGS__)
 #else
 #define DEBUG_MSG(format, ...)
@@ -65,13 +65,13 @@
 
 using namespace std;
 
-#define HTTPS_UNIREC_TEMPLATE "HTTPS_SNI"
+#define TLS_UNIREC_TEMPLATE "HTTPS_SNI"
 
 UR_FIELDS (
    string HTTPS_SNI
 )
 
-HTTPSPlugin::HTTPSPlugin(const options_t &module_options)
+TLSPlugin::TLSPlugin(const options_t &module_options)
 {
    print_stats = module_options.print_stats;
    parsed_sni = 0;
@@ -80,7 +80,7 @@ HTTPSPlugin::HTTPSPlugin(const options_t &module_options)
    ext_ptr = NULL;
 }
 
-HTTPSPlugin::HTTPSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
+TLSPlugin::TLSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
 {
    print_stats = module_options.print_stats;
    parsed_sni = 0;
@@ -88,36 +88,36 @@ HTTPSPlugin::HTTPSPlugin(const options_t &module_options, vector<plugin_opt> plu
    flow_flush = false;
    ext_ptr = NULL;
 }
-HTTPSPlugin::~HTTPSPlugin()
+TLSPlugin::~TLSPlugin()
 {
    if (ext_ptr != NULL) {
       delete ext_ptr;
    }
 }
 
-int HTTPSPlugin::post_create(Flow &rec, const Packet &pkt)
+int TLSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (rec.src_port == 443 || rec.dst_port == 443) {
-      add_https_record(rec, pkt);
+      add_tls_record(rec, pkt);
    }
 
    return 0;
 }
 
-int HTTPSPlugin::pre_update(Flow &rec, Packet &pkt)
+int TLSPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    if (rec.src_port == 443 || rec.dst_port == 443) {
-      RecordExt *ext = rec.getExtension(https);
+      RecordExt *ext = rec.getExtension(tls);
       if (ext != NULL) {
          return 0;
       }
-      add_https_record(rec, pkt);
+      add_tls_record(rec, pkt);
    }
 
    return 0;
 }
 
-bool HTTPSPlugin::parse_sni(const char *data, int payload_len, RecordExtHTTPS *rec)
+bool TLSPlugin::parse_sni(const char *data, int payload_len, RecordExtTLS *rec)
 {
    payload_data payload = {
       (char *) data,
@@ -212,7 +212,7 @@ bool HTTPSPlugin::parse_sni(const char *data, int payload_len, RecordExtHTTPS *r
    return payload.sni_parsed != 0;
 }
 
-void HTTPSPlugin::get_ja3_cipher_suites(stringstream &ja3, payload_data &data)
+void TLSPlugin::get_ja3_cipher_suites(stringstream &ja3, payload_data &data)
 {
    int cipher_suites_length = ntohs(*(uint16_t *) data.data);
    const char* section_end = data.data + cipher_suites_length;
@@ -232,7 +232,7 @@ void HTTPSPlugin::get_ja3_cipher_suites(stringstream &ja3, payload_data &data)
    ja3 << ',';
 }
 
-void HTTPSPlugin::get_tls_server_name(payload_data &data, RecordExtHTTPS *rec)
+void TLSPlugin::get_tls_server_name(payload_data &data, RecordExtTLS *rec)
 {
    uint16_t list_len = ntohs(*(uint16_t *) data.data);
    uint16_t offset = sizeof(list_len);
@@ -252,7 +252,7 @@ void HTTPSPlugin::get_tls_server_name(payload_data &data, RecordExtHTTPS *rec)
          break;
       }
       if (rec->sni[0] != 0) {
-         RecordExtHTTPS *tmp_rec = new RecordExtHTTPS();
+         RecordExtTLS *tmp_rec = new RecordExtTLS();
          rec->next = tmp_rec;
          rec = tmp_rec;
       }
@@ -263,7 +263,7 @@ void HTTPSPlugin::get_tls_server_name(payload_data &data, RecordExtHTTPS *rec)
    }
 }
 
-string HTTPSPlugin::get_ja3_ecpliptic_curves(payload_data &data, RecordExtHTTPS *rec)
+string TLSPlugin::get_ja3_ecpliptic_curves(payload_data &data, RecordExtTLS *rec)
 {
    stringstream collected_types;
    uint16_t list_len = ntohs(*(uint16_t *) data.data);
@@ -285,7 +285,7 @@ string HTTPSPlugin::get_ja3_ecpliptic_curves(payload_data &data, RecordExtHTTPS 
    return collected_types.str();
 }
 
-string HTTPSPlugin::get_ja3_ec_point_formats(payload_data &data, RecordExtHTTPS *rec)
+string TLSPlugin::get_ja3_ec_point_formats(payload_data &data, RecordExtTLS *rec)
 {
    stringstream collected_formats;
    uint8_t list_len = *data.data;
@@ -309,10 +309,10 @@ string HTTPSPlugin::get_ja3_ec_point_formats(payload_data &data, RecordExtHTTPS 
    return collected_formats.str();
 }
 
-void HTTPSPlugin::add_https_record(Flow &rec, const Packet &pkt)
+void TLSPlugin::add_tls_record(Flow &rec, const Packet &pkt)
 {
    if (ext_ptr == NULL) {
-      ext_ptr = new RecordExtHTTPS();
+      ext_ptr = new RecordExtTLS();
    }
 
    if (parse_sni(pkt.payload, pkt.payload_length, ext_ptr)) {
@@ -321,31 +321,31 @@ void HTTPSPlugin::add_https_record(Flow &rec, const Packet &pkt)
    }
 }
 
-void HTTPSPlugin::finish()
+void TLSPlugin::finish()
 {
    if (print_stats) {
-      cout << "HTTPS plugin stats:" << endl;
-      cout << "   Total HTTPS packets seen: " << total << endl;
+      cout << "TLS plugin stats:" << endl;
+      cout << "   Total TLS packets seen: " << total << endl;
       cout << "   Parsed SNI: " << parsed_sni << endl;
    }
 }
 
-const char *ipfix_https_template[] = {
-   IPFIX_HTTPS_TEMPLATE(IPFIX_FIELD_NAMES)
+const char *ipfix_tls_template[] = {
+   IPFIX_TLS_TEMPLATE(IPFIX_FIELD_NAMES)
    NULL
 };
 
-const char **HTTPSPlugin::get_ipfix_string()
+const char **TLSPlugin::get_ipfix_string()
 {
-   return ipfix_https_template;
+   return ipfix_tls_template;
 }
 
-string HTTPSPlugin::get_unirec_field_string()
+string TLSPlugin::get_unirec_field_string()
 {
-   return HTTPS_UNIREC_TEMPLATE;
+   return TLS_UNIREC_TEMPLATE;
 }
 
-bool HTTPSPlugin::include_basic_flow_fields()
+bool TLSPlugin::include_basic_flow_fields()
 {
    return true;
 }

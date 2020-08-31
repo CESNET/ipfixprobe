@@ -37,8 +37,8 @@ ipfixprobe_src=main.cpp \
 		rtspplugin.h \
 		sipplugin.cpp \
 		sipplugin.h \
-		httpsplugin.cpp \
-		httpsplugin.h \
+		tlsplugin.cpp \
+		tlsplugin.h \
 		smtpplugin.cpp \
 		smtpplugin.h \
 		dnsplugin.cpp \
