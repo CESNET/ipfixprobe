@@ -119,153 +119,194 @@ int HTTPSPlugin::pre_update(Flow &rec, Packet &pkt)
 
 bool HTTPSPlugin::parse_sni(const char *data, int payload_len, RecordExtHTTPS *rec)
 {
-   const char *data_end = data + payload_len;
-   tls_rec *tls = (tls_rec *) data;
+   payload_data payload = {
+      (char *) data,
+      data + payload_len,
+      true,
+      0
+   };
+   tls_rec *tls = (tls_rec *) payload.data;
 
    total++;
+
    if (payload_len - sizeof(tls_rec) < 0 || tls->type != TLS_HANDSHAKE ||
-         tls->version.major != 3 || tls->version.minor > 3) {
+       tls->version.major != 3 || tls->version.minor > 3) {
       return false;
    }
-   data += sizeof(tls_rec);
+   payload.data += sizeof(tls_rec);
 
-   tls_handshake *tls_hs = (tls_handshake *) data;
-   if (data + sizeof(tls_handshake) > data_end || tls_hs->type != TLS_HANDSHAKE_CLIENT_HELLO) {
+   tls_handshake *tls_hs = (tls_handshake *) payload.data;
+   if (payload.data + sizeof(tls_handshake) > payload.end || tls_hs->type != TLS_HANDSHAKE_CLIENT_HELLO) {
       return false;
    }
 
    uint32_t hs_len = tls_hs->length1 << 16 | ntohs(tls_hs->length2);
-   if (data + hs_len > data_end || tls_hs->version.major != 3 ||
-      tls_hs->version.minor < 1 || tls_hs->version.minor > 3) {
+   if (payload.data + hs_len > payload.end || tls_hs->version.major != 3 ||
+       tls_hs->version.minor < 1 || tls_hs->version.minor > 3) {
       return false;
    }
-   data += sizeof(tls_handshake);
+   payload.data += sizeof(tls_handshake);
 
    stringstream ja3;
    ja3 << (uint16_t) tls_hs->version.version << ',';
 
-   data += 32; // Skip random
+   payload.data += 32;          // Skip random
 
-   int tmp = *(uint8_t *) data;
-   if (data + tmp + 2 > data_end) {
+   int tmp = *(uint8_t *) payload.data;
+   if (payload.data + tmp + 2 > payload.end) {
+      return false;
+   }
+   payload.data += tmp + 1;     // Skip session id
+
+   get_ja3_cipher_suites(ja3, payload);
+   if (!payload.valid) {
       return false;
    }
 
-   data += tmp + 1; // Skip session id
-   tmp = ntohs(*(uint16_t *) data);
-   if (data + tmp + 1 > data_end) {
+   tmp = *(uint8_t *) payload.data;
+   if (payload.data + tmp + 2 > payload.end) {
+      return false;
+   }
+   payload.data += tmp + 1;     // Skip compression methods
+
+   const char *ext_end = payload.data + ntohs(*(uint16_t *) payload.data);
+   payload.data += 2;
+
+   if (ext_end > payload.end) {
       return false;
    }
 
-   // Get cipher suites
-   data += 2;
-   for(; tmp > 0; tmp -= 2, data += 2){
-      ja3 << ntohs(*(uint16_t *) (data));
-      if(tmp != 2){
+   string ecliptic_curves;
+   string ec_point_formats;
+
+   while (payload.data + sizeof(tls_ext) <= ext_end) {
+      tls_ext *ext = (tls_ext *) payload.data;
+      uint16_t length = ntohs(ext->length);
+      uint16_t type = ntohs(ext->type);
+
+      payload.data += sizeof(tls_ext);
+      if (type == TLS_EXT_SERVER_NAME) {
+         get_tls_server_name(payload, rec);
+      } else if (type == TLS_EXT_ECLIPTIC_CURVES) {
+         ecliptic_curves = get_ja3_ecpliptic_curves(payload, rec);
+      } else if (type == TLS_EXT_EC_POINT_FORMATS) {
+         ec_point_formats = get_ja3_ec_point_formats(payload, rec);
+      }
+
+      if (!payload.valid) {
+         return false;
+      }
+
+      ja3 << type;
+
+      payload.data += length;
+      if (payload.data + sizeof(tls_ext) <= ext_end) {
+         ja3 << '-';
+      }
+   }
+
+   ja3 << ',' << ecliptic_curves << ',' << ec_point_formats;
+   DEBUG_MSG("%s\n", ja3.str().c_str());
+   DEBUG_MSG("%s\n", md5(ja3.str()).c_str());
+
+   return payload.sni_parsed != 0;
+}
+
+void HTTPSPlugin::get_ja3_cipher_suites(stringstream &ja3, payload_data &data)
+{
+   int cipher_suites_length = ntohs(*(uint16_t *) data.data);
+   const char* section_end = data.data + cipher_suites_length;
+
+   if (data.data + cipher_suites_length + 1 > data.end) {
+      data.valid = false;
+      return;
+   }
+   data.data += 2;
+
+   for (; data.data <= section_end; data.data += 2) {
+      ja3 << ntohs(*(uint16_t *) (data.data));
+      if (data.data < section_end) {
          ja3 << '-';
       }
    }
    ja3 << ',';
+}
 
-   tmp = *(uint8_t *) data;
-   if (data + tmp + 2 > data_end) {
-      return false;
+void HTTPSPlugin::get_tls_server_name(payload_data &data, RecordExtHTTPS *rec)
+{
+   uint16_t list_len = ntohs(*(uint16_t *) data.data);
+   uint16_t offset = sizeof(list_len);
+   const char *list_end = data.data + list_len + offset;
+
+   if (list_end > data.end) {
+      data.valid = false;
+      return;
    }
 
-   data += tmp + 1; // Skip compression methods
+   while (data.data + sizeof(tls_ext_sni) + offset < list_end) {
+      tls_ext_sni *sni = (tls_ext_sni *) (data.data + offset);
+      uint16_t sni_len = ntohs(sni->length);
 
-   const char *ext_end = data + ntohs(*(uint16_t *) data);
-   data += 2;
+      offset += sizeof(tls_ext_sni);
+      if (data.data + offset + ntohs(sni->length) > list_end) {
+         break;
+      }
+      if (rec->sni[0] != 0) {
+         RecordExtHTTPS *tmp_rec = new RecordExtHTTPS();
+         rec->next = tmp_rec;
+         rec = tmp_rec;
+      }
+      memcpy(rec->sni, data.data + offset, sni_len);
+      rec->sni[sni_len] = 0;
+      data.sni_parsed++;
+      parsed_sni++;
+   }
+}
 
-   if (ext_end > data_end) {
-      return false;
+string HTTPSPlugin::get_ja3_ecpliptic_curves(payload_data &data, RecordExtHTTPS *rec)
+{
+   stringstream collected_types;
+   uint16_t list_len = ntohs(*(uint16_t *) data.data);
+   const char *list_end = data.data + list_len + sizeof(list_len);
+   uint16_t offset = sizeof(list_len);
+
+   if (list_end > data.end) {
+      data.valid = false;
+      return "";
    }
 
-   int sni_parsed = 0;
-   stringstream ecliptic_curves;
-   stringstream ec_point_formats;
-
-   while (data + sizeof(tls_ext) <= ext_end) {
-      tls_ext *ext = (tls_ext *) data;
-      uint16_t length = ntohs(ext->length);
-      uint16_t type = ntohs(ext->type);
-
-      ja3 << type;
-
-      data += sizeof(tls_ext);
-      if (type == TLS_EXT_SERVER_NAME) {
-         uint16_t sn_list_len = ntohs(*(uint16_t *) data);
-         uint16_t offset = sizeof(sn_list_len);
-         const char *list_end = data + sn_list_len + offset;
-         
-         if (list_end > data_end) {
-            return false;
-         }
-
-         while (data + sizeof(tls_ext_sni) + offset < list_end) {
-            tls_ext_sni *sni = (tls_ext_sni *) (data + offset);
-            uint16_t sni_len = ntohs(sni->length);
-
-            offset += sizeof(tls_ext_sni);
-            if (data + offset + ntohs(sni->length) > list_end) {
-               break;
-            }
-            if (rec->sni[0] != 0) {
-               RecordExtHTTPS *tmp_rec = new RecordExtHTTPS();
-               rec->next = tmp_rec;
-               rec = tmp_rec;
-            }
-            memcpy(rec->sni, data + offset, sni_len);
-            rec->sni[sni_len] = 0;
-            sni_parsed++;
-            parsed_sni++;
-         }
-      }
-      else if (type == TLS_EXT_ECLIPTIC_CURVES) {
-         uint16_t ec_list_length = ntohs(*(uint16_t *) data);
-         const char *list_end = data + ec_list_length + sizeof(ec_list_length);
-         uint16_t offset = sizeof(ec_list_length);
-
-         if (list_end > data_end) {
-            return false;
-         }
-
-         while (data + sizeof(uint16_t) + offset <= list_end) {
-            ecliptic_curves << ntohs(*(uint16_t *) (data + offset));
-            offset += sizeof(uint16_t);
-            if (data + sizeof(uint16_t) + offset <= list_end) {
-               ecliptic_curves << '-';
-            }
-         }
-      }
-      else if (type == TLS_EXT_EC_POINT_FORMATS) {
-         uint8_t ec_pf_list_len = *data;
-         uint16_t offset = sizeof(ec_pf_list_len);
-         const char *list_end = data + ec_pf_list_len + offset;
-
-         if (list_end > data_end) {
-            return false;
-         }
-
-         while (data + sizeof(uint8_t) + offset <= list_end) {
-            uint8_t format = *(data + offset);
-            ec_point_formats << (int) format;
-            offset += sizeof(uint8_t);
-            if (data + sizeof(uint8_t) + offset <= list_end) {
-               ecliptic_curves << '-';
-            }
-         }
-      }
-
-      data += length;
-      if (data + sizeof(tls_ext) <= ext_end) {
-         ja3 << '-';
+   while (data.data + sizeof(uint16_t) + offset <= list_end) {
+      collected_types << ntohs(*(uint16_t *) (data.data + offset));
+      offset += sizeof(uint16_t);
+      if (data.data + sizeof(uint16_t) + offset <= list_end) {
+         collected_types << '-';
       }
    }
-   ja3 << ',' << ecliptic_curves.str() << ',' << ec_point_formats.str();
-   DEBUG_MSG("%s\n", ja3.str().c_str());
-   DEBUG_MSG("%s\n", md5(ja3.str()).c_str());
-   return sni_parsed != 0;
+   return collected_types.str();
+}
+
+string HTTPSPlugin::get_ja3_ec_point_formats(payload_data &data, RecordExtHTTPS *rec)
+{
+   stringstream collected_formats;
+   uint8_t list_len = *data.data;
+   uint16_t offset = sizeof(list_len);
+   const char *list_end = data.data + list_len + offset;
+   uint8_t format;
+
+   if (list_end > data.end) {
+      data.valid = false;
+      return "";
+   }
+
+   while (data.data + sizeof(uint8_t) + offset <= list_end) {
+      format = *(data.data + offset);
+      collected_formats << (int) format;
+      offset += sizeof(uint8_t);
+      if (data.data + sizeof(uint8_t) + offset <= list_end) {
+         collected_formats << '-';
+      }
+   }
+   return collected_formats.str();
 }
 
 void HTTPSPlugin::add_https_record(Flow &rec, const Packet &pkt)
@@ -308,4 +349,3 @@ bool HTTPSPlugin::include_basic_flow_fields()
 {
    return true;
 }
-

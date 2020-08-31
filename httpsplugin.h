@@ -64,6 +64,8 @@ using namespace std;
  */
 struct RecordExtHTTPS : RecordExt {
    char sni[255];
+   char ja3_hash[32];
+   string ja3;
 
    /**
     * \brief Constructor.
@@ -71,6 +73,7 @@ struct RecordExtHTTPS : RecordExt {
    RecordExtHTTPS() : RecordExt(https)
    {
       sni[0] = 0;
+      ja3_hash[0] = 0;
    }
 
 #ifdef WITH_NEMEA
@@ -95,6 +98,13 @@ struct RecordExtHTTPS : RecordExt {
    }
 };
 
+
+struct payload_data {
+   char* data;
+   const char* end;
+   bool valid;
+   int sni_parsed;
+};
 
 union __attribute__ ((packed)) tls_version {
    uint16_t version;
@@ -157,6 +167,10 @@ public:
 private:
    void add_https_record(Flow &rec, const Packet &pkt);
    bool parse_sni(const char *data, int payload_len, RecordExtHTTPS *rec);
+   void get_ja3_cipher_suites(stringstream &ja3, payload_data &data);
+   string get_ja3_ecpliptic_curves(payload_data &data, RecordExtHTTPS *rec);
+   string get_ja3_ec_point_formats(payload_data &data, RecordExtHTTPS *rec);
+   void get_tls_server_name(payload_data &data, RecordExtHTTPS *rec);
 
    RecordExtHTTPS *ext_ptr;
    bool print_stats;       /**< Indicator whether to print stats when flow cache is finishing or not. */
