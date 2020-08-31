@@ -44,6 +44,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <stdio.h>
+
 #include "httpsplugin.h"
 #include "flowifc.h"
 #include "flowcacheplugin.h"
