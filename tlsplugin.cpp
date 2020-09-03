@@ -65,10 +65,11 @@
 
 using namespace std;
 
-#define TLS_UNIREC_TEMPLATE "HTTPS_SNI"
+#define TLS_UNIREC_TEMPLATE "HTTPS_SNI,TLS_JA3"
 
 UR_FIELDS (
-   string HTTPS_SNI
+   string HTTPS_SNI,
+   string TLS_JA3
 )
 
 TLSPlugin::TLSPlugin(const options_t &module_options)
@@ -206,8 +207,9 @@ bool TLSPlugin::parse_sni(const char *data, int payload_len, RecordExtTLS *rec)
    }
 
    ja3 << ',' << ecliptic_curves << ',' << ec_point_formats;
+   memcpy(rec->ja3_hash, md5(ja3.str()).c_str(), 33);
    DEBUG_MSG("%s\n", ja3.str().c_str());
-   DEBUG_MSG("%s\n", md5(ja3.str()).c_str());
+   DEBUG_MSG("%s\n", rec->ja3_hash);
 
    return payload.sni_parsed != 0;
 }

@@ -64,7 +64,7 @@ using namespace std;
  */
 struct RecordExtTLS : RecordExt {
    char sni[255];
-   char ja3_hash[32];
+   char ja3_hash[33];
    string ja3;
 
    /**
@@ -80,21 +80,28 @@ struct RecordExtTLS : RecordExt {
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
       ur_set_string(tmplt, record, F_HTTPS_SNI, sni);
+      ur_set_string(tmplt, record, F_TLS_JA3, ja3_hash);
    }
 #endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
       int len = strlen(sni);
+      int pos = 0;
 
-      if (len + 1 > size) {
+      if (len + 32 + 2 > size) {
          return -1;
       }
 
-      buffer[0] = len;
-      memcpy(buffer + 1, sni, len);
+      buffer[pos++] = len;
+      memcpy(buffer + pos, sni, len);
+      pos += len;
 
-      return len + 1;
+      buffer[pos++] = 32;
+      memcpy(buffer + pos, ja3_hash, 32);
+      pos += 32;
+
+      return pos;
    }
 };
 

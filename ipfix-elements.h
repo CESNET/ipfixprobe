@@ -159,6 +159,7 @@
 #define ARP_DST_PA(F)                 F(8057,    37,   -1,   NULL)
 
 #define HTTPS_SNI(F)                  F(8057,   808,   -1,   NULL)
+#define TLS_JA3(F)                    F(8057,   830,   -1,   NULL)
 
 #define SMTP_COMMANDS(F)              F(8057,    810,   4,   NULL)
 #define SMTP_MAIL_COUNT(F)            F(8057,    811,   4,   NULL)
@@ -262,7 +263,8 @@
    F(RTSP_CONTENT_TYPE)
 
 #define IPFIX_TLS_TEMPLATE(F) \
-   F(HTTPS_SNI)
+   F(HTTPS_SNI)\
+   F(TLS_JA3)
 
 #define IPFIX_NTP_TEMPLATE(F) \
    F(NTP_LEAP) \
