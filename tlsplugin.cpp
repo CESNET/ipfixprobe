@@ -65,10 +65,10 @@
 
 using namespace std;
 
-#define TLS_UNIREC_TEMPLATE "HTTPS_SNI,TLS_JA3"
+#define TLS_UNIREC_TEMPLATE "TLS_SNI,TLS_JA3"
 
 UR_FIELDS (
-   string HTTPS_SNI,
+   string TLS_SNI,
    string TLS_JA3
 )
 

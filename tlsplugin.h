@@ -79,7 +79,7 @@ struct RecordExtTLS : RecordExt {
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-      ur_set_string(tmplt, record, F_HTTPS_SNI, sni);
+      ur_set_string(tmplt, record, F_TLS_SNI, sni);
       ur_set_string(tmplt, record, F_TLS_JA3, ja3_hash);
    }
 #endif

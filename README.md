@@ -175,7 +175,8 @@ List of unirec fields exported together with basic flow fields on interface by T
 
 | UniRec field        | Type   | Description                  |
 |:-------------------:|:------:|:----------------------------:|
-| HTTPS_SNI           | string | HTTPS server name indication |
+| TLS_SNI             | string | TLS server name indication   |
+| TLS_JA3             | string | TLS client JA3 fingerprint   |
 
 ### DNS
 List of unirec fields exported together with basic flow fields on interface by DNS plugin.
