@@ -54,7 +54,7 @@
 #include "ipfix-elements.h"
 #include "md5.h"
 
-#define DEBUG_TLS
+//#define DEBUG_TLS
 
 // Print debug message if debugging is allowed.
 #ifdef DEBUG_TLS
