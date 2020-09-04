@@ -175,8 +175,8 @@ private:
    void add_tls_record(Flow &rec, const Packet &pkt);
    bool parse_sni(const char *data, int payload_len, RecordExtTLS *rec);
    void get_ja3_cipher_suites(stringstream &ja3, payload_data &data);
-   string get_ja3_ecpliptic_curves(payload_data &data, RecordExtTLS *rec);
-   string get_ja3_ec_point_formats(payload_data &data, RecordExtTLS *rec);
+   string get_ja3_ecpliptic_curves(payload_data &data);
+   string get_ja3_ec_point_formats(payload_data &data);
    void get_tls_server_name(payload_data &data, RecordExtTLS *rec);
 
    RecordExtTLS *ext_ptr;

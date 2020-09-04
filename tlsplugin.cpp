@@ -189,9 +189,9 @@ bool TLSPlugin::parse_sni(const char *data, int payload_len, RecordExtTLS *rec)
       if (type == TLS_EXT_SERVER_NAME) {
          get_tls_server_name(payload, rec);
       } else if (type == TLS_EXT_ECLIPTIC_CURVES) {
-         ecliptic_curves = get_ja3_ecpliptic_curves(payload, rec);
+         ecliptic_curves = get_ja3_ecpliptic_curves(payload);
       } else if (type == TLS_EXT_EC_POINT_FORMATS) {
-         ec_point_formats = get_ja3_ec_point_formats(payload, rec);
+         ec_point_formats = get_ja3_ec_point_formats(payload);
       }
 
       if (!payload.valid) {
@@ -265,7 +265,7 @@ void TLSPlugin::get_tls_server_name(payload_data &data, RecordExtTLS *rec)
    }
 }
 
-string TLSPlugin::get_ja3_ecpliptic_curves(payload_data &data, RecordExtTLS *rec)
+string TLSPlugin::get_ja3_ecpliptic_curves(payload_data &data)
 {
    stringstream collected_types;
    uint16_t list_len = ntohs(*(uint16_t *) data.data);
@@ -287,7 +287,7 @@ string TLSPlugin::get_ja3_ecpliptic_curves(payload_data &data, RecordExtTLS *rec
    return collected_types.str();
 }
 
-string TLSPlugin::get_ja3_ec_point_formats(payload_data &data, RecordExtTLS *rec)
+string TLSPlugin::get_ja3_ec_point_formats(payload_data &data)
 {
    stringstream collected_formats;
    uint8_t list_len = *data.data;
