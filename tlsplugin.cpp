@@ -2,7 +2,9 @@
  * \file tlsplugin.cpp
  * \brief Plugin for parsing https traffic.
  * \author Jiri Havranek <havraji6@fit.cvut.cz>
- * \date 2018
+ * \author Ondrej Sedlacek <xsedla1o@stud.fit.vutbr.cz>
+ * \author Karel Hynek <hynekkar@fit.cvut.cz>
+ * \date 2018-2020
  */
 
 /*
@@ -101,27 +103,23 @@ TLSPlugin::~TLSPlugin()
 
 int TLSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
-   if (rec.src_port == 443 || rec.dst_port == 443) {
-      add_tls_record(rec, pkt);
-   }
-
+   add_tls_record(rec, pkt);
    return 0;
 }
 
 int TLSPlugin::pre_update(Flow &rec, Packet &pkt)
 {
-   if (rec.src_port == 443 || rec.dst_port == 443) {
-      RecordExt * ext = rec.getExtension(tls);
-      if (ext != NULL) {
-         return 0;
-      }
-      add_tls_record(rec, pkt);
+   RecordExt *ext = rec.getExtension(tls);
+
+   if (ext != NULL) {
+      return 0;
    }
+   add_tls_record(rec, pkt);
 
    return 0;
 }
 
-bool TLSPlugin::parse_sni(const char * data, int payload_len, RecordExtTLS * rec)
+bool TLSPlugin::parse_sni(const char *data, int payload_len, RecordExtTLS *rec)
 {
    payload_data payload = {
       (char *) data,
@@ -129,7 +127,7 @@ bool TLSPlugin::parse_sni(const char * data, int payload_len, RecordExtTLS * rec
       true,
       0
    };
-   tls_rec * tls = (tls_rec *) payload.data;
+   tls_rec *tls = (tls_rec *) payload.data;
 
    total++;
 
@@ -139,7 +137,7 @@ bool TLSPlugin::parse_sni(const char * data, int payload_len, RecordExtTLS * rec
    }
    payload.data += sizeof(tls_rec);
 
-   tls_handshake * tls_hs = (tls_handshake *) payload.data;
+   tls_handshake *tls_hs = (tls_handshake *) payload.data;
    if (payload.data + sizeof(tls_handshake) > payload.end || tls_hs->type != TLS_HANDSHAKE_CLIENT_HELLO) {
       return false;
    }
@@ -173,7 +171,7 @@ bool TLSPlugin::parse_sni(const char * data, int payload_len, RecordExtTLS * rec
    }
    payload.data += tmp + 1; // Skip compression methods
 
-   const char * ext_end = payload.data + ntohs(*(uint16_t *) payload.data);
+   const char *ext_end = payload.data + ntohs(*(uint16_t *) payload.data);
    payload.data += 2;
 
    if (ext_end > payload.end) {
@@ -184,7 +182,7 @@ bool TLSPlugin::parse_sni(const char * data, int payload_len, RecordExtTLS * rec
    string ec_point_formats;
 
    while (payload.data + sizeof(tls_ext) <= ext_end) {
-      tls_ext * ext   = (tls_ext *) payload.data;
+      tls_ext *ext    = (tls_ext *) payload.data;
       uint16_t length = ntohs(ext->length);
       uint16_t type   = ntohs(ext->type);
 
@@ -233,8 +231,8 @@ bool TLSPlugin::is_grease_value(uint16_t val)
 void TLSPlugin::get_ja3_cipher_suites(stringstream &ja3, payload_data &data)
 {
    int cipher_suites_length = ntohs(*(uint16_t *) data.data);
-   uint16_t type_id = 0;
-   const char * section_end = data.data + cipher_suites_length;
+   uint16_t type_id         = 0;
+   const char *section_end  = data.data + cipher_suites_length;
 
    if (data.data + cipher_suites_length + 1 > data.end) {
       data.valid = false;
@@ -254,11 +252,11 @@ void TLSPlugin::get_ja3_cipher_suites(stringstream &ja3, payload_data &data)
    ja3 << ',';
 }
 
-void TLSPlugin::get_tls_server_name(payload_data &data, RecordExtTLS * rec)
+void TLSPlugin::get_tls_server_name(payload_data &data, RecordExtTLS *rec)
 {
-   uint16_t list_len     = ntohs(*(uint16_t *) data.data);
-   uint16_t offset       = sizeof(list_len);
-   const char * list_end = data.data + list_len + offset;
+   uint16_t list_len    = ntohs(*(uint16_t *) data.data);
+   uint16_t offset      = sizeof(list_len);
+   const char *list_end = data.data + list_len + offset;
 
    if (list_end > data.end) {
       data.valid = false;
@@ -266,15 +264,15 @@ void TLSPlugin::get_tls_server_name(payload_data &data, RecordExtTLS * rec)
    }
 
    while (data.data + sizeof(tls_ext_sni) + offset < list_end) {
-      tls_ext_sni * sni = (tls_ext_sni *) (data.data + offset);
-      uint16_t sni_len  = ntohs(sni->length);
+      tls_ext_sni *sni = (tls_ext_sni *) (data.data + offset);
+      uint16_t sni_len = ntohs(sni->length);
 
       offset += sizeof(tls_ext_sni);
       if (data.data + offset + ntohs(sni->length) > list_end) {
          break;
       }
       if (rec->sni[0] != 0) {
-         RecordExtTLS * tmp_rec = new RecordExtTLS();
+         RecordExtTLS *tmp_rec = new RecordExtTLS();
          rec->next = tmp_rec;
          rec       = tmp_rec;
       }
@@ -288,10 +286,10 @@ void TLSPlugin::get_tls_server_name(payload_data &data, RecordExtTLS * rec)
 string TLSPlugin::get_ja3_ecpliptic_curves(payload_data &data)
 {
    stringstream collected_types;
-   uint16_t type_id = 0;
-   uint16_t list_len     = ntohs(*(uint16_t *) data.data);
-   const char * list_end = data.data + list_len + sizeof(list_len);
-   uint16_t offset       = sizeof(list_len);
+   uint16_t type_id     = 0;
+   uint16_t list_len    = ntohs(*(uint16_t *) data.data);
+   const char *list_end = data.data + list_len + sizeof(list_len);
+   uint16_t offset      = sizeof(list_len);
 
    if (list_end > data.end) {
       data.valid = false;
@@ -315,9 +313,9 @@ string TLSPlugin::get_ja3_ecpliptic_curves(payload_data &data)
 string TLSPlugin::get_ja3_ec_point_formats(payload_data &data)
 {
    stringstream collected_formats;
-   uint8_t list_len      = *data.data;
-   uint16_t offset       = sizeof(list_len);
-   const char * list_end = data.data + list_len + offset;
+   uint8_t list_len     = *data.data;
+   uint16_t offset      = sizeof(list_len);
+   const char *list_end = data.data + list_len + offset;
    uint8_t format;
 
    if (list_end > data.end) {
@@ -357,12 +355,12 @@ void TLSPlugin::finish()
    }
 }
 
-const char * ipfix_tls_template[] = {
+const char *ipfix_tls_template[] = {
    IPFIX_TLS_TEMPLATE(IPFIX_FIELD_NAMES)
    NULL
 };
 
-const char ** TLSPlugin::get_ipfix_string()
+const char **TLSPlugin::get_ipfix_string()
 {
    return ipfix_tls_template;
 }
