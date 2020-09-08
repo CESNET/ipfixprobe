@@ -91,7 +91,7 @@ EXTRA_DIST=README.md \
 	traffic-samples/dnssd-sample.pcap \
 	traffic-samples/http-sample.pcap \
 	traffic-samples/rtsp-sample.pcap \
-	traffic-samples/https-sample.pcap \
+	traffic-samples/tls-sample.pcap \
 	traffic-samples/ntp-sample.pcap \
 	traffic-samples/sip-sample.pcap \
 	traffic-samples/ssdp-sample.pcap \
@@ -137,4 +137,3 @@ else
 fields.h fields.c:
 	touch $@
 endif
-

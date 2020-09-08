@@ -178,6 +178,7 @@ private:
    string get_ja3_ecpliptic_curves(payload_data &data);
    string get_ja3_ec_point_formats(payload_data &data);
    void get_tls_server_name(payload_data &data, RecordExtTLS *rec);
+   bool is_grease_value(uint16_t val);
 
    RecordExtTLS *ext_ptr;
    bool print_stats;       /**< Indicator whether to print stats when flow cache is finishing or not. */
@@ -187,4 +188,3 @@ private:
 };
 
 #endif
-
