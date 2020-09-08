@@ -70,7 +70,7 @@
 
 #include "httpplugin.h"
 #include "rtspplugin.h"
-#include "httpsplugin.h"
+#include "tlsplugin.h"
 #include "dnsplugin.h"
 #include "sipplugin.h"
 #include "ntpplugin.h"
@@ -93,7 +93,7 @@ static int stop = 0;
 #define MODULE_BASIC_INFO(BASIC) \
   BASIC("flow_meter", "Convert packets from PCAP file or network interface into biflow records.", 0, -1)
 
-#define SUPPORTED_PLUGINS_LIST "http,rtsp,https,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn"
+#define SUPPORTED_PLUGINS_LIST "http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn"
 
 // TODO: remove parameters when using ndp
 #define MODULE_PARAMS(PARAM) \
@@ -166,12 +166,12 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
          tmp.push_back(plugin_opt("rtsp", rtsp, ifc_num++));
 
          plugins.push_back(new RTSPPlugin(module_options, tmp));
-      } else if (proto == "https") {
+      } else if (proto == "tls") {
          vector<plugin_opt> tmp;
 
-         tmp.push_back(plugin_opt("https", https, ifc_num++));
+         tmp.push_back(plugin_opt("tls", tls, ifc_num++));
 
-         plugins.push_back(new HTTPSPlugin(module_options, tmp));
+         plugins.push_back(new TLSPlugin(module_options, tmp));
       } else if (proto == "dns"){
          vector<plugin_opt> tmp;
          tmp.push_back(plugin_opt("dns", dns, ifc_num++));

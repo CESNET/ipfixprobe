@@ -37,8 +37,8 @@ ipfixprobe_src=main.cpp \
 		rtspplugin.h \
 		sipplugin.cpp \
 		sipplugin.h \
-		httpsplugin.cpp \
-		httpsplugin.h \
+		tlsplugin.cpp \
+		tlsplugin.h \
 		smtpplugin.cpp \
 		smtpplugin.h \
 		dnsplugin.cpp \
@@ -66,7 +66,9 @@ ipfixprobe_src=main.cpp \
 		ssdpplugin.h \
 		ssdpplugin.cpp \
 		dnssdplugin.h \
-		dnssdplugin.cpp
+		dnssdplugin.cpp \
+		md5.h \
+		md5.cpp
 
 
 if WITH_NEMEA
@@ -89,7 +91,7 @@ EXTRA_DIST=README.md \
 	traffic-samples/dnssd-sample.pcap \
 	traffic-samples/http-sample.pcap \
 	traffic-samples/rtsp-sample.pcap \
-	traffic-samples/https-sample.pcap \
+	traffic-samples/tls-sample.pcap \
 	traffic-samples/ntp-sample.pcap \
 	traffic-samples/sip-sample.pcap \
 	traffic-samples/ssdp-sample.pcap \
@@ -135,4 +137,3 @@ else
 fields.h fields.c:
 	touch $@
 endif
-

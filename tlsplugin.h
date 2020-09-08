@@ -1,5 +1,5 @@
 /**
- * \file httpsplugin.h
+ * \file tlsplugin.h
  * \brief Plugin for parsing https traffic.
  * \author Jiri Havranek <havraji6@fit.cvut.cz>
  * \date 2018
@@ -41,8 +41,8 @@
  *
  */
 
-#ifndef HTTPSPLUGIN_H
-#define HTTPSPLUGIN_H
+#ifndef TLSPLUGIN_H
+#define TLSPLUGIN_H
 
 #include <string>
 #include <cstring>
@@ -62,39 +62,56 @@ using namespace std;
 /**
  * \brief Flow record extension header for storing parsed HTTPS packets.
  */
-struct RecordExtHTTPS : RecordExt {
+struct RecordExtTLS : RecordExt {
    char sni[255];
+   char ja3_hash[33];
+   string ja3;
 
    /**
     * \brief Constructor.
     */
-   RecordExtHTTPS() : RecordExt(https)
+   RecordExtTLS() : RecordExt(tls)
    {
       sni[0] = 0;
+      ja3_hash[0] = 0;
    }
 
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-      ur_set_string(tmplt, record, F_HTTPS_SNI, sni);
+      ur_set_string(tmplt, record, F_TLS_SNI, sni);
+      ur_set_string(tmplt, record, F_TLS_JA3, ja3_hash);
    }
 #endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
       int len = strlen(sni);
+      int pos = 0;
 
-      if (len + 1 > size) {
+      if (len + 32 + 2 > size) {
          return -1;
       }
 
-      buffer[0] = len;
-      memcpy(buffer + 1, sni, len);
+      buffer[pos++] = len;
+      memcpy(buffer + pos, sni, len);
+      pos += len;
 
-      return len + 1;
+      buffer[pos++] = 32;
+      memcpy(buffer + pos, ja3_hash, 32);
+      pos += 32;
+
+      return pos;
    }
 };
 
+
+struct payload_data {
+   char* data;
+   const char* end;
+   bool valid;
+   int sni_parsed;
+};
 
 union __attribute__ ((packed)) tls_version {
    uint16_t version;
@@ -123,6 +140,9 @@ struct __attribute__ ((packed)) tls_handshake {
 };
 
 #define TLS_EXT_SERVER_NAME 0
+#define TLS_EXT_ECLIPTIC_CURVES 10 // AKA supported_groups
+#define TLS_EXT_EC_POINT_FORMATS 11
+
 struct __attribute__ ((packed)) tls_ext {
    uint16_t type;
    uint16_t length;
@@ -138,12 +158,12 @@ struct __attribute__ ((packed)) tls_ext_sni {
 /**
  * \brief Flow cache plugin for parsing HTTPS packets.
  */
-class HTTPSPlugin : public FlowCachePlugin
+class TLSPlugin : public FlowCachePlugin
 {
 public:
-   HTTPSPlugin(const options_t &module_options);
-   HTTPSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
-   ~HTTPSPlugin();
+   TLSPlugin(const options_t &module_options);
+   TLSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   ~TLSPlugin();
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    void finish();
@@ -152,10 +172,15 @@ public:
    bool include_basic_flow_fields();
 
 private:
-   void add_https_record(Flow &rec, const Packet &pkt);
-   bool parse_sni(const char *data, int payload_len, RecordExtHTTPS *rec);
+   void add_tls_record(Flow &rec, const Packet &pkt);
+   bool parse_sni(const char *data, int payload_len, RecordExtTLS *rec);
+   void get_ja3_cipher_suites(stringstream &ja3, payload_data &data);
+   string get_ja3_ecpliptic_curves(payload_data &data);
+   string get_ja3_ec_point_formats(payload_data &data);
+   void get_tls_server_name(payload_data &data, RecordExtTLS *rec);
+   bool is_grease_value(uint16_t val);
 
-   RecordExtHTTPS *ext_ptr;
+   RecordExtTLS *ext_ptr;
    bool print_stats;       /**< Indicator whether to print stats when flow cache is finishing or not. */
    uint32_t total;
    uint32_t parsed_sni;
@@ -163,4 +188,3 @@ private:
 };
 
 #endif
-
