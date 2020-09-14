@@ -65,6 +65,7 @@ using namespace std;
 struct RecordExtTLS : RecordExt {
    char sni[255];
    char ja3_hash[33];
+   uint8_t ja3_hash_bin[16];
    string ja3;
 
    /**
@@ -75,12 +76,11 @@ struct RecordExtTLS : RecordExt {
       sni[0] = 0;
       ja3_hash[0] = 0;
    }
-
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
       ur_set_string(tmplt, record, F_TLS_SNI, sni);
-      ur_set_string(tmplt, record, F_TLS_JA3, ja3_hash);
+      ur_set_var(tmplt, record, F_TLS_JA3, ja3_hash_bin, 16);
    }
 #endif
 
@@ -89,7 +89,7 @@ struct RecordExtTLS : RecordExt {
       int len = strlen(sni);
       int pos = 0;
 
-      if (len + 32 + 2 > size) {
+      if (len + 16 + 2 > size) {
          return -1;
       }
 
@@ -97,9 +97,9 @@ struct RecordExtTLS : RecordExt {
       memcpy(buffer + pos, sni, len);
       pos += len;
 
-      buffer[pos++] = 32;
-      memcpy(buffer + pos, ja3_hash, 32);
-      pos += 32;
+      buffer[pos++] = 16;
+      memcpy(buffer + pos, ja3_hash_bin, 16);
+      pos += 16;
 
       return pos;
    }
@@ -173,7 +173,7 @@ public:
 
 private:
    void add_tls_record(Flow &rec, const Packet &pkt);
-   bool parse_sni(const char *data, int payload_len, RecordExtTLS *rec);
+   bool parse_tls(const char *data, int payload_len, RecordExtTLS *rec);
    void get_ja3_cipher_suites(stringstream &ja3, payload_data &data);
    string get_ja3_ecpliptic_curves(payload_data &data);
    string get_ja3_ec_point_formats(payload_data &data);

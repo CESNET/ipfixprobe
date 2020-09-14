@@ -347,6 +347,13 @@ std::string MD5::hexdigest() const
 
 //////////////////////////////
 
+const unsigned char* MD5::binary_digest() const
+{
+    return digest;
+}
+
+//////////////////////////////
+
 std::ostream& operator<<(std::ostream& out, MD5 md5)
 {
   return out << md5.hexdigest();
@@ -359,4 +366,12 @@ std::string md5(const std::string str)
     MD5 md5 = MD5(str);
 
     return md5.hexdigest();
+}
+
+//////////////////////////////
+
+void md5_get_bin(const std::string str, void* dest)
+{
+    MD5 md5 = MD5(str);
+    memcpy(dest, md5.binary_digest(), 16);
 }

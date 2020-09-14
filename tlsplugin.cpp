@@ -57,7 +57,7 @@
 #include "ipfix-elements.h"
 #include "md5.h"
 
-// #define DEBUG_TLS
+#define DEBUG_TLS
 
 // Print debug message if debugging is allowed.
 #ifdef DEBUG_TLS
@@ -66,13 +66,20 @@
 # define DEBUG_MSG(format, ...)
 #endif
 
+// Process code if debugging is allowed.
+#ifdef DEBUG_TLS
+# define DEBUG_CODE(code) code
+#else
+# define DEBUG_CODE(code)
+#endif
+
 using namespace std;
 
 #define TLS_UNIREC_TEMPLATE "TLS_SNI,TLS_JA3"
 
 UR_FIELDS(
    string TLS_SNI,
-   string TLS_JA3
+   bytes TLS_JA3
 )
 
 TLSPlugin::TLSPlugin(const options_t &module_options)
@@ -119,7 +126,7 @@ int TLSPlugin::pre_update(Flow &rec, Packet &pkt)
    return 0;
 }
 
-bool TLSPlugin::parse_sni(const char *data, int payload_len, RecordExtTLS *rec)
+bool TLSPlugin::parse_tls(const char *data, int payload_len, RecordExtTLS *rec)
 {
    payload_data payload = {
       (char *) data,
@@ -209,9 +216,13 @@ bool TLSPlugin::parse_sni(const char *data, int payload_len, RecordExtTLS *rec)
    }
 
    ja3 << ',' << ecliptic_curves << ',' << ec_point_formats;
-   memcpy(rec->ja3_hash, md5(ja3.str()).c_str(), 33);
+   md5_get_bin(ja3.str(), rec->ja3_hash_bin);
+
+   DEBUG_CODE(for(int i = 0; i < 16; i++){
+       DEBUG_MSG("%02x", rec->ja3_hash_bin[i]);
+   })
+   DEBUG_MSG("\n");
    DEBUG_MSG("%s\n", ja3.str().c_str());
-   DEBUG_MSG("%s\n", rec->ja3_hash);
 
     return payload.sni_parsed != 0 || !ja3.str().empty();
 } // TLSPlugin::parse_sni
@@ -340,7 +351,7 @@ void TLSPlugin::add_tls_record(Flow &rec, const Packet &pkt)
       ext_ptr = new RecordExtTLS();
    }
 
-   if (parse_sni(pkt.payload, pkt.payload_length, ext_ptr)) {
+   if (parse_tls(pkt.payload, pkt.payload_length, ext_ptr)) {
       rec.addExtension(ext_ptr);
       ext_ptr = NULL;
    }
