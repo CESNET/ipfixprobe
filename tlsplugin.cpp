@@ -213,7 +213,7 @@ bool TLSPlugin::parse_sni(const char *data, int payload_len, RecordExtTLS *rec)
    DEBUG_MSG("%s\n", ja3.str().c_str());
    DEBUG_MSG("%s\n", rec->ja3_hash);
 
-   return payload.sni_parsed != 0;
+    return payload.sni_parsed != 0 || !ja3.str().empty();
 } // TLSPlugin::parse_sni
 
 /*
