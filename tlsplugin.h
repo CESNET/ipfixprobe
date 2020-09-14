@@ -182,7 +182,6 @@ private:
 
    RecordExtTLS *ext_ptr;
    bool print_stats;       /**< Indicator whether to print stats when flow cache is finishing or not. */
-   uint32_t total;
    uint32_t parsed_sni;
    bool flow_flush;
 };

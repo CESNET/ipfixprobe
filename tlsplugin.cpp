@@ -57,7 +57,7 @@
 #include "ipfix-elements.h"
 #include "md5.h"
 
-#define DEBUG_TLS
+// #define DEBUG_TLS
 
 // Print debug message if debugging is allowed.
 #ifdef DEBUG_TLS
@@ -86,7 +86,6 @@ TLSPlugin::TLSPlugin(const options_t &module_options)
 {
    print_stats = module_options.print_stats;
    parsed_sni  = 0;
-   total       = 0;
    flow_flush  = false;
    ext_ptr     = NULL;
 }
@@ -96,7 +95,6 @@ TLSPlugin::TLSPlugin(const options_t &module_options, vector<plugin_opt> plugin_
 {
    print_stats = module_options.print_stats;
    parsed_sni  = 0;
-   total       = 0;
    flow_flush  = false;
    ext_ptr     = NULL;
 }
@@ -135,8 +133,6 @@ bool TLSPlugin::parse_tls(const char *data, int payload_len, RecordExtTLS *rec)
       0
    };
    tls_rec *tls = (tls_rec *) payload.data;
-
-   total++;
 
    if (payload_len - sizeof(tls_rec) < 0 || tls->type != TLS_HANDSHAKE ||
      tls->version.major != 3 || tls->version.minor > 3) {
@@ -224,7 +220,7 @@ bool TLSPlugin::parse_tls(const char *data, int payload_len, RecordExtTLS *rec)
    DEBUG_MSG("\n");
    DEBUG_MSG("%s\n", ja3.str().c_str());
 
-    return payload.sni_parsed != 0 || !ja3.str().empty();
+   return payload.sni_parsed != 0 || !ja3.str().empty();
 } // TLSPlugin::parse_sni
 
 /*
@@ -361,7 +357,6 @@ void TLSPlugin::finish()
 {
    if (print_stats) {
       cout << "TLS plugin stats:" << endl;
-      cout << "   Total TLS packets seen: " << total << endl;
       cout << "   Parsed SNI: " << parsed_sni << endl;
    }
 }
