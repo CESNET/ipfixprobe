@@ -1,3 +1,20 @@
+2020-09-14 (xsedla1o): TLS Plugin: Removed total packet count from stats
+2020-09-14 (xsedla1o): TLS Plugin: Updated tests
+2020-09-14 (xsedla1o): TLS Plugin: Changed TLS_JA3 field type to bytes instead of string
+2020-09-14 (xsedla1o): TLS Plugin: Fixed exporting only when SNI is parsed
+2020-09-08 (Karel Hynek): TLS plugin: removed 443 port condition, updated coding style, removed compile warning in md5
+2020-09-08 (Karel Hynek): TLS plugin: skip GREASE values in JA3, updated tests
+2020-09-04 (xsedla1o): tls: removed unused arguments
+2020-09-04 (xsedla1o): tls: updated tests, removed debug prints
+2020-09-04 (xsedla1o): tls: renamed export field
+2020-09-03 (xsedla1o): tls: added export field for ja3 hash
+2020-08-31 (xsedla1o): https: renamed to tls plugin
+2020-08-31 (xsedla1o): https: refactoring
+2020-08-31 (xsedla1o): https: fix build error
+2020-08-31 (xsedla1o): https: add md5 hash and proper debug prints
+2020-08-30 (xsedla1o): https: extract fields for ja3 fingerprint
+2020-08-24 (Tomas Cejka): build: skip getopt parameters init when NEMEA is linked
+
 2020-08-04 (Karel Hynek): flow_meter: renamed vpndetector plugin to ovpn plugin
 2020-08-03 (Tomáš Čejka): flow_meter: BUGFIX inconsistent TRILL struct for BIG_ENDIAN
 2020-07-31 (xsedla1o): flow_meter: ssdp: added stats
