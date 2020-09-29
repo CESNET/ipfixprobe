@@ -56,9 +56,11 @@
 #include <netinet/udp.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/icmp6.h>
+#include <net/if_arp.h>
 
 #ifndef HAVE_NDP
 #include <pcap/pcap.h>
+#include <pcap/sll.h>
 #endif /* HAVE_NDP */
 
 #include "pcapreader.h"
@@ -91,6 +93,11 @@ static uint32_t s_total_pkts = 0;
  * \brief Distinguish between valid (parsed) and non-valid packet.
  */
 bool packet_valid = false;
+
+/**
+ * \brief Data link type of packet capture. Default value is expected to be DLT_EN10MB.
+ */
+int datalink = DLT_EN10MB;
 
 /**
  * \brief Parse every packet.
@@ -143,6 +150,35 @@ inline uint16_t parse_eth_hdr(const u_char *data_ptr, Packet *pkt)
 
    return hdr_len;
 }
+
+#ifndef HAVE_NDP
+inline uint16_t parse_sll(const u_char *data_ptr, Packet *pkt)
+{
+   struct sll_header *sll = (struct sll_header *) data_ptr;
+
+   DEBUG_MSG("SLL header:\n");
+   DEBUG_MSG("\tPacket type:\t%u\n",  ntohs(sll->sll_pkttype));
+   DEBUG_MSG("\tHA type:\t%u\n", ntohs(sll->sll_hatype));
+   DEBUG_MSG("\tHA len:\t\t%u\n",  ntohs(sll->sll_halen));
+   DEBUG_CODE(
+      DEBUG_MSG("\tAddress:\t");
+      for (int i = 0; i < SLL_ADDRLEN; i++) {
+         DEBUG_MSG("%02x ", sll->sll_addr[i]);
+      }
+      DEBUG_MSG("\n");
+   );
+   DEBUG_MSG("\tProtocol:\t%u\n",     ntohs(sll->sll_protocol));
+
+   if (ntohs(sll->sll_hatype) == ARPHRD_ETHER) {
+      memcpy(pkt->src_mac, sll->sll_addr, 6);
+   } else {
+      memset(pkt->src_mac, 0, sizeof(pkt->src_mac));
+   }
+   memset(pkt->dst_mac, 0, sizeof(pkt->dst_mac));
+   pkt->ethertype = ntohs(sll->sll_protocol);
+   return sizeof(struct sll_header);
+}
+#endif /* HAVE_NDP */
 
 struct __attribute__((packed)) trill_hdr {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -506,7 +542,13 @@ void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t 
    pkt->ip_version = 0;
    pkt->tcp_control_bits = 0;
 
-   data_offset = parse_eth_hdr(data, pkt);
+   if (datalink == DLT_EN10MB) {
+      data_offset = parse_eth_hdr(data, pkt);
+#ifndef HAVE_NDP
+   } else {
+      data_offset = parse_sll(data, pkt);
+#endif /* HAVE_NDP */
+   }
    if (pkt->ethertype == ETH_P_TRILL) {
       data_offset += parse_trill(data + data_offset, pkt);
       data_offset += parse_eth_hdr(data + data_offset, pkt);
@@ -624,6 +666,13 @@ int PcapReader::open_file(const string &file, bool parse_every_pkt)
       printf("PcapReader: warning: printing pcap stats is only supported in live capture\n");
    }
 
+   datalink = pcap_datalink(handle);
+   if (datalink != DLT_EN10MB && datalink != DLT_LINUX_SLL) {
+      error_msg = "Unsupported link type detected. Supported types are DLT_EN10MB and DLT_LINUX_SLL.";
+      close();
+      return 1;
+   }
+
    live_capture = false;
    parse_all = parse_every_pkt;
    error_msg = "";
@@ -656,8 +705,9 @@ int PcapReader::init_interface(const string &interface, int snaplen, bool parse_
       fprintf(stderr, "%s\n", errbuf); // Print warning.
    }
 
-   if (pcap_datalink(handle) != DLT_EN10MB) {
-      error_msg = "Unsupported data link type.";
+   datalink = pcap_datalink(handle);
+   if (datalink != DLT_EN10MB && datalink != DLT_LINUX_SLL) {
+      error_msg = "Unsupported link type detected. Supported types are DLT_EN10MB and DLT_LINUX_SLL.";
       close();
       return 3;
    }
