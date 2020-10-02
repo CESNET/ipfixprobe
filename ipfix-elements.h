@@ -366,8 +366,8 @@
   F(IDP_CONTENT_REV)
 
 #define IPFIX_NETBIOS_TEMPLATE(F) \
-   F(NB_NAME) \
-   F(NB_SUFFIX)
+   F(NB_SUFFIX) \
+   F(NB_NAME)
 
 /**
  * List of all known templated.

@@ -69,28 +69,29 @@ NETBIOSPlugin::NETBIOSPlugin(const options_t &module_options, vector<plugin_opt>
    print_stats = module_options.print_stats;
 }
 
-int NETBIOSPlugin::pre_create(Packet &pkt)
-{
-   return 0;
-}
-
 int NETBIOSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
-   return 0;
-}
+   if (pkt.dst_port == 137 || pkt.src_port == 137) {
+        return add_netbios_ext(rec, pkt);
+   }
 
-int NETBIOSPlugin::pre_update(Flow &rec, Packet &pkt)
-{
    return 0;
 }
 
 int NETBIOSPlugin::post_update(Flow &rec, const Packet &pkt)
 {
-   return 0;
+    if (pkt.dst_port == 137 || pkt.src_port == 137) {
+        return add_netbios_ext(rec, pkt);
+    }
+
+    return 0;
 }
 
-void NETBIOSPlugin::pre_export(Flow &rec)
+int NETBIOSPlugin::add_netbios_ext(Flow &rec, const Packet &pkt)
 {
+    RecordExtNETBIOS* ext = new RecordExtNETBIOS();
+    rec.addExtension(ext);
+    return 0;
 }
 
 void NETBIOSPlugin::finish()
