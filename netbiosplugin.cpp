@@ -55,8 +55,8 @@ using namespace std;
 #define NETBIOS_UNIREC_TEMPLATE "NB_NAME,NB_SUFFIX"
 
 UR_FIELDS (
-        string NB_NAME
-        uint8 NB_SUFFIX
+        string NB_NAME,
+        bytes NB_SUFFIX
 )
 
 NETBIOSPlugin::NETBIOSPlugin(const options_t &module_options) {

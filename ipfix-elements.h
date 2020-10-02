@@ -184,7 +184,7 @@
 
 #define OVPN_CONF_LEVEL(F)            F(8057,    828,   1,   NULL)
 
-#define NB_NAME(F)                    F(8057,    831,   1,   NULL)
+#define NB_NAME(F)                    F(8057,    831,  -1,   NULL)
 #define NB_SUFFIX(F)                  F(8057,    832,   1,   NULL)
 
 
