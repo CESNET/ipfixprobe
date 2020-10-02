@@ -86,8 +86,59 @@ int NETBIOSPlugin::post_update(Flow &rec, const Packet &pkt) {
 
 int NETBIOSPlugin::add_netbios_ext(Flow &rec, const Packet &pkt) {
     RecordExtNETBIOS *ext = new RecordExtNETBIOS();
-    rec.addExtension(ext);
+    if(parse_nbns(ext, pkt)){
+        rec.addExtension(ext);
+    } else {
+        delete ext;
+    }
+
     return 0;
+}
+
+bool NETBIOSPlugin::parse_nbns(RecordExtNETBIOS *rec, const Packet &pkt) {
+    char *payload = pkt.payload;
+
+    int qry_cnt = get_query_count(payload, pkt.payload_length);
+    payload += sizeof(struct dns_hdr);
+    if (qry_cnt < 1){
+        return false;
+    }
+
+    store_first_query(payload, rec);
+    return true;
+}
+
+int NETBIOSPlugin::get_query_count(char *payload, uint16_t payload_length) {
+    if(payload_length < sizeof(struct dns_hdr)){
+        return -1;
+    }
+
+    struct dns_hdr *hdr = (struct dns_hdr *) payload;
+    return ntohs(hdr->question_rec_cnt);
+}
+
+void NETBIOSPlugin::store_first_query(char *payload, RecordExtNETBIOS *rec) {
+    uint8_t nb_name_length = *payload++;
+    if(nb_name_length != 32){
+        return;
+    }
+
+    rec->netbios_name = "";
+    for(int i = 0; i < nb_name_length; i+=2, payload+=2){
+        if (i!=30){
+            rec->netbios_name += compress_nbns_name_char(payload);
+        } else {
+            rec->netbios_suffix = get_nbns_suffix(payload);
+        }
+    }
+}
+
+char NETBIOSPlugin::compress_nbns_name_char(char *uncompressed) {
+    return (((uncompressed[0] - 'A')<<4) | (uncompressed[1] - 'A'));
+}
+
+uint8_t NETBIOSPlugin::get_nbns_suffix(char *uncompressed) {
+    return compress_nbns_name_char(uncompressed);
 }
 
 void NETBIOSPlugin::finish() {

@@ -51,6 +51,7 @@
 #include "flowcacheplugin.h"
 #include "packet.h"
 #include "ipfixprobe.h"
+#include "dns.h"
 
 using namespace std;
 
@@ -110,6 +111,16 @@ public:
 
 private:
     int add_netbios_ext(Flow &rec, const Packet &pkt);
+
+    bool parse_nbns(RecordExtNETBIOS *rec, const Packet &pkt);
+
+    int get_query_count(char *payload, uint16_t payload_length);
+
+    void store_first_query(char *payload, RecordExtNETBIOS *rec);
+
+    char compress_nbns_name_char(char *uncompressed);
+
+    uint8_t get_nbns_suffix(char *uncompressed);
 
     bool print_stats;       /**< Indicator whether to print stats when flow cache is finishing or not. */
 };
