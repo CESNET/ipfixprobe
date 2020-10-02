@@ -83,6 +83,7 @@ enum extTypeEnum {
    ovpn,
    ssdp,
    dnssd,
+   netbios,
    /* Add extension header identifiers for your plugins here */
    EXTENSION_CNT
 };
