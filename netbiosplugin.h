@@ -122,6 +122,7 @@ private:
 
     uint8_t get_nbns_suffix(char *uncompressed);
 
+    int total_netbios_packets;
     bool print_stats;       /**< Indicator whether to print stats when flow cache is finishing or not. */
 };
 

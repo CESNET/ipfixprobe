@@ -61,11 +61,13 @@ UR_FIELDS (
 
 NETBIOSPlugin::NETBIOSPlugin(const options_t &module_options) {
     print_stats = module_options.print_stats;
+    total_netbios_packets = 0;
 }
 
 NETBIOSPlugin::NETBIOSPlugin(const options_t &module_options, vector <plugin_opt> plugin_options) : FlowCachePlugin(
         plugin_options) {
     print_stats = module_options.print_stats;
+    total_netbios_packets = 0;
 }
 
 int NETBIOSPlugin::post_create(Flow &rec, const Packet &pkt) {
@@ -87,6 +89,7 @@ int NETBIOSPlugin::post_update(Flow &rec, const Packet &pkt) {
 int NETBIOSPlugin::add_netbios_ext(Flow &rec, const Packet &pkt) {
     RecordExtNETBIOS *ext = new RecordExtNETBIOS();
     if(parse_nbns(ext, pkt)){
+        total_netbios_packets++;
         rec.addExtension(ext);
     } else {
         delete ext;
@@ -143,7 +146,8 @@ uint8_t NETBIOSPlugin::get_nbns_suffix(char *uncompressed) {
 
 void NETBIOSPlugin::finish() {
     if (print_stats) {
-        //cout << "NETBIOS plugin stats:" << endl;
+        cout << "NETBIOS plugin stats:" << endl;
+        cout << "   Parsed NBNS packets in total: " << total_netbios_packets << endl;
     }
 }
 
