@@ -43,6 +43,10 @@
 
 #include <iostream>
 
+#ifdef WITH_NEMEA
+#include <unirec/unirec.h>
+#endif
+
 #include "netbiosplugin.h"
 #include "flowifc.h"
 #include "flowcacheplugin.h"
