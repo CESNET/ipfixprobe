@@ -55,31 +55,20 @@ using namespace std;
 #define NETBIOS_UNIREC_TEMPLATE "NB_NAME,NB_SUFFIX"
 
 UR_FIELDS (
-   string NB_NAME
-   uint8 NB_SUFFIX
+        string NB_NAME
+        uint8 NB_SUFFIX
 )
 
-NETBIOSPlugin::NETBIOSPlugin(const options_t &module_options)
-{
-   print_stats = module_options.print_stats;
+NETBIOSPlugin::NETBIOSPlugin(const options_t &module_options) {
+    print_stats = module_options.print_stats;
 }
 
-NETBIOSPlugin::NETBIOSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
-{
-   print_stats = module_options.print_stats;
+NETBIOSPlugin::NETBIOSPlugin(const options_t &module_options, vector <plugin_opt> plugin_options) : FlowCachePlugin(
+        plugin_options) {
+    print_stats = module_options.print_stats;
 }
 
-int NETBIOSPlugin::post_create(Flow &rec, const Packet &pkt)
-{
-   if (pkt.dst_port == 137 || pkt.src_port == 137) {
-        return add_netbios_ext(rec, pkt);
-   }
-
-   return 0;
-}
-
-int NETBIOSPlugin::post_update(Flow &rec, const Packet &pkt)
-{
+int NETBIOSPlugin::post_create(Flow &rec, const Packet &pkt) {
     if (pkt.dst_port == 137 || pkt.src_port == 137) {
         return add_netbios_ext(rec, pkt);
     }
@@ -87,37 +76,40 @@ int NETBIOSPlugin::post_update(Flow &rec, const Packet &pkt)
     return 0;
 }
 
-int NETBIOSPlugin::add_netbios_ext(Flow &rec, const Packet &pkt)
-{
-    RecordExtNETBIOS* ext = new RecordExtNETBIOS();
+int NETBIOSPlugin::post_update(Flow &rec, const Packet &pkt) {
+    if (pkt.dst_port == 137 || pkt.src_port == 137) {
+        return add_netbios_ext(rec, pkt);
+    }
+
+    return 0;
+}
+
+int NETBIOSPlugin::add_netbios_ext(Flow &rec, const Packet &pkt) {
+    RecordExtNETBIOS *ext = new RecordExtNETBIOS();
     rec.addExtension(ext);
     return 0;
 }
 
-void NETBIOSPlugin::finish()
-{
-   if (print_stats) {
-      //cout << "NETBIOS plugin stats:" << endl;
-   }
+void NETBIOSPlugin::finish() {
+    if (print_stats) {
+        //cout << "NETBIOS plugin stats:" << endl;
+    }
 }
 
 const char *ipfix__template[] = {
-   IPFIX_NETBIOS_TEMPLATE(IPFIX_FIELD_NAMES)
-   NULL
+        IPFIX_NETBIOS_TEMPLATE(IPFIX_FIELD_NAMES)
+        NULL
 };
 
-const char **NETBIOSPlugin::get_ipfix_string()
-{
-   return ipfix__template;
+const char **NETBIOSPlugin::get_ipfix_string() {
+    return ipfix__template;
 }
 
-string NETBIOSPlugin::get_unirec_field_string()
-{
-   return NETBIOS_UNIREC_TEMPLATE;
+string NETBIOSPlugin::get_unirec_field_string() {
+    return NETBIOS_UNIREC_TEMPLATE;
 }
 
-bool NETBIOSPlugin::include_basic_flow_fields()
-{
-   return true;
+bool NETBIOSPlugin::include_basic_flow_fields() {
+    return true;
 }
 
