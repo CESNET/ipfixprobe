@@ -5,7 +5,7 @@ NIC=eth0
 
 # List of activated plugins, to skip plugins, use "basic" only:
 # PLUGINS=basic
-PLUGINS=pstats,tls,http,ssdp,dns-sd:txt
+PLUGINS=pstats,tls,http,ssdp,dnssd:txt
 
 # Link / ODID identifier
 LINK=0
