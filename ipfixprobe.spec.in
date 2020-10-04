@@ -73,11 +73,14 @@ This package contains header file for liburfilter.
 
 %files
 %attr(0755, root, nemead) %{_bindir}/ipfixprobe
+%attr(0755, root, nemead) %{_bindir}/ipfixprobed
 %{_sysconfdir}/bash_completion.d/ipfixprobe.bash
+%{_sysconfdir}/ipfixprobe/link0.conf.example
 %{_docdir}/ipfixprobe/README.md
 %if %{with nemea} || "@NEMEARPM@" == "yes"
 %{_mandir}/man1/ipfixprobe-nemea.1*
 %endif
+@systemdsystemunitdir@
 
 %if %{with ndp}
 %files devel

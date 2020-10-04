@@ -4,7 +4,7 @@ else
 SUBDIRS=
 endif
 
-SUBDIRS+=. tests
+SUBDIRS+=. tests init
 bin_PROGRAMS=ipfixprobe
 
 if HAVE_NDP

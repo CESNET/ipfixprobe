@@ -1,0 +1,21 @@
+# set up shell-like variables
+
+# Network interface
+NIC=eth0
+
+# List of activated plugins, to skip plugins, use "basic" only:
+# PLUGINS=basic
+PLUGINS=pstats,tls,http,ssdp,dns-sd:txt
+
+# Link / ODID identifier
+LINK=0
+
+# Direction / interface identifier
+DIR=0
+
+# Address and port of the IPFIX collector
+COLLECTOR=127.0.0.1:4739
+
+# Use UDP yes/no? (instead of TCP)
+UDP=yes
+

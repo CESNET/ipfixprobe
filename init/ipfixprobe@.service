@@ -1,0 +1,19 @@
+[Unit]
+Description=Start ipfixprobe IP Flow exporter as a service
+
+# Ensure that hanic service is loaded:
+After=network.target
+
+[Service]
+Type=simple
+
+#
+# The name of configuration file is specified in %I. It has to be escaped with systemd-escape!
+# Note: See man systemd-escape(1), "-p"
+# The configuration file must be stored in /etc/ipfixprobe
+
+ExecStart=/usr/bin/ipfixprobed "%I"
+
+[Install]
+WantedBy=multi-user.target
+
