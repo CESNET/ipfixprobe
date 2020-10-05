@@ -94,7 +94,7 @@ fi
 
 if test x${withndp} = xno; then
    AC_CHECK_HEADER(pcap.h,
-              AC_CHECK_LIB(pcap, pcap_open_live, [libpcap=yes], AC_MSG_WARN([libpcap not found. The ipfixprobe flow exporter will not be compiled.])), AC_MSG_WARN([pcap.h not found. The ipfixprobe flow exporter will not be compiled.]))
+              AC_CHECK_LIB(pcap, pcap_open_live, [libpcap=yes], AC_MSG_ERROR([libpcap not found. The ipfixprobe flow exporter will not be compiled.])), AC_MSG_ERROR([pcap.h not found. The ipfixprobe flow exporter will not be compiled.]))
 
    AM_CONDITIONAL(HAVE_LIBPCAP, test x${libpcap} = xyes)
    if [[ -z "$HAVE_LIBPCAP_TRUE" ]]; then
