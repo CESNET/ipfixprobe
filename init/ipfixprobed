@@ -11,7 +11,7 @@ if [ -e "$CONFFILE" ]; then
    fi
    exec /usr/bin/ipfixprobe -I "$NIC" -p "$PLUGINS" -L "$LINK" -D "$DIR" -x "$COLLECTOR" $udpparam
 else
-   echo "Configuration file '$CONFFILE' does not exist, exitting." > /dev/stderr
+   echo "Configuration file '$CONFFILE' does not exist, exitting." >&2
    exit 1
 fi
 

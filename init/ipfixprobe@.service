@@ -2,7 +2,8 @@
 Description=Start ipfixprobe IP Flow exporter as a service
 
 # Ensure that hanic service is loaded:
-After=network.target
+After=network-online.target
+PartOf=ipfixprobe-monitoring.target
 
 [Service]
 Type=simple
@@ -16,4 +17,4 @@ ExecStart=/usr/bin/ipfixprobed "%I"
 
 [Install]
 WantedBy=multi-user.target
-
+WantedBy=ipfixprobe-monitoring.target
