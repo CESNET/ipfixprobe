@@ -45,8 +45,12 @@
 #define IDPCONTENTPLUGIN_H
 
 #include <string>
+#include <cstring>
 
-#include "fields.h"
+#ifdef WITH_NEMEA
+  #include "fields.h"
+#endif
+
 #include "flowifc.h"
 #include "flowcacheplugin.h"
 #include "packet.h"
