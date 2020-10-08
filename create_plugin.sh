@@ -69,7 +69,7 @@ print_h_code() {
 #include \"flowifc.h\"
 #include \"flowcacheplugin.h\"
 #include \"packet.h\"
-#include \"flow_meter.h\"
+#include \"ipfixprobe.h\"
 
 using namespace std;
 
@@ -203,11 +203,11 @@ print_todo() {
    echo "Generated ${PLUGIN_LOWER}plugin.cpp and ${PLUGIN_LOWER}plugin.h files"
    echo
    echo "TODO:"
-   echo "1) Add '${PLUGIN}plugin.h' and '${PLUGIN}plugin.cpp' files to flow_meter_src variable in Makefile.am"
+   echo "1) Add '${PLUGIN}plugin.h' and '${PLUGIN}plugin.cpp' files to ipfixprobe_src variable in Makefile.am"
    echo "2) Add '${PLUGIN}' entry to the extTypeEnum in flowifc.h"
-   echo "3) Add '#include <${PLUGIN}plugin.h>' line to flow_meter.cpp"
-   echo "4) Add ${PLUGIN} to list of supported plugins for -p param in flow_meter.cpp - SUPPORTED_PLUGINS_LIST macro (also update README.md)"
-   echo "5) Add plugin support in parse_plugin_settings function in flow_meter.cpp"
+   echo "3) Add '#include <${PLUGIN}plugin.h>' line to main.cpp"
+   echo "4) Add ${PLUGIN} to list of supported plugins for -p param in main.cpp - SUPPORTED_PLUGINS_LIST macro (also update README.md)"
+   echo "5) Add plugin support in parse_plugin_settings function in main.cpp"
    echo "6.1) Add unirec fields to the UR_FIELDS and ${PLUGIN_UPPER}_UNIREC_TEMPLATE macro in ${PLUGIN}plugin.cpp"
    echo "6.2) Add IPFIX template macro 'IPFIX_${PLUGIN_UPPER}_TEMPLATE' to ipfix-elements.h"
    echo "6.3) Define IPFIX fields"
@@ -244,4 +244,3 @@ create_h_file
 create_cpp_file
 echo
 print_todo
-
