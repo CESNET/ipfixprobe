@@ -52,20 +52,36 @@
 #include "packet.h"
 #include "ipfixprobe.h"
 
+#define IDPCONTENT_SIZE 100
+
 using namespace std;
 
 /**
  * \brief Flow record extension header for storing parsed IDPCONTENT packets.
  */
+
+ struct idpcontentArray{
+  idpcontentArray():size(0){};
+  uint8_t size;
+  uint8_t data[IDPCONTENT_SIZE];
+};
+
 struct RecordExtIDPCONTENT : RecordExt {
+   uint8_t fill_counter;
+   idpcontentArray idps[2];
+
 
    RecordExtIDPCONTENT() : RecordExt(idpcontent)
    {
-   }
 
+   }
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
+      ur_set_var(tmplt, record, F_IDP_CONTENT, idps[0].data, idps[0].size);
+      ur_set_var(tmplt, record, F_IDP_CONTENT_REV, idps[1].data, idps[0].size);
    }
+#endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
@@ -90,6 +106,7 @@ public:
    const char **get_ipfix_string();
    string get_unirec_field_string();
    bool include_basic_flow_fields();
+   void update_record(RecordExtIDPCONTENT *pstats_data, const Packet &pkt);
 
 private:
    bool print_stats;       /**< Indicator whether to print stats when flow cache is finishing or not. */

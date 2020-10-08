@@ -217,7 +217,7 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
           vector<plugin_opt> tmp;
           tmp.push_back(plugin_opt("idpcontent", idpcontent, ifc_num++));
 
-          plugins.push_back(new OVPNPlugin(module_options, tmp));
+          plugins.push_back(new IDPCONTENTPlugin(module_options, tmp));
       } else if (proto == "ssdp"){
          vector<plugin_opt> tmp;
          tmp.push_back(plugin_opt("ssdp", ssdp, ifc_num++));

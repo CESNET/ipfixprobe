@@ -74,13 +74,30 @@ int IDPCONTENTPlugin::pre_create(Packet &pkt)
    return 0;
 }
 
+void IDPCONTENTPlugin::update_record(RecordExtIDPCONTENT *idpcontent_data, const Packet &pkt)
+{
+  if(pkt.payload_length > 0 && idpcontent_data -> fill_counter < 2) {
+    idpcontent_data -> idps[idpcontent_data -> fill_counter].size = (pkt.payload_length > IDPCONTENT_SIZE)?IDPCONTENT_SIZE:pkt.payload_length;
+    memcpy(idpcontent_data->idps[idpcontent_data -> fill_counter].data, pkt.payload, idpcontent_data -> idps[idpcontent_data -> fill_counter].size);
+    idpcontent_data -> fill_counter++;
+  }
+
+}
+
 int IDPCONTENTPlugin::post_create(Flow &rec, const Packet &pkt)
 {
-   return 0;
+  RecordExtIDPCONTENT *idpcontent_data = new RecordExtIDPCONTENT();
+  idpcontent_data -> fill_counter = 0;
+  rec.addExtension(idpcontent_data);
+
+  update_record(idpcontent_data, pkt);
+  return 0;
 }
 
 int IDPCONTENTPlugin::pre_update(Flow &rec, Packet &pkt)
 {
+   RecordExtIDPCONTENT *idpcontent_data = (RecordExtIDPCONTENT *) rec.getExtension(idpcontent);
+   update_record(idpcontent_data, pkt);
    return 0;
 }
 
