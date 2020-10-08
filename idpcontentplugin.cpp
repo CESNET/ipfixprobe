@@ -54,7 +54,7 @@ using namespace std;
 
 #define IDPCONTENT_UNIREC_TEMPLATE "IDP_CONTENT,IDP_CONTENT_REV"
 
-UR_FIELDS (
+UR_FIELDS(
    bytes IDP_CONTENT,
    bytes IDP_CONTENT_REV
 )
@@ -64,7 +64,8 @@ IDPCONTENTPlugin::IDPCONTENTPlugin(const options_t &module_options)
    print_stats = module_options.print_stats;
 }
 
-IDPCONTENTPlugin::IDPCONTENTPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
+IDPCONTENTPlugin::IDPCONTENTPlugin(const options_t &module_options,
+  vector<plugin_opt>                               plugin_options) : FlowCachePlugin(plugin_options)
 {
    print_stats = module_options.print_stats;
 }
@@ -76,32 +77,35 @@ int IDPCONTENTPlugin::pre_create(Packet &pkt)
 
 void IDPCONTENTPlugin::update_record(RecordExtIDPCONTENT *idpcontent_data, const Packet &pkt)
 {
-  //Check zero-packets and be sure, that the exported content is from both directions
-  if(idpcontent_data -> fill_counter < EXPORTED_PACKETS && pkt.payload_length > 0 && (uint8_t)(!pkt.source_pkt) == (idpcontent_data -> fill_counter % 2)) {
-    idpcontent_data -> idps[idpcontent_data -> fill_counter].size = (pkt.payload_length > IDPCONTENT_SIZE)?IDPCONTENT_SIZE:pkt.payload_length;
-    memcpy(idpcontent_data->idps[idpcontent_data -> fill_counter].data, pkt.payload, idpcontent_data -> idps[idpcontent_data -> fill_counter].size);
-    idpcontent_data -> fill_counter++;
-  }
-
+   // Check zero-packets and be sure, that the exported content is from both directions
+   if (idpcontent_data->fill_counter < EXPORTED_PACKETS && pkt.payload_length > 0 &&
+     (uint8_t) (!pkt.source_pkt) == (idpcontent_data->fill_counter % 2)) {
+      idpcontent_data->idps[idpcontent_data->fill_counter].size =
+        (pkt.payload_length > IDPCONTENT_SIZE) ? IDPCONTENT_SIZE : pkt.payload_length;
+      memcpy(idpcontent_data->idps[idpcontent_data->fill_counter].data, pkt.payload,
+        idpcontent_data->idps[idpcontent_data->fill_counter].size);
+      idpcontent_data->fill_counter++;
+   }
 }
 
 int IDPCONTENTPlugin::post_create(Flow &rec, const Packet &pkt)
 {
-  RecordExtIDPCONTENT *idpcontent_data = new RecordExtIDPCONTENT();
-  idpcontent_data -> fill_counter = 0;
-  rec.addExtension(idpcontent_data);
+   RecordExtIDPCONTENT *idpcontent_data = new RecordExtIDPCONTENT();
 
-  update_record(idpcontent_data, pkt);
-  return 0;
+   idpcontent_data->fill_counter = 0;
+   rec.addExtension(idpcontent_data);
+
+   update_record(idpcontent_data, pkt);
+   return 0;
 }
 
 int IDPCONTENTPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    RecordExtIDPCONTENT *idpcontent_data = (RecordExtIDPCONTENT *) rec.getExtension(idpcontent);
+
    update_record(idpcontent_data, pkt);
    return 0;
 }
-
 
 const char *ipfix__template[] = {
    IPFIX_IDPCONTENT_TEMPLATE(IPFIX_FIELD_NAMES)
