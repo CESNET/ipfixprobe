@@ -68,7 +68,9 @@ ipfixprobe_src=main.cpp \
 		dnssdplugin.h \
 		dnssdplugin.cpp \
 		md5.h \
-		md5.cpp
+		md5.cpp \
+		idpcontentplugin.h \
+		idpcontentplugin.cpp
 
 
 if WITH_NEMEA
