@@ -53,6 +53,9 @@
 #include "ipfixprobe.h"
 
 #define IDPCONTENT_SIZE 100
+#define EXPORTED_PACKETS 2
+#define IDP_CONTENT_INDEX 0
+#define IDP_CONTENT_REV_INDEX 1
 
 using namespace std;
 
@@ -68,7 +71,7 @@ using namespace std;
 
 struct RecordExtIDPCONTENT : RecordExt {
    uint8_t fill_counter;
-   idpcontentArray idps[2];
+   idpcontentArray idps[EXPORTED_PACKETS];
 
 
    RecordExtIDPCONTENT() : RecordExt(idpcontent)
@@ -78,14 +81,24 @@ struct RecordExtIDPCONTENT : RecordExt {
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-      ur_set_var(tmplt, record, F_IDP_CONTENT, idps[0].data, idps[0].size);
-      ur_set_var(tmplt, record, F_IDP_CONTENT_REV, idps[1].data, idps[0].size);
+      ur_set_var(tmplt, record, F_IDP_CONTENT, idps[IDP_CONTENT_INDEX].data, idps[IDP_CONTENT_INDEX].size);
+      ur_set_var(tmplt, record, F_IDP_CONTENT_REV, idps[IDP_CONTENT_REV_INDEX].data, idps[IDP_CONTENT_REV_INDEX].size);
    }
 #endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
-      return 0;
+     uint32_t pos = 0;
+     if (idps[IDP_CONTENT_INDEX].size + idps[IDP_CONTENT_REV_INDEX].size + 2 > size) {
+        return -1;
+     }
+     for(int i = 0; i< EXPORTED_PACKETS; i++){
+       buffer[pos++] = idps[i].size;
+       memcpy(buffer + pos, idps[i].data, idps[i].size);
+       pos += idps[i].size;
+     }
+
+     return pos;
    }
 };
 
@@ -100,12 +113,8 @@ public:
    int pre_create(Packet &pkt);
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
-   int post_update(Flow &rec, const Packet &pkt);
-   void pre_export(Flow &rec);
-   void finish();
    const char **get_ipfix_string();
    string get_unirec_field_string();
-   bool include_basic_flow_fields();
    void update_record(RecordExtIDPCONTENT *pstats_data, const Packet &pkt);
 
 private:

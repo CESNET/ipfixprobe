@@ -76,7 +76,8 @@ int IDPCONTENTPlugin::pre_create(Packet &pkt)
 
 void IDPCONTENTPlugin::update_record(RecordExtIDPCONTENT *idpcontent_data, const Packet &pkt)
 {
-  if(pkt.payload_length > 0 && idpcontent_data -> fill_counter < 2) {
+  //Check zero-packets and be sure, that the exported content is from both directions
+  if(idpcontent_data -> fill_counter < EXPORTED_PACKETS && pkt.payload_length > 0 && (uint8_t)(!pkt.source_pkt) == (idpcontent_data -> fill_counter % 2)) {
     idpcontent_data -> idps[idpcontent_data -> fill_counter].size = (pkt.payload_length > IDPCONTENT_SIZE)?IDPCONTENT_SIZE:pkt.payload_length;
     memcpy(idpcontent_data->idps[idpcontent_data -> fill_counter].data, pkt.payload, idpcontent_data -> idps[idpcontent_data -> fill_counter].size);
     idpcontent_data -> fill_counter++;
@@ -101,21 +102,6 @@ int IDPCONTENTPlugin::pre_update(Flow &rec, Packet &pkt)
    return 0;
 }
 
-int IDPCONTENTPlugin::post_update(Flow &rec, const Packet &pkt)
-{
-   return 0;
-}
-
-void IDPCONTENTPlugin::pre_export(Flow &rec)
-{
-}
-
-void IDPCONTENTPlugin::finish()
-{
-   if (print_stats) {
-      //cout << "IDPCONTENT plugin stats:" << endl;
-   }
-}
 
 const char *ipfix__template[] = {
    IPFIX_IDPCONTENT_TEMPLATE(IPFIX_FIELD_NAMES)
@@ -130,9 +116,4 @@ const char **IDPCONTENTPlugin::get_ipfix_string()
 string IDPCONTENTPlugin::get_unirec_field_string()
 {
    return IDPCONTENT_UNIREC_TEMPLATE;
-}
-
-bool IDPCONTENTPlugin::include_basic_flow_fields()
-{
-   return true;
 }
