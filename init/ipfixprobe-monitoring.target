@@ -1,0 +1,6 @@
+# This target makes sure that all enabled exporters are started, stopped, or
+# restarted at the same time when "ipfixprobe-monitoring.target" is,
+# respectively, started, stopped, or restarted.
+
+[Unit]
+Description=ipfixprobe monitoring target

@@ -4,8 +4,10 @@ else
 SUBDIRS=
 endif
 
-SUBDIRS+=. tests
+SUBDIRS+=. tests init
 bin_PROGRAMS=ipfixprobe
+
+DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)"
 
 if HAVE_NDP
 AM_LDFLAGS=${srcdir}/nfbCInterface/libndpRI.la

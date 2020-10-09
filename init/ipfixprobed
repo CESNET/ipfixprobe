@@ -1,0 +1,17 @@
+#!/usr/bin/sh
+
+CONFFILE="/etc/ipfixprobe/$1.conf"
+
+if [ -e "$CONFFILE" ]; then
+   source "$CONFFILE"
+   if [ "$UDP" = yes ]; then
+      udpparam=-u
+   else
+      udpparam=""
+   fi
+   exec /usr/bin/ipfixprobe -I "$NIC" -p "$PLUGINS" -L "$LINK" -D "$DIR" -x "$COLLECTOR" $udpparam
+else
+   echo "Configuration file '$CONFFILE' does not exist, exitting." >&2
+   exit 1
+fi
+

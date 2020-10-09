@@ -24,6 +24,11 @@ run_plugin_test() {
       return 77
    fi
 
+   if ! `"$ipfixprobe_bin" -h |head -1 | grep -q '^TRAP module'`; then
+      echo "compiled without NEMEA"
+      return 77
+   fi
+
    if ! [ -f "$logger_bin" ]; then
       echo "logger not compiled"
       return 77

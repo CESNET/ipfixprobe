@@ -94,7 +94,7 @@ fi
 
 if test x${withndp} = xno; then
    AC_CHECK_HEADER(pcap.h,
-              AC_CHECK_LIB(pcap, pcap_open_live, [libpcap=yes], AC_MSG_WARN([libpcap not found. The ipfixprobe flow exporter will not be compiled.])), AC_MSG_WARN([pcap.h not found. The ipfixprobe flow exporter will not be compiled.]))
+              AC_CHECK_LIB(pcap, pcap_open_live, [libpcap=yes], AC_MSG_ERROR([libpcap not found. The ipfixprobe flow exporter will not be compiled.])), AC_MSG_ERROR([pcap.h not found. The ipfixprobe flow exporter will not be compiled.]))
 
    AM_CONDITIONAL(HAVE_LIBPCAP, test x${libpcap} = xyes)
    if [[ -z "$HAVE_LIBPCAP_TRUE" ]]; then
@@ -142,10 +142,28 @@ AC_FUNC_MALLOC
 AC_FUNC_STRTOD
 AC_CHECK_FUNCS([gettimeofday inet_ntoa memset socket strchr strerror strncasecmp strstr strtol strtoul strtoull])
 
+AC_ARG_WITH([systemdsystemunitdir],
+        [AS_HELP_STRING([--with-systemdsystemunitdir=DIR], [Directory for systemd service files])],
+        [],
+        [with_systemdsystemunitdir=auto])
+
+AS_IF([test "x$with_systemdsystemunitdir" = "xyes" -o "x$with_systemdsystemunitdir" = "xauto"], [
+def_systemdsystemunitdir=$(pkg-config --variable=systemdsystemunitdir systemd)])
+
+AS_IF([test "x$def_systemdsystemunitdir" = "x"], [AS_IF([test "x$with_systemdsystemunitdir" = "xyes"], [with_systemdsystemunitdir=no])],
+[with_systemdsystemunitdir="$def_systemdsystemunitdir"])
+#AC_MSG_ERROR([systemd support requested but pkg-config unable to query systemd package])],
+
+AS_IF([test "x$with_systemdsystemunitdir" = "xno" -o "x$with_systemdsystemunitdir" = "xauto"], [with_systemdsystemunitdir=/usr/lib/systemd/system])
+
+AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])
+AM_CONDITIONAL([HAVE_SYSTEMD], [test "x$with_systemdsystemunitdir" != "xno"])
+
 AC_CONFIG_FILES([Makefile
                  ipfixprobe.spec
                  ipfixprobe.bash
                  nfbCInterface/Makefile
+                 init/Makefile
                  tests/Makefile])
 
 #AC_CONFIG_SUBDIRS([nfbCInterface])
