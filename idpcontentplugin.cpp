@@ -101,20 +101,19 @@ int IDPCONTENTPlugin::post_create(Flow &rec, const Packet &pkt)
 
 int IDPCONTENTPlugin::pre_update(Flow &rec, Packet &pkt)
 {
-   RecordExtIDPCONTENT *idpcontent_data = (RecordExtIDPCONTENT *) rec.getExtension(idpcontent);
-
+   RecordExtIDPCONTENT *idpcontent_data = static_cast<RecordExtIDPCONTENT *> (rec.getExtension(idpcontent));
    update_record(idpcontent_data, pkt);
    return 0;
 }
 
-const char *ipfix__template[] = {
+const char *ipfix_idpcontent_template[] = {
    IPFIX_IDPCONTENT_TEMPLATE(IPFIX_FIELD_NAMES)
    NULL
 };
 
 const char **IDPCONTENTPlugin::get_ipfix_string()
 {
-   return ipfix__template;
+   return ipfix_idpcontent_template;
 }
 
 string IDPCONTENTPlugin::get_unirec_field_string()
