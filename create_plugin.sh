@@ -65,7 +65,10 @@ print_h_code() {
 
 #include <string>
 
-#include \"fields.h\"
+#ifdef WITH_NEMEA
+  #include \"fields.h\"
+#endif
+
 #include \"flowifc.h\"
 #include \"flowcacheplugin.h\"
 #include \"packet.h\"
@@ -125,7 +128,7 @@ print_cpp_code() {
 #include \"flowifc.h\"
 #include \"flowcacheplugin.h\"
 #include \"packet.h\"
-#include \"flow_meter.h\"
+#include \"ipfixprobe.h\"
 #include \"ipfix-elements.h\"
 
 using namespace std;
