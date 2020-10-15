@@ -111,8 +111,7 @@ bool NETBIOSPlugin::parse_nbns(RecordExtNETBIOS *rec, const Packet &pkt) {
         return false;
     }
 
-    store_first_query(payload, rec);
-    return true;
+    return store_first_query(payload, rec);
 }
 
 int NETBIOSPlugin::get_query_count(char *payload, uint16_t payload_length) {
@@ -124,10 +123,10 @@ int NETBIOSPlugin::get_query_count(char *payload, uint16_t payload_length) {
     return ntohs(hdr->question_rec_cnt);
 }
 
-void NETBIOSPlugin::store_first_query(char *payload, RecordExtNETBIOS *rec) {
+bool NETBIOSPlugin::store_first_query(char *payload, RecordExtNETBIOS *rec) {
     uint8_t nb_name_length = *payload++;
     if (nb_name_length != 32) {
-        return;
+        return false;
     }
 
     rec->netbios_name = "";
@@ -138,6 +137,7 @@ void NETBIOSPlugin::store_first_query(char *payload, RecordExtNETBIOS *rec) {
             rec->netbios_suffix = get_nbns_suffix(payload);
         }
     }
+    return true;
 }
 
 char NETBIOSPlugin::compress_nbns_name_char(char *uncompressed) {

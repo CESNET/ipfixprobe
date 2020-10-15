@@ -120,7 +120,7 @@ private:
 
     int get_query_count(char *payload, uint16_t payload_length);
 
-    void store_first_query(char *payload, RecordExtNETBIOS *rec);
+    bool store_first_query(char *payload, RecordExtNETBIOS *rec);
 
     char compress_nbns_name_char(char *uncompressed);
 
