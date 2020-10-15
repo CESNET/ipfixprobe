@@ -59,8 +59,8 @@ using namespace std;
 #define NETBIOS_UNIREC_TEMPLATE "NB_NAME,NB_SUFFIX"
 
 UR_FIELDS (
-        string NB_NAME,
-        bytes NB_SUFFIX
+    string NB_NAME,
+    bytes NB_SUFFIX
 )
 
 NETBIOSPlugin::NETBIOSPlugin(const options_t &module_options) {
@@ -155,13 +155,13 @@ void NETBIOSPlugin::finish() {
     }
 }
 
-const char *ipfix__template[] = {
+const char *ipfix_netbios_template[] = {
         IPFIX_NETBIOS_TEMPLATE(IPFIX_FIELD_NAMES)
         NULL
 };
 
 const char **NETBIOSPlugin::get_ipfix_string() {
-    return ipfix__template;
+    return ipfix_netbios_template;
 }
 
 string NETBIOSPlugin::get_unirec_field_string() {

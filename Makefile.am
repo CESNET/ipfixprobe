@@ -101,6 +101,7 @@ EXTRA_DIST=README.md \
 	traffic-samples/ntp-sample.pcap \
 	traffic-samples/sip-sample.pcap \
 	traffic-samples/ssdp-sample.pcap \
+	traffic-samples/netbios-sample.pcap \
 	traffic-samples/smtp-sample.pcap \
 	traffic-samples/ovpn-sample.pcap \
 	traffic-samples/idpcontent-sample.pcap \
