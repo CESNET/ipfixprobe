@@ -404,6 +404,18 @@ List of UniRec fields exported together with basic flow fields on interface by O
 |:------------------:|:------:|:-------------------------------:|
 | OVPN_CONF_LEVEL    | uint8  | level of confidence that the flow record is an OpenVPN tunnel |
 
+
+### IDPContent (Initial Data Packets Content)
+
+List of UniRec fields exported together with basic flow fields on the interface by IDPContent plugin.
+The plugin is compiled to export `IDPCONTENT_SIZE` (100 by default) bytes from the first data packet in SRC -> DST direction,
+and the first data packet in DST -> SRC direction.
+
+| UniRec field       | Type   | Description                     |
+|:------------------:|:------:|:-------------------------------:|
+| IDP_CONTENT        | bytes  | Content of first data packet from SRC -> DST|
+| IDP_CONTENT_REV    | bytes  | Content of first data packet from DST -> SRC|
+
 ## Simplified function diagram
 Diagram below shows how `ipfixprobe` works.
 

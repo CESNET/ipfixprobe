@@ -70,7 +70,9 @@ ipfixprobe_src=main.cpp \
 		dnssdplugin.h \
 		dnssdplugin.cpp \
 		md5.h \
-		md5.cpp
+		md5.cpp \
+		idpcontentplugin.h \
+		idpcontentplugin.cpp
 
 
 if WITH_NEMEA
@@ -98,7 +100,8 @@ EXTRA_DIST=README.md \
 	traffic-samples/sip-sample.pcap \
 	traffic-samples/ssdp-sample.pcap \
 	traffic-samples/smtp-sample.pcap \
-	traffic-samples/ovpn-sample.pcap
+	traffic-samples/ovpn-sample.pcap \
+	traffic-samples/idpcontent-sample.pcap
 
 bashcompl_DATA=ipfixprobe.bash
 

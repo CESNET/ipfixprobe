@@ -184,6 +184,10 @@
 
 #define OVPN_CONF_LEVEL(F)            F(8057,    828,   1,   NULL)
 
+
+#define IDP_CONTENT(F)                F(8057,   850,   -1,   NULL)
+#define IDP_CONTENT_REV(F)            F(8057,   851,   -1,   NULL)
+
 #define STATS_PCKT_SIZES(F)           F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1013 (uint16*)
 #define STATS_PCKT_TIMESTAMPS(F)      F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1014 (time*)
 #define STATS_PCKT_TCPFLGS(F)         F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1015 (uint8*)
@@ -354,6 +358,10 @@
    F(DNSSD_QUERIES) \
    F(DNSSD_RESPONSES)
 
+#define IPFIX_IDPCONTENT_TEMPLATE(F) \
+  F(IDP_CONTENT) \
+  F(IDP_CONTENT_REV)
+
 /**
  * List of all known templated.
  *
@@ -376,7 +384,9 @@
    IPFIX_OVPN_TEMPLATE(F) \
    IPFIX_SMTP_TEMPLATE(F) \
    IPFIX_SSDP_TEMPLATE(F) \
-   IPFIX_DNSSD_TEMPLATE(F)
+   IPFIX_DNSSD_TEMPLATE(F) \
+   IPFIX_IDPCONTENT_TEMPLATE(F)
+   
 
 
 /**

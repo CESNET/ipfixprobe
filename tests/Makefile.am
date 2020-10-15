@@ -9,9 +9,10 @@ TESTS=test_http_plugin.sh \
 	test_ntp_plugin.sh \
 	test_arp_plugin.sh \
 	test_pstats_plugin.sh \
-  test_ovpn_plugin.sh \
+	test_ovpn_plugin.sh \
 	test_ssdp_plugin.sh \
-	test_basic_plugin.sh
+	test_basic_plugin.sh \
+	test_idpcontent_plugin.sh
 
 EXTRA_DIST=test_plugin.sh \
 	test_http_plugin.sh \
@@ -25,9 +26,10 @@ EXTRA_DIST=test_plugin.sh \
 	test_ntp_plugin.sh \
 	test_arp_plugin.sh \
 	test_pstats_plugin.sh \
-  test_ovpn_plugin.sh \
+	test_ovpn_plugin.sh \
 	test_ssdp_plugin.sh \
 	test_basic_plugin.sh \
+	test_idpcontent_plugin.sh \
 	test_plugin.sh \
 	test_reference/basic \
 	test_reference/pstats \
@@ -42,7 +44,8 @@ EXTRA_DIST=test_plugin.sh \
 	test_reference/sip \
 	test_reference/smtp \
 	test_reference/passivedns \
-	test_reference/ovpn
+	test_reference/ovpn\
+	test_reference/idpcontent
 
 clean-local:
 	rm -rf test_output
