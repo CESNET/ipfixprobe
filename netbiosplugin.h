@@ -72,7 +72,7 @@ struct RecordExtNETBIOS : RecordExt {
 #ifdef WITH_NEMEA
     virtual void fillUnirec(ur_template_t *tmplt, void *record)
     {
-        ur_set_var(tmplt, record, F_NB_SUFFIX, &netbios_suffix, 1);
+        ur_set(tmplt, record, F_NB_SUFFIX, netbios_suffix);
         ur_set_string(tmplt, record, F_NB_NAME, netbios_name.c_str());
     }
 #endif

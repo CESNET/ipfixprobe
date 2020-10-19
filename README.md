@@ -423,7 +423,7 @@ List of UniRec fields exported together with basic flow fields on interface by N
 | UniRec field  | Type   | Description                 |
 |:-------------:|:------:|:---------------------------:|
 | NB_NAME       | string | NetBIOS Name Service name   |
-| NB_SUFFIX     | bytes  | NetBIOS Name Service suffix |
+| NB_SUFFIX     | uint8  | NetBIOS Name Service suffix |
 
 ## Simplified function diagram
 Diagram below shows how `ipfixprobe` works.

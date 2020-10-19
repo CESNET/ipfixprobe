@@ -60,7 +60,7 @@ using namespace std;
 
 UR_FIELDS (
     string NB_NAME,
-    bytes NB_SUFFIX
+    uint8 NB_SUFFIX
 )
 
 NETBIOSPlugin::NETBIOSPlugin(const options_t &module_options) {
