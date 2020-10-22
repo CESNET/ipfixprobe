@@ -156,8 +156,8 @@ void NETBIOSPlugin::finish() {
 }
 
 const char *ipfix_netbios_template[] = {
-        IPFIX_NETBIOS_TEMPLATE(IPFIX_FIELD_NAMES)
-        NULL
+    IPFIX_NETBIOS_TEMPLATE(IPFIX_FIELD_NAMES)
+    NULL
 };
 
 const char **NETBIOSPlugin::get_ipfix_string() {
