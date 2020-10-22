@@ -98,32 +98,20 @@ struct RecordExtNETBIOS : RecordExt {
 class NETBIOSPlugin : public FlowCachePlugin {
 public:
     NETBIOSPlugin(const options_t &module_options);
-
     NETBIOSPlugin(const options_t &module_options, vector <plugin_opt> plugin_options);
-
     int post_create(Flow &rec, const Packet &pkt);
-
     int post_update(Flow &rec, const Packet &pkt);
-
     void finish();
-
     const char **get_ipfix_string();
-
     string get_unirec_field_string();
-
     bool include_basic_flow_fields();
 
 private:
     int add_netbios_ext(Flow &rec, const Packet &pkt);
-
     bool parse_nbns(RecordExtNETBIOS *rec, const Packet &pkt);
-
     int get_query_count(char *payload, uint16_t payload_length);
-
     bool store_first_query(char *payload, RecordExtNETBIOS *rec);
-
     char compress_nbns_name_char(char *uncompressed);
-
     uint8_t get_nbns_suffix(char *uncompressed);
 
     int total_netbios_packets;
