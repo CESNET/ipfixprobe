@@ -94,8 +94,6 @@ void IDPCONTENTPlugin::update_record(RecordExtIDPCONTENT *idpcontent_data, const
 int IDPCONTENTPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtIDPCONTENT *idpcontent_data = new RecordExtIDPCONTENT();
-
-   // idpcontent_data->fill_counter = 0;
    memset(idpcontent_data->pkt_export_flg, 0, 2 * sizeof(uint8_t));
    rec.addExtension(idpcontent_data);
 
