@@ -239,6 +239,7 @@ inline uint16_t parse_ipv4_hdr(const u_char *data_ptr, Packet *pkt)
    pkt->ip_proto = ip->protocol;
    pkt->ip_tos = ip->tos;
    pkt->ip_length = ntohs(ip->tot_len);
+   pkt->ip_payload_length = pkt->ip_length - (ip->ihl << 2);
    pkt->ip_ttl = ip->ttl;
    pkt->src_ip.v4 = ip->saddr;
    pkt->dst_ip.v4 = ip->daddr;
@@ -295,6 +296,7 @@ uint16_t skip_ipv6_ext_hdrs(const u_char *data_ptr, Packet *pkt)
       pkt->ip_proto = next_hdr;
    }
 
+   pkt->ip_payload_length -= hdrs_len;
    return hdrs_len;
 }
 
@@ -313,7 +315,8 @@ inline uint16_t parse_ipv6_hdr(const u_char *data_ptr, Packet *pkt)
    pkt->ip_tos = (ntohl(ip6->ip6_ctlun.ip6_un1.ip6_un1_flow) & 0x0ff00000) >> 20;
    pkt->ip_proto = ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt;
    pkt->ip_ttl = ip6->ip6_ctlun.ip6_un1.ip6_un1_hlim;
-   pkt->ip_length = ntohs(ip6->ip6_ctlun.ip6_un1.ip6_un1_plen) + 40;
+   pkt->ip_payload_length = ntohs(ip6->ip6_ctlun.ip6_un1.ip6_un1_plen);
+   pkt->ip_length = pkt->ip_payload_length + 40;
    memcpy(pkt->src_ip.v6, (const char *) &ip6->ip6_src, 16);
    memcpy(pkt->dst_ip.v6, (const char *) &ip6->ip6_dst, 16);
 
@@ -566,6 +569,7 @@ void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t 
       return;
    }
 
+   uint32_t l4_hdr_offset = data_offset;
    if (pkt->ip_proto == IPPROTO_TCP) {
       data_offset += parse_tcp_hdr(data + data_offset, pkt);
    } else if (pkt->ip_proto == IPPROTO_UDP) {
@@ -584,6 +588,11 @@ void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t 
    memcpy(pkt->packet, data, pkt_len);
    pkt->packet[pkt_len] = 0;
    pkt->total_length = pkt_len;
+
+   if (l4_hdr_offset + pkt->ip_payload_length < 64) {
+      // Packet contains 0x00 padding bytes, do not include them in payload
+      pkt_len = l4_hdr_offset + pkt->ip_payload_length;
+   }
 
    pkt->payload_length = pkt_len - data_offset;
    pkt->payload = pkt->packet + data_offset;
