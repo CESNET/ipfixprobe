@@ -321,10 +321,10 @@ void UnirecExporter::fill_basic_flow(Flow &flow, ur_template_t *tmplt_ptr, void 
       ur_set(tmplt_ptr, record_ptr, F_DST_IP, ip_from_16_bytes_be((char *) flow.dst_ip.v6));
    }
 
-   tmp_time = ur_time_from_sec_msec(flow.time_first.tv_sec, flow.time_first.tv_usec / 1000.0);
+   tmp_time = ur_time_from_sec_usec(flow.time_first.tv_sec, flow.time_first.tv_usec);
    ur_set(tmplt_ptr, record_ptr, F_TIME_FIRST, tmp_time);
 
-   tmp_time = ur_time_from_sec_msec(flow.time_last.tv_sec, flow.time_last.tv_usec / 1000.0);
+   tmp_time = ur_time_from_sec_usec(flow.time_last.tv_sec, flow.time_last.tv_usec);
    ur_set(tmplt_ptr, record_ptr, F_TIME_LAST, tmp_time);
 
    if (send_odid) {
@@ -356,7 +356,7 @@ void UnirecExporter::fill_basic_flow(Flow &flow, ur_template_t *tmplt_ptr, void 
  */
 void UnirecExporter::fill_packet_fields(Packet &pkt, ur_template_t *tmplt_ptr, void *record_ptr)
 {
-   ur_time_t tmp_time = ur_time_from_sec_msec(pkt.timestamp.tv_sec, pkt.timestamp.tv_usec / 1000.0);
+   ur_time_t tmp_time = ur_time_from_sec_usec(pkt.timestamp.tv_sec, pkt.timestamp.tv_usec);
 
    ur_set(tmplt_ptr, record_ptr, F_DST_MAC, mac_from_bytes((uint8_t *) pkt.packet));
    ur_set(tmplt_ptr, record_ptr, F_SRC_MAC, mac_from_bytes((uint8_t *) pkt.packet + 6));
