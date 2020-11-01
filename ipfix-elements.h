@@ -57,6 +57,23 @@
  *   4. Source memory pointer (to copy value from)
  */
 
+
+/**
+ * Difference between NTP and UNIX epoch in number of seconds.
+ */
+#define EPOCH_DIFF 2208988800
+
+/**
+ * Conversion from microseconds to NTP fraction (resolution 1/(2^32)s,  ~233 picoseconds).
+ * Division by 1000000 would lead to wrong value when converting fraction back to microseconds, so 999999 is used.
+ */
+#define NTP_USEC_TO_FRAC(usec) (uint32_t)(((uint64_t) usec << 32) / 999999)
+
+/**
+ * Create 64 bit NTP timestamp which consist of 32 bit seconds part and 32 bit fraction part.
+ */
+#define MK_NTP_TS(ts) (htonl(ts.tv_sec + EPOCH_DIFF) | ((uint64_t) htonl(NTP_USEC_TO_FRAC(ts.tv_usec)) << 32))
+
 /**
  * Convert FIELD to its "attributes", i.e. BYTES(FIELD) used in the source code produces
  *    0, 1, 8, &flow.octet_total_length
@@ -69,8 +86,8 @@
 #define BYTES_REV(F)                  F(29305,    1,    8,   &flow.dst_octet_total_length)
 #define PACKETS(F)                    F(0,        2,    8,   (temp = (uint64_t) flow.src_pkt_total_cnt, &temp))
 #define PACKETS_REV(F)                F(29305,    2,    8,   (temp = (uint64_t) flow.dst_pkt_total_cnt, &temp))
-#define FLOW_START_MSEC(F)            F(0,      152,    8,   (temp = ((uint64_t) flow.time_first.tv_sec) * 1000 + (flow.time_first.tv_usec / 1000), &temp))
-#define FLOW_END_MSEC(F)              F(0,      153,    8,   (temp = ((uint64_t) flow.time_last.tv_sec) * 1000 + (flow.time_last.tv_usec / 1000), &temp))
+#define FLOW_START_USEC(F)            F(0,      154,    8,   (temp = swap_uint64(MK_NTP_TS(flow.time_first)), &temp))
+#define FLOW_END_USEC(F)              F(0,      155,    8,   (temp = swap_uint64(MK_NTP_TS(flow.time_last)), &temp))
 #define OBSERVATION_MSEC(F)           F(0,      323,    8,   NULL)
 #define INPUT_INTERFACE(F)            F(0,       10,    2,   &this->dir_bit_field)
 #define OUTPUT_INTERFACE(F)           F(0,       14,    2,   NULL)
@@ -216,8 +233,8 @@
    F(BYTES_REV) \
    F(PACKETS) \
    F(PACKETS_REV) \
-   F(FLOW_START_MSEC) \
-   F(FLOW_END_MSEC) \
+   F(FLOW_START_USEC) \
+   F(FLOW_END_USEC) \
    F(L3_PROTO) \
    F(L4_PROTO) \
    F(L4_TCP_FLAGS) \
@@ -235,8 +252,8 @@
    F(BYTES_REV) \
    F(PACKETS) \
    F(PACKETS_REV) \
-   F(FLOW_START_MSEC) \
-   F(FLOW_END_MSEC) \
+   F(FLOW_START_USEC) \
+   F(FLOW_END_USEC) \
    F(L3_PROTO) \
    F(L4_PROTO) \
    F(L4_TCP_FLAGS) \
