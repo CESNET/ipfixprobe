@@ -1,3 +1,26 @@
+2020-11-01 (Jiri Havranek): improved conversion from microseconds to fraction when exporting ipfix
+2020-10-30 (Jiri Havranek): increased exported timestamp precision to microseconds
+2020-10-30 (Jiri Havranek): fixed payload length computation for frames shorter than 64 bytes
+2020-10-23 (Karel Hynek): removed unused code
+2020-10-23 (Karel Hynek): IDPContent plugin: BUGFIX! Improved condition for export IDP content.
+2020-10-09 (Karel Hynek): added uncrustify config
+2020-10-09 (Karel Hynek): idpcontent plugin: changed c-style cast to c++ static cast
+2020-10-09 (Karel Hynek): create_plugin: fixed name inconsistency, added nemea ifndef
+2020-10-09 (Karel Hynek): updated readme for IDPContent plugin unirec fields
+2020-10-08 (Karel Hynek): idpcontent plugin: fix compile error
+2020-10-08 (Karel Hynek): idpcontent plugin: improved coding style
+2020-10-08 (Karel Hynek): idpcontent plugin: added tests
+2020-10-08 (Karel Hynek): idpcontent plugin: added ipfix support
+2020-10-08 (Karel Hynek): IDPContent plugin: Added export of initial data packets content
+2020-10-08 (Karel Hynek): Created idpcontent plugin
+2020-10-08 (Karel Hynek): create_plugin.sh: name inconsistency FIX
+2020-10-05 (Tomas Cejka): build: check for libpcap and fail if missing
+2020-10-05 (Lukas Hutak): systemd: introduce ipfixprobe-monitoring.target, minor fixes
+2020-10-04 (Tomas Cejka): conf: fixed dnssd name in the example
+2020-10-04 (Tomas Cejka): build: add distcheck setting about systemd, skip tests without NEMEA
+2020-10-04 (Tomas Cejka): rpm: add systemd service
+2020-09-29 (Jiri Havranek): pcapreader: added support for SLL link type
+
 2020-09-14 (xsedla1o): TLS Plugin: Removed total packet count from stats
 2020-09-14 (xsedla1o): TLS Plugin: Updated tests
 2020-09-14 (xsedla1o): TLS Plugin: Changed TLS_JA3 field type to bytes instead of string

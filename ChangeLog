@@ -1,3 +1,9 @@
+2020-11-01 ipfixprobe-2.18.0
+	* add IDPContent plugin (initial data from packet payload)
+	* updated create_plugin.sh
+	* improved systemd service
+	* maintenance
+
 2020-09-20 ipfixprobe-2.17.1
 	* add TLS plugin
 
