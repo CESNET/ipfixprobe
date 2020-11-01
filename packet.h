@@ -71,7 +71,8 @@ struct Packet : public Record {
    uint8_t     src_mac[6];
    uint16_t    ethertype;
 
-   uint16_t    ip_length;
+   uint16_t    ip_length; /**< Length of IP header + its payload */
+   uint16_t    ip_payload_length; /**< Length of IP payload */
    uint8_t     ip_version;
    uint8_t     ip_ttl;
    uint8_t     ip_proto;
