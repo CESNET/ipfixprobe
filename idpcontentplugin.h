@@ -48,7 +48,7 @@
 #include <cstring>
 
 #ifdef WITH_NEMEA
-  #include "fields.h"
+# include "fields.h"
 #endif
 
 #include "flowifc.h"
@@ -74,7 +74,7 @@ struct idpcontentArray {
 };
 
 struct RecordExtIDPCONTENT : RecordExt {
-   uint8_t         fill_counter;
+   uint8_t         pkt_export_flg[EXPORTED_PACKETS];
    idpcontentArray idps[EXPORTED_PACKETS];
 
 

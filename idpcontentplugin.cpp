@@ -59,6 +59,8 @@ UR_FIELDS(
    bytes IDP_CONTENT_REV
 )
 
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
 IDPCONTENTPlugin::IDPCONTENTPlugin(const options_t &module_options)
 {
    print_stats = module_options.print_stats;
@@ -77,22 +79,22 @@ int IDPCONTENTPlugin::pre_create(Packet &pkt)
 
 void IDPCONTENTPlugin::update_record(RecordExtIDPCONTENT *idpcontent_data, const Packet &pkt)
 {
+   // create ptr into buffers from packet directions
+   uint8_t paket_direction = (uint8_t) (!pkt.source_pkt);
+
    // Check zero-packets and be sure, that the exported content is from both directions
-   if (idpcontent_data->fill_counter < EXPORTED_PACKETS && pkt.payload_length > 0 &&
-     (uint8_t) (!pkt.source_pkt) == (idpcontent_data->fill_counter % 2)) {
-      idpcontent_data->idps[idpcontent_data->fill_counter].size =
-        (pkt.payload_length > IDPCONTENT_SIZE) ? IDPCONTENT_SIZE : pkt.payload_length;
-      memcpy(idpcontent_data->idps[idpcontent_data->fill_counter].data, pkt.payload,
-        idpcontent_data->idps[idpcontent_data->fill_counter].size);
-      idpcontent_data->fill_counter++;
+   if (idpcontent_data->pkt_export_flg[paket_direction] != 1 && pkt.payload_length > 0) {
+      idpcontent_data->idps[paket_direction].size = MIN(IDPCONTENT_SIZE, pkt.payload_length);
+      memcpy(idpcontent_data->idps[paket_direction].data, pkt.payload,
+        idpcontent_data->idps[paket_direction].size);
+      idpcontent_data->pkt_export_flg[paket_direction] = 1;
    }
 }
 
 int IDPCONTENTPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtIDPCONTENT *idpcontent_data = new RecordExtIDPCONTENT();
-
-   idpcontent_data->fill_counter = 0;
+   memset(idpcontent_data->pkt_export_flg, 0, 2 * sizeof(uint8_t));
    rec.addExtension(idpcontent_data);
 
    update_record(idpcontent_data, pkt);
@@ -101,7 +103,8 @@ int IDPCONTENTPlugin::post_create(Flow &rec, const Packet &pkt)
 
 int IDPCONTENTPlugin::pre_update(Flow &rec, Packet &pkt)
 {
-   RecordExtIDPCONTENT *idpcontent_data = static_cast<RecordExtIDPCONTENT *> (rec.getExtension(idpcontent));
+   RecordExtIDPCONTENT *idpcontent_data = static_cast<RecordExtIDPCONTENT *>(rec.getExtension(idpcontent));
+
    update_record(idpcontent_data, pkt);
    return 0;
 }
