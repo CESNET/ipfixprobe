@@ -57,24 +57,19 @@
 
 #define BSTATS_MAXELEMCOUNT 15
 
+//BURST CHARACTERISTIC
+#define MINIMAL_PACKETS_IN_BURST 3 // in packets
+#define MAXIMAL_INTERPKT_TIME 1000 // in miliseconds
+                                   // maximal time between consecutive in-burst packets
+#define BSTATS_SOURCE 0
+#define BSTATS_DEST 1
+
 using namespace std;
 
 /**
  * \brief Flow record extension header for storing parsed BSTATS packets.
  */
 struct RecordExtBSTATS : RecordExt {
-  uint16_t burst_count;
-
-  uint16_t source_brst_pkts[BSTATS_MAXELEMCOUNT];
-  uint16_t source_brst_bytes[BSTATS_MAXELEMCOUNT];
-  struct timeval source_start[BSTATS_MAXELEMCOUNT];
-  struct timeval source_end[BSTATS_MAXELEMCOUNT];
-
-  uint16_t dest_brst_pkts[BSTATS_MAXELEMCOUNT];
-  uint16_t dest_brst_bytes[BSTATS_MAXELEMCOUNT];
-  struct timeval dest_start[BSTATS_MAXELEMCOUNT];
-  struct timeval dest_end[BSTATS_MAXELEMCOUNT];
-
   typedef enum eHdrFieldID
   {
      SPkts = 1050,
@@ -87,13 +82,51 @@ struct RecordExtBSTATS : RecordExt {
      BStop = 1057
   } eHdrSemantic;
 
+
+  uint16_t burst_count[2];
+  uint8_t burst_empty[2];
+
+  uint32_t brst_pkts[2][BSTATS_MAXELEMCOUNT];
+  uint32_t brst_bytes[2][BSTATS_MAXELEMCOUNT];
+  struct timeval brst_start[2][BSTATS_MAXELEMCOUNT];
+  struct timeval brst_end[2][BSTATS_MAXELEMCOUNT];
+
    RecordExtBSTATS() : RecordExt(bstats)
    {
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
+     ur_time_t ts_start, ts_stop;
+     ur_array_allocate(tmplt, record, F_SBI_BRST_PACKETS, burst_count[BSTATS_SOURCE]);
+     ur_array_allocate(tmplt, record, F_SBI_BRST_BYTES, burst_count[BSTATS_SOURCE]);
+     ur_array_allocate(tmplt, record, F_SBI_BRST_TIME_START, burst_count[BSTATS_SOURCE]);
+     ur_array_allocate(tmplt, record, F_SBI_BRST_TIME_STOP, burst_count[BSTATS_SOURCE]);
+
+     ur_array_allocate(tmplt, record, F_DBI_BRST_PACKETS, burst_count[BSTATS_DEST]);
+     ur_array_allocate(tmplt, record, F_DBI_BRST_BYTES, burst_count[BSTATS_DEST]);
+     ur_array_allocate(tmplt, record, F_DBI_BRST_TIME_START, burst_count[BSTATS_DEST]);
+     ur_array_allocate(tmplt, record, F_DBI_BRST_TIME_STOP, burst_count[BSTATS_DEST]);
+
+     for (int i = 0; i < burst_count[BSTATS_SOURCE]; i++) {
+        ts_start = ur_time_from_sec_usec(brst_start[BSTATS_SOURCE][i].tv_sec, brst_start[BSTATS_SOURCE][i].tv_usec);
+        ts_stop = ur_time_from_sec_usec(brst_end[BSTATS_SOURCE][i].tv_sec, brst_end[BSTATS_SOURCE][i].tv_usec);
+        ur_array_set(tmplt, record, F_SBI_BRST_PACKETS, i, brst_pkts[BSTATS_SOURCE][i]);
+        ur_array_set(tmplt, record, F_SBI_BRST_BYTES, i, brst_bytes[BSTATS_SOURCE][i]);
+        ur_array_set(tmplt, record, F_SBI_BRST_TIME_START, i, ts_start);
+        ur_array_set(tmplt, record, F_SBI_BRST_TIME_STOP, i, ts_stop);
+     }
+     for (int i = 0; i < burst_count[BSTATS_DEST]; i++) {
+        ts_start = ur_time_from_sec_usec(brst_start[BSTATS_DEST][i].tv_sec, brst_start[BSTATS_DEST][i].tv_usec);
+        ts_stop = ur_time_from_sec_usec(brst_end[BSTATS_DEST][i].tv_sec, brst_end[BSTATS_DEST][i].tv_usec);
+        ur_array_set(tmplt, record, F_DBI_BRST_PACKETS, i, brst_pkts[BSTATS_DEST][i]);
+        ur_array_set(tmplt, record, F_DBI_BRST_BYTES, i, brst_bytes[BSTATS_DEST][i]);
+        ur_array_set(tmplt, record, F_DBI_BRST_TIME_START, i, ts_start);
+        ur_array_set(tmplt, record, F_DBI_BRST_TIME_STOP, i, ts_stop);
+     }
    }
+#endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
@@ -119,7 +152,14 @@ public:
    string get_unirec_field_string();
    bool include_basic_flow_fields();
 
+   static const struct timeval min_packet_in_burst;
 private:
+
+   void initialize_new_burst(RecordExtBSTATS *bstats_record, uint8_t direction, const Packet &pkt);
+   void process_bursts(RecordExtBSTATS *bstats_record, uint8_t direction, const Packet &pkt);
+   void update_record(RecordExtBSTATS *bstats_record, const Packet &pkt);
+   bool isLastRecordBurst(RecordExtBSTATS *bstats_record, uint8_t direction);
+   bool belogsToLastRecord(RecordExtBSTATS *bstats_record, uint8_t direction, const Packet &pkt);
    bool print_stats;       /**< Indicator whether to print stats when flow cache is finishing or not. */
 };
 
