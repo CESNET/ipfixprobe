@@ -45,6 +45,7 @@
 #define BSTATSPLUGIN_H
 
 #include <string>
+#include <cstring>
 
 #ifdef WITH_NEMEA
   #include "fields.h"
@@ -54,8 +55,9 @@
 #include "flowcacheplugin.h"
 #include "packet.h"
 #include "ipfixprobe.h"
+#include "ipfix-basiclist.h"
 
-#define BSTATS_MAXELEMCOUNT 15
+#define BSTATS_MAXELENCOUNT 15
 
 //BURST CHARACTERISTIC
 #define MINIMAL_PACKETS_IN_BURST 3 // in packets
@@ -76,20 +78,21 @@ struct RecordExtBSTATS : RecordExt {
      SBytes = 1051,
      SStart = 1052,
      SStop = 1053,
-     BPkts = 1054,
-     BBytes = 1055,
-     BStart = 1056,
-     BStop = 1057
-  } eHdrSemantic;
+     DPkts = 1054,
+     DBytes = 1055,
+     DStart = 1056,
+     DStop = 1057
+  } eHdrFieldID;
+
 
 
   uint16_t burst_count[2];
   uint8_t burst_empty[2];
 
-  uint32_t brst_pkts[2][BSTATS_MAXELEMCOUNT];
-  uint32_t brst_bytes[2][BSTATS_MAXELEMCOUNT];
-  struct timeval brst_start[2][BSTATS_MAXELEMCOUNT];
-  struct timeval brst_end[2][BSTATS_MAXELEMCOUNT];
+  uint32_t brst_pkts[2][BSTATS_MAXELENCOUNT];
+  uint32_t brst_bytes[2][BSTATS_MAXELENCOUNT];
+  struct timeval brst_start[2][BSTATS_MAXELENCOUNT];
+  struct timeval brst_end[2][BSTATS_MAXELENCOUNT];
 
    RecordExtBSTATS() : RecordExt(bstats)
    {
@@ -130,7 +133,31 @@ struct RecordExtBSTATS : RecordExt {
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
-      return 0;
+     int32_t bufferPtr;
+     IpfixBasicList basiclist;
+     basiclist.hdrEnterpriseNum = IpfixBasicList::CesnetPEM;
+     //Check sufficient size of buffer
+     int req_size = 8 * basiclist.HeaderSize() /* sizes, times, flags, dirs */ +
+                    2 * burst_count[BSTATS_SOURCE] * sizeof(uint32_t) /* bytes+sizes */ +
+                    2 * burst_count[BSTATS_SOURCE] * sizeof(uint64_t) /* times_start + time_end */ +
+                    2 * burst_count[BSTATS_DEST] * sizeof(uint32_t) /* bytes+sizes */ +
+                    2 * burst_count[BSTATS_DEST] * sizeof(uint64_t) /* times_start + time_end */ ;
+
+     if (req_size > size) {
+        return -1;
+     }
+     // Fill buffer
+     bufferPtr = basiclist.FillBuffer(buffer, brst_pkts[BSTATS_SOURCE], burst_count[BSTATS_SOURCE], (uint16_t) SPkts);
+     bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_bytes[BSTATS_SOURCE], burst_count[BSTATS_SOURCE], (uint16_t) SBytes);
+     bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_start[BSTATS_SOURCE], burst_count[BSTATS_SOURCE], (uint16_t) SStart);
+     bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_end[BSTATS_SOURCE], burst_count[BSTATS_SOURCE], (uint16_t) SStop);
+
+     bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_pkts[BSTATS_DEST],burst_count[BSTATS_DEST], (uint16_t) DPkts);
+     bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_bytes[BSTATS_DEST], burst_count[BSTATS_DEST], (uint16_t) DBytes);
+     bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_start[BSTATS_DEST], burst_count[BSTATS_DEST], (uint16_t) DStart);
+     bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_end[BSTATS_DEST], burst_count[BSTATS_DEST], (uint16_t) DStop);
+
+     return bufferPtr;
    }
 };
 

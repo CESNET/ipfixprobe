@@ -50,6 +50,7 @@
 #include "ipfixprobe.h"
 #include "ipfix-elements.h"
 
+
 using namespace std;
 
 #define BSTATS_UNIREC_TEMPLATE "SBI_BRST_PACKETS,SBI_BRST_BYTES,SBI_BRST_TIME_START,SBI_BRST_TIME_STOP,\
@@ -123,7 +124,7 @@ void BSTATSPlugin::process_bursts(RecordExtBSTATS *bstats_record, uint8_t direct
   if(isLastRecordBurst(bstats_record, direction)){
     bstats_record->BCOUNT++;
   }
-  if(bstats_record->BCOUNT < BSTATS_MAXELEMCOUNT)
+  if(bstats_record->BCOUNT < BSTATS_MAXELENCOUNT)
   {
     initialize_new_burst(bstats_record, direction, pkt);
   }
@@ -133,7 +134,7 @@ void BSTATSPlugin::update_record(RecordExtBSTATS *bstats_record, const Packet &p
 {
 
   uint8_t direction = (uint8_t) !pkt.source_pkt;
-  if(pkt.payload_length == 0 || bstats_record->BCOUNT >= BSTATS_MAXELEMCOUNT){
+  if(pkt.payload_length == 0 || bstats_record->BCOUNT >= BSTATS_MAXELENCOUNT){
     //zero-payload or burst array is full
     return;
   }
@@ -175,7 +176,7 @@ void BSTATSPlugin::pre_export(Flow &rec)
 {
   RecordExtBSTATS *bstats_record = static_cast<RecordExtBSTATS *>(rec.getExtension(bstats));
   for (int direction = 0; direction < 2; direction++){
-    if(bstats_record->BCOUNT < BSTATS_MAXELEMCOUNT && isLastRecordBurst(bstats_record, direction))
+    if(bstats_record->BCOUNT < BSTATS_MAXELENCOUNT && isLastRecordBurst(bstats_record, direction))
     {
       bstats_record->BCOUNT++;
     }
