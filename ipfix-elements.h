@@ -201,6 +201,9 @@
 
 #define OVPN_CONF_LEVEL(F)            F(8057,    828,   1,   NULL)
 
+#define NB_NAME(F)                    F(8057,    831,  -1,   NULL)
+#define NB_SUFFIX(F)                  F(8057,    832,   1,   NULL)
+
 
 #define IDP_CONTENT(F)                F(8057,   850,   -1,   NULL)
 #define IDP_CONTENT_REV(F)            F(8057,   851,   -1,   NULL)
@@ -379,6 +382,10 @@
   F(IDP_CONTENT) \
   F(IDP_CONTENT_REV)
 
+#define IPFIX_NETBIOS_TEMPLATE(F) \
+   F(NB_SUFFIX) \
+   F(NB_NAME)
+
 /**
  * List of all known templated.
  *
@@ -402,8 +409,8 @@
    IPFIX_SMTP_TEMPLATE(F) \
    IPFIX_SSDP_TEMPLATE(F) \
    IPFIX_DNSSD_TEMPLATE(F) \
-   IPFIX_IDPCONTENT_TEMPLATE(F)
-   
+   IPFIX_IDPCONTENT_TEMPLATE(F) \
+   IPFIX_NETBIOS_TEMPLATE(F)
 
 
 /**

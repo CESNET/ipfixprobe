@@ -72,7 +72,7 @@ us.
 
 ## Parameters
 ### Module specific parameters
-- `-p STRING`        Activate specified parsing plugins. Output interface for each plugin correspond the order which you specify items in -i and -p param. For example: '-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn
+- `-p STRING`        Activate specified parsing plugins. Output interface for each plugin correspond the order which you specify items in -i and -p param. For example: '-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios
   - Some plugins have features activated with additional parameters. Format: plugin_name[:plugin_param=value[:...]][,...] If plugin does not support parameters, any parameters given will be ignored. Supported plugin parameters are listed bellow with output data.
 - `-c NUMBER`        Quit after `NUMBER` of packets are captured.
 - `-I STRING`        Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can channel after interface delimited by : (/dev/nfb0:1) default is 0.
@@ -415,6 +415,15 @@ and the first data packet in DST -> SRC direction.
 |:------------------:|:------:|:-------------------------------:|
 | IDP_CONTENT        | bytes  | Content of first data packet from SRC -> DST|
 | IDP_CONTENT_REV    | bytes  | Content of first data packet from DST -> SRC|
+
+### NetBIOS
+
+List of UniRec fields exported together with basic flow fields on interface by NetBIOS plugin.
+
+| UniRec field  | Type   | Description                 |
+|:-------------:|:------:|:---------------------------:|
+| NB_NAME       | string | NetBIOS Name Service name   |
+| NB_SUFFIX     | uint8  | NetBIOS Name Service suffix |
 
 ## Simplified function diagram
 Diagram below shows how `ipfixprobe` works.
