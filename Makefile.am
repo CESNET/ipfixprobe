@@ -73,8 +73,8 @@ ipfixprobe_src=main.cpp \
 		md5.cpp \
 		idpcontentplugin.h \
 		idpcontentplugin.cpp \
-        netbiosplugin.h \
-        netbiosplugin.cpp
+		netbiosplugin.h \
+		netbiosplugin.cpp
 
 
 if WITH_NEMEA
