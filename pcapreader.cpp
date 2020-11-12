@@ -97,7 +97,9 @@ bool packet_valid = false;
 /**
  * \brief Data link type of packet capture. Default value is expected to be DLT_EN10MB.
  */
+#ifndef HAVE_NDP
 int datalink = DLT_EN10MB;
+#endif /* HAVE_NDP */
 
 /**
  * \brief Parse every packet.
@@ -545,13 +547,16 @@ void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t 
    pkt->ip_version = 0;
    pkt->tcp_control_bits = 0;
 
+#ifndef HAVE_NDP
    if (datalink == DLT_EN10MB) {
       data_offset = parse_eth_hdr(data, pkt);
-#ifndef HAVE_NDP
    } else {
       data_offset = parse_sll(data, pkt);
-#endif /* HAVE_NDP */
    }
+#else
+   data_offset = parse_eth_hdr(data, pkt);
+#endif /* HAVE_NDP */
+
    if (pkt->ethertype == ETH_P_TRILL) {
       data_offset += parse_trill(data + data_offset, pkt);
       data_offset += parse_eth_hdr(data + data_offset, pkt);

@@ -62,9 +62,9 @@ ldconfig
 %if %{with ndp}
 %package devel
 Summary: Devel package of ipfixprobe containing header files of libndpRI interface and devel files.
-
 Group: Liberouter
 Requires: ipfixprobe = %{version}-%{release}
+Provides: ipfixprobe-devel
 
 %description devel
 This package contains header file for liburfilter.
@@ -80,6 +80,10 @@ This package contains header file for liburfilter.
 %if %{with nemea} || "@NEMEARPM@" == "yes"
 %{_mandir}/man1/ipfixprobe-nemea.1*
 %endif
+%if %{with ndp}
+%{_libdir}/libndpRI.so.0
+%{_libdir}/libndpRI.so.0.0.0
+%endif
 @systemdsystemunitdir@
 
 %if %{with ndp}
@@ -90,8 +94,6 @@ This package contains header file for liburfilter.
 %{_libdir}/libndpRI.a
 %{_libdir}/libndpRI.la
 %{_libdir}/libndpRI.so
-%{_libdir}/libndpRI.so.0
-%{_libdir}/libndpRI.so.0.0.0
 %endif
 
 
