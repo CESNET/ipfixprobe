@@ -20,14 +20,15 @@ env:
 addons:
   apt:
     packages:
-      - gcc
-      - g++
-      - make
-      - automake
-      - gcc-multilib
       - autoconf
-      - libtool
+      - automake
+      - g++
+      - gcc
+      - gcc-multilib
+      - git
       - libpcap-dev
+      - libtool
+      - make
       - pkg-config
   coverity_scan:
     project:
@@ -37,4 +38,8 @@ addons:
     build_command_prepend: "autoreconf -i && ./configure -q"
     build_command: "make -j5"
     branch_pattern: coverity
+
+script:
+    - git submodule init && git submodule update 
+    - autoreconf -i && ./configure && make check && make distcheck
 
