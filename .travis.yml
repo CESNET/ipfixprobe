@@ -10,7 +10,7 @@ env:
   global:
    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
    #   via the "travis encrypt" command using the project repo's public key
-   - secure: "HLhFem12Cv5f0zMdch9bXNDkKenl5nvLyopcJWpY8qZD+DJPOsT/TKXRFkobdTRldQVp3mPzNzjSgemqYiwMajOPJixvOv560ru+Wg8wbpWRlVIw+9rP3Lai1GF/aiV3F8+qQ2D/obTdr1qzrzFf+m/wn1JLSNXvf+JQb7/zc3kmX9CC8g7HsfieGQiwcNN/f2ILbC24RaaPCiOpEsWe5BuSLapUdB98ijwOh/jI+jHmebDjyVZk2+zYqcjAlNGR84gsvAHs7DeLN0O3tZWANe99wS7Ut4iQDRNsPQgHTaCPi+ZRrv/3zqUKK7eBRNW9MhAW16aasWo6uNaLn6YQp5qHgza/q8/HecZliCml03Ug9YL2JR65CbEuAp0/dQVCfCVLvFrzHsgcbz4XnZ/lxSWXVn1TZuP7ENczVsIgPo2r55i9FtK2KCFSIoaFdolRlHh9cNjJ9MBueCOdQHmlZhhRdZvuIylpdNq5owiEc3+LV4+cbZOdcST+Nl/n2MOqYuCiUaYICS3P+qfOQI6za5Q8ifdB+teMS8bJYprIwJjHUPPJ8rNoolABFGMWJrFpvIlxuW7OCZ+LhXNyDqy2eShPF9PqiJVLRIm2TeAS4eI8rToymmUJ9e7LnqZIFHUnjDyWnfub+zW1rXQU+XN22ph23OFnnA1vLTTPFMco0Gw="
+   - secure: "Xa7VWMjBIw16U/WN0AzI2QHq36OgVSyGsEUElP/wRzfMjXjIh2a0qa6xOui305Az7jBb3/aF5p15pETif9WK4HUs9lXtNOaSRN0+kXX7zKnt4gehr1T659yc7T4hTuxNilEQPjk9Rmw4NfXo89jrYMvV1bTNxVXQg0FZu7SO7COCsyCs2mKj1GtqEJSgYL9epaByPmaG8QA8A+8sGRDZhB1tqeiYeBlramlqkleNHnRF7Hw+gfH44wLuK9RnRNXV0O3C4wQDqZukBXudODWZHDeqZ+EXawW72yh4Y+0lltis3fDoOzJKYvRvelah0lszrdBz48EZdYhp7UbeuxVKnNn7nb4F5I64I4p6yzHnjWJFV2KLxutLjcrNUZlDrLC7hy274dIrUwhlAHMIqjkJuABWNRzyluzYbe1cN8EL4p+pQdfsWousLlLBGrkjTgsdBm7NFiwpYqoQZQMig/0Yloxf2d+Xxbsujk+GF0fn8vMLYZzR0RLQDNjbrzuv59fnWLH3htfPX0+xJctsrXKR2cptk3q1JLSmCXloEgvt5iwYu805IA+tjzGcLAHt4VsOJe+gXFoQmxlnFwL2jwACjkLx7B2sUM5FnnKyC4wzI6yUQIJ3W3ZsFX0n3iT8gmfBr0ewTPQz4TZXM2hj4ZeAfzUvxszI44f41TZUiOBIraw="
 
 addons:
   coverity_scan:
@@ -23,4 +23,4 @@ addons:
     branch_pattern: coverity
 
 script:
-    - make -j2
+    - autoreconf -i && ./configure -q && make -j2
