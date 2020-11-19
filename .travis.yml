@@ -1,0 +1,40 @@
+os: linux
+sudo: required
+dist: bionic
+language: c
+compiler:
+  - gcc
+
+branches:
+  only:
+    - master
+    - coverity
+    - travis # TODO: remove later
+
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "LROy8ntxHZRgtwviA+QmXLExE/NABp2cNoIIj9cb2gtHiBNVMt+4NZrbzFtAazsJ8zwGS2sN2Ey3iAFgOoTwQbmRJdrLOzHuw4LS5qT1zjlO+3Uz2QAhaP088yznQNREF6VbyMJC76Whya/M+mro1NaB6M2zOvdRMT02VPTsDIk3S17u7HossxrfTUwX7nhFm4FGumFC8O+Sdjir0IOAPNS2+xbJAp1O3S7gUes1+HRoOf1387X1Xi+ghsfwqIAyZMYvQkY3P9PB+hVLRj7tfFaQwxddAdGJCXA2ygbBnjfVsSlwlOOPfgc/u1D9cC3gYXnxN/00Fx2obL+cH9HpcPgrV2Zrl8YC8Lb8Hvjapfe8JTmoxFOtwOTVyoq3L2m+sh5EVgBESPCukC8nw8M/P7mbgvMTfQ6JQKeToHpAxW7fd8oIdOjFv+aMotnU/WOUpiMqlaWBk9fZH3wdhzH0SSQ1fyXowZF9wthroIF8vBBZeC4CTTPJ6eDT9SbuurPWzvD9ir+xHcGxIqywMqva8ItAYQmKTFmeaB23cJg+Xaq6PFdA8+y7tBTq4UmW39/KBoVkkbffHAEyDdTQmlqkYXHEPqaU2OSyjwgJVwSpXpGtN9yIxoZHQR4BjI9GbYe7FuWo8fli1b55DYapyXcqvC5o6v2XwbDOvyiBs9UJ0ZM="
+
+addons:
+  apt:
+    packages:
+      - gcc
+      - g++
+      - make
+      - automake
+      - gcc-multilib
+      - autoconf
+      - libtool
+      - libpcap-dev
+      - pkg-config
+  coverity_scan:
+    project:
+      name: "CESNET/ipfixprobe"
+      description: "Build submitted via Travis CI"
+    notification_email: warband.times@gmail.com
+    build_command_prepend: "autoreconf -i && ./configure -q"
+    build_command: "make -j5"
+    branch_pattern: coverity
+
