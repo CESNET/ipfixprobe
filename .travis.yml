@@ -7,7 +7,6 @@ compiler:
 
 branches:
   only:
-    - master
     - coverity
 
 env:
