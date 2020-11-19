@@ -1,6 +1,3 @@
-os: linux
-sudo: required
-dist: bionic
 language: c
 compiler:
   - gcc
@@ -16,28 +13,14 @@ env:
    - secure: "HLhFem12Cv5f0zMdch9bXNDkKenl5nvLyopcJWpY8qZD+DJPOsT/TKXRFkobdTRldQVp3mPzNzjSgemqYiwMajOPJixvOv560ru+Wg8wbpWRlVIw+9rP3Lai1GF/aiV3F8+qQ2D/obTdr1qzrzFf+m/wn1JLSNXvf+JQb7/zc3kmX9CC8g7HsfieGQiwcNN/f2ILbC24RaaPCiOpEsWe5BuSLapUdB98ijwOh/jI+jHmebDjyVZk2+zYqcjAlNGR84gsvAHs7DeLN0O3tZWANe99wS7Ut4iQDRNsPQgHTaCPi+ZRrv/3zqUKK7eBRNW9MhAW16aasWo6uNaLn6YQp5qHgza/q8/HecZliCml03Ug9YL2JR65CbEuAp0/dQVCfCVLvFrzHsgcbz4XnZ/lxSWXVn1TZuP7ENczVsIgPo2r55i9FtK2KCFSIoaFdolRlHh9cNjJ9MBueCOdQHmlZhhRdZvuIylpdNq5owiEc3+LV4+cbZOdcST+Nl/n2MOqYuCiUaYICS3P+qfOQI6za5Q8ifdB+teMS8bJYprIwJjHUPPJ8rNoolABFGMWJrFpvIlxuW7OCZ+LhXNyDqy2eShPF9PqiJVLRIm2TeAS4eI8rToymmUJ9e7LnqZIFHUnjDyWnfub+zW1rXQU+XN22ph23OFnnA1vLTTPFMco0Gw="
 
 addons:
-  apt:
-    packages:
-      - autoconf
-      - automake
-      - g++
-      - gcc
-      - gcc-multilib
-      - git
-      - libpcap-dev
-      - libtool
-      - make
-      - pkg-config
   coverity_scan:
     project:
       name: "CESNET/ipfixprobe"
       description: "Build submitted via Travis CI"
     notification_email: warband.times@gmail.com
     build_command_prepend: "autoreconf -i && ./configure -q"
-    build_command: "make -j5"
+    build_command: "make -j2"
     branch_pattern: coverity
 
 script:
-    - git submodule init && git submodule update 
-    - autoreconf -i && ./configure && make check && make distcheck
-
+    - make -j2
