@@ -9,14 +9,28 @@ env:
    - secure: "Xa7VWMjBIw16U/WN0AzI2QHq36OgVSyGsEUElP/wRzfMjXjIh2a0qa6xOui305Az7jBb3/aF5p15pETif9WK4HUs9lXtNOaSRN0+kXX7zKnt4gehr1T659yc7T4hTuxNilEQPjk9Rmw4NfXo89jrYMvV1bTNxVXQg0FZu7SO7COCsyCs2mKj1GtqEJSgYL9epaByPmaG8QA8A+8sGRDZhB1tqeiYeBlramlqkleNHnRF7Hw+gfH44wLuK9RnRNXV0O3C4wQDqZukBXudODWZHDeqZ+EXawW72yh4Y+0lltis3fDoOzJKYvRvelah0lszrdBz48EZdYhp7UbeuxVKnNn7nb4F5I64I4p6yzHnjWJFV2KLxutLjcrNUZlDrLC7hy274dIrUwhlAHMIqjkJuABWNRzyluzYbe1cN8EL4p+pQdfsWousLlLBGrkjTgsdBm7NFiwpYqoQZQMig/0Yloxf2d+Xxbsujk+GF0fn8vMLYZzR0RLQDNjbrzuv59fnWLH3htfPX0+xJctsrXKR2cptk3q1JLSmCXloEgvt5iwYu805IA+tjzGcLAHt4VsOJe+gXFoQmxlnFwL2jwACjkLx7B2sUM5FnnKyC4wzI6yUQIJ3W3ZsFX0n3iT8gmfBr0ewTPQz4TZXM2hj4ZeAfzUvxszI44f41TZUiOBIraw="
 
 addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gawk
+      - gcc-multilib
+      - g++
+      - autoconf
+      - autoconf
+      - pkg-config
+      - make
+      - automake
+      - libpcap-dev
   coverity_scan:
     project:
       name: "CESNET/ipfixprobe"
       description: "Build submitted via Travis CI"
     notification_email: warband.times@gmail.com
-    build_command_prepend: "autoreconf -i && ./configure -q"
+    build_command_prepend: "autoreconf -i && ./configure"
     build_command: "make -j2"
     branch_pattern: coverity
 
 script:
-    - autoreconf -i && ./configure -q && make -j2
+    - autoreconf -i && ./configure && make -j2
+
