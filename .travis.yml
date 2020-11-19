@@ -9,7 +9,6 @@ branches:
   only:
     - master
     - coverity
-    - travis # TODO: remove later
 
 env:
   global:
