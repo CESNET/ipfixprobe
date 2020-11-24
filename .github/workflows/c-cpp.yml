@@ -16,12 +16,13 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get -y install build-essential autoconf libtool libpcap-dev pkg-config
-      
+        sudo apt-get -y install git build-essential autoconf libtool libpcap-dev pkg-config libxml2-dev
+        ( git clone --depth 1 https://github.com/CESNET/nemea-framework /tmp/nemea-framework; cd /tmp/nemea-framework; ./bootstrap.sh &&./configure --bindir=/usr/bin/nemea/ -q &&make -j10 && sudo make install; sudo ldconfig)
+        ( git clone --depth 1 https://github.com/CESNET/nemea-modules /tmp/nemea-modules; cd /tmp/nemea-modules; ./bootstrap.sh &&./configure --bindir=/usr/bin/nemea/ -q &&make -j10 && sudo make install; )
     - name: autoreconf
       run: autoreconf -i
     - name: configure
-      run: ./configure
+      run: ./configure --with-nemea
     - name: make
       run: make
     - name: make check
