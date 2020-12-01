@@ -123,13 +123,6 @@ int PSTATSPlugin::post_update(Flow &rec, const Packet &pkt)
    return 0;
 }
 
-void PSTATSPlugin::finish()
-{
-   if (print_stats) {
-      //cout << "PSTATS plugin stats:" << endl;
-   }
-}
-
 const char *ipfix_pstats_template[] = {
    IPFIX_PSTATS_TEMPLATE(IPFIX_FIELD_NAMES)
    NULL

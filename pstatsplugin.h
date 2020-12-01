@@ -229,7 +229,6 @@ public:
    int post_create(Flow &rec, const Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
    void update_record(RecordExtPSTATS *pstats_data, const Packet &pkt);
-   void finish();
    const char **get_ipfix_string();
    string get_unirec_field_string();
    bool include_basic_flow_fields();
