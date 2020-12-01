@@ -96,7 +96,7 @@ int IDPCONTENTPlugin::post_create(Flow &rec, const Packet &pkt)
    return 0;
 }
 
-int IDPCONTENTPlugin::post_update(Flow &rec, Packet &pkt)
+int IDPCONTENTPlugin::post_update(Flow &rec, const Packet &pkt)
 {
    RecordExtIDPCONTENT *idpcontent_data = static_cast<RecordExtIDPCONTENT *>(rec.getExtension(idpcontent));
    update_record(idpcontent_data, pkt);
