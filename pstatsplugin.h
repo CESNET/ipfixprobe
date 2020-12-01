@@ -226,12 +226,9 @@ class PSTATSPlugin : public FlowCachePlugin
 public:
    PSTATSPlugin(const options_t &module_options);
    PSTATSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
-   int pre_create(Packet &pkt);
    int post_create(Flow &rec, const Packet &pkt);
-   int pre_update(Flow &rec, Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
    void update_record(RecordExtPSTATS *pstats_data, const Packet &pkt);
-   void pre_export(Flow &rec);
    void finish();
    const char **get_ipfix_string();
    string get_unirec_field_string();
