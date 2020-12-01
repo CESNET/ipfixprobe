@@ -115,9 +115,8 @@ class IDPCONTENTPlugin : public FlowCachePlugin
 public:
    IDPCONTENTPlugin(const options_t &module_options);
    IDPCONTENTPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
-   int pre_create(Packet &pkt);
    int post_create(Flow &rec, const Packet &pkt);
-   int pre_update(Flow &rec, Packet &pkt);
+   int post_update(Flow &rec, Packet &pkt);
    const char **get_ipfix_string();
    string get_unirec_field_string();
    void update_record(RecordExtIDPCONTENT *pstats_data, const Packet &pkt);
