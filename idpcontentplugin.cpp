@@ -72,11 +72,6 @@ IDPCONTENTPlugin::IDPCONTENTPlugin(const options_t &module_options,
    print_stats = module_options.print_stats;
 }
 
-int IDPCONTENTPlugin::pre_create(Packet &pkt)
-{
-   return 0;
-}
-
 void IDPCONTENTPlugin::update_record(RecordExtIDPCONTENT *idpcontent_data, const Packet &pkt)
 {
    // create ptr into buffers from packet directions
@@ -101,10 +96,9 @@ int IDPCONTENTPlugin::post_create(Flow &rec, const Packet &pkt)
    return 0;
 }
 
-int IDPCONTENTPlugin::pre_update(Flow &rec, Packet &pkt)
+int IDPCONTENTPlugin::post_update(Flow &rec, const Packet &pkt)
 {
    RecordExtIDPCONTENT *idpcontent_data = static_cast<RecordExtIDPCONTENT *>(rec.getExtension(idpcontent));
-
    update_record(idpcontent_data, pkt);
    return 0;
 }

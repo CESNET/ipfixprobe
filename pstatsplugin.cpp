@@ -81,11 +81,6 @@ PSTATSPlugin::PSTATSPlugin(const options_t &module_options, vector<plugin_opt> p
    print_stats = module_options.print_stats;
 }
 
-int PSTATSPlugin::pre_create(Packet &pkt)
-{
-   return 0;
-}
-
 void PSTATSPlugin::update_record(RecordExtPSTATS *pstats_data, const Packet &pkt)
 {
    /*
@@ -121,27 +116,11 @@ int PSTATSPlugin::post_create(Flow &rec, const Packet &pkt)
    return 0;
 }
 
-int PSTATSPlugin::pre_update(Flow &rec, Packet &pkt)
+int PSTATSPlugin::post_update(Flow &rec, const Packet &pkt)
 {
    RecordExtPSTATS *pstats_data = (RecordExtPSTATS *) rec.getExtension(pstats);
    update_record(pstats_data, pkt);
    return 0;
-}
-
-int PSTATSPlugin::post_update(Flow &rec, const Packet &pkt)
-{
-   return 0;
-}
-
-void PSTATSPlugin::pre_export(Flow &rec)
-{
-}
-
-void PSTATSPlugin::finish()
-{
-   if (print_stats) {
-      //cout << "PSTATS plugin stats:" << endl;
-   }
 }
 
 const char *ipfix_pstats_template[] = {
