@@ -86,7 +86,8 @@ struct Packet : public Record {
 
    uint16_t    total_length;
    char        *packet; /**< Array containing whole packet. */
-   uint16_t    payload_length;
+   uint16_t    payload_length; /**< Captured payload length. */
+   uint16_t    payload_length_orig; /**< Original payload length computed from headers. */
    char        *payload; /**< Pointer to packet payload section. */
    bool        source_pkt;
 

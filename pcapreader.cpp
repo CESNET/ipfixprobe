@@ -599,7 +599,12 @@ void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t 
       pkt_len = l4_hdr_offset + pkt->ip_payload_length;
    }
 
-   pkt->payload_length = pkt_len - data_offset;
+   pkt->payload_length_orig = pkt->ip_payload_length - (data_offset - l4_hdr_offset);
+   pkt->payload_length = pkt->payload_length_orig;
+   if (pkt->payload_length + data_offset > pkt_len) {
+      // Set correct size when payload length is bigger than captured payload length
+      pkt->payload_length = pkt_len - data_offset;
+   }
    pkt->payload = pkt->packet + data_offset;
 
    DEBUG_MSG("Payload length:\t%u\n", pkt->payload_length);
