@@ -43,6 +43,11 @@
  */
 
 #include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <cctype>
 
 #include "pstatsplugin.h"
 #include "flowifc.h"
@@ -64,6 +69,9 @@ using namespace std;
 
 #define PSTATS_UNIREC_TEMPLATE "PPI_PKT_LENGTHS,PPI_PKT_TIMES,PPI_PKT_FLAGS,PPI_PKT_DIRECTIONS"
 
+#define INCLUDE_ZEROS_OPT "includezeros"
+
+
 UR_FIELDS (
    uint16* PPI_PKT_LENGTHS,
    time* PPI_PKT_TIMES,
@@ -74,15 +82,42 @@ UR_FIELDS (
 PSTATSPlugin::PSTATSPlugin(const options_t &module_options)
 {
    print_stats = module_options.print_stats;
+   use_zeros = false;
+}
+
+void PSTATSPlugin::check_plugin_options(vector<plugin_opt>& plugin_options)
+{
+   stringstream rawoptions(plugin_options[0].params);
+   string option;
+   vector<string> options;
+
+   while (std::getline(rawoptions, option, ':')) {
+      std::transform(option.begin(), option.end(), option.begin(), ::tolower);
+      options.push_back(option);
+   }
+
+   for (size_t i = 0; i < options.size(); i++) {
+      if (options[i] == INCLUDE_ZEROS_OPT) {
+         DEBUG_MSG("PSTATS include zero-length packets\n");
+         use_zeros = true;
+      }
+   }
 }
 
 PSTATSPlugin::PSTATSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
 {
    print_stats = module_options.print_stats;
+   use_zeros = false;
+   check_plugin_options(plugin_options);
+
 }
 
 void PSTATSPlugin::update_record(RecordExtPSTATS *pstats_data, const Packet &pkt)
 {
+  if(pkt.payload_length == 0 && use_zeros == false){
+    return;
+  }
+
    /*
     * dir =  1 iff client -> server
     * dir = -1 iff server -> client

@@ -206,7 +206,7 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
          plugins.push_back(new PassiveDNSPlugin(module_options, tmp));
       } else if (proto == "pstats"){
          vector<plugin_opt> tmp;
-         tmp.push_back(plugin_opt("pstats", pstats, ifc_num++));
+         tmp.push_back(plugin_opt("pstats", pstats, ifc_num++, params));
 
          plugins.push_back(new PSTATSPlugin(module_options, tmp));
       } else if (proto == "ovpn"){

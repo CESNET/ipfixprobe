@@ -347,6 +347,14 @@ Note: the following fields are UniRec arrays.
 | PPI_PKT_DIRECTIONS         | int8\*   | directions of the first packets        |
 | PPI_PKT_FLAGS              | uint8\*  | TCP flags for each packet              |
 
+#### Plugin parameters:
+- includezeros - Include zero-length packets in the lists.
+
+##### Example:
+```
+ipfixprobe -p pstats:includezeros -r sample.pcap -i "f:output.trapcap"
+```
+
 ### ARP
 List of unirec fields exported on interface by ARP plugin.
 
