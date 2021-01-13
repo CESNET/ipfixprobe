@@ -125,7 +125,7 @@ void PSTATSPlugin::update_record(RecordExtPSTATS *pstats_data, const Packet &pkt
    int8_t dir = pkt.source_pkt ? 1 : -1;
    if (pstats_data->pkt_count < PSTATS_MAXELEMCOUNT) {
       uint16_t pkt_cnt = pstats_data->pkt_count;
-      pstats_data->pkt_sizes[pkt_cnt] = pkt.payload_length;
+      pstats_data->pkt_sizes[pkt_cnt] = pkt.payload_length_orig;
       pstats_data->pkt_tcp_flgs[pkt_cnt] = pkt.tcp_control_bits;
 
       pstats_data->pkt_timestamps[pkt_cnt] = pkt.timestamp;
