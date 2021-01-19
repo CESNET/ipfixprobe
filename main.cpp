@@ -1,6 +1,6 @@
 /**
- * \file flow_meter.cpp
- * \brief Main file of the flow_meter module.
+ * \file main.cpp
+ * \brief Main file of the ipfixprobe exporter.
  * \author Vaclav Bartos <bartos@cesnet.cz>
  * \author Jiri Havranek <havraji6@fit.cvut.cz>
  * \date 2014
@@ -93,14 +93,14 @@ trap_module_info_t *module_info = NULL;
 static int stop = 0;
 
 #define MODULE_BASIC_INFO(BASIC) \
-  BASIC("flow_meter", "Convert packets from PCAP file or network interface into biflow records.", 0, -1)
+  BASIC("ipfixprobe", "Convert packets from PCAP file or network interface into biflow records.", 0, -1)
 
 #define SUPPORTED_PLUGINS_LIST "http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios"
 
 // TODO: remove parameters when using ndp
 #define MODULE_PARAMS(PARAM) \
   PARAM('p', "plugins", "Activate specified parsing plugins. Output interface for each plugin correspond the order which you specify items in -i and -p param. "\
-  "For example: \'-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter"\
+  "For example: \'-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, ipfixprobe"\
   " will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: " SUPPORTED_PLUGINS_LIST \
   " Some plugins have features activated with additional parameters. Format: plugin_name[:plugin_param=value[:...]][,...] If plugin does not support parameters, any parameters given will be ignored."\
   " Supported plugin parameters are listed in README", required_argument, "string")\
@@ -108,7 +108,7 @@ static int stop = 0;
   PARAM('h', "help", "Print this help.", no_argument, "none")\
   PARAM('I', "interface", "Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can channel after interface delimited by : (/dev/nfb0:1) default is 0", required_argument, "string")\
   PARAM('r', "file", "Pcap file to read. - to read from stdin.", required_argument, "string") \
-  PARAM('n', "no_eof", "Don't send NULL record message when flow_meter exits.", no_argument, "none") \
+  PARAM('n', "no_eof", "Don't send NULL record message when ipfixprobe exits.", no_argument, "none") \
   PARAM('l', "snapshot_len", "Snapshot length when reading packets. Set value between 120-65535.", required_argument, "uint32") \
   PARAM('t', "timeout", "Active and inactive timeout in seconds. Format: DOUBLE:DOUBLE. Value default means use default value 300.0:30.0.", required_argument, "string") \
   PARAM('s', "cache_size", "Size of flow cache. Parameter is used as an exponent to the power of two. Valid numbers are in range 4-30. default is 17 (131072 records).", required_argument, "string") \
@@ -206,7 +206,7 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
          plugins.push_back(new PassiveDNSPlugin(module_options, tmp));
       } else if (proto == "pstats"){
          vector<plugin_opt> tmp;
-         tmp.push_back(plugin_opt("pstats", pstats, ifc_num++));
+         tmp.push_back(plugin_opt("pstats", pstats, ifc_num++, params));
 
          plugins.push_back(new PSTATSPlugin(module_options, tmp));
       } else if (proto == "ovpn"){
@@ -291,7 +291,7 @@ static inline void double_to_timeval(double value, struct timeval &time)
  */
 inline bool error(const string &e)
 {
-   cerr << "flow_meter: " << e << endl;
+   cerr << "ipfixprobe: " << e << endl;
    return EXIT_FAILURE;
 }
 
