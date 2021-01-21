@@ -89,7 +89,7 @@ int BSTATSPlugin::pre_create(Packet &pkt)
 void BSTATSPlugin::initialize_new_burst(RecordExtBSTATS *bstats_record, uint8_t direction, const Packet &pkt)
 {
   bstats_record->brst_pkts[direction][bstats_record->BCOUNT] = 1;
-  bstats_record->brst_bytes[direction][bstats_record->BCOUNT] = pkt.ip_length;
+  bstats_record->brst_bytes[direction][bstats_record->BCOUNT] = pkt.payload_length_orig;
   bstats_record->brst_start[direction][bstats_record->BCOUNT] = pkt.timestamp;
   bstats_record->brst_end[direction][bstats_record->BCOUNT] = pkt.timestamp;
 }
@@ -116,7 +116,7 @@ void BSTATSPlugin::process_bursts(RecordExtBSTATS *bstats_record, uint8_t direct
 {
   if(belogsToLastRecord(bstats_record, direction, pkt)) { // does it belong to previous burst?
     bstats_record->brst_pkts[direction][bstats_record->BCOUNT]++;
-    bstats_record->brst_bytes[direction][bstats_record->BCOUNT] += pkt.ip_length;
+    bstats_record->brst_bytes[direction][bstats_record->BCOUNT] += pkt.payload_length_orig;
     bstats_record->brst_end[direction][bstats_record->BCOUNT] = pkt.timestamp;
     return;
   }
@@ -134,7 +134,7 @@ void BSTATSPlugin::update_record(RecordExtBSTATS *bstats_record, const Packet &p
 {
 
   uint8_t direction = (uint8_t) !pkt.source_pkt;
-  if(pkt.payload_length == 0 || bstats_record->BCOUNT >= BSTATS_MAXELENCOUNT){
+  if(pkt.payload_length_orig == 0 || bstats_record->BCOUNT >= BSTATS_MAXELENCOUNT){
     //zero-payload or burst array is full
     return;
   }
