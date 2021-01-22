@@ -53,6 +53,7 @@
 #include <cstring>
 #include <signal.h>
 #include <stdlib.h>
+#include <thread>
 
 #ifdef WITH_NEMEA
 #include "fields.h"
@@ -67,6 +68,7 @@
 #include "ipfixexporter.h"
 #include "stats.h"
 #include "conversion.h"
+#include "ring.h"
 
 #include "httpplugin.h"
 #include "rtspplugin.h"
@@ -90,7 +92,8 @@ using namespace std;
 trap_module_info_t *module_info = NULL;
 #endif
 
-static int stop = 0;
+int stop = 0;
+int terminate_export = 0;
 
 #define MODULE_BASIC_INFO(BASIC) \
   BASIC("flow_meter", "Convert packets from PCAP file or network interface into biflow records.", 0, -1)
@@ -272,6 +275,29 @@ int count_trap_interfaces(int argc, char *argv[])
    return ifc_cnt;
 }
 #endif
+
+void export_thread(FlowExporter *exp, ipx_ring_t *queue)
+{
+   struct timespec last;
+   struct timespec now;
+
+   clock_gettime(CLOCK_MONOTONIC_COARSE, &last);
+   while (1) {
+      clock_gettime(CLOCK_MONOTONIC_COARSE, &now);
+
+      void *flow = ipx_ring_pop(queue);
+      if (flow) {
+         exp->export_flow(*static_cast<Flow*>(flow));
+      } else if (terminate_export && !ipx_ring_cnt(queue)) {
+         break;
+      }
+
+      if (now.tv_sec - last.tv_sec > 1) {
+         last = now;
+         exp->flush();
+      }
+   }
+}
 
 /**
  * \brief Convert double to struct timeval.
@@ -706,39 +732,46 @@ int main(int argc, char *argv[])
       }
    }
 
-   NHTFlowCache flowcache(options);
-#ifdef WITH_NEMEA
-   UnirecExporter flowwriter(options.eof);
-#endif
-   IPFIXExporter flow_writer_ipfix;
-
+   FlowExporter *exporter;
    if (export_unirec) {
 #ifdef WITH_NEMEA
-      if (flowwriter.init(plugin_wrapper.plugins, ifc_cnt, options.basic_ifc_num, link, dir, odid) != 0) {
+      UnirecExporter *ipxe = new UnirecExporter(options.eof);
+      if (ipxe->init(plugin_wrapper.plugins, ifc_cnt, options.basic_ifc_num, link, dir, odid) != 0) {
          TRAP_DEFAULT_FINALIZATION();
          return error("Unable to initialize UnirecExporter.");
       }
-      flowcache.set_exporter(&flowwriter);
+      exporter = ipxe;
 #endif
    } else {
-      if (flow_writer_ipfix.init(plugin_wrapper.plugins, options.basic_ifc_num, link, host, port, udp, (verbose >= 0), dir) != 0) {
+      IPFIXExporter *ipxe = new IPFIXExporter();
+      if (ipxe->init(plugin_wrapper.plugins, options.basic_ifc_num, link, host, port, udp, (verbose >= 0), dir) != 0) {
 #ifdef WITH_NEMEA
          TRAP_DEFAULT_FINALIZATION();
 #endif
          return error("Unable to initialize IPFIXExporter.");
       }
-      flowcache.set_exporter(&flow_writer_ipfix);
+      exporter = ipxe;
    }
+
+
+   options.flow_cache_qsize = 16536;
+   ipx_ring_t *export_queue = ipx_ring_init(options.flow_cache_qsize, 0);
+   if (export_queue == NULL) {
+      return error("Unable to initialize ring buffer.");
+   }
+
+   FlowCache *flowcache = new NHTFlowCache(options);
+   flowcache->set_queue(export_queue);
+
+   std::thread exp_thread = std::thread(export_thread, exporter, export_queue);
 
    if (!options.print_stats) {
       plugin_wrapper.plugins.push_back(new StatsPlugin(options.cache_stats_interval, cout));
    }
-
    for (unsigned int i = 0; i < plugin_wrapper.plugins.size(); i++) {
-      flowcache.add_plugin(plugin_wrapper.plugins[i]);
+      flowcache->add_plugin(plugin_wrapper.plugins[i]);
    }
-
-   flowcache.init();
+   flowcache->init();
 
    Packet packet;
    int ret = 0;
@@ -749,14 +782,14 @@ int main(int argc, char *argv[])
    /* Main packet capture loop. */
    while (!stop && (ret = packetloader->get_pkt(packet)) > 0) {
       if (ret == 3) { /* Process timeout. */
-         flowcache.export_expired(time(NULL));
+         flowcache->export_expired(time(NULL));
          continue;
       }
 
       pkt_total++;
 
       if (ret == 2) {
-         flowcache.put_pkt(packet);
+         flowcache->put_pkt(packet);
          pkt_parsed++;
 
          /* Check if packet limit is reached. */
@@ -770,29 +803,23 @@ int main(int argc, char *argv[])
       packetloader->printStats();
    }
 
-   if (ret < 0) {
-      packetloader->close();
-#ifdef WITH_NEMEA
-      flowwriter.close();
-#endif
-      delete [] packet.packet;
-#ifdef WITH_NEMEA
-      TRAP_DEFAULT_FINALIZATION();
-#endif
-      return error("Error during reading: " + packetloader->error_msg);
-   }
-
    /* Cleanup. */
-   flowcache.finish();
-#ifdef WITH_NEMEA
-   flowwriter.close();
-#endif
    packetloader->close();
+   flowcache->finish();
+   terminate_export = 1;
+   exp_thread.join();
+   ipx_ring_destroy(export_queue);
    delete packetloader;
+   delete flowcache;
+   delete exporter;
    delete [] packet.packet;
 #ifdef WITH_NEMEA
    TRAP_DEFAULT_FINALIZATION();
 #endif
+
+   if (ret < 0) {
+      return error("Error during reading: " + packetloader->error_msg);
+   }
 
    return EXIT_SUCCESS;
 }

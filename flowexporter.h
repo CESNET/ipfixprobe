@@ -48,6 +48,8 @@
 #define FLOWEXPORTER_H
 
 #include "flowifc.h"
+#include "ring.h"
+#include "ipfixprobe.h"
 
 /**
  * \brief Base class for flow exporters.
@@ -55,6 +57,7 @@
 class FlowExporter
 {
 public:
+   virtual ~FlowExporter() {}
 
    /**
     * \brief Send flow record to output interface.

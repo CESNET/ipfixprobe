@@ -55,6 +55,8 @@
 
 using namespace std;
 
+extern int stop;
+
 #ifdef FLOW_CACHE_SIZE
 const unsigned int DEFAULT_FLOW_CACHE_SIZE = FLOW_CACHE_SIZE;
 #else
@@ -83,6 +85,7 @@ struct options_t {
    bool print_stats;
    bool print_pcap_stats;
    uint32_t flow_cache_size;
+   uint32_t flow_cache_qsize;
    uint32_t flow_line_size;
    uint32_t snaplen;
    struct timeval inactive_timeout;

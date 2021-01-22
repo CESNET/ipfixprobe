@@ -16,7 +16,7 @@ else
 ipfixprobe_ldflags=-lpcap
 endif
 
-ipfixprobe_CXXFLAGS=-std=c++98 -Wno-write-strings -I./nfbCInterface/include/
+ipfixprobe_CXXFLAGS=-std=c++11 -Wno-write-strings -I./nfbCInterface/include/
 
 
 ipfixprobe_src=main.cpp \
@@ -32,6 +32,8 @@ ipfixprobe_src=main.cpp \
 		nhtflowcache.h \
 		stats.cpp \
 		stats.h \
+		ring.c \
+		ring.h \
 		flowcacheplugin.h \
 		httpplugin.cpp \
 		httpplugin.h \

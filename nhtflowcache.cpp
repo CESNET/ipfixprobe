@@ -49,6 +49,7 @@
 #include <iostream>
 #include <sys/time.h>
 
+#include "ring.h"
 #include "nhtflowcache.h"
 #include "flowcache.h"
 #include "xxhash.h"
@@ -129,6 +130,14 @@ void NHTFlowCache::init()
    plugins_init();
 }
 
+void NHTFlowCache::export_flow(size_t index)
+{
+   ipx_ring_push(export_queue, &flow_array[index]->flow);
+   std::swap(flow_array[index], flow_array[size + q_index]);
+   flow_array[index]->erase();
+   q_index = (q_index + 1) % q_size;
+}
+
 void NHTFlowCache::finish()
 {
    plugins_finish();
@@ -136,9 +145,7 @@ void NHTFlowCache::finish()
    for (unsigned int i = 0; i < size; i++) {
       if (!flow_array[i]->is_empty()) {
          plugins_pre_export(flow_array[i]->flow);
-         exporter->export_flow(flow_array[i]->flow);
-
-         flow_array[i]->erase();
+         export_flow(i);
 #ifdef FLOW_CACHE_STATS
          expired++;
 #endif /* FLOW_CACHE_STATS */
@@ -150,22 +157,27 @@ void NHTFlowCache::finish()
    }
 }
 
-void NHTFlowCache::flush(Packet &pkt, FlowRecord *flow, int ret, bool source_flow)
+void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int ret, bool source_flow)
 {
-   exporter->export_flow(flow->flow);
 #ifdef FLOW_CACHE_STATS
    flushed++;
 #endif /* FLOW_CACHE_STATS */
 
    if (ret == FLOW_FLUSH_WITH_REINSERT) {
+      FlowRecord *flow = flow_array[flow_index];
+      flow_array[size + q_index]->flow =  flow->flow;
+      ipx_ring_push(export_queue, &flow_array[size + q_index]->flow);
+      q_index = (q_index + 1) % q_size;
+      flow->flow.exts = NULL;
+
       flow->soft_clean(); // Clean counters, set time first to last
       flow->update(pkt, source_flow); // Set new counters from packet
       ret = plugins_post_create(flow->flow, pkt);
       if (ret & FLOW_FLUSH) {
-         flush(pkt, flow, ret, source_flow);
+         flush(pkt, flow_index, ret, source_flow);
       }
    } else {
-      flow->erase();
+      export_flow(flow_index);
    }
 }
 
@@ -174,7 +186,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
    int ret = plugins_pre_create(pkt);
 
    if (ret == EXPORT_PACKET) {
-      exporter->export_packet(pkt);
+      //exporter->export_packet(pkt); // TODO
       pkt.removeExtensions();
       return 0;
    }
@@ -248,14 +260,13 @@ int NHTFlowCache::put_pkt(Packet &pkt)
 
          // Export flow
          plugins_pre_export(flow_array[flow_index]->flow);
-         exporter->export_flow(flow_array[flow_index]->flow);
+         export_flow(flow_index);
 
 #ifdef FLOW_CACHE_STATS
          expired++;
 #endif /* FLOW_CACHE_STATS */
          uint32_t flow_new_index = line_index + line_new_index;
          flow = flow_array[flow_index];
-         flow->erase();
          for (uint32_t j = flow_index; j > flow_new_index; j--) {
             flow_array[j] = flow_array[j - 1];
          }
@@ -277,23 +288,22 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       ret = plugins_post_create(flow->flow, pkt);
 
       if (ret & FLOW_FLUSH) {
-         exporter->export_flow(flow->flow);
+         export_flow(flow_index);
 #ifdef FLOW_CACHE_STATS
          flushed++;
 #endif /* FLOW_CACHE_STATS */
-         flow->erase();
       }
    } else {
       ret = plugins_pre_update(flow->flow, pkt);
       if (ret & FLOW_FLUSH) {
-         flush(pkt, flow, ret, source_flow);
+         flush(pkt, flow_index, ret, source_flow);
          return 0;
       } else {
          flow->update(pkt, source_flow);
          ret = plugins_post_update(flow->flow, pkt);
 
          if (ret & FLOW_FLUSH) {
-            flush(pkt, flow, ret, source_flow);
+            flush(pkt, flow_index, ret, source_flow);
             return 0;
          }
       }
@@ -301,8 +311,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       /* Check if flow record is expired. */
       if (current_ts.tv_sec - flow->flow.time_first.tv_sec >= active.tv_sec) {
          plugins_pre_export(flow->flow);
-         exporter->export_flow(flow->flow);
-         flow->erase();
+         export_flow(flow_index);
 #ifdef FLOW_CACHE_STATS
          expired++;
 #endif /* FLOW_CACHE_STATS */
@@ -324,15 +333,12 @@ void NHTFlowCache::export_expired(time_t ts)
                ts - flow_array[i]->flow.time_last.tv_sec >= inactive.tv_sec) {
 
             plugins_pre_export(flow_array[i]->flow);
-            exporter->export_flow(flow_array[i]->flow);
-
-            flow_array[i]->erase();
+            export_flow(i);
 #ifdef FLOW_CACHE_STATS
             expired++;
 #endif /* FLOW_CACHE_STATS */
          }
       }
-      exporter->flush();
       last_ts = ts;
    }
 }
