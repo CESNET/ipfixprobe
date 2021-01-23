@@ -718,17 +718,22 @@ int PcapReader::init_interface(const string &interface, int snaplen, bool parse_
    handle = pcap_open_live(interface.c_str(), snaplen, 1, READ_TIMEOUT, errbuf);
    if (handle == NULL) {
       error_msg = errbuf;
-      return 2;
+      return 1;
    }
    if (errbuf[0] != 0) {
       fprintf(stderr, "%s\n", errbuf); // Print warning.
+   }
+   if (pcap_setnonblock(handle, 1, errbuf) < 0) {
+      error_msg = errbuf;
+      close();
+      return 1;
    }
 
    datalink = pcap_datalink(handle);
    if (datalink != DLT_EN10MB && datalink != DLT_LINUX_SLL) {
       error_msg = "Unsupported link type detected. Supported types are DLT_EN10MB and DLT_LINUX_SLL.";
       close();
-      return 3;
+      return 1;
    }
 
    bpf_u_int32 net;

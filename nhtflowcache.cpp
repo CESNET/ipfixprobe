@@ -281,7 +281,6 @@ int NHTFlowCache::put_pkt(Packet &pkt)
    }
 
    pkt.source_pkt = source_flow;
-   current_ts = pkt.timestamp;
    flow = flow_array[flow_index];
    if (flow->is_empty()) {
       flow->create(pkt, hashval);
@@ -294,6 +293,14 @@ int NHTFlowCache::put_pkt(Packet &pkt)
 #endif /* FLOW_CACHE_STATS */
       }
    } else {
+      if (pkt.timestamp.tv_sec - flow->flow.time_last.tv_sec >= inactive.tv_sec) {
+         plugins_pre_export(flow->flow);
+         export_flow(flow_index);
+   #ifdef FLOW_CACHE_STATS
+         expired++;
+   #endif /* FLOW_CACHE_STATS */
+         return put_pkt(pkt);
+      }
       ret = plugins_pre_update(flow->flow, pkt);
       if (ret & FLOW_FLUSH) {
          flush(pkt, flow_index, ret, source_flow);
@@ -309,7 +316,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       }
 
       /* Check if flow record is expired. */
-      if (current_ts.tv_sec - flow->flow.time_first.tv_sec >= active.tv_sec) {
+      if (pkt.timestamp.tv_sec - flow->flow.time_first.tv_sec >= active.tv_sec) {
          plugins_pre_export(flow->flow);
          export_flow(flow_index);
 #ifdef FLOW_CACHE_STATS
@@ -318,29 +325,28 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       }
    }
 
-   if (current_ts.tv_sec - last_ts >= INACTIVE_CHECK_PERIOD_1) {
-      export_expired(current_ts.tv_sec);
-   }
-
+   export_expired(pkt.timestamp.tv_sec);
    return 0;
 }
 
 void NHTFlowCache::export_expired(time_t ts)
 {
-   if (ts - last_ts >= INACTIVE_CHECK_PERIOD_2) {
-      for (unsigned int i = 0; i < size; i++) {
-         if (!flow_array[i]->is_empty() &&
-               ts - flow_array[i]->flow.time_last.tv_sec >= inactive.tv_sec) {
-
-            plugins_pre_export(flow_array[i]->flow);
-            export_flow(i);
+   for (unsigned int i = timeout_idx + line_new_index; i > timeout_idx; i--) {
+      uint32_t idx = i - 1;
+      if (!flow_array[idx]->is_empty() &&
+            ts - flow_array[idx]->flow.time_last.tv_sec >= inactive.tv_sec) {
+         plugins_pre_export(flow_array[idx]->flow);
+         export_flow(idx);
 #ifdef FLOW_CACHE_STATS
-            expired++;
+         expired++;
 #endif /* FLOW_CACHE_STATS */
-         }
+      } else {
+         break;
       }
-      last_ts = ts;
    }
+
+   timeout_idx = (timeout_idx + line_new_index) & (size - 1);
+   return;
 }
 
 bool NHTFlowCache::create_hash_key(Packet &pkt)

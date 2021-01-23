@@ -46,6 +46,7 @@
 
 #include <config.h>
 #include <getopt.h>
+#include <unistd.h>
 #include <string>
 #include <iostream>
 #include <cstdio>
@@ -783,6 +784,7 @@ int main(int argc, char *argv[])
    while (!stop && (ret = packetloader->get_pkt(packet)) > 0) {
       if (ret == 3) { /* Process timeout. */
          flowcache->export_expired(time(NULL));
+         usleep(1); // TODO: there must be a better solution
          continue;
       }
 

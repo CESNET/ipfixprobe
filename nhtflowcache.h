@@ -122,6 +122,7 @@ class NHTFlowCache : public FlowCache
    uint32_t line_new_index;
    uint32_t q_size;
    uint32_t q_index;
+   uint32_t timeout_idx;
 #ifdef FLOW_CACHE_STATS
    uint64_t empty;
    uint64_t not_empty;
@@ -131,8 +132,6 @@ class NHTFlowCache : public FlowCache
    uint64_t lookups;
    uint64_t lookups2;
 #endif /* FLOW_CACHE_STATS */
-   struct timeval current_ts;
-   time_t last_ts;
    struct timeval active;
    struct timeval inactive;
    char key[MAX_KEY_LENGTH];
@@ -146,6 +145,7 @@ public:
       size = options.flow_cache_size;
       q_size = options.flow_cache_qsize;
       q_index = 0;
+      timeout_idx = 0;
       line_size = options.flow_line_size;
       /* Mask for getting flow cache line index. */
       line_size_mask = (size - 1) & ~(line_size - 1);
@@ -159,7 +159,6 @@ public:
       lookups = 0;
       lookups2 = 0;
 #endif /* FLOW_CACHE_STATS */
-      last_ts = 0;
       print_stats = options.print_stats;
       active = options.active_timeout;
       inactive = options.inactive_timeout;
