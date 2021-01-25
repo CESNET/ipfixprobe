@@ -451,6 +451,33 @@ List of UniRec fields exported together with basic flow fields on interface by N
 | NB_NAME       | string | NetBIOS Name Service name   |
 | NB_SUFFIX     | uint8  | NetBIOS Name Service suffix |
 
+### PHISTS
+
+List of UniRec fields exported together with basic flow fields on the interface by PHISTS plugin.
+The plugin exports the histograms of Payload sizes and Inter-Packet-Times for each direction. The
+histograms bins are scaled logarithmicaly and are shown in following table:
+
+| Bin Number | Size Len   | Inter Packet Time |
+|:----------:|:----------:|:-----------------:|
+| 1          | 0-15 B     |  0-15 ms          |
+| 2          | 16-31 B    |  16-31 ms         |
+| 3          | 32-63 B    |  32-63 ms         |
+| 4          | 64-127 B   |  64-127 ms        |
+| 5          | 128-255 B  |  128-255 ms       |
+| 6          | 256-511 B  |  256-511 ms       |
+| 7          | 512-1023 B |  512-1023 ms      |
+| 8          | > 1024 B   |  > 1024 ms        |
+
+The exported unirec fields and IPFIX basiclists is shown in following table:
+
+| UniRec field        | Type    | Description                             |
+|:-------------------:|:-------:|:---------------------------------------:|
+| D_PHISTS_IPT        | uint16\*| DST->SRC: Hisrogram of interpacket times|
+| D_PHISTS_SIZES      | uint16\*| DST->SRC: Hisrogram of packet sizes     |
+| S_PHISTS_IPT        | uint16\*| SRC->DST: Hisrogram of interpacket times|
+| S_PHISTS_SIZES      | uint16\*| SRC->DST: Hisrogram of packet sizes     |
+
+
 ### BSTATS
 
 List of UniRec fields exported together with basic flow fields on the interface by BSTATS plugin.
