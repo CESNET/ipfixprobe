@@ -227,6 +227,15 @@
 #define STATS_PCKT_DIRECTIONS(F)      F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1016 (int8*)
 
 
+#define SBI_BRST_PACKETS(F)           F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1050 (uint16*)
+#define SBI_BRST_BYTES(F)             F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1051 (uint16*)
+#define SBI_BRST_TIME_START(F)        F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1052 (time*)
+#define SBI_BRST_TIME_STOP(F)         F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1053 (time*)
+#define DBI_BRST_PACKETS(F)           F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1054 (uint16*)
+#define DBI_BRST_BYTES(F)             F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1055 (uint16*)
+#define DBI_BRST_TIME_START(F)        F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1056 (time*)
+#define DBI_BRST_TIME_STOP(F)         F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1057 (time*)
+
 /**
  * IPFIX Templates - list of elements
  *
@@ -395,6 +404,16 @@
   F(IDP_CONTENT) \
   F(IDP_CONTENT_REV)
 
+#define IPFIX_BSTATS_TEMPLATE(F) \
+  F(SBI_BRST_PACKETS) \
+  F(SBI_BRST_BYTES) \
+  F(SBI_BRST_TIME_START) \
+  F(SBI_BRST_TIME_STOP) \
+  F(DBI_BRST_PACKETS) \
+  F(DBI_BRST_BYTES) \
+  F(DBI_BRST_TIME_START) \
+  F(DBI_BRST_TIME_STOP)
+
 #define IPFIX_NETBIOS_TEMPLATE(F) \
    F(NB_SUFFIX) \
    F(NB_NAME)
@@ -441,7 +460,9 @@
    IPFIX_DNSSD_TEMPLATE(F) \
    IPFIX_IDPCONTENT_TEMPLATE(F) \
    IPFIX_NETBIOS_TEMPLATE(F) \
-   IPFIX_BASICPLUS_TEMPLATE(F)
+   IPFIX_BASICPLUS_TEMPLATE(F) \
+   IPFIX_BSTATS_TEMPLATE(F)
+
 
 
 /**
