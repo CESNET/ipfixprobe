@@ -77,6 +77,8 @@ ipfixprobe_src=main.cpp \
 		netbiosplugin.cpp \
 		bstatsplugin.h \
 		bstatsplugin.cpp \
+		phistsplugin.cpp \
+		phistsplugin.h \
 		ipfix-basiclist.cpp \
 		ipfix-basiclist.h \
 		basicplusplugin.h \

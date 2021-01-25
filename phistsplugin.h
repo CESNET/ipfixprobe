@@ -57,18 +57,35 @@
 
 using namespace std;
 
+#define HISTOGRAM_SIZE 8
+
 /**
  * \brief Flow record extension header for storing parsed PHISTS packets.
  */
 struct RecordExtPHISTS : RecordExt {
 
+   uint16_t size_hist[HISTOGRAM_SIZE];
+   uint16_t ipt_hist[HISTOGRAM_SIZE];
+
    RecordExtPHISTS() : RecordExt(phists)
    {
+     //inicializing histograms with zeros
+     memset(size_hist, 0, sizeof(uint16_t) * HISTOGRAM_SIZE);
+     memset(ipt_hist, 0, sizeof(uint16_t) * HISTOGRAM_SIZE);
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
+      ur_array_allocate(tmplt, record, F_PHISTS_SIZES, HISTOGRAM_SIZE);
+      ur_array_allocate(tmplt, record, F_PHISTS_IPT, HISTOGRAM_SIZE);
+
+      for (int i = 0; i < HISTOGRAM_SIZE; i++) {
+         ur_array_set(tmplt, record, F_PHISTS_SIZES, i, size_hist[i]);
+         ur_array_set(tmplt, record, F_PHISTS_IPT, i, ipt_hist[i]);
+      }
    }
+#endif // ifdef WITH_NEMEA
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
@@ -84,11 +101,11 @@ class PHISTSPlugin : public FlowCachePlugin
 public:
    PHISTSPlugin(const options_t &module_options);
    PHISTSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
-   int pre_create(Packet &pkt);
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
    void pre_export(Flow &rec);
+   //void update_record(RecordExtPHISTS *phists_data, const Packet &pkt);
    void finish();
    const char **get_ipfix_string();
    string get_unirec_field_string();
@@ -99,4 +116,3 @@ private:
 };
 
 #endif
-

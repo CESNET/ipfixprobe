@@ -52,10 +52,11 @@
 
 using namespace std;
 
-#define PHISTS_UNIREC_TEMPLATE "" /* TODO: unirec template */
+#define PHISTS_UNIREC_TEMPLATE "PHISTS_SIZES,PHISTS_IPT" /* TODO: unirec template */
 
 UR_FIELDS (
-   /* TODO: unirec fields definition */
+   uint16* PHISTS_SIZES,
+   uint16* PHISTS_IPT,
 )
 
 PHISTSPlugin::PHISTSPlugin(const options_t &module_options)
@@ -68,10 +69,10 @@ PHISTSPlugin::PHISTSPlugin(const options_t &module_options, vector<plugin_opt> p
    print_stats = module_options.print_stats;
 }
 
-int PHISTSPlugin::pre_create(Packet &pkt)
+/*void PHISTSPlugin::update_record(RecordExtPHISTS *phists_data, const Packet &pkt)
 {
-   return 0;
-}
+  printf("updating");
+}*/
 
 int PHISTSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
@@ -85,6 +86,8 @@ int PHISTSPlugin::pre_update(Flow &rec, Packet &pkt)
 
 int PHISTSPlugin::post_update(Flow &rec, const Packet &pkt)
 {
+   //RecordExtPHISTS *phists_data = (RecordExtPHISTS *) rec.getExtension(phists);
+   //update_record(phists_data, pkt);
    return 0;
 }
 
@@ -118,4 +121,3 @@ bool PHISTSPlugin::include_basic_flow_fields()
 {
    return true;
 }
-
