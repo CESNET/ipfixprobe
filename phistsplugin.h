@@ -100,6 +100,7 @@ struct RecordExtPHISTS : RecordExt {
          ur_array_set(tmplt, record, F_D_PHISTS_IPT, i, ipt_hist[1][i]);
       }
    }
+#endif // ifdef WITH_NEMEA
 
    #endif // ifdef WITH_NEMEA
 
