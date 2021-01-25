@@ -236,8 +236,10 @@
 #define DBI_BRST_TIME_START(F)        F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1056 (time*)
 #define DBI_BRST_TIME_STOP(F)         F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1057 (time*)
 
-#define PHISTS_SIZES(F)               F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1060 (uint16*)
-#define PHISTS_IPT(F)                 F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1061 (uint16*)
+#define D_PHISTS_IPT(F)               F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1063 (uint16*)
+#define D_PHISTS_SIZES(F)             F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1062 (uint16*)
+#define S_PHISTS_SIZES(F)             F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1060 (uint16*)
+#define S_PHISTS_IPT(F)               F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1061 (uint16*)
 /**
  * IPFIX Templates - list of elements
  *
@@ -438,9 +440,11 @@
    F(L4_TCP_SYN_SIZE)
 
 #define IPFIX_PHISTS_TEMPLATE(F) \
-  F(PHISTS_SIZES) \
-  F(PHISTS_IPT)
-
+  F(S_PHISTS_SIZES) \
+  F(S_PHISTS_IPT) \
+  F(D_PHISTS_SIZES) \
+  F(D_PHISTS_IPT)
+  
 /**
  * List of all known templated.
  *

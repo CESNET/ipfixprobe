@@ -42,6 +42,7 @@
  */
 
 #include <iostream>
+#include <limits>
 
 #include "phistsplugin.h"
 #include "flowifc.h"
@@ -49,67 +50,110 @@
 #include "packet.h"
 #include "ipfixprobe.h"
 #include "ipfix-elements.h"
+#include "math.h"
+#include "ipfix-basiclist.h"
 
 using namespace std;
 
-#define PHISTS_UNIREC_TEMPLATE "PHISTS_SIZES,PHISTS_IPT" /* TODO: unirec template */
+#define PHISTS_UNIREC_TEMPLATE "S_PHISTS_SIZES,S_PHISTS_IPT,D_PHISTS_SIZES,D_PHISTS_IPT" /* TODO: unirec template */
 
-UR_FIELDS (
-   uint16* PHISTS_SIZES,
-   uint16* PHISTS_IPT,
+UR_FIELDS(
+   uint16 * S_PHISTS_SIZES,
+   uint16 * S_PHISTS_IPT,
+   uint16 * D_PHISTS_SIZES,
+   uint16 * D_PHISTS_IPT,
 )
+const uint32_t PHISTSPlugin::log2_lookup32[32] = { 0,  9,   1,  10,  13,  21, 2,  29,
+                                                   11, 14,  16, 18,  22,  25, 3,  30,
+                                                   8,  12,  20, 28,  15,  17, 24, 7,
+                                                   19, 27,  23, 6,   26,  5,  4,  31 };
+
 
 PHISTSPlugin::PHISTSPlugin(const options_t &module_options)
 {
    print_stats = module_options.print_stats;
 }
 
-PHISTSPlugin::PHISTSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
+PHISTSPlugin::PHISTSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(
+      plugin_options)
 {
    print_stats = module_options.print_stats;
 }
 
-/*void PHISTSPlugin::update_record(RecordExtPHISTS *phists_data, const Packet &pkt)
+/*
+ * 0-15     1. bin
+ * 16-31    2. bin
+ * 32-63    3. bin
+ * 64-127   4. bin
+ * 128-255  5. bin
+ * 256-511  6. bin
+ * 512-1023 7. bin
+ * 1024 >   8. bin
+ */
+void PHISTSPlugin::update_hist(RecordExtPHISTS *phists_data, uint32_t value, uint16_t *histogram)
 {
-  printf("updating");
-}*/
+   if (value < 16) {
+      histogram[0] = no_overflow_increment(histogram[0]);
+   } else if (value > 1023) {
+      histogram[HISTOGRAM_SIZE - 1] = no_overflow_increment(histogram[HISTOGRAM_SIZE - 1]);
+   } else {
+      histogram[fastlog2_32(value) - 2] = no_overflow_increment(histogram[fastlog2_32(value) - 2]);// -2 means shift cause first bin corresponds to 2^4
+   }
+   return;
+}
+
+uint64_t PHISTSPlugin::calculate_ipt(RecordExtPHISTS *phists_data, const struct timeval tv, uint8_t direction)
+{
+   int64_t ts = IpfixBasicList::Tv2Ts(tv);
+
+   if (phists_data->last_ts[direction] == 0) {
+      phists_data->last_ts[direction] = ts;
+      return -1;
+   }
+   int64_t diff = ts - phists_data->last_ts[direction];
+
+   phists_data->last_ts[direction] = ts;
+   return diff;
+}
+
+void PHISTSPlugin::update_record(RecordExtPHISTS *phists_data, const Packet &pkt)
+{
+   uint8_t direction = (uint8_t) !pkt.source_pkt;
+
+   update_hist(phists_data, (uint32_t) pkt.payload_length_orig, phists_data->size_hist[direction]);
+   int32_t ipt_diff = (uint32_t) calculate_ipt(phists_data, pkt.timestamp, direction);
+
+   if (ipt_diff != -1) {
+      update_hist(phists_data, (uint32_t) ipt_diff, phists_data->ipt_hist[direction]);
+   }
+}
 
 int PHISTSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
-   return 0;
-}
+   RecordExtPHISTS *phists_data = new RecordExtPHISTS();
 
-int PHISTSPlugin::pre_update(Flow &rec, Packet &pkt)
-{
+   rec.addExtension(phists_data);
+
+   update_record(phists_data, pkt);
    return 0;
 }
 
 int PHISTSPlugin::post_update(Flow &rec, const Packet &pkt)
 {
-   //RecordExtPHISTS *phists_data = (RecordExtPHISTS *) rec.getExtension(phists);
-   //update_record(phists_data, pkt);
+   RecordExtPHISTS *phists_data = (RecordExtPHISTS *) rec.getExtension(phists);
+
+   update_record(phists_data, pkt);
    return 0;
 }
 
-void PHISTSPlugin::pre_export(Flow &rec)
-{
-}
-
-void PHISTSPlugin::finish()
-{
-   if (print_stats) {
-      //cout << "PHISTS plugin stats:" << endl;
-   }
-}
-
-const char *ipfix__template[] = {
+const char *ipfix_phists_template[] = {
    IPFIX_PHISTS_TEMPLATE(IPFIX_FIELD_NAMES)
    NULL
 };
 
 const char **PHISTSPlugin::get_ipfix_string()
 {
-   return ipfix__template;
+   return ipfix_phists_template;
 }
 
 string PHISTSPlugin::get_unirec_field_string()

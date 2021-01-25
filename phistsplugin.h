@@ -45,9 +45,11 @@
 #define PHISTSPLUGIN_H
 
 #include <string>
+#include <limits>
+#include "ipfix-basiclist.h"
 
 #ifdef WITH_NEMEA
-  #include "fields.h"
+# include "fields.h"
 #endif
 
 #include "flowifc.h"
@@ -63,34 +65,66 @@ using namespace std;
  * \brief Flow record extension header for storing parsed PHISTS packets.
  */
 struct RecordExtPHISTS : RecordExt {
+   typedef enum eHdrFieldID {
+      SPhistsSizes = 1060,
+      SPhistsIpt   = 1061,
+      DPhistsSizes = 1062,
+      DPhistsIpt   = 1063
+   } eHdrSemantic;
 
-   uint16_t size_hist[HISTOGRAM_SIZE];
-   uint16_t ipt_hist[HISTOGRAM_SIZE];
+   uint16_t size_hist[2][HISTOGRAM_SIZE];
+   uint16_t ipt_hist[2][HISTOGRAM_SIZE];
+   uint64_t last_ts[2];
 
    RecordExtPHISTS() : RecordExt(phists)
    {
-     //inicializing histograms with zeros
-     memset(size_hist, 0, sizeof(uint16_t) * HISTOGRAM_SIZE);
-     memset(ipt_hist, 0, sizeof(uint16_t) * HISTOGRAM_SIZE);
-   }
-
-#ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
-   {
-      ur_array_allocate(tmplt, record, F_PHISTS_SIZES, HISTOGRAM_SIZE);
-      ur_array_allocate(tmplt, record, F_PHISTS_IPT, HISTOGRAM_SIZE);
-
-      for (int i = 0; i < HISTOGRAM_SIZE; i++) {
-         ur_array_set(tmplt, record, F_PHISTS_SIZES, i, size_hist[i]);
-         ur_array_set(tmplt, record, F_PHISTS_IPT, i, ipt_hist[i]);
+      // inicializing histograms with zeros
+      for (int i = 0; i < 2; i++) {
+         memset(size_hist[i], 0, sizeof(uint16_t) * HISTOGRAM_SIZE);
+         memset(ipt_hist[i], 0, sizeof(uint16_t) * HISTOGRAM_SIZE);
+         last_ts[i] = 0;
       }
    }
-#endif // ifdef WITH_NEMEA
+
+   #ifdef WITH_NEMEA
+   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   {
+      ur_array_allocate(tmplt, record, F_S_PHISTS_SIZES, HISTOGRAM_SIZE);
+      ur_array_allocate(tmplt, record, F_S_PHISTS_IPT, HISTOGRAM_SIZE);
+      ur_array_allocate(tmplt, record, F_D_PHISTS_SIZES, HISTOGRAM_SIZE);
+      ur_array_allocate(tmplt, record, F_D_PHISTS_IPT, HISTOGRAM_SIZE);
+      for (int i = 0; i < HISTOGRAM_SIZE; i++) {
+         ur_array_set(tmplt, record, F_S_PHISTS_SIZES, i, size_hist[0][i]);
+         ur_array_set(tmplt, record, F_S_PHISTS_IPT, i, ipt_hist[0][i]);
+         ur_array_set(tmplt, record, F_D_PHISTS_SIZES, i, size_hist[1][i]);
+         ur_array_set(tmplt, record, F_D_PHISTS_IPT, i, ipt_hist[1][i]);
+      }
+   }
+
+   #endif // ifdef WITH_NEMEA
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
-      return 0;
-   }
+      int32_t bufferPtr;
+      IpfixBasicList basiclist;
+
+      basiclist.hdrEnterpriseNum = IpfixBasicList::CesnetPEM;
+      // Check sufficient size of buffer
+      int req_size = 4 * basiclist.HeaderSize()  /* sizes, times, flags, dirs */
+        + 4 * HISTOGRAM_SIZE * sizeof(uint16_t); /* sizes */
+
+      if (req_size > size) {
+         return -1;
+      }
+      // Fill sizes
+      // fill buffer with basic list header and SPhistsSizes
+      bufferPtr  = basiclist.FillBuffer(buffer, size_hist[0], HISTOGRAM_SIZE, (uint16_t) SPhistsSizes);
+      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, size_hist[1], HISTOGRAM_SIZE, (uint16_t) DPhistsSizes);
+      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, ipt_hist[0], HISTOGRAM_SIZE, (uint16_t) SPhistsIpt);
+      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, ipt_hist[1], HISTOGRAM_SIZE, (uint16_t) DPhistsIpt);
+
+      return bufferPtr;
+   } // fillIPFIX
 };
 
 /**
@@ -102,17 +136,37 @@ public:
    PHISTSPlugin(const options_t &module_options);
    PHISTSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
    int post_create(Flow &rec, const Packet &pkt);
-   int pre_update(Flow &rec, Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
-   void pre_export(Flow &rec);
-   //void update_record(RecordExtPHISTS *phists_data, const Packet &pkt);
-   void finish();
    const char **get_ipfix_string();
    string get_unirec_field_string();
    bool include_basic_flow_fields();
 
 private:
-   bool print_stats;       /**< Indicator whether to print stats when flow cache is finishing or not. */
+   void update_record(RecordExtPHISTS *phists_data, const Packet &pkt);
+   void update_hist(RecordExtPHISTS *phists_data, uint32_t value, uint16_t *histogram);
+   uint64_t calculate_ipt(RecordExtPHISTS *phists_data, const struct timeval tv, uint8_t direction);
+
+   static inline uint32_t fastlog2_32(uint32_t value)
+   {
+      value |= value >> 1;
+      value |= value >> 2;
+      value |= value >> 4;
+      value |= value >> 8;
+      value |= value >> 16;
+      return log2_lookup32[(uint32_t) (value * 0x07C4ACDD) >> 27];
+   }
+
+   static inline uint16_t no_overflow_increment(uint16_t value)
+   {
+      if (value == std::numeric_limits<uint16_t>::max()) {
+         return value;
+      }
+      return value + 1;
+   }
+
+   static const uint32_t log2_lookup32[32];
+
+   bool print_stats; /**< Indicator whether to print stats when flow cache is finishing or not. */
 };
 
-#endif
+#endif // ifndef PHISTSPLUGIN_H
