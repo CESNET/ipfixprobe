@@ -15,6 +15,7 @@ TESTS=test_http_plugin.sh \
 	test_netbios_plugin.sh \
 	test_basic_plugin.sh \
 	test_basicplus_plugin.sh \
+	test_phists_plugin.sh \
     test_bstats_plugin.sh
 
 EXTRA_DIST=test_plugin.sh \
@@ -37,6 +38,7 @@ EXTRA_DIST=test_plugin.sh \
 	test_idpcontent_plugin.sh \
 	test_plugin.sh \
     test_bstats_plugin.sh \
+	test_phists_plugin.sh \
 	test_reference/basic \
 	test_reference/basicplus \
 	test_reference/pstats \
@@ -54,7 +56,8 @@ EXTRA_DIST=test_plugin.sh \
 	test_reference/ovpn \
 	test_reference/idpcontent \
 	test_reference/netbios \
-    test_reference/bstats
+    test_reference/bstats \
+	test_reference/phists
 
 clean-local:
 	rm -rf test_output
