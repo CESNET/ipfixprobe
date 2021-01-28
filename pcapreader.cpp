@@ -243,6 +243,7 @@ inline uint16_t parse_ipv4_hdr(const u_char *data_ptr, Packet *pkt)
    pkt->ip_length = ntohs(ip->tot_len);
    pkt->ip_payload_length = pkt->ip_length - (ip->ihl << 2);
    pkt->ip_ttl = ip->ttl;
+   pkt->ip_flags = (ntohs(ip->frag_off) & 0xE000) >> 13;
    pkt->src_ip.v4 = ip->saddr;
    pkt->dst_ip.v4 = ip->daddr;
 
@@ -317,6 +318,7 @@ inline uint16_t parse_ipv6_hdr(const u_char *data_ptr, Packet *pkt)
    pkt->ip_tos = (ntohl(ip6->ip6_ctlun.ip6_un1.ip6_un1_flow) & 0x0ff00000) >> 20;
    pkt->ip_proto = ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt;
    pkt->ip_ttl = ip6->ip6_ctlun.ip6_un1.ip6_un1_hlim;
+   pkt->ip_flags = 0;
    pkt->ip_payload_length = ntohs(ip6->ip6_ctlun.ip6_un1.ip6_un1_plen);
    pkt->ip_length = pkt->ip_payload_length + 40;
    memcpy(pkt->src_ip.v6, (const char *) &ip6->ip6_src, 16);
@@ -357,6 +359,7 @@ inline uint16_t parse_tcp_hdr(const u_char *data_ptr, Packet *pkt)
    pkt->src_port = ntohs(tcp->source);
    pkt->dst_port = ntohs(tcp->dest);
    pkt->tcp_control_bits = (uint8_t) *(data_ptr + 13) & 0xFF;
+   pkt->tcp_window = ntohs(tcp->window);
 
    DEBUG_MSG("TCP header:\n");
    DEBUG_MSG("\tSrc port:\t%u\n",   ntohs(tcp->source));
@@ -373,7 +376,26 @@ inline uint16_t parse_tcp_hdr(const u_char *data_ptr, Packet *pkt)
    DEBUG_MSG("\tReserved1:\t%#x\n", tcp->res1);
    DEBUG_MSG("\tReserved2:\t%#x\n", tcp->res2);
 
-   return (tcp->doff << 2);
+   int hdr_len = tcp->doff << 2;
+   int hdr_opt_len = hdr_len - 20;
+   int i = 0;
+   DEBUG_MSG("%d %d\n", hdr_len, hdr_opt_len);
+   DEBUG_MSG("\tTCP_OPTIONS:\n");
+   while (i < hdr_opt_len) {
+      uint8_t *opt_ptr = (uint8_t *) data_ptr + 20 + i;
+      uint8_t opt_kind = *opt_ptr;
+      uint8_t opt_len = (opt_kind <= 1 ? 1 : *(opt_ptr + 1));
+      DEBUG_MSG("\t\t%u: len=%u\n", opt_kind, opt_len);
+
+      pkt->tcp_options |= ((uint64_t) 1 << opt_kind);
+      if (opt_kind == 0x02) {
+         // Parse Maximum Segment Size (MSS)
+         pkt->tcp_mss = ntohl(*(uint32_t *) (opt_ptr + 2));
+      }
+      i += opt_len;
+   }
+
+   return hdr_len;
 }
 
 /**
@@ -544,8 +566,13 @@ void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t 
    pkt->src_port = 0;
    pkt->dst_port = 0;
    pkt->ip_proto = 0;
+   pkt->ip_ttl = 0;
+   pkt->ip_flags = 0;
    pkt->ip_version = 0;
    pkt->tcp_control_bits = 0;
+   pkt->tcp_window = 0;
+   pkt->tcp_options = 0;
+   pkt->tcp_mss = 0;
 
 #ifndef HAVE_NDP
    if (datalink == DLT_EN10MB) {
