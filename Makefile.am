@@ -74,7 +74,9 @@ ipfixprobe_src=main.cpp \
 		idpcontentplugin.h \
 		idpcontentplugin.cpp \
 		netbiosplugin.h \
-		netbiosplugin.cpp
+		netbiosplugin.cpp \
+		ipfix-basiclist.cpp \
+		ipfix-basiclist.h
 
 
 if WITH_NEMEA
