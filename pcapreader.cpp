@@ -569,6 +569,7 @@ void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t 
    pkt->ip_ttl = 0;
    pkt->ip_flags = 0;
    pkt->ip_version = 0;
+   pkt->ip_payload_length = 0;
    pkt->tcp_control_bits = 0;
    pkt->tcp_window = 0;
    pkt->tcp_options = 0;
@@ -588,6 +589,7 @@ void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t 
       data_offset += parse_trill(data + data_offset, pkt);
       data_offset += parse_eth_hdr(data + data_offset, pkt);
    }
+   uint32_t l3_hdr_offset = data_offset;
    if (pkt->ethertype == ETH_P_IP) {
       data_offset += parse_ipv4_hdr(data + data_offset, pkt);
    } else if (pkt->ethertype == ETH_P_IPV6) {
@@ -621,12 +623,16 @@ void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t 
    pkt->packet[pkt_len] = 0;
    pkt->total_length = pkt_len;
 
-   if (l4_hdr_offset + pkt->ip_payload_length < 64) {
-      // Packet contains 0x00 padding bytes, do not include them in payload
-      pkt_len = l4_hdr_offset + pkt->ip_payload_length;
+   if (l4_hdr_offset != l3_hdr_offset) {
+      if (l4_hdr_offset + pkt->ip_payload_length < 64) {
+         // Packet contains 0x00 padding bytes, do not include them in payload
+         pkt_len = l4_hdr_offset + pkt->ip_payload_length;
+      }
+      pkt->payload_length_orig = pkt->ip_payload_length - (data_offset - l4_hdr_offset);
+   } else {
+      pkt->payload_length_orig = pkt_len - data_offset;
    }
 
-   pkt->payload_length_orig = pkt->ip_payload_length - (data_offset - l4_hdr_offset);
    pkt->payload_length = pkt->payload_length_orig;
    if (pkt->payload_length + data_offset > pkt_len) {
       // Set correct size when payload length is bigger than captured payload length
