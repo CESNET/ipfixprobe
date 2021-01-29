@@ -85,9 +85,11 @@ struct RecordExt${PLUGIN_UPPER} : RecordExt {
    {
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
    }
+#endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
@@ -114,7 +116,7 @@ public:
    bool include_basic_flow_fields();
 
 private:
-   bool print_stats;       /**< Indicator whether to print stats when flow cache is finishing or not. */
+   bool print_stats;       /**< Print stats when flow cache finish. */
 };
 
 #endif
@@ -180,14 +182,14 @@ void ${PLUGIN_UPPER}Plugin::finish()
    }
 }
 
-const char *ipfix_${PLUGIN_LOWER}_template[] = {
+const char *ipfix_${PLUGIN}_template[] = {
    IPFIX_${PLUGIN_UPPER}_TEMPLATE(IPFIX_FIELD_NAMES)
    NULL
 };
 
 const char **${PLUGIN_UPPER}Plugin::get_ipfix_string()
 {
-   return ipfix_${PLUGIN_LOWER}_template;
+   return ipfix_${PLUGIN}_template;
 }
 
 string ${PLUGIN_UPPER}Plugin::get_unirec_field_string()
@@ -203,7 +205,7 @@ bool ${PLUGIN_UPPER}Plugin::include_basic_flow_fields()
 }
 
 print_todo() {
-   echo "Generated ${PLUGIN_LOWER}plugin.cpp and ${PLUGIN_LOWER}plugin.h files"
+   echo "Generated ${PLUGIN}plugin.cpp and ${PLUGIN}plugin.h files"
    echo
    echo "TODO:"
    echo "1) Add '${PLUGIN}plugin.h' and '${PLUGIN}plugin.cpp' files to ipfixprobe_src variable in Makefile.am"
@@ -214,7 +216,7 @@ print_todo() {
    echo "6.1) Add unirec fields to the UR_FIELDS and ${PLUGIN_UPPER}_UNIREC_TEMPLATE macro in ${PLUGIN}plugin.cpp"
    echo "6.2) Add IPFIX template macro 'IPFIX_${PLUGIN_UPPER}_TEMPLATE' to ipfix-elements.h"
    echo "6.3) Define IPFIX fields"
-   echo "6.4) Write function 'fillIPFIX' in ${PLUGIN_LOWER}plugin.h to fill fields to IPFIX message"
+   echo "6.4) Write function 'fillIPFIX' in ${PLUGIN}plugin.h to fill fields to IPFIX message"
    echo "7) Do the final work in ${PLUGIN}plugin.cpp and ${PLUGIN}plugin.h files - implement pre_create, post_create, pre_update, post_update, pre_export, include_basic_flow_fields and fill_unirec functions (also read and understand when these functions are called, info in flowcacheplugin.h file)"
    echo "8) Be happy with your new awesome ${PLUGIN} plugin!"
    echo
