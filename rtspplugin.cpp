@@ -112,7 +112,7 @@ RTSPPlugin::RTSPPlugin(const options_t &module_options, vector<plugin_opt> plugi
 
 RTSPPlugin::~RTSPPlugin()
 {
-   if (recPrealloc == NULL) {
+   if (recPrealloc != NULL) {
       delete recPrealloc;
    }
 }
