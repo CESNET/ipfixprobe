@@ -151,7 +151,7 @@ int UnirecExporter::init(const vector<FlowCachePlugin *> &plugins, int ifc_cnt, 
    string template_str;
    for (unsigned int i = 0; i < plugins.size(); i++) {
       FlowCachePlugin * const tmp = plugins[i];
-      vector<plugin_opt> &opts = tmp->get_options();
+      const vector<plugin_opt> &opts = tmp->get_options();
       int ifc = -1;
 
       for (unsigned int j = 0; j < opts.size(); j++) { // Create plugin extension id -> output interface mapping.

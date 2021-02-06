@@ -245,6 +245,12 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
       begin = end + 1;
    }
 
+   std::sort(plugins.begin(), plugins.end(), [](FlowCachePlugin *&a, FlowCachePlugin *&b)
+      -> bool {
+            return a->get_options()[0].ext_type < b->get_options()[0].ext_type;
+         }
+      );
+
    return ifc_num;
 }
 

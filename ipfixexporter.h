@@ -39,12 +39,16 @@
 #define IPFIX_EXPORTER_H
 
 #include <vector>
+#include <map>
 
 #include "flowcacheplugin.h"
 #include "flowexporter.h"
 #include "flowifc.h"
+#include "ipfix-elements.h"
 
 using namespace std;
+
+#define COUNT_IPFIX_TEMPLATES(T) + 1
 
 #define TEMPLATE_SET_ID 2
 #define FIRST_TEMPLATE_ID 258
@@ -53,9 +57,12 @@ using namespace std;
 #define IPFIX_HEADER_SIZE 16
 #define IPFIX_SET_HEADER_SIZE 4
 #define TEMPLATE_BUFFER_SIZE (PACKET_DATA_SIZE - IPFIX_HEADER_SIZE)
+#define TEMPLATE_FIELD_COUNT (0 IPFIX_ENABLED_TEMPLATES(COUNT_IPFIX_TEMPLATES))
+#define TEMPLATE_RECORD_SIZE ((TEMPLATE_FIELD_COUNT) * 8)
 #define RECONNECT_TIMEOUT 60
 #define TEMPLATE_REFRESH_TIME 600
 #define TEMPLATE_REFRESH_PACKETS 0
+
 
 typedef struct {
 	char *name; /**< Record name */
@@ -69,7 +76,7 @@ typedef struct {
  */
 typedef struct template_t {
 	uint16_t id; /**< Template ID */
-	uint8_t templateRecord[200]; /**< Buffer for template record */
+	uint8_t templateRecord[TEMPLATE_RECORD_SIZE]; /**< Buffer for template record */
 	uint16_t templateSize; /**< Size of template record buffer */
 	uint8_t buffer[TEMPLATE_BUFFER_SIZE]; /**< Buffer with data for template */
 	uint16_t bufferSize; /**< Size of data buffer */
@@ -194,30 +201,30 @@ public:
    void flush();
    void shutdown();
 private:
-	/* Templates */
-	template_t **templateArray;
-	template_t *templates; /**< Templates in use by plugin */
+   /* Templates */
+   const char **templateFields[EXTENSION_CNT];
+   std::map<uint64_t, template_t *> tmpltMap[3];
+   template_t *templates; /**< Templates in use by plugin */
 	uint16_t templatesDataSize; /**< Total data size stored in templates */
-   int *tmpltMapping;
    int basic_ifc_num;
    bool verbose;
 
-	uint32_t sequenceNum; /**< Number of exported flows */
-	uint64_t exportedPackets; /**< Number of exported packets */
-	int fd; /**< Socket used to send data */
-	struct addrinfo *addrinfo; /**< Info about the connection used by sendto */
+   uint32_t sequenceNum; /**< Number of exported flows */
+   uint64_t exportedPackets; /**< Number of exported packets */
+   int fd; /**< Socket used to send data */
+   struct addrinfo *addrinfo; /**< Info about the connection used by sendto */
 
 	/* Parameters */
-	string host; /**< Hostname */
-	string port; /**< Port */
-	int protocol; /**< Protocol */
-	int ip; /**< IP protocol version (AF_INET, ...) */
-	int flags; /**< getaddrinfo flags */
-	uint32_t reconnectTimeout; /**< Timeout between connection retries */
-	time_t lastReconnect; /**< Time in seconds of last connection retry */
-	uint32_t odid; /**< Observation Domain ID */
-	uint32_t templateRefreshTime; /**< UDP template refresh time interval */
-	uint32_t templateRefreshPackets; /**< UDP template refresh packet interval */
+   string host; /**< Hostname */
+   string port; /**< Port */
+   int protocol; /**< Protocol */
+   int ip; /**< IP protocol version (AF_INET, ...) */
+   int flags; /**< getaddrinfo flags */
+   uint32_t reconnectTimeout; /**< Timeout between connection retries */
+   time_t lastReconnect; /**< Time in seconds of last connection retry */
+   uint32_t odid; /**< Observation Domain ID */
+   uint32_t templateRefreshTime; /**< UDP template refresh time interval */
+   uint32_t templateRefreshPackets; /**< UDP template refresh packet interval */
    uint8_t dir_bit_field;     /**< Direction bit field value. */
 
    void init_template_buffer(template_t *tmpl);
@@ -236,6 +243,13 @@ private:
    int reconnect();
    int fill_basic_flow(Flow &flow, template_t *tmplt);
    int fill_packet_fields(Packet &pkt, template_t *tmplt);
+
+   uint64_t get_template_id(Record &flow);
+   std::vector<const char *> get_template_fields(uint64_t tmpltId);
+   template_t *get_template(Flow &flow);
+   template_t *get_template(Packet &pkt);
+   bool fill_template(Flow &flow, template_t *tmplt);
+   bool fill_template(Packet &pkt, template_t *tmplt);
 };
 
 #endif
