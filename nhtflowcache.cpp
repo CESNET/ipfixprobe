@@ -331,17 +331,16 @@ int NHTFlowCache::put_pkt(Packet &pkt)
 
 void NHTFlowCache::export_expired(time_t ts)
 {
-   for (unsigned int i = timeout_idx + line_new_index; i > timeout_idx; i--) {
-      uint32_t idx = i - 1;
-      if (!flow_array[idx]->is_empty() &&
-            ts - flow_array[idx]->flow.time_last.tv_sec >= inactive.tv_sec) {
-         plugins_pre_export(flow_array[idx]->flow);
-         export_flow(idx);
+   for (unsigned int i = timeout_idx; i < timeout_idx + line_new_index; i++) {
+      if (flow_array[i]->is_empty()) {
+         break;
+      }
+      if (ts - flow_array[i]->flow.time_last.tv_sec >= inactive.tv_sec) {
+         plugins_pre_export(flow_array[i]->flow);
+         export_flow(i);
 #ifdef FLOW_CACHE_STATS
          expired++;
 #endif /* FLOW_CACHE_STATS */
-      } else {
-         break;
       }
    }
 
