@@ -126,7 +126,7 @@ struct RecordExtRTSP : RecordExt {
       }
       buffer[total_length] = length;
       memcpy(buffer + total_length + 1, user_agent, length);
-      total_length = length + 1;
+      total_length += length + 1;
 
       // URI
       length = strlen(uri);
