@@ -57,6 +57,9 @@
 class FlowExporter
 {
 public:
+   uint64_t records;
+   uint64_t dropped;
+
    virtual ~FlowExporter() {}
 
    /**

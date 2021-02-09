@@ -90,21 +90,18 @@ static uint32_t s_total_pkts = 0;
 #endif /* DEBUG_PARSER */
 
 /**
- * \brief Distinguish between valid (parsed) and non-valid packet.
- */
-bool packet_valid = false;
-
-/**
  * \brief Data link type of packet capture. Default value is expected to be DLT_EN10MB.
  */
 #ifndef HAVE_NDP
 int datalink = DLT_EN10MB;
 #endif /* HAVE_NDP */
 
-/**
- * \brief Parse every packet.
- */
-bool parse_all = false;
+typedef struct parser_opt_s {
+   PacketBlock *pkts;
+   bool packet_valid;
+   bool parse_all;
+   int datalink;
+} parser_opt_t;
 
 /**
  * \brief Parse specific fields from ETHERNET frame header.
@@ -526,8 +523,9 @@ inline uint16_t process_pppoe(const u_char *data_ptr, Packet *pkt)
 }
 
 
-void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t len, uint16_t caplen)
+void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uint16_t len, uint16_t caplen)
 {
+   Packet *pkt = &opt->pkts->pkts[opt->pkts->cnt];
    uint16_t data_offset = 0;
 
    DEBUG_MSG("---------- packet parser  #%u -------------\n", ++s_total_pkts);
@@ -539,6 +537,7 @@ void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t 
    DEBUG_MSG("Time:\t\t\t%s.%06lu\n",     timestamp, ts.tv_usec);
    DEBUG_MSG("Packet length:\t\tcaplen=%uB len=%uB\n\n", caplen, len);
 
+   pkt->wirelen = len;
    pkt->timestamp = ts;
    pkt->field_indicator = 0;
    pkt->src_port = 0;
@@ -548,7 +547,7 @@ void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t 
    pkt->tcp_control_bits = 0;
 
 #ifndef HAVE_NDP
-   if (datalink == DLT_EN10MB) {
+   if (opt->datalink == DLT_EN10MB) {
       data_offset = parse_eth_hdr(data, pkt);
    } else {
       data_offset = parse_sll(data, pkt);
@@ -569,7 +568,7 @@ void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t 
       data_offset += process_mpls(data + data_offset, pkt);
    } else if (pkt->ethertype == ETH_P_PPP_SES) {
       data_offset += process_pppoe(data + data_offset, pkt);
-   } else if (!parse_all) {
+   } else if (!opt->parse_all) {
       DEBUG_MSG("Unknown ethertype %x\n", pkt->ethertype);
       return;
    }
@@ -609,7 +608,9 @@ void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t 
 
    DEBUG_MSG("Payload length:\t%u\n", pkt->payload_length);
    DEBUG_MSG("Packet parser exits: packet parsed\n");
-   packet_valid = true;
+   opt->packet_valid = true;
+   opt->pkts->cnt++;
+   opt->pkts->bytes += len;
 }
 
 #ifndef HAVE_NDP
@@ -622,7 +623,7 @@ void parse_packet(Packet *pkt, struct timeval ts, const uint8_t *data, uint16_t 
  */
 void packet_handler(u_char *arg, const struct pcap_pkthdr *h, const u_char *data)
 {
-   parse_packet((Packet *) arg, h->ts, data, h->len, h->caplen);
+   parse_packet((parser_opt_t *) arg, h->ts, data, h->len, h->caplen);
 }
 
 static void print_libpcap_stats(pcap_t *handle) {
@@ -638,22 +639,19 @@ static void print_libpcap_stats(pcap_t *handle) {
     }
 }
 
-/**
- * \brief Constructor.
- */
 PcapReader::PcapReader() : handle(NULL), print_pcap_stats(false), netmask(PCAP_NETMASK_UNKNOWN)
 {
+   processed = 0;
+   parsed = 0;
 }
 
-/**
- * \brief Constructor.
- * \param [in] options Module options.
- */
 PcapReader::PcapReader(const options_t &options) : handle(NULL), netmask(PCAP_NETMASK_UNKNOWN)
 {
    print_pcap_stats = options.print_pcap_stats;
    last_ts.tv_sec = 0;
    last_ts.tv_usec = 0;
+   processed = 0;
+   parsed = 0;
 }
 
 PcapReader::~PcapReader()
@@ -818,7 +816,7 @@ void PcapReader::print_stats()
    }
 }
 
-int PcapReader::get_pkt(Packet &packet)
+int PcapReader::get_pkt(PacketBlock &packets)
 {
    if (handle == NULL) {
       error_msg = "No live capture or file opened.";
@@ -826,22 +824,24 @@ int PcapReader::get_pkt(Packet &packet)
    }
 
    int ret;
-   packet_valid = false;
 
    if (print_pcap_stats) {
       //print_stats();
    }
+   parser_opt_t opt = {&packets, false, parse_all, datalink};
 
    // Get pkt from network interface or file.
-   ret = pcap_dispatch(handle, 1, packet_handler, (u_char *) (&packet));
+   ret = pcap_dispatch(handle, packets.size, packet_handler, (u_char *) (&opt));
    if (ret == 0) {
       // Read timeout occured or no more packets in file...
       return (live_capture ? 3 : 0);
    }
 
-   if (ret == 1 && packet_valid) {
+   if (ret > 0) {
+      processed += ret;
+      parsed += opt.pkts->cnt;
       // Packet is valid and ready to process by flow_cache.
-      return 2;
+      return opt.packet_valid ? 2 : 1;
    }
    if (ret < 0) {
       // Error occured.
@@ -851,13 +851,13 @@ int PcapReader::get_pkt(Packet &packet)
  }
 
 #else /* HAVE_NDP */
-void packet_ndp_handler(Packet *pkt, const struct ndp_packet *ndp_packet, const struct ndp_header *ndp_header)
+void packet_ndp_handler(parser_opt_t *opt, const struct ndp_packet *ndp_packet, const struct ndp_header *ndp_header)
 {
    struct timeval ts;
    ts.tv_sec = ndp_header->timestamp_sec;
    ts.tv_usec = ndp_header->timestamp_nsec / 1000;
 
-   parse_packet(pkt, ts, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
+   parse_packet(opt, ts, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
 }
 
 /**
@@ -865,6 +865,8 @@ void packet_ndp_handler(Packet *pkt, const struct ndp_packet *ndp_packet, const 
  */
 NdpPacketReader::NdpPacketReader() : print_pcap_stats(false)
 {
+   processed = 0;
+   parsed = 0;
 }
 
 /**
@@ -937,7 +939,7 @@ void NdpPacketReader::close()
    ndpReader.close();
 }
 
-int NdpPacketReader::get_pkt(Packet &packet)
+int NdpPacketReader::get_pkt(PacketBlock &packets)
 {
    int ret;
    packet_valid = false;
@@ -949,13 +951,24 @@ int NdpPacketReader::get_pkt(Packet &packet)
    struct ndp_packet *ndp_packet;
    struct ndp_header *ndp_header;
 
-   ret = ndpReader.get_pkt(&ndp_packet, &ndp_header);
-   if (ret == 0) {
-	   return (live_capture ? 3 : 0);
-   }
-   packet_ndp_handler(&packet, ndp_packet, ndp_header);
+   parser_opt_t opt = {&packets, false, parse_all, 0};
+   size_t read_pkts = 0;
+   for (unsigned i = 0; i < packets.size(); i++) {
+      ret = ndpReader.get_pkt(&ndp_packet, &ndp_header);
+      if (ret == 0) {
+         if (opt.packet_valid) {
+            break;
+         }
+         return (live_capture ? 3 : 0);
+      }
+      read_pkts++;
 
-   if (ret == 1 && packet_valid) {
+      packet_ndp_handler(&opt, ndp_packet, ndp_header);
+   }
+   processed += read_pkts;
+   parsed += opt.pkts->cnt;
+
+   if (ret == 1 && opt.packet_valid) {
       // Packet is valid and ready to process by flow_cache.
       return 2;
    }

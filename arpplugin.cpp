@@ -104,6 +104,11 @@ ARPPlugin::ARPPlugin(const options_t &module_options, vector<plugin_opt> plugin_
    total = 0;
 }
 
+FlowCachePlugin *ARPPlugin::copy()
+{
+   return new ARPPlugin(*this);
+}
+
 int ARPPlugin::pre_create(Packet &pkt)
 {
    if (pkt.ethertype == ETH_P_ARP) {

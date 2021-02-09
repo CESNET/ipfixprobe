@@ -111,12 +111,11 @@ public:
    {
    }
 
-   /**
-    * \brief Virtual destructor.
-    */
    virtual ~FlowCachePlugin()
    {
    }
+
+   virtual FlowCachePlugin *copy() = 0;
 
    /**
     * \brief Called before the start of processing.

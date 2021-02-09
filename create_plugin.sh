@@ -103,6 +103,7 @@ class ${PLUGIN_UPPER}Plugin : public FlowCachePlugin
 public:
    ${PLUGIN_UPPER}Plugin(const options_t &module_options);
    ${PLUGIN_UPPER}Plugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   FlowCachePlugin *copy();
    int pre_create(Packet &pkt);
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
@@ -147,6 +148,11 @@ ${PLUGIN_UPPER}Plugin::${PLUGIN_UPPER}Plugin(const options_t &module_options)
 ${PLUGIN_UPPER}Plugin::${PLUGIN_UPPER}Plugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
 {
    print_stats = module_options.print_stats;
+}
+
+FlowCachePlugin *${PLUGIN_UPPER}Plugin::copy()
+{
+   return new ${PLUGIN_UPPER}Plugin(*this);
 }
 
 int ${PLUGIN_UPPER}Plugin::pre_create(Packet &pkt)

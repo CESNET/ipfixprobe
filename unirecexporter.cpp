@@ -94,8 +94,10 @@ UR_FIELDS (
  * \brief Constructor.
  */
 UnirecExporter::UnirecExporter(bool send_eof) : out_ifc_cnt(0), ifc_mapping(NULL),
-tmplt(NULL), record(NULL), eof(send_eof), send_odid(false)
+   tmplt(NULL), record(NULL), eof(send_eof), send_odid(false)
 {
+   records = 0;
+   dropped = 0;
 }
 
 /**
@@ -248,6 +250,7 @@ int UnirecExporter::export_packet(Packet &pkt)
    void *record_ptr = NULL;
 
    while (ext != NULL) {
+      records++;
       int ifc_num = ifc_mapping[ext->extType];
       if (ifc_num >= 0) {
          tmplt_ptr = tmplt[ifc_num];
@@ -284,6 +287,7 @@ int UnirecExporter::export_flow(Flow &flow)
    }
 
    while (ext != NULL) {
+      records++;
       int ifc_num = ifc_mapping[ext->extType];
       if (ifc_num >= 0) {
          tmplt_ptr = tmplt[ifc_num];

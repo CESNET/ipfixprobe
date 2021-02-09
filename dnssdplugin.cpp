@@ -124,6 +124,11 @@ DNSSDPlugin::DNSSDPlugin(const options_t &module_options, vector<plugin_opt> plu
    }
 }
 
+FlowCachePlugin *DNSSDPlugin::copy()
+{
+   return new DNSSDPlugin(*this);
+}
+
 bool DNSSDPlugin::parse_params(const string &params, string &config_file)
 {
    DEBUG_MSG("Recieved parameters: %s\n", params.c_str());

@@ -86,6 +86,11 @@ SMTPPlugin::SMTPPlugin(const options_t &module_options, vector<plugin_opt> plugi
    ext_ptr = NULL;
 }
 
+FlowCachePlugin *SMTPPlugin::copy()
+{
+   return new SMTPPlugin(*this);
+}
+
 const char *ipfix_smtp_template[] = {
    IPFIX_SMTP_TEMPLATE(IPFIX_FIELD_NAMES)
    NULL

@@ -127,6 +127,11 @@ PassiveDNSPlugin::PassiveDNSPlugin(const options_t &module_options, vector<plugi
    parsed_ptr = 0;
 }
 
+FlowCachePlugin *PassiveDNSPlugin::copy()
+{
+   return new PassiveDNSPlugin(*this);
+}
+
 int PassiveDNSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.src_port == 53) {

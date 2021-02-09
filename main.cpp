@@ -49,10 +49,12 @@
 #include <unistd.h>
 #include <string>
 #include <iostream>
+#include <future>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <signal.h>
+#include <iomanip>
 #include <stdlib.h>
 #include <thread>
 
@@ -95,6 +97,8 @@ trap_module_info_t *module_info = NULL;
 
 int stop = 0;
 int terminate_export = 0;
+int terminate_storage = 0;
+int terminate_input = 0;
 
 #define MODULE_BASIC_INFO(BASIC) \
   BASIC("flow_meter", "Convert packets from PCAP file or network interface into biflow records.", 0, -1)
@@ -124,6 +128,8 @@ int terminate_export = 0;
   PARAM('O', "odid", "Send ODID field instead of LINK_BIT_FIELD in unirec message.", no_argument, "none") \
   PARAM('x', "ipfix", "Export to IPFIX collector. Format: HOST:PORT or [HOST]:PORT", required_argument, "string") \
   PARAM('u', "udp", "Use UDP when exporting to IPFIX collector.", no_argument, "none") \
+  PARAM('q', "q", "Input queue size.", required_argument, "uint32") \
+  PARAM('Q', "Q", "Output queue size.", required_argument, "uint32") \
   PARAM('V', "version", "Print version.", no_argument, "none")\
   PARAM('v', "verbose", "Increase verbosity of the output, it can be duplicated like -vv / -vvv.", no_argument, "none")\
 
@@ -218,7 +224,7 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
           tmp.push_back(plugin_opt("ovpn", ovpn, ifc_num++));
 
           plugins.push_back(new OVPNPlugin(module_options, tmp));
-      }else if (proto == "idpcontent"){
+      } else if (proto == "idpcontent"){
           vector<plugin_opt> tmp;
           tmp.push_back(plugin_opt("idpcontent", idpcontent, ifc_num++));
 
@@ -283,18 +289,97 @@ int count_trap_interfaces(int argc, char *argv[])
 }
 #endif
 
-void export_thread(FlowExporter *exp, ipx_ring_t *queue)
+struct InputStats {
+   uint64_t packets;
+   uint64_t parsed;
+   uint64_t bytes;
+   uint64_t qtime;
+   bool error;
+};
+
+void input_thread(PacketReceiver *packetloader, PacketBlock *pkts, size_t pkt_cnt, ipx_ring_t *queue, std::promise<InputStats> *threadOutput)
+{
+   struct timespec start;
+   struct timespec end;
+   size_t i = 0;
+   int ret;
+   InputStats stats = {0, 0, 0, 0, false};
+   while (!terminate_input) {
+      PacketBlock *block = &pkts[i];
+      block->cnt = 0;
+      block->bytes = 0;
+      ret = packetloader->get_pkt(*block);
+      if (ret <= 0) {
+         stats.error = ret < 0;
+         break;
+      } else if (ret == 3) { /* Process timeout. */
+         usleep(1);
+         continue;
+      } else if (ret == 2) {
+         stats.bytes += block->bytes;
+         clock_gettime(CLOCK_MONOTONIC_COARSE, &start);
+         ipx_ring_push(queue, (void *) block);
+         clock_gettime(CLOCK_MONOTONIC_COARSE, &end);
+         int64_t time = end.tv_nsec - start.tv_nsec;
+         if (start.tv_sec != end.tv_sec) {
+            time += 1000000000;
+         }
+         stats.qtime += time;
+         i = (i + 1) % pkt_cnt;
+      }
+   }
+   stats.parsed = packetloader->parsed;
+   stats.packets = packetloader->processed;
+   threadOutput->set_value(stats);
+}
+
+struct StorageStats {
+   bool error;
+};
+
+void storage_thread(FlowCache *cache, ipx_ring_t *queue, std::promise<StorageStats> *threadOutput)
+{
+   StorageStats stats = {false};
+   while (1) {
+      PacketBlock *block = static_cast<PacketBlock *>(ipx_ring_pop(queue));
+      if (block) {
+         for (unsigned i = 0; i < block->cnt; i++) {
+            cache->put_pkt(block->pkts[i]);
+         }
+      } else if (terminate_storage && !ipx_ring_cnt(queue)) {
+         break;
+      } else {
+         cache->export_expired(time(NULL));
+         usleep(1);
+      }
+   }
+   threadOutput->set_value(stats);
+}
+
+struct OutputStats {
+   uint64_t biflows;
+   uint64_t bytes;
+   uint64_t packets;
+   uint64_t dropped;
+   bool error;
+};
+
+void export_thread(FlowExporter *exp, ipx_ring_t *queue, std::promise<OutputStats> *threadOutput)
 {
    struct timespec last;
    struct timespec now;
+   OutputStats stats = {0, 0, 0, 0, false};
 
    clock_gettime(CLOCK_MONOTONIC_COARSE, &last);
    while (1) {
       clock_gettime(CLOCK_MONOTONIC_COARSE, &now);
 
-      void *flow = ipx_ring_pop(queue);
+      Flow *flow = static_cast<Flow *>(ipx_ring_pop(queue));
       if (flow) {
-         exp->export_flow(*static_cast<Flow*>(flow));
+         stats.biflows++;
+         stats.bytes += flow->src_octet_total_length + flow->dst_octet_total_length;
+         stats.packets += flow->src_pkt_total_cnt + flow->dst_pkt_total_cnt;
+         exp->export_flow(*flow);
       } else if (terminate_export && !ipx_ring_cnt(queue)) {
          break;
       }
@@ -304,6 +389,8 @@ void export_thread(FlowExporter *exp, ipx_ring_t *queue)
          exp->flush();
       }
    }
+   stats.dropped = exp->dropped;
+   threadOutput->set_value(stats);
 }
 
 /**
@@ -322,7 +409,7 @@ static inline void double_to_timeval(double value, struct timeval &time)
  * \param [in] e String containing an error message
  * \return EXIT_FAILURE
  */
-inline bool error(const string &e)
+inline int error(const string &e)
 {
    cerr << "flow_meter: " << e << endl;
    return EXIT_FAILURE;
@@ -360,9 +447,30 @@ typedef struct module_param_s {
    if (p_required_argument == required_argument) {module_getopt_string[optidx++] = ':';}
 #endif
 
+struct WorkPipeline {
+   struct {
+      PacketReceiver *plugin;
+      std::thread *thread;
+      std::promise<InputStats> *promise;
+   } input;
+   struct {
+      FlowCache *plugin;
+      std::thread *thread;
+      std::promise<StorageStats> *promise;
+      plugins_t plugins;
+   } storage;
+   ipx_ring_t *queue;
+};
+
+struct ExporterWorker {
+   FlowExporter *plugin;
+   std::thread *thread;
+   std::promise<OutputStats> *promise;
+   ipx_ring_t *queue;
+};
+
 int main(int argc, char *argv[])
 {
-
    plugins_t plugin_wrapper;
    options_t options;
    options.flow_cache_size = DEFAULT_FLOW_CACHE_SIZE;
@@ -371,10 +479,12 @@ int main(int argc, char *argv[])
    double_to_timeval(DEFAULT_ACTIVE_TIMEOUT, options.active_timeout);
    options.print_stats = true; /* Plugins, FlowCache stats ON. */
    options.print_pcap_stats = false;
-   options.interface = "";
    options.basic_ifc_num = 0;
    options.snaplen = 0;
    options.eof = true;
+   options.flow_cache_qsize = 16536;
+   options.input_qsize = 64;
+   options.input_pktblock_size = 32;
 
 #ifdef WITH_NEMEA
    bool odid = false;
@@ -499,7 +609,7 @@ int main(int argc, char *argv[])
          }
          break;
       case 'I':
-         options.interface = string(optarg);
+         options.interface.push_back(string(optarg));
          break;
       case 't':
          {
@@ -532,7 +642,7 @@ int main(int argc, char *argv[])
          }
          break;
       case 'r':
-         options.pcap_file = string(optarg);
+         options.pcap_file.push_back(string(optarg));
          break;
       case 'n':
          options.eof = false;
@@ -647,6 +757,38 @@ int main(int argc, char *argv[])
       case 'u':
          udp = true;
          break;
+      case 'q':
+         {
+            if (!strcmp(optarg, "default")) {
+               break;
+            }
+            uint32_t tmp;
+            if (!str_to_uint32(optarg, tmp) || tmp == 0) {
+#ifdef WITH_NEMEA
+               FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
+               TRAP_DEFAULT_FINALIZATION();
+#endif
+               return error("Invalid argument for option -q");
+            }
+            options.input_qsize = tmp;
+         }
+         break;
+      case 'Q':
+         {
+            if (!strcmp(optarg, "default")) {
+               break;
+            }
+            uint32_t tmp;
+            if (!str_to_uint32(optarg, tmp) || tmp == 0) {
+#ifdef WITH_NEMEA
+               FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
+               TRAP_DEFAULT_FINALIZATION();
+#endif
+               return error("Invalid argument for option -Q");
+            }
+            options.flow_cache_qsize = tmp;
+         }
+         break;
       default:
 #ifdef WITH_NEMEA
          FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
@@ -664,12 +806,12 @@ int main(int argc, char *argv[])
    FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
 #endif
 
-   if (options.interface != "" && options.pcap_file != "") {
+   if (options.interface.size() && options.pcap_file.size()) {
 #ifdef WITH_NEMEA
       TRAP_DEFAULT_FINALIZATION();
 #endif
       return error("Cannot capture from file and from interface at the same time.");
-   } else if (options.interface == "" && options.pcap_file == "") {
+   } else if (options.interface.size() == 0 && options.pcap_file.size() == 0) {
 #ifdef WITH_NEMEA
       TRAP_DEFAULT_FINALIZATION();
 #endif
@@ -698,50 +840,18 @@ int main(int argc, char *argv[])
       options.snaplen = max_snaplen;
    }
 
-   PacketReceiver *packetloader;
-
-#ifdef HAVE_NDP
-   packetloader = new NdpPacketReader(options);
-#else /* HAVE_NDP */
-   packetloader = new PcapReader(options);
-#endif /* HAVE_NDP */
-
-   if (options.interface == "") {
-      if (packetloader->open_file(options.pcap_file, parse_every_pkt) != 0) {
-#ifdef WITH_NEMEA
-         TRAP_DEFAULT_FINALIZATION();
-#endif
-         return error("Can't open input file: " + options.pcap_file);
-      }
-   } else {
-#ifdef WITH_NEMEA
-      if (export_unirec) {
-         for (int i = 0; i < ifc_cnt; i++) {
-            trap_ifcctl(TRAPIFC_OUTPUT, i, TRAPCTL_SETTIMEOUT, TRAP_HALFWAIT);
-         }
-      }
-#endif
-
-      if (packetloader->init_interface(options.interface, options.snaplen, parse_every_pkt) != 0) {
-#ifdef WITH_NEMEA
-         TRAP_DEFAULT_FINALIZATION();
-#endif
-         return error("Unable to initialize libpcap: " + packetloader->error_msg);
-      }
-   }
-
-   if (filter != "") {
-      if (packetloader->set_filter(filter) != 0) {
-#ifdef WITH_NEMEA
-         TRAP_DEFAULT_FINALIZATION();
-#endif
-         return error(packetloader->error_msg);
-      }
+   if (!options.print_stats) {
+      plugin_wrapper.plugins.push_back(new StatsPlugin(options.cache_stats_interval, cout));
    }
 
    FlowExporter *exporter;
    if (export_unirec) {
 #ifdef WITH_NEMEA
+      if (options.interface.size()) {
+         for (int i = 0; i < ifc_cnt; i++) {
+            trap_ifcctl(TRAPIFC_OUTPUT, i, TRAPCTL_SETTIMEOUT, TRAP_HALFWAIT);
+         }
+      }
       UnirecExporter *ipxe = new UnirecExporter(options.eof);
       if (ipxe->init(plugin_wrapper.plugins, ifc_cnt, options.basic_ifc_num, link, dir, odid) != 0) {
          TRAP_DEFAULT_FINALIZATION();
@@ -759,75 +869,223 @@ int main(int argc, char *argv[])
       }
       exporter = ipxe;
    }
-
-
-   options.flow_cache_qsize = 16536;
-   ipx_ring_t *export_queue = ipx_ring_init(options.flow_cache_qsize, 0);
+   ipx_ring_t *export_queue = ipx_ring_init(options.flow_cache_qsize, 1);
    if (export_queue == NULL) {
       return error("Unable to initialize ring buffer.");
    }
 
-   FlowCache *flowcache = new NHTFlowCache(options);
-   flowcache->set_queue(export_queue);
+   std::vector<WorkPipeline> pipelines;
+   std::vector<ExporterWorker> exporters;
+   std::vector<std::future<InputStats>> inputFutures;
+   std::vector<std::future<StorageStats>> storageFutures;
+   std::vector<std::future<OutputStats>> outputFutures;
 
-   std::thread exp_thread = std::thread(export_thread, exporter, export_queue);
+   std::promise<OutputStats> *exporter_stats = new std::promise<OutputStats>();
+   ExporterWorker tmp = {
+      exporter,
+      new std::thread(export_thread, exporter, export_queue, exporter_stats),
+      exporter_stats,
+      export_queue
+   };
+   exporters.push_back(tmp);
+   outputFutures.push_back(exporter_stats->get_future());
 
-   if (!options.print_stats) {
-      plugin_wrapper.plugins.push_back(new StatsPlugin(options.cache_stats_interval, cout));
-   }
-   for (unsigned int i = 0; i < plugin_wrapper.plugins.size(); i++) {
-      flowcache->add_plugin(plugin_wrapper.plugins[i]);
-   }
-   flowcache->init();
+   size_t worker_cnt = options.interface.size() ? options.interface.size() : options.pcap_file.size();
+   size_t blocks_cnt = (options.input_qsize + 1) * worker_cnt;
+   size_t pkts_cnt = blocks_cnt * options.input_pktblock_size;
+   size_t pkt_data_cnt = pkts_cnt * (MAXPCKTSIZE + 1);
 
-   Packet packet;
-   int ret = 0;
-   uint64_t pkt_total = 0, pkt_parsed = 0;
+   PacketBlock *blocks = new PacketBlock[blocks_cnt];
+   Packet *pkts = new Packet[pkts_cnt];
+   char *pkt_data = new char[pkt_data_cnt];
 
-   packet.packet = new char[MAXPCKTSIZE + 1];
-
-   /* Main packet capture loop. */
-   while (!stop && (ret = packetloader->get_pkt(packet)) > 0) {
-      if (ret == 3) { /* Process timeout. */
-         flowcache->export_expired(time(NULL));
-         usleep(1); // TODO: there must be a better solution
-         continue;
+   for (unsigned i = 0; i < blocks_cnt; i++) {
+      blocks[i].pkts = pkts + i * options.input_pktblock_size;
+      blocks[i].cnt = 0;
+      blocks[i].size = options.input_pktblock_size;
+      for (unsigned j = 0; j < options.input_pktblock_size; j++) {
+         blocks[i].pkts[j].packet = (char *) (pkt_data + (MAXPCKTSIZE + 1) * (j + i * options.input_pktblock_size));
       }
+   }
 
-      pkt_total++;
+   int ret = EXIT_SUCCESS;
+   for (unsigned i = 0; i < worker_cnt; i++) {
+#ifdef HAVE_NDP
+      PacketReceiver *packetloader = new NdpPacketReader(options);
+#else /* HAVE_NDP */
+      PacketReceiver *packetloader = new PcapReader(options);
+#endif /* HAVE_NDP */
 
-      if (ret == 2) {
-         flowcache->put_pkt(packet);
-         pkt_parsed++;
-
-         /* Check if packet limit is reached. */
-         if (pkt_limit != 0 && pkt_parsed >= pkt_limit) {
-            break;
+      if (options.interface.size() == 0) {
+         if (packetloader->open_file(options.pcap_file[i], parse_every_pkt) != 0) {
+#ifdef WITH_NEMEA
+            TRAP_DEFAULT_FINALIZATION();
+#endif
+            error("Can't open input file: " + options.pcap_file[i]);
+            delete packetloader;
+            ret = EXIT_FAILURE;
+            goto EXIT;
+         }
+      } else {
+         if (packetloader->init_interface(options.interface[i], options.snaplen, parse_every_pkt) != 0) {
+#ifdef WITH_NEMEA
+            TRAP_DEFAULT_FINALIZATION();
+#endif
+            error("Unable to initialize libpcap: " + packetloader->error_msg);
+            delete packetloader;
+            ret = EXIT_FAILURE;
+            goto EXIT;
          }
       }
+      if (filter != "") {
+         if (packetloader->set_filter(filter) != 0) {
+#ifdef WITH_NEMEA
+            TRAP_DEFAULT_FINALIZATION();
+#endif
+            error(packetloader->error_msg);
+            delete packetloader;
+            ret = EXIT_FAILURE;
+            goto EXIT;
+         }
+      }
+
+      FlowCache *flowcache = new NHTFlowCache(options);
+      flowcache->set_queue(export_queue);
+
+      std::vector<FlowCachePlugin *> plugins;
+      for (unsigned int i = 0; i < plugin_wrapper.plugins.size(); i++) {
+         FlowCachePlugin *plugin = plugin_wrapper.plugins[i]->copy();
+         plugins.push_back(plugin);
+         flowcache->add_plugin(plugin);
+      }
+      flowcache->init();
+
+      ipx_ring_t *input_queue = ipx_ring_init(options.input_qsize, 0);
+      if (export_queue == NULL) {
+         error("Unable to initialize ring buffer.");
+         delete packetloader;
+         delete flowcache;
+         ret = EXIT_FAILURE;
+         goto EXIT;
+      }
+
+      std::promise<InputStats> *input_stats = new std::promise<InputStats>();
+      std::promise<StorageStats> *storage_stats = new std::promise<StorageStats>();
+
+      inputFutures.push_back(input_stats->get_future());
+      storageFutures.push_back(storage_stats->get_future());
+
+      WorkPipeline tmp = {
+         {
+            packetloader,
+            new std::thread(input_thread, packetloader, &blocks[i * (options.input_qsize + 1)], options.input_qsize + 1, input_queue, input_stats),
+            input_stats,
+         },
+         {
+            flowcache,
+            new std::thread(storage_thread, flowcache, input_queue, storage_stats),
+            storage_stats,
+            {}
+         },
+         input_queue
+      };
+      pipelines.push_back(tmp);
+      pipelines[pipelines.size() - 1].storage.plugins.plugins = plugins;
    }
 
-   if (options.print_stats) {
-      packetloader->printStats();
+   bool livecapture = options.interface.size();
+   while (!stop) {
+      bool alldone = true;
+      for (unsigned i = 0; i < inputFutures.size(); i++) {
+         std::future_status status = inputFutures[i].wait_for(std::chrono::seconds(0));
+         if (status == std::future_status::ready && livecapture) {
+            stop = 1;
+            break;
+         } else if (status != std::future_status::ready) {
+            alldone = false;
+         }
+      }
+      if (!livecapture && alldone) {
+         stop = 1;
+      }
+      usleep(1000);
    }
 
-   /* Cleanup. */
-   packetloader->close();
-   flowcache->finish();
+EXIT:
+   terminate_input = 1;
+   for (unsigned i = 0; i < pipelines.size(); i++) {
+      pipelines[i].input.thread->join();
+      pipelines[i].input.plugin->close();
+      delete pipelines[i].input.plugin;
+      delete pipelines[i].input.thread;
+      delete pipelines[i].input.promise;
+   }
+
+   std::cout << "Input stats:" << std::endl <<
+      std::setw(3) << "#" <<
+      std::setw(10) << "packets" <<
+      std::setw(10) << "parsed" <<
+      std::setw(16) << "bytes" <<
+      std::setw(10) << "qtime" << std::endl;
+
+   for (unsigned i = 0; i < inputFutures.size(); i++) {
+      InputStats input = inputFutures[i].get();
+      std::cout <<
+         std::setw(3) << i << " " <<
+         std::setw(9) << input.packets << " " <<
+         std::setw(9) << input.parsed << " " <<
+         std::setw(15) << input.bytes << " " <<
+         std::setw(9) << input.qtime << std::endl;
+      if (input.error) {
+         ret = EXIT_FAILURE;
+      }
+   }
+
+   terminate_storage = 1;
+   for (unsigned i = 0; i < pipelines.size(); i++) {
+      pipelines[i].storage.thread->join();
+      pipelines[i].storage.plugin->finish();
+   }
+
    terminate_export = 1;
-   exp_thread.join();
-   ipx_ring_destroy(export_queue);
-   delete packetloader;
-   delete flowcache;
-   delete exporter;
-   delete [] packet.packet;
+   for (unsigned i = 0; i < exporters.size(); i++) {
+      exporters[i].thread->join();
+      delete exporters[i].plugin;
+      delete exporters[i].thread;
+      delete exporters[i].promise;
+      ipx_ring_destroy(exporters[i].queue);
+   }
+
+   std::cout << "Output stats:" << std::endl <<
+      std::setw(3) << "#" <<
+      std::setw(10) << "biflows" <<
+      std::setw(10) << "packets" <<
+      std::setw(16) << "bytes" <<
+      std::setw(10) << "dropped" << std::endl;
+
+   for (unsigned i = 0; i < outputFutures.size(); i++) {
+      OutputStats output = outputFutures[i].get();
+      std::cout <<
+         std::setw(3) << i << " " <<
+         std::setw(9) << output.biflows << " " <<
+         std::setw(9) << output.packets << " " <<
+         std::setw(15) << output.bytes << " " <<
+         std::setw(9) << output.dropped << std::endl;
+   }
+
+   for (unsigned i = 0; i < pipelines.size(); i++) {
+      delete pipelines[i].storage.plugin;
+      delete pipelines[i].storage.thread;
+      delete pipelines[i].storage.promise;
+      ipx_ring_destroy(pipelines[i].queue);
+   }
+   delete [] pkts;
+   delete [] blocks;
+   delete [] pkt_data;
+
 #ifdef WITH_NEMEA
    TRAP_DEFAULT_FINALIZATION();
 #endif
 
-   if (ret < 0) {
-      return error("Error during reading: " + packetloader->error_msg);
-   }
-
-   return EXIT_SUCCESS;
+   return ret;
 }

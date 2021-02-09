@@ -88,6 +88,11 @@ SIPPlugin::SIPPlugin(const options_t &module_options, vector<plugin_opt> plugin_
    flush_flow = true;
 }
 
+FlowCachePlugin *SIPPlugin::copy()
+{
+   return new SIPPlugin(*this);
+}
+
 int SIPPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    uint16_t msg_type;

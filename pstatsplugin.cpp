@@ -81,6 +81,11 @@ PSTATSPlugin::PSTATSPlugin(const options_t &module_options, vector<plugin_opt> p
    print_stats = module_options.print_stats;
 }
 
+FlowCachePlugin *PSTATSPlugin::copy()
+{
+   return new PSTATSPlugin(*this);
+}
+
 void PSTATSPlugin::update_record(RecordExtPSTATS *pstats_data, const Packet &pkt)
 {
    /*

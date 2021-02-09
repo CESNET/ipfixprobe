@@ -132,7 +132,6 @@ int NdpReader::get_pkt(struct ndp_packet **ndp_packet_out, struct ndp_header **n
 
    if(ndp_packet_buffer_processed >= ndp_packet_buffer_packets) {
 	   if(!retrieve_ndp_packets()) {
-			usleep(1);
 			return 0;
 	   }
    }

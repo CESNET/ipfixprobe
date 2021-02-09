@@ -110,6 +110,11 @@ RTSPPlugin::RTSPPlugin(const options_t &module_options, vector<plugin_opt> plugi
    recPrealloc = NULL;
 }
 
+FlowCachePlugin *RTSPPlugin::copy()
+{
+   return new RTSPPlugin(*this);
+}
+
 RTSPPlugin::~RTSPPlugin()
 {
    if (recPrealloc != NULL) {

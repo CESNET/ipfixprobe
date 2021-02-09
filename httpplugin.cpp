@@ -119,6 +119,11 @@ HTTPPlugin::~HTTPPlugin()
    }
 }
 
+FlowCachePlugin *HTTPPlugin::copy()
+{
+   return new HTTPPlugin(*this);
+}
+
 int HTTPPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (is_request(pkt.payload, pkt.payload_length)) {

@@ -68,6 +68,8 @@ public:
    virtual void close() = 0;
 
    string error_msg; /**< String to store an error messages. */
+   uint64_t processed;
+   uint64_t parsed;
 
    /**
     * \brief Get packet from network interface or file.
@@ -75,7 +77,7 @@ public:
     * \return 2 if packet was parsed and stored, 1 if packet was not parsed, 3 when read timeout occur,
     *         0 if EOF or value < 0 on error
     */
-   virtual int get_pkt(Packet &packet) = 0;
+   virtual int get_pkt(PacketBlock &packets) = 0;
 };
 
 #endif

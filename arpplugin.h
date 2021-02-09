@@ -131,6 +131,7 @@ class ARPPlugin : public FlowCachePlugin
 public:
    ARPPlugin(const options_t &module_options);
    ARPPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   FlowCachePlugin *copy();
    int pre_create(Packet &pkt);
    void finish();
    string get_unirec_field_string();

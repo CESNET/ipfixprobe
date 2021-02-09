@@ -164,6 +164,7 @@ public:
    TLSPlugin(const options_t &module_options);
    TLSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
    ~TLSPlugin();
+   FlowCachePlugin *copy();
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    void finish();

@@ -94,13 +94,16 @@ public:
    void print_stats();
    void printStats();
    void close();
-   int get_pkt(Packet &packet);
+   int get_pkt(PacketBlock &packets);
+
 private:
    pcap_t *handle;                  /**< libpcap file handler. */
    bool live_capture;               /**< PcapReader is capturing from network interface. */
    bool print_pcap_stats;           /**< Print pcap handle stats. */
    struct timeval last_ts;          /**< Last timestamp. */
    bpf_u_int32 netmask;             /**< Network mask. Used when setting filter. */
+   int datalink;
+   bool parse_all;
 };
 
 void packet_handler(u_char *arg, const struct pcap_pkthdr *h, const u_char *data);
@@ -118,10 +121,12 @@ public:
    //void print_stats();
    void printStats();
    void close();
-   int get_pkt(Packet &packet);
+   int get_pkt(PacketBlock &packets);
+
 private:
    bool live_capture;          /**< PcapReader is capturing from network interface. */
    bool print_pcap_stats;      /**< Print stats. */
+   bool parse_all;
 
    NdpReader ndpReader;
 };

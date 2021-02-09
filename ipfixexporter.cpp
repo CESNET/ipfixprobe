@@ -130,6 +130,8 @@ const char *basic_tmplt_v6[] = {
 
 IPFIXExporter::IPFIXExporter()
 {
+   records = 0;
+   dropped = 0;
    templates = NULL;
    templatesDataSize = 0;
    basic_ifc_num = -1;
@@ -309,11 +311,13 @@ bool IPFIXExporter::fill_template(Packet &pkt, template_t *tmplt)
 
 int IPFIXExporter::export_flow(Flow &flow)
 {
+   records++;
    template_t *tmplt = get_template(flow);
    if (!fill_template(flow, tmplt)) {
       flush();
 
       if (!fill_template(flow, tmplt)) {
+         dropped++;
          return 1;
       }
    }
@@ -322,11 +326,13 @@ int IPFIXExporter::export_flow(Flow &flow)
 
 int IPFIXExporter::export_packet(Packet &pkt)
 {
+   records++;
    template_t *tmplt = get_template(pkt);
    if (!fill_template(pkt, tmplt)) {
       flush();
 
       if (!fill_template(pkt, tmplt)) {
+         dropped++;
          return 1;
       }
    }

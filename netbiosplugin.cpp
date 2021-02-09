@@ -74,6 +74,11 @@ NETBIOSPlugin::NETBIOSPlugin(const options_t &module_options, vector <plugin_opt
     total_netbios_packets = 0;
 }
 
+FlowCachePlugin *NETBIOSPlugin::copy()
+{
+   return new NETBIOSPlugin(*this);
+}
+
 int NETBIOSPlugin::post_create(Flow &rec, const Packet &pkt) {
     if (pkt.dst_port == 137 || pkt.src_port == 137) {
         return add_netbios_ext(rec, pkt);

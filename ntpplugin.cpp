@@ -107,6 +107,11 @@ NTPPlugin::NTPPlugin(const options_t &module_options, vector<plugin_opt> plugin_
    total = 0;
 }
 
+FlowCachePlugin *NTPPlugin::copy()
+{
+   return new NTPPlugin(*this);
+}
+
 /**
  *\brief Called after a new flow record is created.
  *\param [in,out] rec Reference to flow record.

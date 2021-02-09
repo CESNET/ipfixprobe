@@ -106,6 +106,11 @@ SSDPPlugin::SSDPPlugin(const options_t &module_options, vector<plugin_opt> plugi
    total = 0;
 }
 
+FlowCachePlugin *SSDPPlugin::copy()
+{
+   return new SSDPPlugin(*this);
+}
+
 int SSDPPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.dst_port == 1900) {

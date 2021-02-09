@@ -99,6 +99,7 @@ class NETBIOSPlugin : public FlowCachePlugin {
 public:
     NETBIOSPlugin(const options_t &module_options);
     NETBIOSPlugin(const options_t &module_options, vector <plugin_opt> plugin_options);
+    FlowCachePlugin *copy();
     int post_create(Flow &rec, const Packet &pkt);
     int post_update(Flow &rec, const Packet &pkt);
     void finish();

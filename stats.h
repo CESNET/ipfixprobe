@@ -70,6 +70,7 @@ class StatsPlugin : public FlowCachePlugin
 
 public:
    StatsPlugin(struct timeval interval, ostream &out);
+   FlowCachePlugin *copy();
 
    void init();
    int post_create(Flow &rec, const Packet &pkt);

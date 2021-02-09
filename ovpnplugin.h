@@ -104,6 +104,7 @@ class OVPNPlugin : public FlowCachePlugin
 public:
    OVPNPlugin(const options_t &module_options);
    OVPNPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   FlowCachePlugin *copy();
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    void update_record(RecordExtOVPN* vpn_data, const Packet &pkt);
