@@ -941,9 +941,7 @@ void NdpPacketReader::close()
 
 int NdpPacketReader::get_pkt(PacketBlock &packets)
 {
-   int ret;
-   packet_valid = false;
-
+   int ret = -1;
    if (print_pcap_stats) {
       //print_stats();
    }
@@ -953,7 +951,7 @@ int NdpPacketReader::get_pkt(PacketBlock &packets)
 
    parser_opt_t opt = {&packets, false, parse_all, 0};
    size_t read_pkts = 0;
-   for (unsigned i = 0; i < packets.size(); i++) {
+   for (unsigned i = 0; i < packets.size; i++) {
       ret = ndpReader.get_pkt(&ndp_packet, &ndp_header);
       if (ret == 0) {
          if (opt.packet_valid) {

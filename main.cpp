@@ -251,12 +251,6 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
       begin = end + 1;
    }
 
-   std::sort(plugins.begin(), plugins.end(), [](FlowCachePlugin *&a, FlowCachePlugin *&b)
-      -> bool {
-            return a->get_options()[0].ext_type < b->get_options()[0].ext_type;
-         }
-      );
-
    return ifc_num;
 }
 
@@ -894,6 +888,7 @@ int main(int argc, char *argv[])
    size_t blocks_cnt = (options.input_qsize + 1) * worker_cnt;
    size_t pkts_cnt = blocks_cnt * options.input_pktblock_size;
    size_t pkt_data_cnt = pkts_cnt * (MAXPCKTSIZE + 1);
+   bool livecapture = options.interface.size();
 
    PacketBlock *blocks = new PacketBlock[blocks_cnt];
    Packet *pkts = new Packet[pkts_cnt];
@@ -993,7 +988,6 @@ int main(int argc, char *argv[])
       pipelines[pipelines.size() - 1].storage.plugins.plugins = plugins;
    }
 
-   bool livecapture = options.interface.size();
    while (!stop) {
       bool alldone = true;
       for (unsigned i = 0; i < inputFutures.size(); i++) {

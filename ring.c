@@ -39,6 +39,7 @@
  *
  */
 
+#define _ISOC11_SOURCE
 #include <stdlib.h> // aligned_malloc
 //#include <unistd.h>
 #include <pthread.h>
@@ -297,7 +298,7 @@ ipx_ring_destroy(ipx_ring_t *ring)
  * \return Same as the function pthread_cond_timedwait
  */
 static inline int
-ring_cond_timedwait(pthread_cond_t *restrict cond, pthread_mutex_t *restrict mutex, long msec)
+ring_cond_timedwait(pthread_cond_t *__restrict__ cond, pthread_mutex_t *__restrict__ mutex, long msec)
 {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
