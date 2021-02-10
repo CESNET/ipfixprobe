@@ -832,16 +832,22 @@ int PcapReader::get_pkt(PacketBlock &packets)
 
    // Get pkt from network interface or file.
    ret = pcap_dispatch(handle, packets.size, packet_handler, (u_char *) (&opt));
-   if (ret == 0) {
-      // Read timeout occured or no more packets in file...
-      return (live_capture ? 3 : 0);
-   }
-
-   if (ret > 0) {
-      processed += ret;
-      parsed += opt.pkts->cnt;
-      // Packet is valid and ready to process by flow_cache.
-      return opt.packet_valid ? 2 : 1;
+   if (live_capture) {
+      if (ret == 0) {
+         return 3;
+      }
+      if (ret > 0) {
+         processed += ret;
+         parsed += opt.pkts->cnt;
+         // Packet is valid and ready to process by flow_cache.
+         return opt.packet_valid ? 2 : 1;
+      }
+   } else {
+      if (opt.pkts->cnt) {
+         processed += ret ? ret : opt.pkts->cnt;
+         parsed += opt.pkts->cnt;
+         return 2;
+      }
    }
    if (ret < 0) {
       // Error occured.
