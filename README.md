@@ -161,6 +161,7 @@ Fields without `_REV` suffix are fields from source flow. Fields with `_REV` are
 | TCP_OPT_REV  | uint64 | TCP options bitfield        |
 | TCP_MSS      | uint32 | TCP maximum segment size    |
 | TCP_MSS_REV  | uint32 | TCP maximum segment size    |
+| TCP_SYN_SIZE | uint16 | TCP SYN packet size         |
 
 ### HTTP
 List of unirec fields exported together with basic flow fields on interface by HTTP plugin.

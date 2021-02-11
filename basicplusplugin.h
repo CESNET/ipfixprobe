@@ -47,7 +47,7 @@
 #include <string>
 
 #ifdef WITH_NEMEA
-  #include "fields.h"
+ #include "fields.h"
 #endif
 
 #include "flowifc.h"
@@ -62,31 +62,33 @@ using namespace std;
  * \brief Flow record extension header for storing parsed BASICPLUS packets.
  */
 struct RecordExtBASICPLUS : RecordExt {
-   uint8_t ip_ttl[2];
-   uint8_t ip_flg[2];
+   uint8_t  ip_ttl[2];
+   uint8_t  ip_flg[2];
    uint16_t tcp_win[2];
    uint64_t tcp_opt[2];
    uint32_t tcp_mss[2];
+   uint16_t tcp_syn_size;
 
-   bool dst_filled;
+   bool     dst_filled;
 
    RecordExtBASICPLUS() : RecordExt(basicplus)
    {
-      ip_ttl[0] = 0;
-      ip_ttl[1] = 0;
-      ip_flg[0] = 0;
-      ip_flg[1] = 0;
-      tcp_win[0] = 0;
-      tcp_win[1] = 0;
-      tcp_opt[0] = 0;
-      tcp_opt[1] = 0;
-      tcp_mss[0] = 0;
-      tcp_mss[1] = 0;
+      ip_ttl[0]    = 0;
+      ip_ttl[1]    = 0;
+      ip_flg[0]    = 0;
+      ip_flg[1]    = 0;
+      tcp_win[0]   = 0;
+      tcp_win[1]   = 0;
+      tcp_opt[0]   = 0;
+      tcp_opt[1]   = 0;
+      tcp_mss[0]   = 0;
+      tcp_mss[1]   = 0;
+      tcp_syn_size = 0;
 
       dst_filled = false;
    }
 
-#ifdef WITH_NEMEA
+   #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
       ur_set(tmplt, record, F_IP_TTL, ip_ttl[0]);
@@ -99,12 +101,14 @@ struct RecordExtBASICPLUS : RecordExt {
       ur_set(tmplt, record, F_TCP_OPT_REV, tcp_opt[1]);
       ur_set(tmplt, record, F_TCP_MSS, tcp_mss[0]);
       ur_set(tmplt, record, F_TCP_MSS_REV, tcp_mss[1]);
+      ur_set(tmplt, record, F_TCP_SYN_SIZE, tcp_syn_size);
    }
-#endif
+
+   #endif // ifdef WITH_NEMEA
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
-      if (size < 32) {
+      if (size < 34) {
          return -1;
       }
 
@@ -112,14 +116,15 @@ struct RecordExtBASICPLUS : RecordExt {
       buffer[1] = ip_ttl[1];
       buffer[2] = ip_flg[0];
       buffer[3] = ip_flg[1];
-      *(uint16_t *) (buffer + 4) = ntohs(tcp_win[0]);
-      *(uint16_t *) (buffer + 6) = ntohs(tcp_win[1]);
-      *(uint64_t *) (buffer + 8) = swap_uint64(tcp_opt[0]);
+      *(uint16_t *) (buffer + 4)  = ntohs(tcp_win[0]);
+      *(uint16_t *) (buffer + 6)  = ntohs(tcp_win[1]);
+      *(uint64_t *) (buffer + 8)  = swap_uint64(tcp_opt[0]);
       *(uint64_t *) (buffer + 16) = swap_uint64(tcp_opt[1]);
       *(uint32_t *) (buffer + 24) = ntohl(tcp_mss[0]);
       *(uint32_t *) (buffer + 28) = ntohl(tcp_mss[1]);
+      *(uint16_t *) (buffer + 32) = ntohs(tcp_syn_size);
 
-      return 32;
+      return 34;
    }
 };
 
@@ -138,8 +143,7 @@ public:
    bool include_basic_flow_fields();
 
 private:
-   bool print_stats;       /**< Indicator whether to print stats when flow cache is finishing or not. */
+   bool print_stats; /**< Indicator whether to print stats when flow cache is finishing or not. */
 };
 
-#endif
-
+#endif // ifndef BASICPLUSPLUGIN_H
