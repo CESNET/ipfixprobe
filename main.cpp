@@ -452,7 +452,7 @@ struct WorkPipeline {
       FlowCache *plugin;
       std::thread *thread;
       std::promise<StorageStats> *promise;
-      plugins_t plugins;
+      std::vector<FlowCachePlugin *> plugins;
    } storage;
    ipx_ring_t *queue;
 };
@@ -981,12 +981,11 @@ int main(int argc, char *argv[])
             flowcache,
             new std::thread(storage_thread, flowcache, input_queue, storage_stats),
             storage_stats,
-            {}
+            plugins
          },
          input_queue
       };
       pipelines.push_back(tmp);
-      pipelines[pipelines.size() - 1].storage.plugins.plugins = plugins;
    }
 
    while (!stop) {
@@ -1040,6 +1039,9 @@ EXIT:
    for (unsigned i = 0; i < pipelines.size(); i++) {
       pipelines[i].storage.thread->join();
       pipelines[i].storage.plugin->finish();
+      for (unsigned j = 0; j < pipelines[i].storage.plugins.size(); j++) {
+         delete pipelines[i].storage.plugins[j];
+      }
    }
 
    terminate_export = 1;
