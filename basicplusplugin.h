@@ -86,6 +86,7 @@ struct RecordExtBASICPLUS : RecordExt {
       dst_filled = false;
    }
 
+#ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
       ur_set(tmplt, record, F_IP_TTL, ip_ttl[0]);
@@ -99,6 +100,7 @@ struct RecordExtBASICPLUS : RecordExt {
       ur_set(tmplt, record, F_TCP_MSS, tcp_mss[0]);
       ur_set(tmplt, record, F_TCP_MSS_REV, tcp_mss[1]);
    }
+#endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {

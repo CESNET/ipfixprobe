@@ -74,6 +74,7 @@ ipfixprobe_src=main.cpp \
 		idpcontentplugin.h \
 		idpcontentplugin.cpp \
 		netbiosplugin.h \
+		netbiosplugin.cpp \
 		ipfix-basiclist.cpp \
 		ipfix-basiclist.h \
 		basicplusplugin.h \
