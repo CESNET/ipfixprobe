@@ -128,8 +128,8 @@ int terminate_input = 0;
   PARAM('O', "odid", "Send ODID field instead of LINK_BIT_FIELD in unirec message.", no_argument, "none") \
   PARAM('x', "ipfix", "Export to IPFIX collector. Format: HOST:PORT or [HOST]:PORT", required_argument, "string") \
   PARAM('u', "udp", "Use UDP when exporting to IPFIX collector.", no_argument, "none") \
-  PARAM('q', "q", "Input queue size.", required_argument, "uint32") \
-  PARAM('Q', "Q", "Output queue size.", required_argument, "uint32") \
+  PARAM('q', "q", "Input queue size (default 64).", required_argument, "uint32") \
+  PARAM('Q', "Q", "Output queue size (default 16536).", required_argument, "uint32") \
   PARAM('V', "version", "Print version.", no_argument, "none")\
   PARAM('v', "verbose", "Increase verbosity of the output, it can be duplicated like -vv / -vvv.", no_argument, "none")\
 
@@ -314,6 +314,7 @@ void input_thread(PacketReceiver *packetloader, PacketBlock *pkts, size_t pkt_cn
          clock_gettime(CLOCK_MONOTONIC_COARSE, &start);
          ipx_ring_push(queue, (void *) block);
          clock_gettime(CLOCK_MONOTONIC_COARSE, &end);
+
          int64_t time = end.tv_nsec - start.tv_nsec;
          if (start.tv_sec != end.tv_sec) {
             time += 1000000000;
@@ -926,7 +927,7 @@ int main(int argc, char *argv[])
 #ifdef WITH_NEMEA
             TRAP_DEFAULT_FINALIZATION();
 #endif
-            error("Unable to initialize libpcap: " + packetloader->error_msg);
+            error("Unable to initialize network interface: " + packetloader->error_msg);
             delete packetloader;
             ret = EXIT_FAILURE;
             goto EXIT;
