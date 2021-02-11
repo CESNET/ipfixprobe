@@ -145,8 +145,8 @@ Basic unirec fields exported on interface with basic (pseudo) plugin. These fiel
 | TCP_FLAGS              | uint8            | TCP protocol flags (src to dst)                     |
 | TCP_FLAGS_REV          | uint8            | TCP protocol flags (dst to src)                     |
 
-### Basic
-List of unirec fields exported together with basic flow fields on interface by HTTP plugin.
+### Basic plus
+List of unirec fields exported together with basic flow fields on interface by basicplus plugin.
 Fields without `_REV` suffix are fields from source flow. Fields with `_REV` are from the opposite direction.
 
 | UniRec field | Type   | Description                 |
