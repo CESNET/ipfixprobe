@@ -72,7 +72,7 @@ us.
 
 ## Parameters
 ### Module specific parameters
-- `-p STRING`        Activate specified parsing plugins. Output interface for each plugin correspond the order which you specify items in -i and -p param. For example: '-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios
+- `-p STRING`        Activate specified parsing plugins. Output interface for each plugin correspond the order which you specify items in -i and -p param. For example: '-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus
   - Some plugins have features activated with additional parameters. Format: plugin_name[:plugin_param=value[:...]][,...] If plugin does not support parameters, any parameters given will be ignored. Supported plugin parameters are listed bellow with output data.
 - `-c NUMBER`        Quit after `NUMBER` of packets are captured.
 - `-I STRING`        Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can channel after interface delimited by : (/dev/nfb0:1) default is 0.
@@ -144,6 +144,23 @@ Basic unirec fields exported on interface with basic (pseudo) plugin. These fiel
 | PROTOCOL               | uint8            | transport protocol                                  |
 | TCP_FLAGS              | uint8            | TCP protocol flags (src to dst)                     |
 | TCP_FLAGS_REV          | uint8            | TCP protocol flags (dst to src)                     |
+
+### Basic
+List of unirec fields exported together with basic flow fields on interface by HTTP plugin.
+Fields without `_REV` suffix are fields from source flow. Fields with `_REV` are from the opposite direction.
+
+| UniRec field | Type   | Description                 |
+|:------------:|:------:|:---------------------------:|
+| IP_TTL       | uint8  | IP TTL field                |
+| IP_TTL_REV   | uint8  | IP TTL field                |
+| IP_FLG       | uint8  | IP FLAGS                    |
+| IP_FLG_REV   | uint8  | IP FLAGS                    |
+| TCP_WIN      | uint16 | TCP window size             |
+| TCP_WIN_REV  | uint16 | TCP window size             |
+| TCP_OPT      | uint64 | TCP options bitfield        |
+| TCP_OPT_REV  | uint64 | TCP options bitfield        |
+| TCP_MSS      | uint32 | TCP maximum segment size    |
+| TCP_MSS_REV  | uint32 | TCP maximum segment size    |
 
 ### HTTP
 List of unirec fields exported together with basic flow fields on interface by HTTP plugin.

@@ -77,12 +77,16 @@ struct Packet : public Record {
    uint8_t     ip_ttl;
    uint8_t     ip_proto;
    uint8_t     ip_tos;
+   uint8_t     ip_flags;
    ipaddr_t    src_ip;
    ipaddr_t    dst_ip;
 
    uint16_t    src_port;
    uint16_t    dst_port;
    uint8_t     tcp_control_bits;
+   uint16_t    tcp_window;
+   uint64_t    tcp_options;
+   uint32_t    tcp_mss;
 
    uint16_t    total_length;
    char        *packet; /**< Array containing whole packet. */

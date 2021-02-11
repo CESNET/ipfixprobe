@@ -13,7 +13,8 @@ TESTS=test_http_plugin.sh \
 	test_ssdp_plugin.sh \
 	test_idpcontent_plugin.sh \
 	test_netbios_plugin.sh \
-	test_basic_plugin.sh
+	test_basic_plugin.sh \
+	test_basicplus_plugin.sh
 
 EXTRA_DIST=test_plugin.sh \
 	test_http_plugin.sh \
@@ -31,9 +32,11 @@ EXTRA_DIST=test_plugin.sh \
 	test_ssdp_plugin.sh \
 	test_netbios_plugin.sh \
 	test_basic_plugin.sh \
+	test_basicplus_plugin.sh \
 	test_idpcontent_plugin.sh \
 	test_plugin.sh \
 	test_reference/basic \
+	test_reference/basicplus \
 	test_reference/pstats \
 	test_reference/ssdp \
 	test_reference/arp \
@@ -46,7 +49,7 @@ EXTRA_DIST=test_plugin.sh \
 	test_reference/sip \
 	test_reference/smtp \
 	test_reference/passivedns \
-	test_reference/ovpn\
+	test_reference/ovpn \
 	test_reference/idpcontent \
 	test_reference/netbios
 

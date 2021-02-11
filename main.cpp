@@ -83,6 +83,7 @@
 #include "dnssdplugin.h"
 #include "idpcontentplugin.h"
 #include "netbiosplugin.h"
+#include "basicplusplugin.h"
 
 using namespace std;
 
@@ -95,7 +96,7 @@ static int stop = 0;
 #define MODULE_BASIC_INFO(BASIC) \
   BASIC("ipfixprobe", "Convert packets from PCAP file or network interface into biflow records.", 0, -1)
 
-#define SUPPORTED_PLUGINS_LIST "http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios"
+#define SUPPORTED_PLUGINS_LIST "http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus"
 
 // TODO: remove parameters when using ndp
 #define MODULE_PARAMS(PARAM) \
@@ -234,6 +235,11 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
          tmp.push_back(plugin_opt("netbios", netbios, ifc_num++, params));
 
          plugins.push_back(new NETBIOSPlugin(module_options, tmp));
+      } else if (proto == "basicplus"){
+         vector<plugin_opt> tmp;
+         tmp.push_back(plugin_opt("basicplus", basicplus, ifc_num++, params));
+
+         plugins.push_back(new BASICPLUSPlugin(module_options, tmp));
       } else {
          fprintf(stderr, "Unsupported plugin: \"%s\"\n", proto.c_str());
          return -1;

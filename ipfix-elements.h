@@ -107,6 +107,10 @@
 #define L3_IPV4_FRAGMENT(F)           F(0,       88,    2,   NULL)
 #define L3_IPV4_TTL(F)                F(0,      192,    1,   NULL)
 #define L3_IPV6_TTL(F)                F(0,      192,    1,   NULL)
+#define L3_TTL(F)                     F(0,      192,    1,   NULL)
+#define L3_TTL_REV(F)                 F(29305,  192,    1,   NULL)
+#define L3_FLAGS(F)                   F(0,      197,    1,   NULL)
+#define L3_FLAGS_REV(F)               F(29305,  197,    1,   NULL)
 
 #define L4_PROTO(F)                   F(0,        4,    1,   &flow.ip_proto)
 #define L4_TCP_FLAGS(F)               F(0,        6,    1,   &flow.src_tcp_control_bits)
@@ -114,6 +118,13 @@
 #define L4_PORT_SRC(F)                F(0,        7,    2,   &flow.src_port)
 #define L4_PORT_DST(F)                F(0,       11,    2,   &flow.dst_port)
 #define L4_ICMP_TYPE_CODE(F)          F(0,       32,    2,   NULL)
+#define L4_TCP_WIN(F)                 F(0,       186,   2,   NULL)
+#define L4_TCP_WIN_REV(F)             F(29305,   186,   2,   NULL)
+#define L4_TCP_OPTIONS(F)             F(8057,    901,   8,   NULL)
+#define L4_TCP_OPTIONS_REV(F)         F(8057,    900,   8,   NULL)
+
+#define L4_TCP_MSS(F)                 F(0,       209,   4,   NULL)
+#define L4_TCP_MSS_REV(F)             F(29305,   209,   4,   NULL)
 
 #define HTTP_USERAGENT(F)             F(16982,  100,   -1,   NULL)
 #define HTTP_METHOD(F)                F(16982,  101,   -1,   NULL)
@@ -386,6 +397,22 @@
    F(NB_SUFFIX) \
    F(NB_NAME)
 
+#define IPFIX_NETBIOS_TEMPLATE(F) \
+   F(NB_SUFFIX) \
+   F(NB_NAME)
+
+#define IPFIX_BASICPLUS_TEMPLATE(F) \
+   F(L3_TTL) \
+   F(L3_TTL_REV) \
+   F(L3_FLAGS) \
+   F(L3_FLAGS_REV) \
+   F(L4_TCP_WIN) \
+   F(L4_TCP_WIN_REV) \
+   F(L4_TCP_OPTIONS) \
+   F(L4_TCP_OPTIONS_REV) \
+   F(L4_TCP_MSS) \
+   F(L4_TCP_MSS_REV)
+
 /**
  * List of all known templated.
  *
@@ -410,7 +437,8 @@
    IPFIX_SSDP_TEMPLATE(F) \
    IPFIX_DNSSD_TEMPLATE(F) \
    IPFIX_IDPCONTENT_TEMPLATE(F) \
-   IPFIX_NETBIOS_TEMPLATE(F)
+   IPFIX_NETBIOS_TEMPLATE(F) \
+   IPFIX_BASICPLUS_TEMPLATE(F)
 
 
 /**
