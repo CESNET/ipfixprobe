@@ -866,27 +866,19 @@ void packet_ndp_handler(parser_opt_t *opt, const struct ndp_packet *ndp_packet, 
    parse_packet(opt, ts, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
 }
 
-/**
- * \brief Constructor.
- */
 NdpPacketReader::NdpPacketReader() : print_pcap_stats(false)
 {
    processed = 0;
    parsed = 0;
 }
 
-/**
- * \brief Constructor.
- * \param [in] options Module options.
- */
 NdpPacketReader::NdpPacketReader(const options_t &options)
 {
+   processed = 0;
+   parsed = 0;
    print_pcap_stats = options.print_pcap_stats;
 }
 
-/**
- * \brief Destructor.
- */
 NdpPacketReader::~NdpPacketReader()
 {
    this->close();
