@@ -388,7 +388,9 @@ inline uint16_t parse_tcp_hdr(const u_char *data_ptr, Packet *pkt)
       DEBUG_MSG("\t\t%u: len=%u\n", opt_kind, opt_len);
 
       pkt->tcp_options |= ((uint64_t) 1 << opt_kind);
-      if (opt_kind == 0x02) {
+      if (opt_kind == 0x00) {
+         break;
+      } else if (opt_kind == 0x02) {
          // Parse Maximum Segment Size (MSS)
          pkt->tcp_mss = ntohl(*(uint32_t *) (opt_ptr + 2));
       }
