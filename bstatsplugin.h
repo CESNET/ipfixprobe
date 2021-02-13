@@ -96,6 +96,10 @@ struct RecordExtBSTATS : RecordExt {
 
    RecordExtBSTATS() : RecordExt(bstats)
    {
+      memset(burst_count, 0, 2*sizeof(uint16_t));
+      memset(burst_empty, 0, 2*sizeof(uint8_t));
+      brst_pkts[BSTATS_DEST][0] = 0;
+      brst_pkts[BSTATS_SOURCE][0] = 0;
    }
 
 #ifdef WITH_NEMEA

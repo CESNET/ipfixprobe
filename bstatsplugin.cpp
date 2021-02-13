@@ -138,8 +138,8 @@ void BSTATSPlugin::update_record(RecordExtBSTATS *bstats_record, const Packet &p
     //zero-payload or burst array is full
     return;
   }
-  if(bstats_record -> burst_empty[direction] == 0) {
-    bstats_record -> burst_empty[direction] = 1;
+  if(bstats_record->burst_empty[direction] == 0) {
+    bstats_record->burst_empty[direction] = 1;
     initialize_new_burst(bstats_record, direction, pkt);
   }else{
     process_bursts(bstats_record, direction, pkt);
@@ -151,11 +151,6 @@ int BSTATSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtBSTATS *bstats_record = new RecordExtBSTATS();
    rec.addExtension(bstats_record);
-   memset(bstats_record -> burst_count, 0, 2*sizeof(uint16_t));
-   memset(bstats_record -> burst_empty, 0, 2*sizeof(uint8_t));
-   // need to null first value in brst_pkts
-   bstats_record -> brst_pkts[BSTATS_SOURCE][0] = 0;
-   bstats_record -> brst_pkts[BSTATS_DEST][0] = 0;
    update_record(bstats_record, pkt);
    return 0;
 }
