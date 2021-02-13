@@ -120,11 +120,13 @@
 #define L4_ICMP_TYPE_CODE(F)          F(0,       32,    2,   NULL)
 #define L4_TCP_WIN(F)                 F(0,       186,   2,   NULL)
 #define L4_TCP_WIN_REV(F)             F(29305,   186,   2,   NULL)
-#define L4_TCP_OPTIONS(F)             F(8057,    901,   8,   NULL)
-#define L4_TCP_OPTIONS_REV(F)         F(8057,    900,   8,   NULL)
+#define L4_TCP_OPTIONS(F)             F(0,       209,   8,   NULL)
+#define L4_TCP_OPTIONS_REV(F)         F(29305,   209,   8,   NULL)
 
-#define L4_TCP_MSS(F)                 F(0,       209,   4,   NULL)
-#define L4_TCP_MSS_REV(F)             F(29305,   209,   4,   NULL)
+
+#define L4_TCP_MSS(F)                 F(8057,   900,   4,   NULL)
+#define L4_TCP_MSS_REV(F)             F(8057,   901,   4,   NULL)
+#define L4_TCP_SYN_SIZE(F)            F(8057,   902,   2,   NULL)
 
 #define HTTP_USERAGENT(F)             F(16982,  100,   -1,   NULL)
 #define HTTP_METHOD(F)                F(16982,  101,   -1,   NULL)
@@ -411,7 +413,8 @@
    F(L4_TCP_OPTIONS) \
    F(L4_TCP_OPTIONS_REV) \
    F(L4_TCP_MSS) \
-   F(L4_TCP_MSS_REV)
+   F(L4_TCP_MSS_REV) \
+   F(L4_TCP_SYN_SIZE)
 
 /**
  * List of all known templated.

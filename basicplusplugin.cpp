@@ -52,7 +52,8 @@
 
 using namespace std;
 
-#define BASICPLUS_UNIREC_TEMPLATE "IP_TTL,IP_TTL_REV,IP_FLG,IP_FLG_REV,TCP_WIN,TCP_WIN_REV,TCP_OPT,TCP_OPT_REV,TCP_MSS,TCP_MSS_REV"
+#define BASICPLUS_UNIREC_TEMPLATE \
+   "IP_TTL,IP_TTL_REV,IP_FLG,IP_FLG_REV,TCP_WIN,TCP_WIN_REV,TCP_OPT,TCP_OPT_REV,TCP_MSS,TCP_MSS_REV,TCP_SYN_SIZE"
 
 UR_FIELDS (
    uint8 IP_TTL,
@@ -64,7 +65,8 @@ UR_FIELDS (
    uint64 TCP_OPT,
    uint64 TCP_OPT_REV,
    uint32 TCP_MSS,
-   uint32 TCP_MSS_REV
+   uint32 TCP_MSS_REV,
+   uint16 TCP_SYN_SIZE
 )
 
 BASICPLUSPlugin::BASICPLUSPlugin(const options_t &module_options)
@@ -72,7 +74,8 @@ BASICPLUSPlugin::BASICPLUSPlugin(const options_t &module_options)
    print_stats = module_options.print_stats;
 }
 
-BASICPLUSPlugin::BASICPLUSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
+BASICPLUSPlugin::BASICPLUSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(
+      plugin_options)
 {
    print_stats = module_options.print_stats;
 }
@@ -80,13 +83,18 @@ BASICPLUSPlugin::BASICPLUSPlugin(const options_t &module_options, vector<plugin_
 int BASICPLUSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtBASICPLUS *p = new RecordExtBASICPLUS();
+
    rec.addExtension(p);
 
-   p->ip_ttl[0] = pkt.ip_ttl;
-   p->ip_flg[0] = pkt.ip_flags;
+   p->ip_ttl[0]  = pkt.ip_ttl;
+   p->ip_flg[0]  = pkt.ip_flags;
    p->tcp_mss[0] = pkt.tcp_mss;
    p->tcp_opt[0] = pkt.tcp_options;
    p->tcp_win[0] = pkt.tcp_window;
+   if (pkt.tcp_control_bits == 0x02) { // check syn packet
+      p->tcp_syn_size = pkt.ip_length;
+   }
+
    return 0;
 }
 
@@ -94,12 +102,13 @@ int BASICPLUSPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    RecordExtBASICPLUS *p = (RecordExtBASICPLUS *) rec.getExtension(basicplus);
    uint8_t dir = pkt.source_pkt ? 0 : 1;
+
    if (p->ip_ttl[dir] < pkt.ip_ttl) {
       p->ip_ttl[dir] = pkt.ip_ttl;
    }
    if (dir && !p->dst_filled) {
-      p->ip_ttl[1] = pkt.ip_ttl;
-      p->ip_flg[1] = pkt.ip_flags;
+      p->ip_ttl[1]  = pkt.ip_ttl;
+      p->ip_flg[1]  = pkt.ip_flags;
       p->tcp_mss[1] = pkt.tcp_mss;
       p->tcp_opt[1] = pkt.tcp_options;
       p->tcp_win[1] = pkt.tcp_window;
@@ -127,4 +136,3 @@ bool BASICPLUSPlugin::include_basic_flow_fields()
 {
    return true;
 }
-
