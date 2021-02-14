@@ -48,7 +48,7 @@
 #include <cstring>
 
 #ifdef WITH_NEMEA
-  #include "fields.h"
+# include "fields.h"
 #endif
 
 #include "flowifc.h"
@@ -59,12 +59,12 @@
 
 #define BSTATS_MAXELENCOUNT 15
 
-//BURST CHARACTERISTIC
-#define MINIMAL_PACKETS_IN_BURST 3 // in packets
-#define MAXIMAL_INTERPKT_TIME 1000 // in miliseconds
-                                   // maximal time between consecutive in-burst packets
-#define BSTATS_SOURCE 0
-#define BSTATS_DEST 1
+// BURST CHARACTERISTIC
+#define MINIMAL_PACKETS_IN_BURST 3    // in packets
+#define MAXIMAL_INTERPKT_TIME    1000 // in miliseconds
+                                      // maximal time between consecutive in-burst packets
+#define BSTATS_SOURCE            0
+#define BSTATS_DEST              1
 
 using namespace std;
 
@@ -72,96 +72,106 @@ using namespace std;
  * \brief Flow record extension header for storing parsed BSTATS packets.
  */
 struct RecordExtBSTATS : RecordExt {
-  typedef enum eHdrFieldID
-  {
-     SPkts = 1050,
-     SBytes = 1051,
-     SStart = 1052,
-     SStop = 1053,
-     DPkts = 1054,
-     DBytes = 1055,
-     DStart = 1056,
-     DStop = 1057
-  } eHdrFieldID;
+   typedef enum eHdrFieldID {
+      SPkts  = 1050,
+      SBytes = 1051,
+      SStart = 1052,
+      SStop  = 1053,
+      DPkts  = 1054,
+      DBytes = 1055,
+      DStart = 1056,
+      DStop  = 1057
+   } eHdrFieldID;
 
 
+   uint16_t       burst_count[2];
+   uint8_t        burst_empty[2];
 
-  uint16_t burst_count[2];
-  uint8_t burst_empty[2];
-
-  uint32_t brst_pkts[2][BSTATS_MAXELENCOUNT];
-  uint32_t brst_bytes[2][BSTATS_MAXELENCOUNT];
-  struct timeval brst_start[2][BSTATS_MAXELENCOUNT];
-  struct timeval brst_end[2][BSTATS_MAXELENCOUNT];
+   uint32_t       brst_pkts[2][BSTATS_MAXELENCOUNT];
+   uint32_t       brst_bytes[2][BSTATS_MAXELENCOUNT];
+   struct timeval brst_start[2][BSTATS_MAXELENCOUNT];
+   struct timeval brst_end[2][BSTATS_MAXELENCOUNT];
 
    RecordExtBSTATS() : RecordExt(bstats)
    {
-      memset(burst_count, 0, 2*sizeof(uint16_t));
-      memset(burst_empty, 0, 2*sizeof(uint8_t));
-      brst_pkts[BSTATS_DEST][0] = 0;
+      memset(burst_count, 0, 2 * sizeof(uint16_t));
+      memset(burst_empty, 0, 2 * sizeof(uint8_t));
+      brst_pkts[BSTATS_DEST][0]   = 0;
       brst_pkts[BSTATS_SOURCE][0] = 0;
    }
 
-#ifdef WITH_NEMEA
+   #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-     ur_time_t ts_start, ts_stop;
-     ur_array_allocate(tmplt, record, F_SBI_BRST_PACKETS, burst_count[BSTATS_SOURCE]);
-     ur_array_allocate(tmplt, record, F_SBI_BRST_BYTES, burst_count[BSTATS_SOURCE]);
-     ur_array_allocate(tmplt, record, F_SBI_BRST_TIME_START, burst_count[BSTATS_SOURCE]);
-     ur_array_allocate(tmplt, record, F_SBI_BRST_TIME_STOP, burst_count[BSTATS_SOURCE]);
+      ur_time_t ts_start, ts_stop;
 
-     ur_array_allocate(tmplt, record, F_DBI_BRST_PACKETS, burst_count[BSTATS_DEST]);
-     ur_array_allocate(tmplt, record, F_DBI_BRST_BYTES, burst_count[BSTATS_DEST]);
-     ur_array_allocate(tmplt, record, F_DBI_BRST_TIME_START, burst_count[BSTATS_DEST]);
-     ur_array_allocate(tmplt, record, F_DBI_BRST_TIME_STOP, burst_count[BSTATS_DEST]);
+      ur_array_allocate(tmplt, record, F_SBI_BRST_PACKETS, burst_count[BSTATS_SOURCE]);
+      ur_array_allocate(tmplt, record, F_SBI_BRST_BYTES, burst_count[BSTATS_SOURCE]);
+      ur_array_allocate(tmplt, record, F_SBI_BRST_TIME_START, burst_count[BSTATS_SOURCE]);
+      ur_array_allocate(tmplt, record, F_SBI_BRST_TIME_STOP, burst_count[BSTATS_SOURCE]);
 
-     for (int i = 0; i < burst_count[BSTATS_SOURCE]; i++) {
-        ts_start = ur_time_from_sec_usec(brst_start[BSTATS_SOURCE][i].tv_sec, brst_start[BSTATS_SOURCE][i].tv_usec);
-        ts_stop = ur_time_from_sec_usec(brst_end[BSTATS_SOURCE][i].tv_sec, brst_end[BSTATS_SOURCE][i].tv_usec);
-        ur_array_set(tmplt, record, F_SBI_BRST_PACKETS, i, brst_pkts[BSTATS_SOURCE][i]);
-        ur_array_set(tmplt, record, F_SBI_BRST_BYTES, i, brst_bytes[BSTATS_SOURCE][i]);
-        ur_array_set(tmplt, record, F_SBI_BRST_TIME_START, i, ts_start);
-        ur_array_set(tmplt, record, F_SBI_BRST_TIME_STOP, i, ts_stop);
-     }
-     for (int i = 0; i < burst_count[BSTATS_DEST]; i++) {
-        ts_start = ur_time_from_sec_usec(brst_start[BSTATS_DEST][i].tv_sec, brst_start[BSTATS_DEST][i].tv_usec);
-        ts_stop = ur_time_from_sec_usec(brst_end[BSTATS_DEST][i].tv_sec, brst_end[BSTATS_DEST][i].tv_usec);
-        ur_array_set(tmplt, record, F_DBI_BRST_PACKETS, i, brst_pkts[BSTATS_DEST][i]);
-        ur_array_set(tmplt, record, F_DBI_BRST_BYTES, i, brst_bytes[BSTATS_DEST][i]);
-        ur_array_set(tmplt, record, F_DBI_BRST_TIME_START, i, ts_start);
-        ur_array_set(tmplt, record, F_DBI_BRST_TIME_STOP, i, ts_stop);
-     }
+      ur_array_allocate(tmplt, record, F_DBI_BRST_PACKETS, burst_count[BSTATS_DEST]);
+      ur_array_allocate(tmplt, record, F_DBI_BRST_BYTES, burst_count[BSTATS_DEST]);
+      ur_array_allocate(tmplt, record, F_DBI_BRST_TIME_START, burst_count[BSTATS_DEST]);
+      ur_array_allocate(tmplt, record, F_DBI_BRST_TIME_STOP, burst_count[BSTATS_DEST]);
+
+      for (int i = 0; i < burst_count[BSTATS_SOURCE]; i++){
+         ts_start = ur_time_from_sec_usec(brst_start[BSTATS_SOURCE][i].tv_sec, brst_start[BSTATS_SOURCE][i].tv_usec);
+         ts_stop  = ur_time_from_sec_usec(brst_end[BSTATS_SOURCE][i].tv_sec, brst_end[BSTATS_SOURCE][i].tv_usec);
+         ur_array_set(tmplt, record, F_SBI_BRST_PACKETS, i, brst_pkts[BSTATS_SOURCE][i]);
+         ur_array_set(tmplt, record, F_SBI_BRST_BYTES, i, brst_bytes[BSTATS_SOURCE][i]);
+         ur_array_set(tmplt, record, F_SBI_BRST_TIME_START, i, ts_start);
+         ur_array_set(tmplt, record, F_SBI_BRST_TIME_STOP, i, ts_stop);
+      }
+      for (int i = 0; i < burst_count[BSTATS_DEST]; i++){
+         ts_start = ur_time_from_sec_usec(brst_start[BSTATS_DEST][i].tv_sec, brst_start[BSTATS_DEST][i].tv_usec);
+         ts_stop  = ur_time_from_sec_usec(brst_end[BSTATS_DEST][i].tv_sec, brst_end[BSTATS_DEST][i].tv_usec);
+         ur_array_set(tmplt, record, F_DBI_BRST_PACKETS, i, brst_pkts[BSTATS_DEST][i]);
+         ur_array_set(tmplt, record, F_DBI_BRST_BYTES, i, brst_bytes[BSTATS_DEST][i]);
+         ur_array_set(tmplt, record, F_DBI_BRST_TIME_START, i, ts_start);
+         ur_array_set(tmplt, record, F_DBI_BRST_TIME_STOP, i, ts_stop);
+      }
    }
-#endif
+
+   #endif // ifdef WITH_NEMEA
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
-     int32_t bufferPtr;
-     IpfixBasicList basiclist;
-     basiclist.hdrEnterpriseNum = IpfixBasicList::CesnetPEM;
-     //Check sufficient size of buffer
-     int req_size = 8 * basiclist.HeaderSize() /* sizes, times, flags, dirs */ +
-                    2 * burst_count[BSTATS_SOURCE] * sizeof(uint32_t) /* bytes+sizes */ +
-                    2 * burst_count[BSTATS_SOURCE] * sizeof(uint64_t) /* times_start + time_end */ +
-                    2 * burst_count[BSTATS_DEST] * sizeof(uint32_t) /* bytes+sizes */ +
-                    2 * burst_count[BSTATS_DEST] * sizeof(uint64_t) /* times_start + time_end */ ;
+      int32_t bufferPtr;
+      IpfixBasicList basiclist;
 
-     if (req_size > size) {
-        return -1;
-     }
-     // Fill buffer
-     bufferPtr = basiclist.FillBuffer(buffer, brst_pkts[BSTATS_SOURCE], burst_count[BSTATS_SOURCE], (uint16_t) SPkts);
-     bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_bytes[BSTATS_SOURCE], burst_count[BSTATS_SOURCE], (uint16_t) SBytes);
-     bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_start[BSTATS_SOURCE], burst_count[BSTATS_SOURCE], (uint16_t) SStart);
-     bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_end[BSTATS_SOURCE], burst_count[BSTATS_SOURCE], (uint16_t) SStop);
+      basiclist.hdrEnterpriseNum = IpfixBasicList::CesnetPEM;
+      // Check sufficient size of buffer
+      int req_size = 8 * basiclist.HeaderSize()             /* sizes, times, flags, dirs */
+        + 2 * burst_count[BSTATS_SOURCE] * sizeof(uint32_t) /* bytes+sizes */
+        + 2 * burst_count[BSTATS_SOURCE] * sizeof(uint64_t) /* times_start + time_end */
+        + 2 * burst_count[BSTATS_DEST] * sizeof(uint32_t)   /* bytes+sizes */
+        + 2 * burst_count[BSTATS_DEST] * sizeof(uint64_t) /* times_start + time_end */;
 
-     bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_pkts[BSTATS_DEST],burst_count[BSTATS_DEST], (uint16_t) DPkts);
-     bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_bytes[BSTATS_DEST], burst_count[BSTATS_DEST], (uint16_t) DBytes);
-     bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_start[BSTATS_DEST], burst_count[BSTATS_DEST], (uint16_t) DStart);
-     bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_end[BSTATS_DEST], burst_count[BSTATS_DEST], (uint16_t) DStop);
+      if (req_size > size){
+         return -1;
+      }
+      // Fill buffer
+      bufferPtr  = basiclist.FillBuffer(buffer, brst_pkts[BSTATS_SOURCE], burst_count[BSTATS_SOURCE], (uint16_t) SPkts);
+      bufferPtr +=
+        basiclist.FillBuffer(buffer + bufferPtr, brst_bytes[BSTATS_SOURCE], burst_count[BSTATS_SOURCE],
+          (uint16_t) SBytes);
+      bufferPtr +=
+        basiclist.FillBuffer(buffer + bufferPtr, brst_start[BSTATS_SOURCE], burst_count[BSTATS_SOURCE],
+          (uint16_t) SStart);
+      bufferPtr +=
+        basiclist.FillBuffer(buffer + bufferPtr, brst_end[BSTATS_SOURCE], burst_count[BSTATS_SOURCE], (uint16_t) SStop);
 
-     return bufferPtr;
+      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_pkts[BSTATS_DEST], burst_count[BSTATS_DEST],
+          (uint16_t) DPkts);
+      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_bytes[BSTATS_DEST], burst_count[BSTATS_DEST],
+          (uint16_t) DBytes);
+      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_start[BSTATS_DEST], burst_count[BSTATS_DEST],
+          (uint16_t) DStart);
+      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, brst_end[BSTATS_DEST], burst_count[BSTATS_DEST],
+          (uint16_t) DStop);
+
+      return bufferPtr;
    }
 };
 
@@ -178,7 +188,6 @@ public:
    int pre_update(Flow &rec, Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
    void pre_export(Flow &rec);
-   void finish();
    const char **get_ipfix_string();
    string get_unirec_field_string();
    bool include_basic_flow_fields();
@@ -191,7 +200,7 @@ private:
    void update_record(RecordExtBSTATS *bstats_record, const Packet &pkt);
    bool isLastRecordBurst(RecordExtBSTATS *bstats_record, uint8_t direction);
    bool belogsToLastRecord(RecordExtBSTATS *bstats_record, uint8_t direction, const Packet &pkt);
-   bool print_stats;       /**< Indicator whether to print stats when flow cache is finishing or not. */
+   bool print_stats; /**< Indicator whether to print stats when flow cache is finishing or not. */
 };
 
-#endif
+#endif // ifndef BSTATSPLUGIN_H
