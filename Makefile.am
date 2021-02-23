@@ -75,6 +75,8 @@ ipfixprobe_src=main.cpp \
 		idpcontentplugin.cpp \
 		netbiosplugin.h \
 		netbiosplugin.cpp \
+		bstatsplugin.h \
+		bstatsplugin.cpp \
 		ipfix-basiclist.cpp \
 		ipfix-basiclist.h \
 		basicplusplugin.h \
@@ -108,7 +110,8 @@ EXTRA_DIST=README.md \
 	traffic-samples/netbios-sample.pcap \
 	traffic-samples/smtp-sample.pcap \
 	traffic-samples/ovpn-sample.pcap \
-	traffic-samples/idpcontent-sample.pcap
+	traffic-samples/idpcontent-sample.pcap \
+	traffic-samples/bstats-sample.pcap
 
 bashcompl_DATA=ipfixprobe.bash
 
