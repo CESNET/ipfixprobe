@@ -72,16 +72,16 @@ struct RecordExtPHISTS : RecordExt {
       DPhistsIpt   = 1063
    } eHdrSemantic;
 
-   uint16_t size_hist[2][HISTOGRAM_SIZE];
-   uint16_t ipt_hist[2][HISTOGRAM_SIZE];
-   uint64_t last_ts[2];
+   uint32_t size_hist[2][HISTOGRAM_SIZE];
+   uint32_t ipt_hist[2][HISTOGRAM_SIZE];
+   uint32_t last_ts[2];
 
    RecordExtPHISTS() : RecordExt(phists)
    {
       // inicializing histograms with zeros
       for (int i = 0; i < 2; i++) {
-         memset(size_hist[i], 0, sizeof(uint16_t) * HISTOGRAM_SIZE);
-         memset(ipt_hist[i], 0, sizeof(uint16_t) * HISTOGRAM_SIZE);
+         memset(size_hist[i], 0, sizeof(uint32_t) * HISTOGRAM_SIZE);
+         memset(ipt_hist[i], 0, sizeof(uint32_t) * HISTOGRAM_SIZE);
          last_ts[i] = 0;
       }
    }
@@ -103,8 +103,6 @@ struct RecordExtPHISTS : RecordExt {
 
    #endif // ifdef WITH_NEMEA
 
-   #endif // ifdef WITH_NEMEA
-
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
       int32_t bufferPtr;
@@ -113,17 +111,17 @@ struct RecordExtPHISTS : RecordExt {
       basiclist.hdrEnterpriseNum = IpfixBasicList::CesnetPEM;
       // Check sufficient size of buffer
       int req_size = 4 * basiclist.HeaderSize()  /* sizes, times, flags, dirs */
-        + 4 * HISTOGRAM_SIZE * sizeof(uint16_t); /* sizes */
+        + 4 * HISTOGRAM_SIZE * sizeof(uint32_t); /* sizes */
 
       if (req_size > size) {
          return -1;
       }
       // Fill sizes
       // fill buffer with basic list header and SPhistsSizes
-      bufferPtr  = basiclist.FillBuffer(buffer, size_hist[0], HISTOGRAM_SIZE, (uint16_t) SPhistsSizes);
-      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, size_hist[1], HISTOGRAM_SIZE, (uint16_t) DPhistsSizes);
-      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, ipt_hist[0], HISTOGRAM_SIZE, (uint16_t) SPhistsIpt);
-      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, ipt_hist[1], HISTOGRAM_SIZE, (uint16_t) DPhistsIpt);
+      bufferPtr  = basiclist.FillBuffer(buffer, size_hist[0], HISTOGRAM_SIZE, (uint32_t) SPhistsSizes);
+      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, size_hist[1], HISTOGRAM_SIZE, (uint32_t) DPhistsSizes);
+      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, ipt_hist[0], HISTOGRAM_SIZE, (uint32_t) SPhistsIpt);
+      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, ipt_hist[1], HISTOGRAM_SIZE, (uint32_t) DPhistsIpt);
 
       return bufferPtr;
    } // fillIPFIX
@@ -145,7 +143,7 @@ public:
 
 private:
    void update_record(RecordExtPHISTS *phists_data, const Packet &pkt);
-   void update_hist(RecordExtPHISTS *phists_data, uint32_t value, uint16_t *histogram);
+   void update_hist(RecordExtPHISTS *phists_data, uint32_t value, uint32_t *histogram);
    uint64_t calculate_ipt(RecordExtPHISTS *phists_data, const struct timeval tv, uint8_t direction);
 
    static inline uint32_t fastlog2_32(uint32_t value)
@@ -158,9 +156,9 @@ private:
       return log2_lookup32[(uint32_t) (value * 0x07C4ACDD) >> 27];
    }
 
-   static inline uint16_t no_overflow_increment(uint16_t value)
+   static inline uint32_t no_overflow_increment(uint32_t value)
    {
-      if (value == std::numeric_limits<uint16_t>::max()) {
+      if (value == std::numeric_limits<uint32_t>::max()) {
          return value;
       }
       return value + 1;

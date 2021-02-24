@@ -58,15 +58,15 @@ using namespace std;
 #define PHISTS_UNIREC_TEMPLATE "S_PHISTS_SIZES,S_PHISTS_IPT,D_PHISTS_SIZES,D_PHISTS_IPT" /* TODO: unirec template */
 
 UR_FIELDS(
-   uint16 * S_PHISTS_SIZES,
-   uint16 * S_PHISTS_IPT,
-   uint16 * D_PHISTS_SIZES,
-   uint16 * D_PHISTS_IPT,
+   uint32* S_PHISTS_SIZES,
+   uint32* S_PHISTS_IPT,
+   uint32* D_PHISTS_SIZES,
+   uint32* D_PHISTS_IPT,
 )
-const uint32_t PHISTSPlugin::log2_lookup32[32] = { 0,  9,   1,  10,  13,  21, 2,  29,
-                                                   11, 14,  16, 18,  22,  25, 3,  30,
-                                                   8,  12,  20, 28,  15,  17, 24, 7,
-                                                   19, 27,  23, 6,   26,  5,  4,  31 };
+const uint32_t PHISTSPlugin::log2_lookup32[32] = { 0,  9,  1,  10, 13, 21, 2,  29,
+                                                   11, 14, 16, 18, 22, 25, 3,  30,
+                                                   8,  12, 20, 28, 15, 17, 24, 7,
+                                                   19, 27, 23, 6,  26, 5,  4,  31 };
 
 
 PHISTSPlugin::PHISTSPlugin(const options_t &module_options)
@@ -90,7 +90,7 @@ PHISTSPlugin::PHISTSPlugin(const options_t &module_options, vector<plugin_opt> p
  * 512-1023 7. bin
  * 1024 >   8. bin
  */
-void PHISTSPlugin::update_hist(RecordExtPHISTS *phists_data, uint32_t value, uint16_t *histogram)
+void PHISTSPlugin::update_hist(RecordExtPHISTS *phists_data, uint32_t value, uint32_t *histogram)
 {
    if (value < 16) {
       histogram[0] = no_overflow_increment(histogram[0]);

@@ -472,10 +472,10 @@ The exported unirec fields and IPFIX basiclists is shown in following table:
 
 | UniRec field        | Type    | Description                             |
 |:-------------------:|:-------:|:---------------------------------------:|
-| D_PHISTS_IPT        | uint16\*| DST->SRC: Hisrogram of interpacket times|
-| D_PHISTS_SIZES      | uint16\*| DST->SRC: Hisrogram of packet sizes     |
-| S_PHISTS_IPT        | uint16\*| SRC->DST: Hisrogram of interpacket times|
-| S_PHISTS_SIZES      | uint16\*| SRC->DST: Hisrogram of packet sizes     |
+| D_PHISTS_IPT        | uint32\*| DST->SRC: Hisrogram of interpacket times|
+| D_PHISTS_SIZES      | uint32\*| DST->SRC: Hisrogram of packet sizes     |
+| S_PHISTS_IPT        | uint32\*| SRC->DST: Hisrogram of interpacket times|
+| S_PHISTS_SIZES      | uint32\*| SRC->DST: Hisrogram of packet sizes     |
 
 
 ### BSTATS
