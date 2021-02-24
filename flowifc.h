@@ -86,6 +86,7 @@ enum extTypeEnum {
    netbios,
    basicplus,
    bstats,
+   phists,
    /* Add extension header identifiers for your plugins here */
    EXTENSION_CNT
 };
