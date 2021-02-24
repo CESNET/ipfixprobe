@@ -55,14 +55,15 @@
 
 using namespace std;
 
-#define PHISTS_UNIREC_TEMPLATE "S_PHISTS_SIZES,S_PHISTS_IPT,D_PHISTS_SIZES,D_PHISTS_IPT" /* TODO: unirec template */
+#define PHISTS_UNIREC_TEMPLATE "S_PHISTS_SIZES,S_PHISTS_IPT,D_PHISTS_SIZES,D_PHISTS_IPT"
 
 UR_FIELDS(
    uint32* S_PHISTS_SIZES,
    uint32* S_PHISTS_IPT,
    uint32* D_PHISTS_SIZES,
-   uint32* D_PHISTS_IPT,
+   uint32* D_PHISTS_IPT
 )
+
 const uint32_t PHISTSPlugin::log2_lookup32[32] = { 0,  9,  1,  10, 13, 21, 2,  29,
                                                    11, 14, 16, 18, 22, 25, 3,  30,
                                                    8,  12, 20, 28, 15, 17, 24, 7,
@@ -74,8 +75,8 @@ PHISTSPlugin::PHISTSPlugin(const options_t &module_options)
    print_stats = module_options.print_stats;
 }
 
-PHISTSPlugin::PHISTSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(
-      plugin_options)
+PHISTSPlugin::PHISTSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options)
+   : FlowCachePlugin(plugin_options)
 {
    print_stats = module_options.print_stats;
 }
