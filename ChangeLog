@@ -1,3 +1,12 @@
+2021-02-27 ipfixprobe-2.19.0
+	* added phist plugin - histograms of packets
+	* added bstats plugin - burst characteristics of flows
+	* added netbios support
+	* improved basic fields
+	* bugfixes: build, payload size
+	* maintenance: improved IPFIX basiclist representation
+	* updated tests - new timestamp precision
+
 2020-11-01 ipfixprobe-2.18.0
 	* add IDPContent plugin (initial data from packet payload)
 	* updated create_plugin.sh

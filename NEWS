@@ -1,3 +1,72 @@
+2021-02-24 (Jiri Havranek): phist: improved coding style
+2021-02-24 (Karel Hynek): PHISTS: Changed histogram array type: uint16* -> uint32*
+2021-02-24 (Karel Hynek): PHISTS: added creation of size histogram for individual directions, added creation of IPT histograms for individual directions
+2021-02-24 (Karel Hynek): PHISTS: incorporated plugin into ipfixprobe FIX main
+2021-02-24 (Karel Hynek): PHISTS: modified README
+2021-02-24 (Karel Hynek): PHISTS: added tests FIX test
+2021-02-24 (Karel Hynek): PHISTS: added creation of size histogram for individual directions, added creation of IPT histograms for individual directions
+2021-02-24 (Karel Hynek): PHISTS: incorporated plugin into ipfixprobe FIX main
+2021-02-24 (Karel Hynek): PHISTS: Initial commit
+2021-02-16 (Karel Hynek): BSTATS: Improved coding style
+2021-02-16 (Karel Hynek): BSTATS: Moved RecordExtBSTATS initialisation to constructor
+2021-02-16 (Karel Hynek): BSTATS: changed burst size calculation
+2021-02-16 (Karel Hynek): BSTATS: updated readme
+2021-02-16 (Karel Hynek): BSTATS: added plugin tests
+2021-02-16 (Karel Hynek): BSTATS: added ipfix export
+2021-02-16 (Karel Hynek): BSTATS: implemented burst recognition and their export to unirec
+2021-02-13 (Karel Hynek): BSTATS: plugin creation
+2021-02-12 (Jiri Havranek): fixed parsing of malformed packets
+2021-02-12 (Karel Hynek): BASICPLUS: Fixed infinite loop with zero-length options
+2021-02-12 (Karel Hynek): BASICPLUS: Added TCP SYN size and fixed MSS IPFIX field definition
+2021-02-11 (Jiri Havranek): updated README.md
+2021-02-11 (Jiri Havranek): fixed arp plugin test
+2021-02-11 (Jiri Havranek): updated README.md
+2021-02-11 (Jiri Havranek): updated create_plugin.sh
+2021-02-11 (Karel Hynek): fixed distcheck
+2021-02-11 (Jiri Havranek): added basicplus plugin exporting additional IP and TCP fields
+2021-01-25 (Karel Hynek): NEW CLASS: ipfix-basiclist represent the basic list structure
+2021-01-25 (Karel Hynek): PSTATS plugin: edited IPFIX export, now it uses basic list class
+2021-01-25 (Karel Hynek): Added .gitignore file
+2021-01-13 (Karel Hynek): PSTATS: fixed wrong packet length value when packet trimming is used
+2021-01-10 (Karel Hynek): Fixed distcheck
+2021-01-10 (Karel Hynek): updated pstats test-reference
+2021-01-10 (Karel Hynek): Added pstats plugin option for including/excluding zero-length packets
+2021-01-05 (Jiri Havranek): tests: updated tests to new timestamp precision
+2021-01-05 (Jiri Havranek): pcapreader: fixed payload length computation when packet contains additional data at the end
+2020-12-11 (Karel Hynek): PSTATS: changed exported packet length to payload_length
+2020-12-01 (Jiri Havranek): idpcontent: fixed wrong method param
+2020-12-01 (Jiri Havranek): pstats: unused code cleanup
+2020-12-01 (Jiri Havranek): idpcontent: fixed packet payload content export when using flush
+2020-12-01 (Jiri Havranek): pstats: fixed exported packet stats when flushing flow
+2020-11-24 (Tomas Cejka): actions: test with nemea reference data
+2020-11-19 (Tomas Cejka): travis: add dependencies
+2020-11-19 (Tomas Cejka): travis: remove branch limit
+2020-11-19 (Tomas Cejka): travis&coverity: try to update token, completed build command
+2020-11-19 (lePici): Coverity: change to official example
+2020-11-19 (lePici): Coverity: change secure token
+2020-11-19 (lePici): Travis: delete 'master' branch in .travis.yml
+2020-11-19 (lePici): Travis: delete 'travis' branch in .travis.yml
+2020-11-19 (lePici): Travis: added script section in .travis.yml file
+2020-11-19 (lePici): Travis: added .travis.yml file
+2020-11-12 (Karel Hynek): Fixed RPM build when using libndp
+2020-11-11 (Jiri Havranek): fixed compilation when libndp is used
+2020-11-07 (Tomas Cejka): build: unify indentation
+2020-10-22 (Jiri Havranek): Update netbiosplugin.cpp
+2020-10-22 (Jiri Havranek): Update netbiosplugin.h
+2020-10-19 (xsedla1o): NetBIOS: Fixed dist build error
+2020-10-19 (xsedla1o): NetBIOS: Changed suffix type from bytes to uint8
+2020-10-19 (xsedla1o): NetBIOS: Review requested changes
+2020-10-19 (xsedla1o): NetBIOS: Added return value to store_first_query
+2020-10-19 (xsedla1o): NetBIOS: Fixed build without NEMEA
+2020-10-19 (xsedla1o): NetBIOS: Whitespace changes
+2020-10-19 (xsedla1o): NetBIOS: Added plugin test
+2020-10-19 (xsedla1o): NetBIOS: Added stats
+2020-10-19 (xsedla1o): NetBIOS: Implemented NBNS parsing
+2020-10-19 (xsedla1o): NetBIOS: Changed export fields
+2020-10-19 (xsedla1o): NetBIOS: Formatting
+2020-10-19 (xsedla1o): NetBIOS: Filled in export base
+2020-10-19 (xsedla1o): NetBIOS: Created plugin
+
 2020-11-01 (Jiri Havranek): improved conversion from microseconds to fraction when exporting ipfix
 2020-10-30 (Jiri Havranek): increased exported timestamp precision to microseconds
 2020-10-30 (Jiri Havranek): fixed payload length computation for frames shorter than 64 bytes
