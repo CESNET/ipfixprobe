@@ -952,26 +952,25 @@ int NdpPacketReader::get_pkt(PacketBlock &packets)
    for (unsigned i = 0; i < packets.size; i++) {
       ret = ndpReader.get_pkt(&ndp_packet, &ndp_header);
       if (ret == 0) {
-         if (opt.packet_valid) {
+         if (opt.pkts->cnt) {
             break;
          }
          return (live_capture ? 3 : 0);
+      } else if (ret < 0) {
+         // Error occured.
+         error_msg = ndpReader.error_msg;
+         return ret;
       }
       read_pkts++;
-
       packet_ndp_handler(&opt, ndp_packet, ndp_header);
    }
    processed += read_pkts;
    parsed += opt.pkts->cnt;
 
-   if (ret == 1 && opt.packet_valid) {
-      // Packet is valid and ready to process by flow_cache.
+   if (opt.pkts->cnt) {
+      // Packets are valid and ready to be process by flow_cache.
       return 2;
    }
-   if (ret < 0) {
-      // Error occured.
-      error_msg = ndpReader.error_msg;
-   }
-   return ret;
+   return 1;
 }
 #endif /* HAVE_NDP */
