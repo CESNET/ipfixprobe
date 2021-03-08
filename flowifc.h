@@ -79,6 +79,7 @@ enum extTypeEnum {
    arp,
    passivedns,
    pstats,
+   osquery,
    idpcontent,
    ovpn,
    ssdp,

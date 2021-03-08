@@ -72,7 +72,7 @@ us.
 
 ## Parameters
 ### Module specific parameters
-- `-p STRING`        Activate specified parsing plugins. Output interface for each plugin correspond the order which you specify items in -i and -p param. For example: '-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus
+- `-p STRING`        Activate specified parsing plugins. Output interface for each plugin correspond the order which you specify items in -i and -p param. For example: '-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,osquery,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus
   - Some plugins have features activated with additional parameters. Format: plugin_name[:plugin_param=value[:...]][,...] If plugin does not support parameters, any parameters given will be ignored. Supported plugin parameters are listed bellow with output data.
 - `-c NUMBER`        Quit after `NUMBER` of packets are captured.
 - `-I STRING`        Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can channel after interface delimited by : (/dev/nfb0:1) default is 0.
@@ -372,6 +372,23 @@ Note: the following fields are UniRec arrays.
 ```
 ipfixprobe -p pstats:includezeros -r sample.pcap -i "f:output.trapcap"
 ```
+
+### OSQUERY
+List of unirec fields exported together with basic flow fields on interface by OSQUERY plugin.
+
+| UniRec field               | Type     | Description                                         |
+|:--------------------------:|:--------:|:---------------------------------------------------:|
+| PROGRAM_NAME               | string   | The name of the program that handles the connection |
+| USERNAME                   | string   | The name of the user who starts the process         |
+| OS_NAME                    | string   | Distribution or product name                        |
+| OS_MAJOR                   | uint16   | Major release version                               |
+| OS_MINOR                   | uint16   | Minor release version                               |
+| OS_BUILD                   | string   | Optional build-specific or variant string           |
+| OS_PLATFORM                | string   | OS Platform or ID                                   |
+| OS_PLATFORM_LIKE           | string   | Closely related platforms                           |
+| OS_ARCH                    | string   | OS Architecture                                     |
+| KERNEL_VERSION             | string   | Kernel version                                      |
+| SYSTEM_HOSTNAME            | string   | Network hostname including domain                   |
 
 ### ARP
 List of unirec fields exported on interface by ARP plugin.

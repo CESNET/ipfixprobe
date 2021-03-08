@@ -226,6 +226,17 @@
 #define STATS_PCKT_TCPFLGS(F)         F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1015 (uint8*)
 #define STATS_PCKT_DIRECTIONS(F)      F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1016 (int8*)
 
+#define OSQUERY_PROGRAM_NAME(F)               F(8057,    852,  -1,   NULL)
+#define OSQUERY_USERNAME(F)                   F(8057,    853,  -1,   NULL)
+#define OSQUERY_OS_NAME(F)                    F(8057,    854,  -1,   NULL)
+#define OSQUERY_OS_MAJOR(F)                   F(8057,    855,   2,   NULL)
+#define OSQUERY_OS_MINOR(F)                   F(8057,    856,   2,   NULL)
+#define OSQUERY_OS_BUILD(F)                   F(8057,    857,  -1,   NULL)
+#define OSQUERY_OS_PLATFORM(F)                F(8057,    858,  -1,   NULL)
+#define OSQUERY_OS_PLATFORM_LIKE(F)           F(8057,    859,  -1,   NULL)
+#define OSQUERY_OS_ARCH(F)                    F(8057,    860,  -1,   NULL)
+#define OSQUERY_KERNEL_VERSION(F)             F(8057,    861,  -1,   NULL)
+#define OSQUERY_SYSTEM_HOSTNAME(F)            F(8057,    862,  -1,   NULL)
 
 /**
  * IPFIX Templates - list of elements
@@ -377,6 +388,19 @@
    F(STATS_PCKT_TCPFLGS) \
    F(STATS_PCKT_DIRECTIONS)
 
+#define IPFIX_OSQUERY_TEMPLATE(F) \
+   F(OSQUERY_PROGRAM_NAME) \
+   F(OSQUERY_USERNAME) \
+   F(OSQUERY_OS_NAME) \
+   F(OSQUERY_OS_MAJOR) \
+   F(OSQUERY_OS_MINOR) \
+   F(OSQUERY_OS_BUILD) \
+   F(OSQUERY_OS_PLATFORM) \
+   F(OSQUERY_OS_PLATFORM_LIKE) \
+   F(OSQUERY_OS_ARCH) \
+   F(OSQUERY_KERNEL_VERSION) \
+   F(OSQUERY_SYSTEM_HOSTNAME)
+                                  \
 #define IPFIX_OVPN_TEMPLATE(F) \
    F(OVPN_CONF_LEVEL)
 
@@ -435,6 +459,7 @@
    IPFIX_DNS_TEMPLATE(F) \
    IPFIX_PASSIVEDNS_TEMPLATE(F) \
    IPFIX_PSTATS_TEMPLATE(F) \
+   IPFIX_OSQUERY_TEMPLATE(F) \
    IPFIX_OVPN_TEMPLATE(F) \
    IPFIX_SMTP_TEMPLATE(F) \
    IPFIX_SSDP_TEMPLATE(F) \

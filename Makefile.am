@@ -62,6 +62,8 @@ ipfixprobe_src=main.cpp \
 		conversion.cpp \
 		pstatsplugin.h \
 		pstatsplugin.cpp \
+		osqueryplugin.h \
+		osqueryplugin.cpp \
 		ovpnplugin.h \
 		ovpnplugin.cpp \
 		byte-utils.h \
