@@ -70,6 +70,7 @@ class UnirecExporter : public FlowExporter
 {
 public:
    UnirecExporter(bool send_eof);
+   ~UnirecExporter();
    int init(const vector<FlowCachePlugin *> &plugins, int ifc_cnt, int basic_ifc_num, uint64_t link, uint8_t dir, bool odid);
    void close();
    int export_flow(Flow &flow);

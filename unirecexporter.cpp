@@ -100,6 +100,11 @@ UnirecExporter::UnirecExporter(bool send_eof) : out_ifc_cnt(0), ifc_mapping(NULL
    dropped = 0;
 }
 
+UnirecExporter::~UnirecExporter()
+{
+   close();
+}
+
 /**
  * \brief Initialize exporter.
  * \param [in] plugins Active plugins.
