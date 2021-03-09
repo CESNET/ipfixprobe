@@ -345,7 +345,6 @@ void NHTFlowCache::export_expired(time_t ts)
    }
 
    timeout_idx = (timeout_idx + line_new_index) & (size - 1);
-   return;
 }
 
 bool NHTFlowCache::create_hash_key(Packet &pkt)
