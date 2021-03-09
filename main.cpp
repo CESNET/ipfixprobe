@@ -291,6 +291,7 @@ struct InputStats {
    uint64_t bytes;
    uint64_t qtime;
    bool error;
+   std::string msg;
 };
 
 void input_thread(PacketReceiver *packetloader, PacketBlock *pkts, size_t pkt_cnt, ipx_ring_t *queue, std::promise<InputStats> *threadOutput)
@@ -299,7 +300,7 @@ void input_thread(PacketReceiver *packetloader, PacketBlock *pkts, size_t pkt_cn
    struct timespec end;
    size_t i = 0;
    int ret;
-   InputStats stats = {0, 0, 0, 0, false};
+   InputStats stats = {0, 0, 0, 0, false, ""};
    while (!terminate_input) {
       PacketBlock *block = &pkts[i];
       block->cnt = 0;
@@ -307,6 +308,7 @@ void input_thread(PacketReceiver *packetloader, PacketBlock *pkts, size_t pkt_cn
       ret = packetloader->get_pkt(*block);
       if (ret <= 0) {
          stats.error = ret < 0;
+         stats.msg = packetloader->error_msg;
          break;
       } else if (ret == 3) { /* Process timeout. */
          usleep(1);
@@ -1078,19 +1080,23 @@ EXIT:
       std::setw(10) << "packets" <<
       std::setw(10) << "parsed" <<
       std::setw(16) << "bytes" <<
-      std::setw(10) << "qtime" << std::endl;
+      std::setw(10) << "qtime" <<
+      std::setw(7)  << "status" << std::endl;
 
    for (unsigned i = 0; i < inputFutures.size(); i++) {
       InputStats input = inputFutures[i].get();
+      std::string status = "ok";
+      if (input.error) {
+         ret = EXIT_FAILURE;
+         status = input.msg;
+      }
       std::cout <<
          std::setw(3) << i << " " <<
          std::setw(9) << input.packets << " " <<
          std::setw(9) << input.parsed << " " <<
          std::setw(15) << input.bytes << " " <<
-         std::setw(9) << input.qtime << std::endl;
-      if (input.error) {
-         ret = EXIT_FAILURE;
-      }
+         std::setw(9) << input.qtime << " " <<
+         std::setw(6) << status << std::endl;
    }
 
    terminate_storage = 1;
