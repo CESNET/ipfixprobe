@@ -87,8 +87,13 @@ us.
 - `-D NUMBER`        Direction bit field value.
 - `-F STRING`        String containing filter expression to filter traffic. See man pcap-filter.
 - `-O`               Send ODID field instead of LINK_BIT_FIELD.
+- `-q NUMBER`        Input queue size (default 64).
+- `-Q NUMBER`        Output queue size (default 16536).
+- `-e NUMBER`        Export max N flows per second.
 - `-x STRING`        Export to IPFIX collector. Format: HOST:PORT or [HOST]:PORT.
 - `-u`               Use UDP when exporting to IPFIX collector.
+- `-V`               Print version.
+- `-v`               Increase verbosity of the output, it can be duplicated like -vv / -vvv.
 
 ### Common TRAP parameters
 - `-h [trap,1]`      Print help message for this module / for libtrap specific parameters.

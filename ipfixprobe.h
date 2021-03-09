@@ -90,6 +90,7 @@ struct options_t {
    uint32_t input_qsize;
    uint32_t input_pktblock_size;
    uint32_t snaplen;
+   uint32_t fps; // max exported flows per second
    struct timeval inactive_timeout;
    struct timeval active_timeout;
    struct timeval cache_stats_interval;
