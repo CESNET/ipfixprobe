@@ -387,12 +387,13 @@ void export_thread(FlowExporter *exp, ipx_ring_t *queue, std::promise<OutputStat
       gettimeofday(&end, NULL);
 
       Flow *flow = static_cast<Flow *>(ipx_ring_pop(queue));
-      if (terminate_export && !ipx_ring_cnt(queue)) {
-         break;
-      } else if (!flow) {
+      if (!flow) {
          if (end.tv_sec - last_flush.tv_sec > 1) {
             last_flush = end;
             exp->flush();
+         }
+         if (terminate_export && !ipx_ring_cnt(queue)) {
+            break;
          }
          continue;
       }
