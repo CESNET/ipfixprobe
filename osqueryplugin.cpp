@@ -43,6 +43,8 @@
 
 #include <iostream>
 #include <sstream>
+#include <cstring>
+#include <cstdio>
 
 #include "osqueryplugin.h"
 #include "flowifc.h"
