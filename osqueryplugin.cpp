@@ -81,9 +81,11 @@ OSQUERYPlugin::OSQUERYPlugin(const options_t &module_options, vector<plugin_opt>
 
 void OSQUERYPlugin::init()
 {
-   osqueryError = popen2("osqueryi --json", &inputFD, &outputFD) <= 0;
+   osqueryFatalError = popen2("osqueryi --json", &inputFD, &outputFD) <= 0;
+   osqueryFail = false;
    buffer = NULL;
-   if (!osqueryError)
+   numberOfQueries = 0;
+   if (!osqueryFatalError)
    {
       buffer = new char[BUFFER_SIZE];
       pollFDS = new pollfd;
@@ -92,10 +94,17 @@ void OSQUERYPlugin::init()
       pollFDS->events = POLLIN;
       pollFDS->revents = 0;
 
-      const char* query = "SELECT ov.name, ov.major, ov.minor, ov.build, ov.platform, ov.platform_like, ov.arch, ki.version, si.hostname FROM os_version AS ov, kernel_info AS ki, system_info AS si;\r\n";
-      if (getResponseFromOsquery(query) == 0 || !parseJsonOSVersion())
+
+      const string query = "SELECT ov.name, ov.major, ov.minor, ov.build, ov.platform, ov.platform_like, ov.arch, ki.version, si.hostname FROM os_version AS ov, kernel_info AS ki, system_info AS si;\r\n";
+      if (!getResponse(query))
       {
-         osqueryError = true;
+         osqueryFatalError = true;
+      } else {
+          if (!parseJsonOSVersion()) {
+              if (!getResponse(query) || !parseJsonOSVersion()) {
+                  osqueryFatalError = true;
+              }
+          }
       }
    }
 }
@@ -107,44 +116,43 @@ int OSQUERYPlugin::pre_create(Packet &pkt)
 
 int OSQUERYPlugin::post_create(Flow &rec, const Packet &pkt)
 {
-   std::stringstream ss;
-   ss << rec.src_ip.v4;
-   std::string ssrc_ip = ss.str();
+   stringstream ss;
+   ss << ((rec.src_ip.v4)       & 0x000000ff) << "."
+      << ((rec.src_ip.v4 >> 8)  & 0x000000ff) << "."
+      << ((rec.src_ip.v4 >> 16) & 0x000000ff) << "."
+      << ((rec.src_ip.v4 >> 24) & 0x000000ff);
+   string ssrc_ip = ss.str();
 
-   ss.str(std::string());
-   ss << rec.dst_ip.v4;
-   std::string sdst_ip = ss.str();
+   ss.str(string());
+   ss << ((rec.dst_ip.v4)       & 0x000000ff) << "."
+      << ((rec.dst_ip.v4 >> 8)  & 0x000000ff) << "."
+      << ((rec.dst_ip.v4 >> 16) & 0x000000ff) << "."
+      << ((rec.dst_ip.v4 >> 24) & 0x000000ff);
+   string sdst_ip = ss.str();
 
-   ss.str(std::string());
+   ss.str(string());
    ss << rec.src_port;
-   std::string ssrc_port = ss.str();
+   string ssrc_port = ss.str();
 
-   ss.str(std::string());
+   ss.str(string());
    ss << rec.dst_port;
-   std::string sdst_port = ss.str();
+   string sdst_port = ss.str();
 
-   std::string query = "SELECT p.name, u.username FROM processes AS p INNER JOIN users AS u ON p.uid=u.uid WHERE p.pid=(SELECT pos.pid FROM process_open_sockets AS pos WHERE "
-                       "local_address='" + ssrc_ip + "' AND " +
-                       "remote_address='" + sdst_ip + "' AND " +
-                       "local_port='" + ssrc_port + "' AND " +
-                       "remote_port='" + sdst_port + "'  LIMIT 1);";
+   string query = "SELECT p.name, u.username FROM processes AS p INNER JOIN users AS u ON p.uid=u.uid WHERE p.pid=(SELECT pos.pid FROM process_open_sockets AS pos WHERE "
+                  "local_address='" + ssrc_ip + "' AND " +
+                  "remote_address='" + sdst_ip + "' AND " +
+                  "local_port='" + ssrc_port + "' AND " +
+                  "remote_port='" + sdst_port + "'  LIMIT 1);";
 
-   // todo
-   if (getResponseFromOsquery(query.c_str()) == 0 || !parseJsonAboutProgram())
-   {
-       osqueryError = true;
+   getResponseFromOsquery(query);
+   if (!osqueryFatalError && !osqueryFail) {
+       parseJsonAboutProgram();
    }
 
-   if (!osqueryError)
-   {
-       RecordExtOSQUERY *record = new RecordExtOSQUERY(recordExtOsquery);
-       rec.addExtension(record);
-   }
-   else
-   {
-       // todo how to show the error?
-   }
+   RecordExtOSQUERY *record = new RecordExtOSQUERY(recordExtOsquery);
+   rec.addExtension(record);
 
+   numberOfQueries++;
    return 0;
 }
 
@@ -173,8 +181,8 @@ void OSQUERYPlugin::finish()
    }
 
    if (print_stats) {
-      // todo
-      //cout << "OSQUERY plugin stats:" << endl;
+       cout << "OSQUERY plugin stats:" << endl;
+       cout << "Number of queries:" << numberOfQueries << endl;
    }
 }
 
@@ -198,20 +206,54 @@ bool OSQUERYPlugin::include_basic_flow_fields()
    return true;
 }
 
-size_t OSQUERYPlugin::getResponseFromOsquery(const char* query)
+bool OSQUERYPlugin::getResponse(const string &query) {
+    if (osqueryFatalError) {
+        return false;
+    }
+
+    osqueryFail = false;
+
+    getResponseFromOsquery(query);
+    if (osqueryFatalError) {
+        return false;
+    }
+    if (!osqueryFail) {
+        return true;
+    }
+
+    close(inputFD);
+    close(outputFD);
+
+    osqueryFatalError = popen2("osqueryi --json", &inputFD, &outputFD) <= 0;
+    if (osqueryFatalError) {
+        return false;
+    }
+
+    getResponseFromOsquery(query);
+    if (osqueryFatalError || osqueryFail) {
+        return false;
+    }
+    return true;
+}
+
+void OSQUERYPlugin::getResponseFromOsquery(const string &query)
 {
-   if (osqueryError) {
-      return 0;
+   if (osqueryFatalError) {
+      return;
    }
 
-   ssize_t numWrite = write(inputFD, query, strlen(query));
+   osqueryFail = false;
+
+   ssize_t numWrite = write(inputFD, query.c_str(), query.length());
    if (numWrite == -1) {
-      return 0;
+      osqueryFail = true;
+      return;
    }
 
    int ret = poll(pollFDS, 1, POLL_TIMEOUT);
    if (ret == -1 || ret == 0) {
-      return 0;
+      osqueryFail = true;
+      return;
    }
 
    if (pollFDS[0].revents & POLLIN) {
@@ -222,7 +264,8 @@ size_t OSQUERYPlugin::getResponseFromOsquery(const char* query)
          if (bytes_read + READ_SIZE < BUFFER_SIZE) {
             ssize_t n = read(outputFD, buffer + bytes_read, READ_SIZE);
             if (n < 0) {
-               return 0;
+               osqueryFail = true;
+               return;
             }
 
             bytes_read = bytes_read + n;
@@ -231,21 +274,32 @@ size_t OSQUERYPlugin::getResponseFromOsquery(const char* query)
                break;
             }
          } else {
-            return 0;
+            ssize_t n = read(outputFD, buffer, READ_SIZE);
+            if (n < 0) {
+               osqueryFail = true;
+               return;
+            }
+            if (n > 1 && buffer[n - 2] == ']') {
+               buffer[bytes_read] = 0;
+               osqueryFail = true;
+               return;
+            }
+
          }
       }
 
       buffer[bytes_read] = 0;
-      return bytes_read;
+      return;
    }
-   return 0;
+   osqueryFatalError = true;
+   return;
 }
 
 bool OSQUERYPlugin::parseJsonOSVersion()
 {
    int pos = 1;
    int count = 0;
-   std::string key, value;
+   string key, value;
    while (true) {
       key.clear();
       value.clear();
@@ -256,40 +310,32 @@ bool OSQUERYPlugin::parseJsonOSVersion()
       if (pos == 0) {
          return count == 9;
       }
-
       if (key == "arch") {
-         strncpy(recordExtOsquery->os_arch, value.c_str(), OSQUERY_FIELD_LENGTH - 1);
-         recordExtOsquery->os_arch[OSQUERY_FIELD_LENGTH - 1] = 0;
+         recordExtOsquery->os_arch = string(value);
          count++;
       } else if (key == "build") {
-         strncpy(recordExtOsquery->os_build, value.c_str(), OSQUERY_FIELD_LENGTH - 1);
-         recordExtOsquery->os_build[OSQUERY_FIELD_LENGTH - 1] = 0;
+         recordExtOsquery->os_build = value;
          count++;
       } else if (key == "hostname") {
-         strncpy(recordExtOsquery->system_hostname, value.c_str(), OSQUERY_FIELD_LENGTH - 1);
-         recordExtOsquery->system_hostname[OSQUERY_FIELD_LENGTH - 1] = 0;
+         recordExtOsquery->system_hostname = value;
          count++;
       } else if (key == "major") {
-         recordExtOsquery->os_major = std::atoi(value.c_str());
+         recordExtOsquery->os_major = atoi(value.c_str());
          count++;
       } else if (key == "minor") {
-         recordExtOsquery->os_minor = std::atoi(value.c_str());
+         recordExtOsquery->os_minor = atoi(value.c_str());
          count++;
       } else if (key == "name") {
-         strncpy(recordExtOsquery->os_name, value.c_str(), OSQUERY_FIELD_LENGTH - 1);
-         recordExtOsquery->os_name[OSQUERY_FIELD_LENGTH - 1] = 0;
+         recordExtOsquery->os_name = value;
          count++;
       } else if (key == "platform") {
-         strncpy(recordExtOsquery->os_platform, value.c_str(), OSQUERY_FIELD_LENGTH - 1);
-         recordExtOsquery->os_platform[OSQUERY_FIELD_LENGTH - 1] = 0;
+         recordExtOsquery->os_platform = value;
          count++;
       } else if (key == "platform_like") {
-         strncpy(recordExtOsquery->os_platform_like, value.c_str(), OSQUERY_FIELD_LENGTH - 1);
-         recordExtOsquery->os_platform_like[OSQUERY_FIELD_LENGTH - 1] = 0;
+         recordExtOsquery->os_platform_like = value;
          count++;
       } else if (key == "version") {
-         strncpy(recordExtOsquery->kernel_version, value.c_str(), OSQUERY_FIELD_LENGTH - 1);
-         recordExtOsquery->kernel_version[OSQUERY_FIELD_LENGTH - 1] = 0;
+         recordExtOsquery->kernel_version = value;
          count++;
       } else {
          return false;
@@ -301,7 +347,7 @@ bool OSQUERYPlugin::parseJsonAboutProgram()
 {
    int pos = 1;
    int count = 0;
-   std::string key, value;
+   string key, value;
    while (true) {
       key.clear();
       value.clear();
@@ -314,12 +360,10 @@ bool OSQUERYPlugin::parseJsonAboutProgram()
       }
 
       if (key == "name") {
-         strncpy(recordExtOsquery->program_name, value.c_str(), OSQUERY_FIELD_LENGTH - 1);
-         recordExtOsquery->program_name[OSQUERY_FIELD_LENGTH - 1] = 0;
+         recordExtOsquery->program_name = value;
          count++;
       } else if (key == "username") {
-         strncpy(recordExtOsquery->username, value.c_str(), OSQUERY_FIELD_LENGTH - 1);
-         recordExtOsquery->username[OSQUERY_FIELD_LENGTH - 1] = 0;
+         recordExtOsquery->username = value;
          count++;
       } else {
          return false;
@@ -327,7 +371,7 @@ bool OSQUERYPlugin::parseJsonAboutProgram()
    }
 }
 
-int OSQUERYPlugin::parseJsonItem(int from, std::string &key, std::string &value)
+int OSQUERYPlugin::parseJsonItem(int from, string &key, string &value)
 {
    int pos = parseString(from, key);
    if (pos < 0) {
@@ -347,7 +391,7 @@ int OSQUERYPlugin::parseJsonItem(int from, std::string &key, std::string &value)
    return pos;
 }
 
-int OSQUERYPlugin::parseString(int from, std::string &str)
+int OSQUERYPlugin::parseString(int from, string &str)
 {
    int pos = from;
    bool findQuotes = false;
@@ -363,7 +407,6 @@ int OSQUERYPlugin::parseString(int from, std::string &str)
            if (!findQuotes) {
                findQuotes = true;
            } else {
-               pos++;
                break;
            }
        } else if (findQuotes) {

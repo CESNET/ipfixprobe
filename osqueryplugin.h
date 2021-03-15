@@ -62,71 +62,72 @@ using namespace std;
 
 #define READ 0
 #define WRITE 1
-#define POLL_TIMEOUT 200 // in millis // todo
+#define POLL_TIMEOUT 200 // in millis
 #define OSQUERY_FIELD_LENGTH 64
 #define BUFFER_SIZE 20 * 1024
 #define READ_SIZE 1024
+#define UNDEFINED_TEXT "UNDEFINED"
 
 /**
  * \brief Flow record extension header for storing parsed OSQUERY packets.
  */
 struct RecordExtOSQUERY : RecordExt {
-    char program_name[OSQUERY_FIELD_LENGTH]; // fill undefined value
-    char username[OSQUERY_FIELD_LENGTH]; // fill undefined value
-    char os_name[OSQUERY_FIELD_LENGTH];
+    string program_name; // fill undefined value
+    string username; // fill undefined value
+    string os_name;
     uint16_t os_major;
     uint16_t os_minor;
-    char os_build[OSQUERY_FIELD_LENGTH];
-    char os_platform[OSQUERY_FIELD_LENGTH];
-    char os_platform_like[OSQUERY_FIELD_LENGTH];
-    char os_arch[OSQUERY_FIELD_LENGTH];
-    char kernel_version[OSQUERY_FIELD_LENGTH];
-    char system_hostname[OSQUERY_FIELD_LENGTH];
+    string os_build;
+    string os_platform;
+    string os_platform_like;
+    string os_arch;
+    string kernel_version;
+    string system_hostname;
 
 
    RecordExtOSQUERY() : RecordExt(osquery)
    {
-       program_name[0] = 0;
-       username[0] = 0;
-       os_name[0] = 0;
+       program_name = UNDEFINED_TEXT;
+       username = UNDEFINED_TEXT;
+       os_name = UNDEFINED_TEXT;
        os_major = 0;
        os_minor = 0;
-       os_build[0] = 0;
-       os_platform[0] = 0;
-       os_platform_like[0] = 0;
-       os_arch[0] = 0;
-       kernel_version[0] = 0;
-       system_hostname[0] = 0;
+       os_build = UNDEFINED_TEXT;
+       os_platform = UNDEFINED_TEXT;
+       os_platform_like = UNDEFINED_TEXT;
+       os_arch = UNDEFINED_TEXT;
+       kernel_version = UNDEFINED_TEXT;
+       system_hostname = UNDEFINED_TEXT;
    }
 
    RecordExtOSQUERY(const RecordExtOSQUERY *record) : RecordExt(osquery) {
-       strncpy(program_name, record->program_name, OSQUERY_FIELD_LENGTH - 1);
-       strncpy(username, record->username, OSQUERY_FIELD_LENGTH - 1);
-       strncpy(os_name, record->os_name, OSQUERY_FIELD_LENGTH - 1);
+       program_name = record->program_name;
+       username = record->username;
+       os_name = record->os_name;
        os_major = record->os_major;
        os_minor = record->os_minor;
-       strncpy(os_build, record->os_build, OSQUERY_FIELD_LENGTH - 1);
-       strncpy(os_platform, record->os_platform, OSQUERY_FIELD_LENGTH - 1);
-       strncpy(os_platform_like, record->os_platform_like, OSQUERY_FIELD_LENGTH - 1);
-       strncpy(os_arch, record->os_arch, OSQUERY_FIELD_LENGTH - 1);
-       strncpy(kernel_version, record->kernel_version, OSQUERY_FIELD_LENGTH - 1);
-       strncpy(system_hostname, record->system_hostname, OSQUERY_FIELD_LENGTH - 1);
+       os_build = record->os_build;
+       os_platform = record->os_platform;
+       os_platform_like = record->os_platform_like;
+       os_arch = record->os_arch;
+       kernel_version = record->kernel_version;
+       system_hostname = record->system_hostname;
    }
 
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
-       ur_set_string(tmplt, record, F_OSQUERY_PROGRAM_NAME, program_name);
-       ur_set_string(tmplt, record, F_OSQUERY_USERNAME, username);
-       ur_set_string(tmplt, record, F_OSQUERY_OS_NAME, os_name);
+       ur_set_string(tmplt, record, F_OSQUERY_PROGRAM_NAME, program_name.c_str());
+       ur_set_string(tmplt, record, F_OSQUERY_USERNAME, username.c_str());
+       ur_set_string(tmplt, record, F_OSQUERY_OS_NAME, os_name.c_str());
        ur_set(tmplt, record, F_OSQUERY_OS_MAJOR, os_major);
        ur_set(tmplt, record, F_OSQUERY_OS_MINOR, os_minor);
-       ur_set_string(tmplt, record, F_OSQUERY_OS_BUILD, os_build);
-       ur_set_string(tmplt, record, F_OSQUERY_OS_PLATFORM, os_platform);
-       ur_set_string(tmplt, record, F_OSQUERY_OS_PLATFORM_LIKE, os_platform_like);
-       ur_set_string(tmplt, record, F_OSQUERY_OS_ARCH, os_arch);
-       ur_set_string(tmplt, record, F_OSQUERY_KERNEL_VERSION, kernel_version);
-       ur_set_string(tmplt, record, F_OSQUERY_SYSTEM_HOSTNAME, system_hostname);
+       ur_set_string(tmplt, record, F_OSQUERY_OS_BUILD, os_build.c_str());
+       ur_set_string(tmplt, record, F_OSQUERY_OS_PLATFORM, os_platform.c_str());
+       ur_set_string(tmplt, record, F_OSQUERY_OS_PLATFORM_LIKE, os_platform_like.c_str());
+       ur_set_string(tmplt, record, F_OSQUERY_OS_ARCH, os_arch.c_str());
+       ur_set_string(tmplt, record, F_OSQUERY_KERNEL_VERSION, kernel_version.c_str());
+       ur_set_string(tmplt, record, F_OSQUERY_SYSTEM_HOSTNAME, system_hostname.c_str());
    }
 #endif
 
@@ -135,30 +136,30 @@ struct RecordExtOSQUERY : RecordExt {
        int length, total_length = 0;
 
        // OSQUERY_PROGRAM_NAME
-       length = strlen(program_name);
+       length = program_name.length();
        if (total_length + length + 1 > size) {
            return -1;
        }
        buffer[total_length] = length;
-       memcpy(buffer + total_length + 1, program_name, length);
+       memcpy(buffer + total_length + 1, program_name.c_str(), length);
        total_length += length + 1;
 
        // OSQUERY_USERNAME
-       length = strlen(username);
+       length = username.length();
        if (total_length + length + 1 > size) {
            return -1;
        }
        buffer[total_length] = length;
-       memcpy(buffer + total_length + 1, username, length);
+       memcpy(buffer + total_length + 1, username.c_str(), length);
        total_length += length + 1;
 
        // OSQUERY_OS_NAME
-       length = strlen(os_name);
+       length = os_name.length();
        if (total_length + length + 1 > size) {
            return -1;
        }
        buffer[total_length] = length;
-       memcpy(buffer + total_length + 1, os_name, length);
+       memcpy(buffer + total_length + 1, os_name.c_str(), length);
        total_length += length + 1;
 
        // OSQUERY_OS_MAJOR
@@ -170,57 +171,57 @@ struct RecordExtOSQUERY : RecordExt {
        total_length += 2;
 
        // OSQUERY_OS_BUILD
-       length = strlen(os_build);
+       length = os_build.length();
        if (total_length + length + 1 > size) {
            return -1;
        }
        buffer[total_length] = length;
-       memcpy(buffer + total_length + 1, os_build, length);
+       memcpy(buffer + total_length + 1, os_build.c_str(), length);
        total_length += length + 1;
 
        // OSQUERY_OS_PLATFORM
-       length = strlen(os_platform);
+       length = os_platform.length();
        if (total_length + length + 1 > size) {
            return -1;
        }
        buffer[total_length] = length;
-       memcpy(buffer + total_length + 1, os_platform, length);
+       memcpy(buffer + total_length + 1, os_platform.c_str(), length);
        total_length += length + 1;
 
        // OSQUERY_OS_PLATFORM_LIKE
-       length = strlen(os_platform_like);
+       length = os_platform_like.length();
        if (total_length + length + 1 > size) {
            return -1;
        }
        buffer[total_length] = length;
-       memcpy(buffer + total_length + 1, os_platform_like, length);
+       memcpy(buffer + total_length + 1, os_platform_like.c_str(), length);
        total_length += length + 1;
 
        // OSQUERY_OS_ARCH
-       length = strlen(os_arch);
+       length = os_arch.length();
        if (total_length + length + 1 > size) {
            return -1;
        }
        buffer[total_length] = length;
-       memcpy(buffer + total_length + 1, os_arch, length);
+       memcpy(buffer + total_length + 1, os_arch.c_str(), length);
        total_length += length + 1;
 
        // OSQUERY_KERNEL_VERSION
-       length = strlen(kernel_version);
+       length = kernel_version.length();
        if (total_length + length + 1 > size) {
            return -1;
        }
        buffer[total_length] = length;
-       memcpy(buffer + total_length + 1, kernel_version, length);
+       memcpy(buffer + total_length + 1, kernel_version.c_str(), length);
        total_length += length + 1;
 
        // OSQUERY_SYSTEM_HOSTNAME
-       length = strlen(system_hostname);
+       length = system_hostname.length();
        if (total_length + length + 1 > size) {
            return -1;
        }
        buffer[total_length] = length;
-       memcpy(buffer + total_length + 1, system_hostname, length);
+       memcpy(buffer + total_length + 1, system_hostname.c_str(), length);
        total_length += length + 1;
 
        return total_length;
@@ -247,12 +248,13 @@ public:
    bool include_basic_flow_fields();
 
 private:
+   bool getResponse(const string &query);
    /**
     * Reads osquery data
     * @param query
-    * @return number of bytes read or 0 in case of error
+    * @return void
     */
-   size_t getResponseFromOsquery(const char* query);
+   void getResponseFromOsquery(const string &query);
    bool parseJsonOSVersion();
    bool parseJsonAboutProgram();
 
@@ -263,7 +265,7 @@ private:
     * @param value
     * @return -1 - error, 0 - end of json row, other - position of next value
     */
-   int parseJsonItem(int from, std::string &key, std::string &value);
+   int parseJsonItem(int from, string &key, string &value);
 
    /**
     * Parses a single json string
@@ -271,7 +273,7 @@ private:
     * @param str string from json
     * @return -1 - error, 0 - end of json row, other - position of next value
     */
-   int parseString(int from, std::string &str);
+   int parseString(int from, string &str);
 
    pid_t popen2(const char *command, int *inFD, int *outFD);
 
@@ -280,7 +282,9 @@ private:
    RecordExtOSQUERY* recordExtOsquery;
    int inputFD;
    int outputFD;
-   bool osqueryError;
+   bool osqueryFatalError;
+   bool osqueryFail;
+   int numberOfQueries;
    bool print_stats;       /**< Print stats when flow cache finish. */
 };
 
