@@ -788,7 +788,7 @@ void IPFIXExporter::send_data()
    pkt.data = buffer;
 
    /* Send all new templates */
-   if (create_data_packet(&pkt)) {
+   while (create_data_packet(&pkt)) {
       if (send_packet(&pkt) == 1) {
          /* Collector reconnected, resend the packet */
          send_packet(&pkt);
