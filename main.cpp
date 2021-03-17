@@ -1,6 +1,6 @@
 /**
- * \file flow_meter.cpp
- * \brief Main file of the flow_meter module.
+ * \file ipfixprobe.cpp
+ * \brief Main file of the ipfixprobe module.
  * \author Vaclav Bartos <bartos@cesnet.cz>
  * \author Jiri Havranek <havraji6@fit.cvut.cz>
  * \date 2014
@@ -102,7 +102,7 @@ int terminate_storage = 0;
 int terminate_input = 0;
 
 #define MODULE_BASIC_INFO(BASIC) \
-  BASIC("flow_meter", "Convert packets from PCAP file or network interface into biflow records.", 0, -1)
+  BASIC("ipfixprobe", "Convert packets from PCAP file or network interface into biflow records.", 0, -1)
 
 #define SUPPORTED_PLUGINS_LIST "http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios"
 
@@ -117,7 +117,7 @@ int terminate_input = 0;
   PARAM('h', "help", "Print this help.", no_argument, "none")\
   PARAM('I', "interface", "Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can channel after interface delimited by : (/dev/nfb0:1) default is 0", required_argument, "string")\
   PARAM('r', "file", "Pcap file to read. - to read from stdin.", required_argument, "string") \
-  PARAM('n', "no_eof", "Don't send NULL record message when flow_meter exits.", no_argument, "none") \
+  PARAM('n', "no_eof", "Don't send NULL record message on exit.", no_argument, "none") \
   PARAM('l', "snapshot_len", "Snapshot length when reading packets. Set value between 120-65535.", required_argument, "uint32") \
   PARAM('t', "timeout", "Active and inactive timeout in seconds. Format: DOUBLE:DOUBLE. Value default means use default value 300.0:30.0.", required_argument, "string") \
   PARAM('s', "cache_size", "Size of flow cache. Parameter is used as an exponent to the power of two. Valid numbers are in range 4-30. default is 17 (131072 records).", required_argument, "string") \
@@ -458,7 +458,7 @@ static inline void double_to_timeval(double value, struct timeval &time)
  */
 inline int error(const string &e)
 {
-   cerr << "flow_meter: " << e << endl;
+   cerr << "Error: " << e << endl;
    return EXIT_FAILURE;
 }
 

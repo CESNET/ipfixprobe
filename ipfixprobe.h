@@ -1,5 +1,5 @@
 /**
- * \file flow_meter.h
+ * \file ipfixprobe.h
  * \author Vaclav Bartos <bartos@cesnet.cz>
  * \author Jiri Havranek <havraji6@fit.cvut.cz>
  * \date 2014

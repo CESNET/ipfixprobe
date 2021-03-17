@@ -159,7 +159,7 @@ bool DNSSDPlugin::parse_params(const string &params, string &config_file)
                return false;
             }
          } else {
-            cerr << "flow_meter: dnssd: Warning - ignoring parameter with key: " << key << endl;
+            cerr << "ipfixprobe: dnssd: Warning - ignoring parameter with key: " << key << endl;
          }
       }
       begin = end + 1;
@@ -232,7 +232,7 @@ void DNSSDPlugin::load_txtconfig(const char *config_file)
 
    in_file.open(config_file);
    if (!in_file) {
-      cerr << "flow_meter: dnssd plugin: " << strerror(errno) << " '" << config_file << "'\n";
+      cerr << "ipfixprobe: dnssd plugin: " << strerror(errno) << " '" << config_file << "'\n";
       return;
    }
    string line, part;
