@@ -117,7 +117,7 @@ int terminate_input = 0;
   PARAM('h', "help", "Print this help.", no_argument, "none")\
   PARAM('I', "interface", "Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can channel after interface delimited by : (/dev/nfb0:1) default is 0", required_argument, "string")\
   PARAM('r', "file", "Pcap file to read. - to read from stdin.", required_argument, "string") \
-  PARAM('n', "no_eof", "Don't send NULL record message on exit.", no_argument, "none") \
+  PARAM('n', "no_eof", "Don't send NULL record message on exit (for NEMEA output).", no_argument, "none") \
   PARAM('l', "snapshot_len", "Snapshot length when reading packets. Set value between 120-65535.", required_argument, "uint32") \
   PARAM('t', "timeout", "Active and inactive timeout in seconds. Format: DOUBLE:DOUBLE. Value default means use default value 300.0:30.0.", required_argument, "string") \
   PARAM('s', "cache_size", "Size of flow cache. Parameter is used as an exponent to the power of two. Valid numbers are in range 4-30. default is 17 (131072 records).", required_argument, "string") \

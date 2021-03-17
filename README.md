@@ -77,7 +77,7 @@ us.
 - `-c NUMBER`        Quit after `NUMBER` of packets are captured.
 - `-I STRING`        Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can channel after interface delimited by : (/dev/nfb0:1) default is 0.
 - `-r STRING`        Pcap file to read. `-` to read from stdin.
-- `-n`               Don't send NULL record when ipfixprobe exits (for NEMEA output).
+- `-n`               Don't send NULL record on exit (for NEMEA output).
 - `-l NUMBER`        Snapshot length when reading packets. Set value between `120`-`65535`.
 - `-t NUM:NUM`       Active and inactive timeout in seconds. Format: DOUBLE:DOUBLE. Value default means use default value 300.0:30.0.
 - `-s STRING`        Size of flow cache. Parameter is used as an exponent to the power of two. Valid numbers are in range 4-30. default is 17 (131072 records).
