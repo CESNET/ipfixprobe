@@ -36,6 +36,10 @@
  * otherwise) arising in any way out of the use of this software, even
  * if advised of the possibility of such damage.
 */
+
+#ifndef BYTEUTILS
+#define BYTEUTILS
+
 #include <stdint.h>
 
 /**
@@ -55,4 +59,6 @@ static inline uint64_t swap_uint64(uint64_t value)
    value = ((value << 16) & 0xFFFF0000FFFF0000ULL ) | ((value >> 16) & 0x0000FFFF0000FFFFULL );
    return (value << 32) | (value >> 32);
 }
+#endif
+
 #endif

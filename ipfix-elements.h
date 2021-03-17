@@ -107,6 +107,10 @@
 #define L3_IPV4_FRAGMENT(F)           F(0,       88,    2,   NULL)
 #define L3_IPV4_TTL(F)                F(0,      192,    1,   NULL)
 #define L3_IPV6_TTL(F)                F(0,      192,    1,   NULL)
+#define L3_TTL(F)                     F(0,      192,    1,   NULL)
+#define L3_TTL_REV(F)                 F(29305,  192,    1,   NULL)
+#define L3_FLAGS(F)                   F(0,      197,    1,   NULL)
+#define L3_FLAGS_REV(F)               F(29305,  197,    1,   NULL)
 
 #define L4_PROTO(F)                   F(0,        4,    1,   &flow.ip_proto)
 #define L4_TCP_FLAGS(F)               F(0,        6,    1,   &flow.src_tcp_control_bits)
@@ -114,6 +118,15 @@
 #define L4_PORT_SRC(F)                F(0,        7,    2,   &flow.src_port)
 #define L4_PORT_DST(F)                F(0,       11,    2,   &flow.dst_port)
 #define L4_ICMP_TYPE_CODE(F)          F(0,       32,    2,   NULL)
+#define L4_TCP_WIN(F)                 F(0,       186,   2,   NULL)
+#define L4_TCP_WIN_REV(F)             F(29305,   186,   2,   NULL)
+#define L4_TCP_OPTIONS(F)             F(0,       209,   8,   NULL)
+#define L4_TCP_OPTIONS_REV(F)         F(29305,   209,   8,   NULL)
+
+
+#define L4_TCP_MSS(F)                 F(8057,   900,   4,   NULL)
+#define L4_TCP_MSS_REV(F)             F(8057,   901,   4,   NULL)
+#define L4_TCP_SYN_SIZE(F)            F(8057,   902,   2,   NULL)
 
 #define HTTP_USERAGENT(F)             F(16982,  100,   -1,   NULL)
 #define HTTP_METHOD(F)                F(16982,  101,   -1,   NULL)
@@ -214,6 +227,19 @@
 #define STATS_PCKT_DIRECTIONS(F)      F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1016 (int8*)
 
 
+#define SBI_BRST_PACKETS(F)           F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1050 (uint16*)
+#define SBI_BRST_BYTES(F)             F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1051 (uint16*)
+#define SBI_BRST_TIME_START(F)        F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1052 (time*)
+#define SBI_BRST_TIME_STOP(F)         F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1053 (time*)
+#define DBI_BRST_PACKETS(F)           F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1054 (uint16*)
+#define DBI_BRST_BYTES(F)             F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1055 (uint16*)
+#define DBI_BRST_TIME_START(F)        F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1056 (time*)
+#define DBI_BRST_TIME_STOP(F)         F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1057 (time*)
+
+#define D_PHISTS_IPT(F)               F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1063 (uint16*)
+#define D_PHISTS_SIZES(F)             F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1062 (uint16*)
+#define S_PHISTS_SIZES(F)             F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1060 (uint16*)
+#define S_PHISTS_IPT(F)               F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1061 (uint16*)
 /**
  * IPFIX Templates - list of elements
  *
@@ -382,10 +408,43 @@
   F(IDP_CONTENT) \
   F(IDP_CONTENT_REV)
 
+#define IPFIX_BSTATS_TEMPLATE(F) \
+  F(SBI_BRST_PACKETS) \
+  F(SBI_BRST_BYTES) \
+  F(SBI_BRST_TIME_START) \
+  F(SBI_BRST_TIME_STOP) \
+  F(DBI_BRST_PACKETS) \
+  F(DBI_BRST_BYTES) \
+  F(DBI_BRST_TIME_START) \
+  F(DBI_BRST_TIME_STOP)
+
 #define IPFIX_NETBIOS_TEMPLATE(F) \
    F(NB_SUFFIX) \
    F(NB_NAME)
 
+#define IPFIX_NETBIOS_TEMPLATE(F) \
+   F(NB_SUFFIX) \
+   F(NB_NAME)
+
+#define IPFIX_BASICPLUS_TEMPLATE(F) \
+   F(L3_TTL) \
+   F(L3_TTL_REV) \
+   F(L3_FLAGS) \
+   F(L3_FLAGS_REV) \
+   F(L4_TCP_WIN) \
+   F(L4_TCP_WIN_REV) \
+   F(L4_TCP_OPTIONS) \
+   F(L4_TCP_OPTIONS_REV) \
+   F(L4_TCP_MSS) \
+   F(L4_TCP_MSS_REV) \
+   F(L4_TCP_SYN_SIZE)
+
+#define IPFIX_PHISTS_TEMPLATE(F) \
+  F(S_PHISTS_SIZES) \
+  F(S_PHISTS_IPT) \
+  F(D_PHISTS_SIZES) \
+  F(D_PHISTS_IPT)
+  
 /**
  * List of all known templated.
  *
@@ -410,7 +469,11 @@
    IPFIX_SSDP_TEMPLATE(F) \
    IPFIX_DNSSD_TEMPLATE(F) \
    IPFIX_IDPCONTENT_TEMPLATE(F) \
-   IPFIX_NETBIOS_TEMPLATE(F)
+   IPFIX_NETBIOS_TEMPLATE(F) \
+   IPFIX_BASICPLUS_TEMPLATE(F) \
+   IPFIX_BSTATS_TEMPLATE(F) \
+   IPFIX_PHISTS_TEMPLATE(F)
+
 
 
 /**

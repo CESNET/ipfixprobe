@@ -1,6 +1,6 @@
 /**
- * \file ipfixprobe.cpp
- * \brief Main file of the ipfixprobe module.
+ * \file main.cpp
+ * \brief Main file of the ipfixprobe exporter.
  * \author Vaclav Bartos <bartos@cesnet.cz>
  * \author Jiri Havranek <havraji6@fit.cvut.cz>
  * \date 2014
@@ -89,6 +89,9 @@
 #include "dnssdplugin.h"
 #include "idpcontentplugin.h"
 #include "netbiosplugin.h"
+#include "phistsplugin.h"
+#include "bstatsplugin.h"
+#include "basicplusplugin.h"
 
 using namespace std;
 
@@ -104,12 +107,12 @@ int terminate_input = 0;
 #define MODULE_BASIC_INFO(BASIC) \
   BASIC("ipfixprobe", "Convert packets from PCAP file or network interface into biflow records.", 0, -1)
 
-#define SUPPORTED_PLUGINS_LIST "http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios"
+#define SUPPORTED_PLUGINS_LIST "http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus,bstats,phists"
 
 // TODO: remove parameters when using ndp
 #define MODULE_PARAMS(PARAM) \
   PARAM('p', "plugins", "Activate specified parsing plugins. Output interface for each plugin correspond the order which you specify items in -i and -p param. "\
-  "For example: \'-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter"\
+  "For example: \'-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, ipfixprobe"\
   " will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: " SUPPORTED_PLUGINS_LIST \
   " Some plugins have features activated with additional parameters. Format: plugin_name[:plugin_param=value[:...]][,...] If plugin does not support parameters, any parameters given will be ignored."\
   " Supported plugin parameters are listed in README", required_argument, "string")\
@@ -219,7 +222,7 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
          plugins.push_back(new PassiveDNSPlugin(module_options, tmp));
       } else if (proto == "pstats"){
          vector<plugin_opt> tmp;
-         tmp.push_back(plugin_opt("pstats", pstats, ifc_num++));
+         tmp.push_back(plugin_opt("pstats", pstats, ifc_num++, params));
 
          plugins.push_back(new PSTATSPlugin(module_options, tmp));
       } else if (proto == "ovpn"){
@@ -247,6 +250,20 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
          tmp.push_back(plugin_opt("netbios", netbios, ifc_num++, params));
 
          plugins.push_back(new NETBIOSPlugin(module_options, tmp));
+      } else if (proto == "basicplus"){
+         vector<plugin_opt> tmp;
+         tmp.push_back(plugin_opt("basicplus", basicplus, ifc_num++, params));
+
+         plugins.push_back(new BASICPLUSPlugin(module_options, tmp));
+      } else if (proto == "bstats"){
+         vector<plugin_opt> tmp;
+         tmp.push_back(plugin_opt("bstats", bstats, ifc_num++, params));
+
+         plugins.push_back(new BSTATSPlugin(module_options, tmp));
+      } else if (proto == "phists"){
+         vector<plugin_opt> tmp;
+         tmp.push_back(plugin_opt("phists", phists, ifc_num++, params));
+         plugins.push_back(new PHISTSPlugin(module_options, tmp));
       } else {
          fprintf(stderr, "Unsupported plugin: \"%s\"\n", proto.c_str());
          return -1;

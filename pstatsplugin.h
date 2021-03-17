@@ -49,7 +49,7 @@
 #include <cstring>
 
 #ifdef WITH_NEMEA
-#include "fields.h"
+# include "fields.h"
 #endif
 
 #include "flowifc.h"
@@ -57,90 +57,40 @@
 #include "packet.h"
 #include "ipfixprobe.h"
 #include "byte-utils.h"
-
+#include "ipfix-basiclist.h"
 
 #ifndef PSTATS_MAXELEMCOUNT
-#define PSTATS_MAXELEMCOUNT 30
+# define PSTATS_MAXELEMCOUNT 30
 #endif
 
 using namespace std;
-
-static inline uint64_t tv2ts(timeval input)
-{
-  return static_cast<uint64_t>(input.tv_sec) * 1000 + (input.tv_usec / 1000);
-}
-
 
 /**
  * \brief Flow record extension header for storing parsed PSTATS packets.
  */
 struct RecordExtPSTATS : RecordExt {
-   uint16_t pkt_sizes[PSTATS_MAXELEMCOUNT];
-   uint8_t pkt_tcp_flgs[PSTATS_MAXELEMCOUNT];
+   uint16_t       pkt_sizes[PSTATS_MAXELEMCOUNT];
+   uint8_t        pkt_tcp_flgs[PSTATS_MAXELEMCOUNT];
    struct timeval pkt_timestamps[PSTATS_MAXELEMCOUNT];
-   int8_t pkt_dirs[PSTATS_MAXELEMCOUNT];
-   uint16_t pkt_count;
+   int8_t         pkt_dirs[PSTATS_MAXELEMCOUNT];
+   uint16_t       pkt_count;
 
-   typedef enum eHdrFieldID
-   {
-      PktSize = 1013,
+   typedef enum eHdrFieldID {
+      PktSize  = 1013,
       PktFlags = 1015,
-      PktDir = 1016,
+      PktDir   = 1016,
       PktTmstp = 1014
    } eHdrSemantic;
 
-
-   struct IpfixBasicRecordListHdr {
-     IpfixBasicRecordListHdr(uint8_t flag, uint16_t length, uint8_t hdrSemantic,
-                          uint16_t hdrFieldID, uint16_t hdrElementLength,
-                          uint32_t hdrEnterpriseNum):flag(flag),
-                          length(length),hdrSemantic(hdrSemantic),
-                          hdrFieldID(hdrFieldID),
-                          hdrElementLength(hdrElementLength),
-                          hdrEnterpriseNum(hdrEnterpriseNum){};
-     uint8_t flag;
-     uint16_t length;
-     uint8_t hdrSemantic;
-     uint16_t hdrFieldID;
-     uint16_t hdrElementLength;
-     uint32_t hdrEnterpriseNum;
-   };
-
-   static const uint8_t IpfixBasicListRecordHdrSize = 12;
-   static const uint8_t IpfixBasicListHdrSize = 9;
    static const uint32_t CesnetPem = 8057;
 
-   int32_t FillBasicListBuffer(RecordExtPSTATS::IpfixBasicRecordListHdr& IpfixBasicListRecord, uint8_t * buffer, int size)
-   {
-     uint32_t bufferPtr = 0;
-      //Copy flag
-     buffer[bufferPtr] = IpfixBasicListRecord.flag;
-     bufferPtr += sizeof(uint8_t);
-     //Copy length;
-     *(reinterpret_cast<uint16_t*>(buffer + bufferPtr)) = htons(IpfixBasicListRecord.length);
-     bufferPtr += sizeof(uint16_t);
-     //copy hdr_semantic
-     buffer[bufferPtr] = IpfixBasicListRecord.hdrSemantic;
-     bufferPtr += sizeof(uint8_t);
-     //copy hdr_field_id
-     *(reinterpret_cast<uint16_t*>(buffer + bufferPtr)) = htons(IpfixBasicListRecord.hdrFieldID);
-     bufferPtr += sizeof(uint16_t);
-
-     *(reinterpret_cast<uint16_t*>(buffer + bufferPtr)) = htons(IpfixBasicListRecord.hdrElementLength);
-     bufferPtr += sizeof(uint16_t);
-
-     *(reinterpret_cast<uint32_t*>(buffer + bufferPtr)) = htonl(IpfixBasicListRecord.hdrEnterpriseNum);
-     bufferPtr += sizeof(uint32_t);
-
-     return bufferPtr;
-   }
 
    RecordExtPSTATS() : RecordExt(pstats)
    {
       pkt_count = 0;
    }
 
-#ifdef WITH_NEMEA
+   #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
       ur_array_allocate(tmplt, record, F_PPI_PKT_TIMES, pkt_count);
@@ -156,66 +106,35 @@ struct RecordExtPSTATS : RecordExt {
          ur_array_set(tmplt, record, F_PPI_PKT_DIRECTIONS, i, pkt_dirs[i]);
       }
    }
-#endif
+
+   #endif // ifdef WITH_NEMEA
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
       int32_t bufferPtr;
-      RecordExtPSTATS::IpfixBasicRecordListHdr hdr(255,//Maximum size see rfc631
-            IpfixBasicListHdrSize + pkt_count * (sizeof(uint16_t)),
-            3,
-            ((1 << 15) | (uint16_t) PktSize),
-            sizeof(uint16_t),
-            CesnetPem);
-
+      IpfixBasicList basiclist;
+      basiclist.hdrEnterpriseNum = IpfixBasicList::CesnetPEM;
       //Check sufficient size of buffer
-      int req_size = 4 * IpfixBasicListRecordHdrSize /* sizes, times, flags, dirs */ +
+      int req_size = 4 * basiclist.HeaderSize() /* sizes, times, flags, dirs */ +
                        pkt_count * sizeof(uint16_t) /* sizes */ +
                        2 * pkt_count * sizeof(uint32_t) /* times */ +
                        pkt_count /* flags */ +
                        pkt_count /* dirs */;
+
       if (req_size > size) {
          return -1;
       }
-
-      // Fill sizes
-      //fill buffer with basic list header and packet sizes
-      bufferPtr = FillBasicListBuffer(hdr, buffer, size);
-      for (int i = 0; i < pkt_count; i++) {
-         (*reinterpret_cast<uint16_t *>(buffer + bufferPtr)) = htons(pkt_sizes[i]);
-         bufferPtr += sizeof(uint16_t);
-      }
-
-      //update information in hdr for next basic list with packet timestamps
-      //timestamps are in format [i] = sec, [i+1] = usec
-      hdr.length = IpfixBasicListHdrSize + pkt_count * (sizeof(uint64_t));
-      hdr.hdrFieldID = ((1 << 15) | (uint16_t) PktTmstp);
-      hdr.hdrElementLength = sizeof(uint64_t);
-      bufferPtr += FillBasicListBuffer(hdr, buffer + bufferPtr, size);
-      for (int i = 0; i < pkt_count; i++) {
-         (*reinterpret_cast<uint64_t *>(buffer + bufferPtr)) = swap_uint64(tv2ts(pkt_timestamps[i]));
-         bufferPtr += sizeof(uint64_t);
-
-      }
-
+      // Fill packet sizes
+      bufferPtr = basiclist.FillBuffer(buffer, pkt_sizes, pkt_count, (uint16_t) PktSize);
+      // Fill timestamps
+      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, pkt_timestamps, pkt_count,(uint16_t) PktTmstp);
       // Fill tcp flags
-      hdr.length = IpfixBasicListHdrSize + pkt_count * (sizeof(uint8_t));
-      hdr.hdrFieldID = ((1 << 15) | (uint16_t) PktFlags);
-      hdr.hdrElementLength = sizeof(uint8_t);
-      bufferPtr += FillBasicListBuffer(hdr, buffer + bufferPtr, size);
-      memcpy(buffer + bufferPtr, pkt_tcp_flgs, pkt_count);
-      bufferPtr += pkt_count;
-
+      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, pkt_tcp_flgs, pkt_count, (uint16_t) PktFlags);
       // Fill directions
-      hdr.length = IpfixBasicListHdrSize + pkt_count * (sizeof(int8_t));
-      hdr.hdrFieldID = ((1 << 15) | (uint16_t) PktDir);
-      hdr.hdrElementLength = sizeof(int8_t);
-      bufferPtr += FillBasicListBuffer(hdr, buffer + bufferPtr, size);
-      memcpy(buffer + bufferPtr, pkt_dirs, pkt_count);
-      bufferPtr += pkt_count;
+      bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, pkt_dirs, pkt_count,(uint16_t) PktDir);
 
       return bufferPtr;
-   }
+   } // fillIPFIX
 };
 
 /**
@@ -235,7 +154,9 @@ public:
    bool include_basic_flow_fields();
 
 private:
-   bool print_stats;       /**< Indicator whether to print stats when flow cache is finishing or not. */
+   void check_plugin_options(vector<plugin_opt>& plugin_options);
+   bool print_stats; /**< Indicator whether to print stats when flow cache is finishing or not. */
+   bool use_zeros;
 };
 
-#endif
+#endif // ifndef PSTATSPLUGIN_H

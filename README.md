@@ -72,7 +72,7 @@ us.
 
 ## Parameters
 ### Module specific parameters
-- `-p STRING`        Activate specified parsing plugins. Output interface for each plugin correspond the order which you specify items in -i and -p param. For example: '-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios
+- `-p STRING`        Activate specified parsing plugins. Output interface for each plugin correspond the order which you specify items in -i and -p param. For example: '-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus
   - Some plugins have features activated with additional parameters. Format: plugin_name[:plugin_param=value[:...]][,...] If plugin does not support parameters, any parameters given will be ignored. Supported plugin parameters are listed bellow with output data.
 - `-c NUMBER`        Quit after `NUMBER` of packets are captured.
 - `-I STRING`        Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can channel after interface delimited by : (/dev/nfb0:1) default is 0.
@@ -150,6 +150,24 @@ Basic unirec fields exported on interface with basic (pseudo) plugin. These fiel
 | PROTOCOL               | uint8            | transport protocol                                  |
 | TCP_FLAGS              | uint8            | TCP protocol flags (src to dst)                     |
 | TCP_FLAGS_REV          | uint8            | TCP protocol flags (dst to src)                     |
+
+### Basic plus
+List of unirec fields exported together with basic flow fields on interface by basicplus plugin.
+Fields without `_REV` suffix are fields from source flow. Fields with `_REV` are from the opposite direction.
+
+| UniRec field | Type   | Description                 |
+|:------------:|:------:|:---------------------------:|
+| IP_TTL       | uint8  | IP TTL field                |
+| IP_TTL_REV   | uint8  | IP TTL field                |
+| IP_FLG       | uint8  | IP FLAGS                    |
+| IP_FLG_REV   | uint8  | IP FLAGS                    |
+| TCP_WIN      | uint16 | TCP window size             |
+| TCP_WIN_REV  | uint16 | TCP window size             |
+| TCP_OPT      | uint64 | TCP options bitfield        |
+| TCP_OPT_REV  | uint64 | TCP options bitfield        |
+| TCP_MSS      | uint32 | TCP maximum segment size    |
+| TCP_MSS_REV  | uint32 | TCP maximum segment size    |
+| TCP_SYN_SIZE | uint16 | TCP SYN packet size         |
 
 ### HTTP
 List of unirec fields exported together with basic flow fields on interface by HTTP plugin.
@@ -353,6 +371,14 @@ Note: the following fields are UniRec arrays.
 | PPI_PKT_DIRECTIONS         | int8\*   | directions of the first packets        |
 | PPI_PKT_FLAGS              | uint8\*  | TCP flags for each packet              |
 
+#### Plugin parameters:
+- includezeros - Include zero-length packets in the lists.
+
+##### Example:
+```
+ipfixprobe -p pstats:includezeros -r sample.pcap -i "f:output.trapcap"
+```
+
 ### ARP
 List of unirec fields exported on interface by ARP plugin.
 
@@ -430,6 +456,51 @@ List of UniRec fields exported together with basic flow fields on interface by N
 |:-------------:|:------:|:---------------------------:|
 | NB_NAME       | string | NetBIOS Name Service name   |
 | NB_SUFFIX     | uint8  | NetBIOS Name Service suffix |
+
+### PHISTS
+
+List of UniRec fields exported together with basic flow fields on the interface by PHISTS plugin.
+The plugin exports the histograms of Payload sizes and Inter-Packet-Times for each direction. The
+histograms bins are scaled logarithmicaly and are shown in following table:
+
+| Bin Number | Size Len   | Inter Packet Time |
+|:----------:|:----------:|:-----------------:|
+| 1          | 0-15 B     |  0-15 ms          |
+| 2          | 16-31 B    |  16-31 ms         |
+| 3          | 32-63 B    |  32-63 ms         |
+| 4          | 64-127 B   |  64-127 ms        |
+| 5          | 128-255 B  |  128-255 ms       |
+| 6          | 256-511 B  |  256-511 ms       |
+| 7          | 512-1023 B |  512-1023 ms      |
+| 8          | > 1024 B   |  > 1024 ms        |
+
+The exported unirec fields and IPFIX basiclists is shown in following table:
+
+| UniRec field        | Type    | Description                             |
+|:-------------------:|:-------:|:---------------------------------------:|
+| D_PHISTS_IPT        | uint32\*| DST->SRC: Histogram of interpacket times|
+| D_PHISTS_SIZES      | uint32\*| DST->SRC: Histogram of packet sizes     |
+| S_PHISTS_IPT        | uint32\*| SRC->DST: Histogram of interpacket times|
+| S_PHISTS_SIZES      | uint32\*| SRC->DST: Histogram of packet sizes     |
+
+
+### BSTATS
+
+List of UniRec fields exported together with basic flow fields on the interface by BSTATS plugin.
+The plugin is compiled to export the first `BSTATS_MAXELENCOUNT` (15 by default) burst in each direction.
+The bursts are computed separately for each direction. Burst is defined by `MINIMAL_PACKETS_IN_BURST` (3 by default) and by `MAXIMAL_INTERPKT_TIME` (1000 ms by default) between packets to be included in a burst.
+
+| UniRec field        | Type    | Description                                                     |
+|:-------------------:|:-------:|:---------------------------------------------------------------:|
+| SBI_BRST_PACKETS    | uint32\* | SRC->DST: Number of packets transmitted in i<sup>th</sup> burst|
+| SBI_BRST_BYTES      | uint32\* | SRC->DST: Number of bytes transmitted in i<sup>th</sup> burst  |
+| SBI_BRST_TIME_START | time\*   | SRC->DST: Start time of the i<sup>th</sup> burst               |
+| SBI_BRST_TIME_STOP  | time\*   | SRC->DST: End time of the i<sup>th</sup> burst                 |
+| DBI_BRST_PACKETS    | uint32\* | DST->SRC: Number of packets transmitted in i<sup>th</sup> burst|
+| DBI_BRST_BYTES      | uint32\* | DST->SRC: Number of bytes transmitted in i<sup>th</sup> burst  |
+| DBI_BRST_TIME_START | time\*   | DST->SRC: Start time of the i<sup>th</sup> burst               |
+| DBI_BRST_TIME_STOP  | time\*   | DST->SRC: End time of the i<sup>th</sup> burst                 |
+
 
 ## Simplified function diagram
 Diagram below shows how `ipfixprobe` works.

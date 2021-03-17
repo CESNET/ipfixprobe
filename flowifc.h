@@ -84,6 +84,9 @@ enum extTypeEnum {
    ssdp,
    dnssd,
    netbios,
+   basicplus,
+   bstats,
+   phists,
    /* Add extension header identifiers for your plugins here */
    EXTENSION_CNT
 };
