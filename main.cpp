@@ -132,6 +132,7 @@ int terminate_input = 0;
   PARAM('q', "iqueue", "Input queue size (default 64).", required_argument, "uint32") \
   PARAM('Q', "oqueue", "Output queue size (default 16536).", required_argument, "uint32") \
   PARAM('e', "fps", "Export max N flows per second.", required_argument, "uint32") \
+  PARAM('m', "mtu", "Max size of IPFIX data packet payload to send.", required_argument, "uint16") \
   PARAM('V', "version", "Print version.", no_argument, "none")\
   PARAM('v', "verbose", "Increase verbosity of the output, it can be duplicated like -vv / -vvv.", no_argument, "none")
 
@@ -539,12 +540,19 @@ int main(int argc, char *argv[])
    GEN_LONG_OPT_STRUCT(MODULE_PARAMS);
 #endif
 
-   bool export_unirec = false, export_ipfix = false, help = false, udp = false;
-   int ifc_cnt = 0, verbose = -1;
+   bool export_unirec = false;
+   bool export_ipfix = false;
+   bool help = false;
+   bool udp = false;
+   int ifc_cnt = 0;
+   int verbose = -1;
    uint64_t link = 1;
    uint32_t pkt_limit = 0; /* Limit of packets for packet parser. 0 = no limit */
    uint8_t dir = 0;
-   string host = "", port = "", filter = "";
+   std::string host = "";
+   std::string port = "";
+   std::string filter = "";
+   uint16_t mtu = PACKET_DATA_SIZE;
 
    for (int i = 0; i < argc; i++) {
       if (!strcmp(argv[i], "-i")) {
@@ -845,6 +853,15 @@ int main(int argc, char *argv[])
                return error("Invalid argument for option -e");
             }
             break;
+      case 'm':
+            if (!str_to_uint16(optarg, mtu)) {
+#ifdef WITH_NEMEA
+               FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
+               TRAP_DEFAULT_FINALIZATION();
+#endif
+               return error("Invalid argument for option -m");
+            }
+            break;
       default:
 #ifdef WITH_NEMEA
          FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
@@ -917,7 +934,7 @@ int main(int argc, char *argv[])
 #endif
    } else {
       IPFIXExporter *ipxe = new IPFIXExporter();
-      if (ipxe->init(plugin_wrapper.plugins, options.basic_ifc_num, link, host, port, udp, (verbose >= 0), dir) != 0) {
+      if (ipxe->init(plugin_wrapper.plugins, options.basic_ifc_num, link, host, port, udp, mtu, (verbose >= 0), dir) != 0) {
 #ifdef WITH_NEMEA
          TRAP_DEFAULT_FINALIZATION();
 #endif

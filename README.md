@@ -90,6 +90,7 @@ us.
 - `-q NUMBER`        Input queue size (default 64).
 - `-Q NUMBER`        Output queue size (default 16536).
 - `-e NUMBER`        Export max N flows per second.
+- `-m NUMBER`        Max size of IPFIX data packet payload to send.
 - `-x STRING`        Export to IPFIX collector. Format: HOST:PORT or [HOST]:PORT.
 - `-u`               Use UDP when exporting to IPFIX collector.
 - `-V`               Print version.

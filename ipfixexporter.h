@@ -58,11 +58,10 @@ using namespace std;
 #define IPFIX_SET_HEADER_SIZE 4
 #define TEMPLATE_BUFFER_SIZE (PACKET_DATA_SIZE - IPFIX_HEADER_SIZE)
 #define TEMPLATE_FIELD_COUNT (0 IPFIX_ENABLED_TEMPLATES(COUNT_IPFIX_TEMPLATES))
-#define TEMPLATE_RECORD_SIZE ((TEMPLATE_FIELD_COUNT) * 8)
+#define TEMPLATE_RECORD_SIZE ((TEMPLATE_FIELD_COUNT) * 8) // 2B eNum, 2B eID, 4B length
 #define RECONNECT_TIMEOUT 60
 #define TEMPLATE_REFRESH_TIME 600
 #define TEMPLATE_REFRESH_PACKETS 0
-
 
 typedef struct {
 	char *name; /**< Record name */
@@ -78,7 +77,7 @@ typedef struct template_t {
 	uint16_t id; /**< Template ID */
 	uint8_t templateRecord[TEMPLATE_RECORD_SIZE]; /**< Buffer for template record */
 	uint16_t templateSize; /**< Size of template record buffer */
-	uint8_t buffer[TEMPLATE_BUFFER_SIZE]; /**< Buffer with data for template */
+	uint8_t *buffer; /**< Buffer with data for template */
 	uint16_t bufferSize; /**< Size of data buffer */
 	uint16_t recordCount; /**< Number of records in buffer */
 	uint16_t fieldCount; /**< Number of elements in template */
@@ -92,7 +91,7 @@ typedef struct template_t {
  * \brief Structure of ipfix packet used by send functions
  */
 typedef struct {
-	char *data; /**< Buffer for data */
+	uint8_t *data; /**< Buffer for data */
 	uint16_t length; /**< Length of data */
 	uint16_t flows; /**< Number of flow records in the packet */
 } ipfix_packet_t;
@@ -197,7 +196,8 @@ public:
    ~IPFIXExporter();
    int export_flow(Flow &flow);
    int export_packet(Packet &pkt);
-   int init(const vector<FlowCachePlugin *> &plugins, int basic_ifc_num, uint32_t odid, string host, string port, bool udp, bool verbose, uint8_t dir = 1);
+   int init(const vector<FlowCachePlugin *> &plugins, int basic_ifc_num, uint32_t odid, string host, string port,
+      bool udp, uint16_t mtu, bool verbose, uint8_t dir = 1);
    void flush();
    void shutdown();
 private:
@@ -227,10 +227,14 @@ private:
    uint32_t templateRefreshPackets; /**< UDP template refresh packet interval */
    uint8_t dir_bit_field;     /**< Direction bit field value. */
 
+   uint16_t mtu; /**< Max size of packet payload sent */
+   uint8_t *packetDataBuffer; /**< Data buffer to store packet */
+   uint16_t tmpltMaxBufferSize; /**< Size of template buffer, tmpltBufferSize < packetDataBuffer */
+
    void init_template_buffer(template_t *tmpl);
-   int fill_template_set_header(char *ptr, uint16_t size);
+   int fill_template_set_header(uint8_t *ptr, uint16_t size);
    void check_template_lifetime(template_t *tmpl);
-   int fill_ipfix_header(char *ptr, uint16_t size);
+   int fill_ipfix_header(uint8_t *ptr, uint16_t size);
    template_file_record_t *get_template_record_by_name(const char *name);
    void expire_templates();
    template_t *create_template(const char **tmplt, const char **ext);
