@@ -47,6 +47,7 @@
 #include <string>
 #include <poll.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 
 #ifdef WITH_NEMEA
@@ -60,20 +61,30 @@
 
 using namespace std;
 
-#define READ 0
-#define WRITE 1
-#define POLL_TIMEOUT 200 // in millis
-#define OSQUERY_FIELD_LENGTH 64
-#define BUFFER_SIZE 20 * 1024
-#define READ_SIZE 1024
-#define UNDEFINED_TEXT "UNDEFINED"
+#define DEFAULT_FILL_TEXT "UNDEFINED"
+
+// OsqueryStateHandler
+#define FATAL_ERROR_FLAG    0b00000001 // 1;  Fatal error, cannot be fixed
+#define OPEN_FD_ERROR_FLAG  0b00000010 // 2;  Failed to open osquery FD
+#define READ_ERROR_FLAG     0b00000100 // 4;  Error while reading
+#define READ_SUCCESS_FLAG   0b00001000 // 8;  Data read successfully
+
+// OsqueryRequestManager
+#define BUFFER_SIZE             1024 * 20 + 1
+#define READ_SIZE               1024
+#define POLL_TIMEOUT            200 // millis
+#define READ_FD                 0
+#define WRITE_FD                1
+#define MAX_NUMBER_OF_ATTEMPTS  2 // Max number of osquery error correction attempts
+
+
 
 /**
  * \brief Flow record extension header for storing parsed OSQUERY packets.
  */
 struct RecordExtOSQUERY : RecordExt {
-    string program_name; // fill undefined value
-    string username; // fill undefined value
+    string program_name;
+    string username;
     string os_name;
     uint16_t os_major;
     uint16_t os_minor;
@@ -87,17 +98,17 @@ struct RecordExtOSQUERY : RecordExt {
 
    RecordExtOSQUERY() : RecordExt(osquery)
    {
-       program_name = UNDEFINED_TEXT;
-       username = UNDEFINED_TEXT;
-       os_name = UNDEFINED_TEXT;
+       program_name = DEFAULT_FILL_TEXT;
+       username = DEFAULT_FILL_TEXT;
+       os_name = DEFAULT_FILL_TEXT;
        os_major = 0;
        os_minor = 0;
-       os_build = UNDEFINED_TEXT;
-       os_platform = UNDEFINED_TEXT;
-       os_platform_like = UNDEFINED_TEXT;
-       os_arch = UNDEFINED_TEXT;
-       kernel_version = UNDEFINED_TEXT;
-       system_hostname = UNDEFINED_TEXT;
+       os_build = DEFAULT_FILL_TEXT;
+       os_platform = DEFAULT_FILL_TEXT;
+       os_platform_like = DEFAULT_FILL_TEXT;
+       os_arch = DEFAULT_FILL_TEXT;
+       kernel_version = DEFAULT_FILL_TEXT;
+       system_hostname = DEFAULT_FILL_TEXT;
    }
 
    RecordExtOSQUERY(const RecordExtOSQUERY *record) : RecordExt(osquery) {
@@ -228,6 +239,166 @@ struct RecordExtOSQUERY : RecordExt {
    }
 };
 
+
+/**
+ * \brief Osquery state handler.
+ */
+struct OsqueryStateHandler {
+    OsqueryStateHandler() : OSQUERY_STATE(0) {}
+
+    bool isErrorState() const { return (OSQUERY_STATE & (FATAL_ERROR_FLAG | OPEN_FD_ERROR_FLAG | READ_ERROR_FLAG)); }
+
+    void setFatalErrorFlag() { OSQUERY_STATE |= FATAL_ERROR_FLAG; }
+    bool getFatalErrorFlag() const { return (OSQUERY_STATE & FATAL_ERROR_FLAG); }
+
+    void setOpenFDErrorFlag() { OSQUERY_STATE |= OPEN_FD_ERROR_FLAG; }
+    bool getOpenFDErrorFlag() const { return (OSQUERY_STATE & OPEN_FD_ERROR_FLAG); }
+
+    void setReadErrorFlag() { OSQUERY_STATE |= READ_ERROR_FLAG; }
+    bool getReadErrorFlag() const { return (OSQUERY_STATE & READ_ERROR_FLAG); }
+
+    void setReadSuccessFlag() { OSQUERY_STATE |= READ_SUCCESS_FLAG; }
+    bool getReadSuccessFlag() const { return (OSQUERY_STATE & READ_SUCCESS_FLAG); }
+
+    /**
+     * Reset the state. Fatal and open fd errors will not be reset.
+     */
+    void refresh() { OSQUERY_STATE = OSQUERY_STATE & 0b00000011; }
+
+    /**
+     * Reset the state. Fatal and open fd errors will be reset.
+     */
+    void reset() { OSQUERY_STATE = 0; }
+
+private:
+    uint8_t OSQUERY_STATE;
+};
+
+
+/**
+ * \brief Manager for communication with osquery
+ */
+struct OsqueryRequestManager {
+    OsqueryRequestManager();
+
+    ~OsqueryRequestManager();
+
+    const RecordExtOSQUERY* getRecord() { return recOsquery; }
+
+    /**
+     * Fills the record with OS values from osquery.
+     */
+    void readInfoAboutOS();
+
+    /**
+     * Fills the record with program values from osquery.
+     */
+    void readInfoAboutProgram(const string &query);
+
+private:
+    /**
+     * Sends a request and receives a response from osquery
+     * @param query
+     * @param reopenFD if true, tries to reopen fd
+     * @return number of bytes read
+     */
+    size_t executeQuery(const string &query, bool reopenFD = false);
+
+    /**
+     * Writes query to osquery input FD.
+     * @param query - sql query according to osquery standards
+     * @return true if success or false
+     */
+    bool writeToOsquery(const char *query);
+
+    /**
+     * Reads data from osquery output FD.
+     * Can set flags: READ_ERROR_FLAG, READ_SUCCESS_FLAG
+     * @return number of bytes read
+     */
+    size_t readFromOsquery();
+
+    /**
+     * Opens osquery FD.
+     * Can set flags: FATAL_ERROR_FLAG, OPEN_FD_ERROR_FLAG;
+     */
+    void openOsqueryFD();
+
+    /**
+     * Closes osquery FD
+     */
+    void closeOsqueryFD();
+
+    /**
+     * Before reopening osquery tries to kill the previous osquery process.
+     * @param useWhonangOption - default true
+     * If \param useWhonangOption == true then the waitpid() function will be used
+     * in non-blocking mode(can be called before the process is ready to close,
+     * the process will remain in a zombie state). At the end of the application,
+     * a zombie process may remain, it will be killed when the application is closed.
+     *
+     * if \param useWhonangOption == false then the waitpid() function will be used
+     * in blocking mode(will wait for the process to complete). Will kill all unnecessary
+     * processes, but will block the application until the killed process is finished.
+     */
+    void killPreviousProcesses(bool useWhonangOption = true) const;
+
+    /**
+     * Parses json by template.
+     * @return true if success or false
+     */
+    bool parseJsonOSVersion();
+
+    /**
+     * Parses json by template.
+     * @return true if success or false
+     */
+    bool parseJsonAboutProgram();
+
+    /**
+     * From position \param from tries to find two strings between quotes ["key":"value"].
+     * @param from - start position in the buffer
+     * @param key - value for the "key" parsing result
+     * @param value - value for the "value" parsing result
+     * @return the position where the text search ended, 0 - end of json row, -1 - end of buffer
+     */
+    int parseJsonItem(int from, string &key, string &value);
+
+    /**
+     * From position \param from tries to find string between quotes.
+     * @param from - start position in the buffer
+     * @param str - value for the parsing result
+     * @return the position where the text search ended, 0 - end of json row, -1 - end of buffer
+     */
+    int parseString(int from, string &str);
+
+    /**
+     * Create a new process for connecting FD.
+     * @param command - command to execute in sh
+     * @param inFD - input FD
+     * @param outFD - output FD
+     * @return pid of the new process
+     */
+    pid_t popen2(const char *command, int *inFD, int *outFD) const;
+
+    /**
+     * Sets the first five elements of the buffer to zero.
+     */
+    void clearBuffer() { buffer[0] = buffer[1] = buffer[2] = buffer[3] = buffer[4] = 0; }
+
+    int inputFD;
+    int outputFD;
+    char *buffer;
+    pollfd *pfd;
+    RecordExtOSQUERY *recOsquery;
+    bool isFDOpened;
+    int numberOfAttempts;
+    pid_t osqueryProcessId;
+
+    OsqueryStateHandler handler;
+};
+
+
 /**
  * \brief Flow cache plugin for parsing OSQUERY packets.
  */
@@ -248,42 +419,7 @@ public:
    bool include_basic_flow_fields();
 
 private:
-   bool getResponse(const string &query);
-   /**
-    * Reads osquery data
-    * @param query
-    * @return void
-    */
-   void getResponseFromOsquery(const string &query);
-   bool parseJsonOSVersion();
-   bool parseJsonAboutProgram();
-
-   /**
-    * Parses a single json element "key":"value"
-    * @param from position of the first character of the buffer
-    * @param key
-    * @param value
-    * @return -1 - error, 0 - end of json row, other - position of next value
-    */
-   int parseJsonItem(int from, string &key, string &value);
-
-   /**
-    * Parses a single json string
-    * @param from position of the first character of the buffer
-    * @param str string from json
-    * @return -1 - error, 0 - end of json row, other - position of next value
-    */
-   int parseString(int from, string &str);
-
-   pid_t popen2(const char *command, int *inFD, int *outFD);
-
-   char *buffer;
-   pollfd *pollFDS;
-   RecordExtOSQUERY* recordExtOsquery;
-   int inputFD;
-   int outputFD;
-   bool osqueryFatalError;
-   bool osqueryFail;
+   OsqueryRequestManager *manager;
    int numberOfQueries;
    bool print_stats;       /**< Print stats when flow cache finish. */
 };
