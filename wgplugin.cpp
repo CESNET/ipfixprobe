@@ -69,18 +69,12 @@ WGPlugin::WGPlugin(const options_t &module_options, vector<plugin_opt> plugin_op
    print_stats = module_options.print_stats;
 }
 
-int WGPlugin::pre_create(Packet &pkt)
-{
-   return 0;
-}
-
 int WGPlugin::post_create(Flow &rec, const Packet &pkt)
 {
-   return 0;
-}
+   if (pkt.ip_proto == IPPROTO_UDP) {
+      return add_ext_wg(pkt.payload, pkt.payload_length, rec);
+   }
 
-int WGPlugin::pre_update(Flow &rec, Packet &pkt)
-{
    return 0;
 }
 
@@ -96,7 +90,9 @@ void WGPlugin::pre_export(Flow &rec)
 void WGPlugin::finish()
 {
    if (print_stats) {
-      //cout << "WG plugin stats:" << endl;
+      cout << "WG plugin stats:" << endl;
+      cout << "   Identified WG packets: " << identified << endl;
+      cout << "   Total packets processed: " << total << endl;
    }
 }
 
@@ -118,5 +114,58 @@ string WGPlugin::get_unirec_field_string()
 bool WGPlugin::include_basic_flow_fields()
 {
    return true;
+}
+
+bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, RecordExtWG *ext)
+{
+   total++;
+
+   // The smallest message (according to specs) is the data message (0x04) with 16 header bytes.
+   // Anything below is not a valid WireGuard message.
+   if (payload_len < 16) {
+      return false;
+   }
+
+   // Let's try to parse according to the first 4 bytes, and see if that is enough.
+   // The first byte is 0x01-0x04, the following three bytes are reserved (0x00).
+   uint32_t pkt_start = *data;
+   uint8_t pkt_type = data[0];
+   if (pkt_type < WG_PACKETTYPE_INIT_TO_RESP && pkt_type > WG_PACKETTYPE_TRANSPORT_DATA) {
+      return false;
+   }
+   // TODO: possible endianity issues?
+   if ((pkt_start & 0x00FFFFFF) != 0x0) {
+      return false;
+   }
+
+   // TODO: more properties need to be parsed
+   if (pkt_type == WG_PACKETTYPE_INIT_TO_RESP) {
+      ext->src_peer = *(data+4);
+   } else if (pkt_type == WG_PACKETTYPE_RESP_TO_INIT) {
+      ext->src_peer = *(data+4);
+      ext->dst_peer = *(data+8);
+   } else if (pkt_type == WG_PACKETTYPE_COOKIE_REPLY) {
+      ext->dst_peer = *(data+4);
+   } else if (pkt_type == WG_PACKETTYPE_TRANSPORT_DATA) {
+      ext->dst_peer = *(data+4);
+   }
+
+   // TODO see if this is really enough
+   identified++;
+   return true;
+}
+
+int WGPlugin::add_ext_wg(const char *data, unsigned int payload_len, Flow &rec)
+{
+   RecordExtWG *ext = new RecordExtWG();
+   // try to parse WireGuard packet
+   if (!parse_wg(data, payload_len, ext)) {
+      delete ext;
+      return 0;
+   } else {
+      rec.addExtension(ext);
+   }
+
+   return FLOW_FLUSH;
 }
 

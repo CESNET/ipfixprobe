@@ -57,6 +57,15 @@
 
 using namespace std;
 
+
+/**
+ * \brief WireGuard packet types.
+ */
+#define WG_PACKETTYPE_INIT_TO_RESP   0x01    /**< Initiator to Responder message **/
+#define WG_PACKETTYPE_RESP_TO_INIT   0x02    /**< Responder to Initiator message **/
+#define WG_PACKETTYPE_COOKIE_REPLY   0x03    /**< Cookie Reply (under load) message **/
+#define WG_PACKETTYPE_TRANSPORT_DATA 0x04    /**< Transport Data message **/
+
 /**
  * \brief Flow record extension header for storing parsed WG packets.
  */
@@ -103,9 +112,7 @@ class WGPlugin : public FlowCachePlugin
 public:
    WGPlugin(const options_t &module_options);
    WGPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
-   int pre_create(Packet &pkt);
    int post_create(Flow &rec, const Packet &pkt);
-   int pre_update(Flow &rec, Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
    void pre_export(Flow &rec);
    void finish();
@@ -114,8 +121,14 @@ public:
    bool include_basic_flow_fields();
 
 private:
+   bool parse_wg(const char *data, unsigned int payload_len, RecordExtWG *ext);
+   int add_ext_wg(const char *data, unsigned int payload_len, Flow &rec);
+
    bool print_stats;       /**< Print stats when flow cache finish. */
+   uint32_t total;         /**< Total number of processed packets. */
+   uint32_t identified;    /**< Total number of identified WireGuard packets. */   
 };
+
 
 #endif
 
