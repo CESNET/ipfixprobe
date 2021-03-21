@@ -82,7 +82,9 @@ ipfixprobe_src=main.cpp \
 		ipfix-basiclist.cpp \
 		ipfix-basiclist.h \
 		basicplusplugin.h \
-		basicplusplugin.cpp
+		basicplusplugin.cpp \
+		wgplugin.h \
+		wgplugin.cpp
 
 
 if WITH_NEMEA
