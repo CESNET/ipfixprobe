@@ -139,13 +139,12 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, RecordExtWG 
 
    // Let's try to parse according to the first 4 bytes, and see if that is enough.
    // The first byte is 0x01-0x04, the following three bytes are reserved (0x00).
-   uint32_t pkt_start = *data;
    uint8_t pkt_type = data[0];
    if (pkt_type < WG_PACKETTYPE_INIT_TO_RESP && pkt_type > WG_PACKETTYPE_TRANSPORT_DATA) {
       return false;
    }
    // TODO: possible endianity issues?
-   if ((pkt_start & 0x00FFFFFF) != 0x0) {
+   if (data[1] != 0x0 || data[2] != 0x0 || data[3] != 0x0) {
       return false;
    }
 
