@@ -80,6 +80,17 @@ int WGPlugin::post_create(Flow &rec, const Packet &pkt)
 
 int WGPlugin::post_update(Flow &rec, const Packet &pkt)
 {
+   if (pkt.ip_proto == IPPROTO_UDP) {
+      RecordExt *ext = rec.getExtension(wg);
+      if (ext == NULL) {
+         return add_ext_wg(pkt.payload, pkt.payload_length, rec);
+      } else {
+         if (parse_wg(pkt.payload, pkt.payload_length, dynamic_cast<RecordExtWG *>(ext))) {
+            return FLOW_FLUSH;
+         }
+      }
+   }
+
    return 0;
 }
 
