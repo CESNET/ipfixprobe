@@ -116,7 +116,7 @@ int terminate_input = 0;
   " will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: " SUPPORTED_PLUGINS_LIST \
   " Some plugins have features activated with additional parameters. Format: plugin_name[:plugin_param=value[:...]][,...] If plugin does not support parameters, any parameters given will be ignored."\
   " Supported plugin parameters are listed in README", required_argument, "string")\
-  PARAM('c', "count", "Quit after number of packets are captured.", required_argument, "uint32")\
+  PARAM('c', "count", "Quit after number of packets on each input are captured.", required_argument, "uint64")\
   PARAM('h', "help", "Print this help.", no_argument, "none")\
   PARAM('I', "interface", "Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can channel after interface delimited by : (/dev/nfb0:1) default is 0", required_argument, "string")\
   PARAM('r', "file", "Pcap file to read. - to read from stdin.", required_argument, "string") \
@@ -312,7 +312,7 @@ struct InputStats {
    std::string msg;
 };
 
-void input_thread(PacketReceiver *packetloader, PacketBlock *pkts, size_t pkt_cnt, ipx_ring_t *queue, std::promise<InputStats> *threadOutput)
+void input_thread(PacketReceiver *packetloader, PacketBlock *pkts, size_t block_cnt, uint64_t pkt_limit, ipx_ring_t *queue, std::promise<InputStats> *threadOutput)
 {
    struct timespec start;
    struct timespec end;
@@ -323,6 +323,13 @@ void input_thread(PacketReceiver *packetloader, PacketBlock *pkts, size_t pkt_cn
       PacketBlock *block = &pkts[i];
       block->cnt = 0;
       block->bytes = 0;
+
+      if (pkt_limit && packetloader->parsed + block->size >= pkt_limit) {
+         if (packetloader->parsed >= pkt_limit) {
+            break;
+         }
+         block->size = pkt_limit - packetloader->parsed;
+      }
       ret = packetloader->get_pkt(*block);
       if (ret <= 0) {
          stats.error = ret < 0;
@@ -342,7 +349,7 @@ void input_thread(PacketReceiver *packetloader, PacketBlock *pkts, size_t pkt_cn
             time += 1000000000;
          }
          stats.qtime += time;
-         i = (i + 1) % pkt_cnt;
+         i = (i + 1) % block_cnt;
       }
    }
    stats.parsed = packetloader->parsed;
@@ -564,7 +571,7 @@ int main(int argc, char *argv[])
    int ifc_cnt = 0;
    int verbose = -1;
    uint64_t link = 1;
-   uint32_t pkt_limit = 0; /* Limit of packets for packet parser. 0 = no limit */
+   uint64_t pkt_limit = 0;
    uint8_t dir = 0;
    std::string host = "";
    std::string port = "";
@@ -669,15 +676,13 @@ int main(int argc, char *argv[])
          break;
       case 'c':
          {
-            uint32_t tmp;
-            if (!str_to_uint32(optarg, tmp)) {
+            if (!str_to_uint64(optarg, pkt_limit)) {
 #ifdef WITH_NEMEA
                FREE_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS);
                TRAP_DEFAULT_FINALIZATION();
 #endif
                return error("Invalid argument for option -c");
             }
-            pkt_limit = tmp;
          }
          break;
       case 'I':
@@ -1069,7 +1074,7 @@ int main(int argc, char *argv[])
       WorkPipeline tmp = {
          {
             packetloader,
-            new std::thread(input_thread, packetloader, &blocks[i * (options.input_qsize + 1)], options.input_qsize + 1, input_queue, input_stats),
+            new std::thread(input_thread, packetloader, &blocks[i * (options.input_qsize + 1)], options.input_qsize + 1, pkt_limit, input_queue, input_stats),
             input_stats,
          },
          {
