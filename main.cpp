@@ -1014,9 +1014,6 @@ int main(int argc, char *argv[])
 
       if (options.interface.size() == 0) {
          if (packetloader->open_file(options.pcap_file[i], parse_every_pkt) != 0) {
-#ifdef WITH_NEMEA
-            TRAP_DEFAULT_FINALIZATION();
-#endif
             error("Can't open input file: " + options.pcap_file[i]);
             delete packetloader;
             ret = EXIT_FAILURE;
@@ -1024,9 +1021,6 @@ int main(int argc, char *argv[])
          }
       } else {
          if (packetloader->init_interface(options.interface[i], options.snaplen, parse_every_pkt) != 0) {
-#ifdef WITH_NEMEA
-            TRAP_DEFAULT_FINALIZATION();
-#endif
             error("Unable to initialize network interface: " + packetloader->error_msg);
             delete packetloader;
             ret = EXIT_FAILURE;
@@ -1035,9 +1029,6 @@ int main(int argc, char *argv[])
       }
       if (filter != "") {
          if (packetloader->set_filter(filter) != 0) {
-#ifdef WITH_NEMEA
-            TRAP_DEFAULT_FINALIZATION();
-#endif
             error(packetloader->error_msg);
             delete packetloader;
             ret = EXIT_FAILURE;
