@@ -1,4 +1,4 @@
-#!/usr/bin/sh
+#!/usr/bin/bash
 
 CONFFILE="/etc/ipfixprobe/$1.conf"
 
@@ -9,7 +9,21 @@ if [ -e "$CONFFILE" ]; then
    else
       udpparam=""
    fi
-   exec /usr/bin/ipfixprobe -I "$NIC" -p "$PLUGINS" -L "$LINK" -D "$DIR" -x "$COLLECTOR" $udpparam
+   ifcargs=""
+   if `declare -p IFCLIST > /dev/null 2>/dev/null`; then
+      # list of interfaces/DMA channels
+      for ifc in "${!IFCLIST[@]}"; do
+         ifcargs="$ifcargs -I ${IFCLIST[ifc]}"
+      done
+   else
+      # use plain old one NIC interface
+      if [ -z "$NIC" ]; then
+         echo "Configuration file '$CONFFILE' does not exist, exitting." >&2
+         exit 1
+      fi
+      ifcargs="-I $NIC"
+   fi
+   exec /usr/bin/ipfixprobe $ifcargs -p "$PLUGINS" -L "$LINK" -D "$DIR" -x "$COLLECTOR" $udpparam
 else
    echo "Configuration file '$CONFFILE' does not exist, exitting." >&2
    exit 1
