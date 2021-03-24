@@ -65,10 +65,10 @@ using namespace std;
 #define DEFAULT_FILL_TEXT "UNDEFINED"
 
 // OsqueryStateHandler
-#define FATAL_ERROR    0b00000001 // 1;  Fatal error, cannot be fixed
-#define OPEN_FD_ERROR  0b00000010 // 2;  Failed to open osquery FD
-#define READ_ERROR     0b00000100 // 4;  Error while reading
-#define READ_SUCCESS   0b00001000 // 8;  Data read successfully
+#define FATAL_ERROR   0b00000001 // 1;  Fatal error, cannot be fixed
+#define OPEN_FD_ERROR 0b00000010 // 2;  Failed to open osquery FD
+#define READ_ERROR    0b00000100 // 4;  Error while reading
+#define READ_SUCCESS  0b00001000 // 8;  Data read successfully
 
 // OsqueryRequestManager
 #define BUFFER_SIZE            1024 * 20 + 1
@@ -246,38 +246,38 @@ struct RecordExtOSQUERY : RecordExt {
  * \brief Additional structure for handling osquery states.
  */
 struct OsqueryStateHandler {
-    OsqueryStateHandler() : OSQUERY_STATE(0), isSocketEventsAuditEnabled(false) {}
+   OsqueryStateHandler() : OSQUERY_STATE(0){ }
 
-    bool isErrorState() const { return (OSQUERY_STATE & (FATAL_ERROR | OPEN_FD_ERROR | READ_ERROR)); }
+   bool isErrorState() const { return (OSQUERY_STATE & (FATAL_ERROR | OPEN_FD_ERROR | READ_ERROR)); }
 
-    void setFatalError() { OSQUERY_STATE |= FATAL_ERROR; }
-    bool isFatalError() const { return (OSQUERY_STATE & FATAL_ERROR); }
+   void setFatalError(){ OSQUERY_STATE |= FATAL_ERROR; }
 
-    void setOpenFDError() { OSQUERY_STATE |= OPEN_FD_ERROR; }
-    bool isOpenFDError() const { return (OSQUERY_STATE & OPEN_FD_ERROR); }
+   bool isFatalError() const { return (OSQUERY_STATE & FATAL_ERROR); }
 
-    void setReadError() { OSQUERY_STATE |= READ_ERROR; }
-    bool isReadError() const { return (OSQUERY_STATE & READ_ERROR); }
+   void setOpenFDError(){ OSQUERY_STATE |= OPEN_FD_ERROR; }
 
-    void setReadSuccess() { OSQUERY_STATE |= READ_SUCCESS; }
-    bool isReadSuccess() const { return (OSQUERY_STATE & READ_SUCCESS); }
+   bool isOpenFDError() const { return (OSQUERY_STATE & OPEN_FD_ERROR); }
 
-    void setAuditEnabled(bool enabled) { isSocketEventsAuditEnabled = enabled; }
-    bool isAuditEnabled() const { return isSocketEventsAuditEnabled; }
+   void setReadError(){ OSQUERY_STATE |= READ_ERROR; }
 
-    /**
-     * Reset the \p OSQUERY_STATE. Fatal and open fd errors will not be reset.
-     */
-    void refresh() { OSQUERY_STATE = OSQUERY_STATE & (FATAL_ERROR | OPEN_FD_ERROR); }
+   bool isReadError() const { return (OSQUERY_STATE & READ_ERROR); }
 
-    /**
-     * Reset the \p OSQUERY_STATE and \p isSocketEventsAuditEnabled. Fatal and open fd errors will be reset.
-     */
-    void reset() { OSQUERY_STATE = 0; isSocketEventsAuditEnabled = false; }
+   void setReadSuccess(){ OSQUERY_STATE |= READ_SUCCESS; }
+
+   bool isReadSuccess() const { return (OSQUERY_STATE & READ_SUCCESS); }
+
+   /**
+    * Reset the \p OSQUERY_STATE. Fatal and open fd errors will not be reset.
+    */
+   void refresh(){ OSQUERY_STATE = OSQUERY_STATE & (FATAL_ERROR | OPEN_FD_ERROR); }
+
+   /**
+    * Reset the \p OSQUERY_STATE. Fatal and open fd errors will be reset.
+    */
+   void reset(){ OSQUERY_STATE = 0; }
 
 private:
-    uint8_t OSQUERY_STATE;
-    bool isSocketEventsAuditEnabled;
+   uint8_t OSQUERY_STATE;
 };
 
 
@@ -285,50 +285,52 @@ private:
  * \brief Additional structure for store and convert data from flow (src_ip, dst_ip, src_port, dst_port) to string.
  */
 struct ConvertedFlowData {
-    /**
-     * Constructor for IPv4-based flow.
-     * @param sourceIPv4 source IPv4 address.
-     * @param destinationIPv4 destination IPv4 address.
-     * @param sourcePort source port.
-     * @param destinationPort destination port.
-     */
-    ConvertedFlowData(uint32_t sourceIPv4, uint32_t destinationIPv4, uint16_t sourcePort, uint16_t destinationPort);
+   /**
+    * Constructor for IPv4-based flow.
+    * @param sourceIPv4 source IPv4 address.
+    * @param destinationIPv4 destination IPv4 address.
+    * @param sourcePort source port.
+    * @param destinationPort destination port.
+    */
+   ConvertedFlowData(uint32_t sourceIPv4, uint32_t destinationIPv4, uint16_t sourcePort, uint16_t destinationPort);
 
-    /**
- * Constructor for IPv6-based flow.
- * @param sourceIPv6 source IPv6 address.
- * @param destinationIPv6 destination IPv6 address.
- * @param sourcePort source port.
- * @param destinationPort destination port.
- */
-    ConvertedFlowData(const uint8_t *sourceIPv6, const uint8_t *destinationIPv6, uint16_t sourcePort, uint16_t destinationPort);
+   /**
+    * Constructor for IPv6-based flow.
+    * @param sourceIPv6 source IPv6 address.
+    * @param destinationIPv6 destination IPv6 address.
+    * @param sourcePort source port.
+    * @param destinationPort destination port.
+    */
+   ConvertedFlowData(const uint8_t *sourceIPv6, const uint8_t *destinationIPv6, uint16_t sourcePort,
+     uint16_t destinationPort);
 
-    string src_ip;
-    string dst_ip;
-    string src_port;
-    string dst_port;
+   string src_ip;
+   string dst_ip;
+   string src_port;
+   string dst_port;
 
 private:
-    /**
-     * Converts an IPv4 numeric value to a string.
-     * @param addr IPv4 address.
-     * @param isSourceIP if true - source IP conversion mode, if false - destination IP conversion mode.
-     */
-    void convertIPv4(uint32_t addr, bool isSourceIP);
 
-    /**
-     * Converts an IPv6 numeric value to a string.
-     * @param addr IPv6 address.
-     * @param isSourceIP if true - source IP conversion mode, if false - destination IP conversion mode.
-     */
-    void convertIPv6(const uint8_t *addr, bool isSourceIP);
+   /**
+    * Converts an IPv4 numeric value to a string.
+    * @param addr IPv4 address.
+    * @param isSourceIP if true - source IP conversion mode, if false - destination IP conversion mode.
+    */
+   void convertIPv4(uint32_t addr, bool isSourceIP);
 
-    /**
-     * Converts the numeric port value to a string.
-     * @param port
-     * @param isSourcePort if true - source port conversion mode, if false - destination port conversion mode.
-     */
-    void convertPort(uint16_t port, bool isSourcePort);
+   /**
+    * Converts an IPv6 numeric value to a string.
+    * @param addr IPv6 address.
+    * @param isSourceIP if true - source IP conversion mode, if false - destination IP conversion mode.
+    */
+   void convertIPv6(const uint8_t *addr, bool isSourceIP);
+
+   /**
+    * Converts the numeric port value to a string.
+    * @param port
+    * @param isSourcePort if true - source port conversion mode, if false - destination port conversion mode.
+    */
+   void convertPort(uint16_t port, bool isSourcePort);
 };
 
 
@@ -347,41 +349,41 @@ struct OsqueryRequestManager {
     */
    void readInfoAboutOS();
 
-    /**
-      * Fills the record with program values from osquery.
-      * @param flowData flow data converted to string.
-      * @return true if success or false.
-      */
-    bool readInfoAboutProgram(const ConvertedFlowData &flowData);
+   /**
+    * Fills the record with program values from osquery.
+    * @param flowData flow data converted to string.
+    * @return true if success or false.
+    */
+   bool readInfoAboutProgram(const ConvertedFlowData &flowData);
 
 private:
 
-    /**
-     * Sends a request and receives a response from osquery.
-     * @param query sql query according to osquery standards.
-     * @param reopenFD if true - tries to reopen fd.
-     * @return number of bytes read.
-     */
+   /**
+    * Sends a request and receives a response from osquery.
+    * @param query sql query according to osquery standards.
+    * @param reopenFD if true - tries to reopen fd.
+    * @return number of bytes read.
+    */
    size_t executeQuery(const string &query, bool reopenFD = false);
 
-    /**
-     * Writes query to osquery input FD.
-     * @param query sql query according to osquery standards.
-     * @return true if success or false.
-     */
+   /**
+    * Writes query to osquery input FD.
+    * @param query sql query according to osquery standards.
+    * @return true if success or false.
+    */
    bool writeToOsquery(const char *query);
 
-    /**
-     * Reads data from osquery output FD.
-     * \note Can change osquery state. Possible changes: READ_ERROR, READ_SUCCESS.
-     * @return number of bytes read.
-     */
+   /**
+    * Reads data from osquery output FD.
+    * \note Can change osquery state. Possible changes: READ_ERROR, READ_SUCCESS.
+    * @return number of bytes read.
+    */
    size_t readFromOsquery();
 
-    /**
-     * Opens osquery FD.
-     * \note Can change osquery state. Possible changes: FATAL_ERROR, OPEN_FD_ERROR.
-     */
+   /**
+    * Opens osquery FD.
+    * \note Can change osquery state. Possible changes: FATAL_ERROR, OPEN_FD_ERROR.
+    */
    void openOsqueryFD();
 
    /**
@@ -389,43 +391,36 @@ private:
     */
    void closeOsqueryFD();
 
-    /**
-     * Before reopening osquery tries to kill the previous osquery process.
-     *
-     * If \p useWhonangOption is true then the waitpid() function will be used
-     * in non-blocking mode(can be called before the process is ready to close,
-     * the process will remain in a zombie state). At the end of the application,
-     * a zombie process may remain, it will be killed when the application is closed.
-     * Else if \p useWhonangOption is false then the waitpid() function will be used
-     * in blocking mode(will wait for the process to complete). Will kill all unnecessary
-     * processes, but will block the application until the killed process is finished.
-     *
-     * @param useWhonangOption if true will be used non-blocking mode.
-     */
+   /**
+    * Before reopening osquery tries to kill the previous osquery process.
+    *
+    * If \p useWhonangOption is true then the waitpid() function will be used
+    * in non-blocking mode(can be called before the process is ready to close,
+    * the process will remain in a zombie state). At the end of the application,
+    * a zombie process may remain, it will be killed when the application is closed.
+    * Else if \p useWhonangOption is false then the waitpid() function will be used
+    * in blocking mode(will wait for the process to complete). Will kill all unnecessary
+    * processes, but will block the application until the killed process is finished.
+    *
+    * @param useWhonangOption if true will be used non-blocking mode.
+    */
    void killPreviousProcesses(bool useWhonangOption = true) const;
 
-    /**
-      * Checks if audit socket event mode is enabled.
-      */
-    void checkAuditMode();
+   /**
+    * Tries to get the process id from table "process_open_sockets".
+    * @param[out] pid      process id.
+    * @param[in]  flowData flow data converted to string.
+    * @return true true if success or false.
+    */
+   bool getPID(string &pid, const ConvertedFlowData &flowData);
 
-    /**
-     * Tries to get the process id from table "process_open_sockets".
-     * In case of failure and the socket audit mode is enabled, it
-     * tries to get the pid of the process from table "socket_events".
-     * @param[out] pid      process id.
-     * @param[in]  flowData flow data converted to string.
-     * @return true true if success or false.
-     */
-    bool getPID(string &pid, const ConvertedFlowData &flowData);
-
-    /**
-      * Parses json string with only one element.
-      * @param[in]  singleKey    key.
-      * @param[out] singleValue  value.
-      * @return true if success or false.
-      */
-    bool parseJsonSingleItem(const string &singleKey, string &singleValue);
+   /**
+    * Parses json string with only one element.
+    * @param[in]  singleKey    key.
+    * @param[out] singleValue  value.
+    * @return true if success or false.
+    */
+   bool parseJsonSingleItem(const string &singleKey, string &singleValue);
 
    /**
     * Parses json by template.
@@ -439,30 +434,30 @@ private:
     */
    bool parseJsonAboutProgram();
 
-    /**
-     * From position \p from tries to find two strings between quotes ["key":"value"].
-     * @param[in]  from  start position in the buffer.
-     * @param[out] key   value for the "key" parsing result.
-     * @param[out] value value for the "value" parsing result.
-     * @return the position where the text search ended, 0 if end of json row or -1 if end of buffer.
-     */
+   /**
+    * From position \p from tries to find two strings between quotes ["key":"value"].
+    * @param[in]  from  start position in the buffer.
+    * @param[out] key   value for the "key" parsing result.
+    * @param[out] value value for the "value" parsing result.
+    * @return the position where the text search ended, 0 if end of json row or -1 if end of buffer.
+    */
    int parseJsonItem(int from, string &key, string &value);
 
-    /**
-     * From position \p from tries to find string between quotes.
-     * @param[in]  from start position in the buffer.
-     * @param[out] str  value for the parsing result.
-     * @return the position where the text search ended, 0 if end of json row or -1 if end of buffer.
-     */
+   /**
+    * From position \p from tries to find string between quotes.
+    * @param[in]  from start position in the buffer.
+    * @param[out] str  value for the parsing result.
+    * @return the position where the text search ended, 0 if end of json row or -1 if end of buffer.
+    */
    int parseString(int from, string &str);
 
-    /**
-     * Create a new process for connecting FD.
-     * @param[in]  command  command to execute in sh.
-     * @param[out] inFD     input FD.
-     * @param[out] outFD    output FD.
-     * @return pid of the new process.
-     */
+   /**
+    * Create a new process for connecting FD.
+    * @param[in]  command  command to execute in sh.
+    * @param[out] inFD     input FD.
+    * @param[out] outFD    output FD.
+    * @return pid of the new process.
+    */
    pid_t popen2(const char *command, int *inFD, int *outFD) const;
 
    /**
@@ -470,11 +465,11 @@ private:
     */
    void clearBuffer(){ buffer[0] = 0; }
 
-    /**
-  * Tries to find the position in the buffer where the json data starts.
-  * @return position number or -1 if position was not found.
-  */
-    int getPositionForParseJson();
+   /**
+    * Tries to find the position in the buffer where the json data starts.
+    * @return position number or -1 if position was not found.
+    */
+   int getPositionForParseJson();
 
    int                 inputFD;
    int                 outputFD;
@@ -498,11 +493,7 @@ public:
    OSQUERYPlugin(const options_t &module_options);
    OSQUERYPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
    void init();
-   int pre_create(Packet &pkt);
    int post_create(Flow &rec, const Packet &pkt);
-   int pre_update(Flow &rec, Packet &pkt);
-   int post_update(Flow &rec, const Packet &pkt);
-   void pre_export(Flow &rec);
    void finish();
    const char **get_ipfix_string();
    string get_unirec_field_string();

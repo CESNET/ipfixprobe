@@ -60,7 +60,7 @@ using namespace std;
 #define OSQUERY_UNIREC_TEMPLATE \
    "OSQUERY_PROGRAM_NAME,OSQUERY_USERNAME,OSQUERY_OS_NAME,OSQUERY_OS_MAJOR,OSQUERY_OS_MINOR,OSQUERY_OS_BUILD,OSQUERY_OS_PLATFORM,OSQUERY_OS_PLATFORM_LIKE,OSQUERY_OS_ARCH,OSQUERY_KERNEL_VERSION,OSQUERY_SYSTEM_HOSTNAME"
 
-#define HEX( x ) setw(2) << setfill('0') << hex << (int)( x )
+#define HEX(x) setw(2) << setfill('0') << hex << (int) (x)
 
 UR_FIELDS(
    string OSQUERY_PROGRAM_NAME,
@@ -89,51 +89,24 @@ OSQUERYPlugin::OSQUERYPlugin(const options_t &module_options, vector<plugin_opt>
 
 void OSQUERYPlugin::init()
 {
-    numberOfSuccessfullyRequests = 0;
-   manager         = new OsqueryRequestManager();
+   numberOfSuccessfullyRequests = 0;
+   manager = new OsqueryRequestManager();
    manager->readInfoAboutOS();
-}
-
-int OSQUERYPlugin::pre_create(Packet &pkt)
-{
-   return 0;
 }
 
 int OSQUERYPlugin::post_create(Flow &rec, const Packet &pkt)
 {
-    ConvertedFlowData flowDataIPv4(rec.src_ip.v4, rec.dst_ip.v4, rec.src_port, rec.dst_port);
-    ConvertedFlowData flowDataIPv6(rec.src_ip.v6, rec.dst_ip.v6, rec.src_port, rec.dst_port);
-    //TODO DEBUG
-    cout << endl << "start: post_create \ntime[s]'" << rec.time_first.tv_sec << "'" << endl;
-    cout << "IPv4:" << endl;
-    cout << "src:'" <<  flowDataIPv4.src_ip << "' '" << flowDataIPv4.src_port << "'" << endl;
-    cout << "dst:'" <<  flowDataIPv4.dst_ip << "' '" << flowDataIPv4.dst_port << "'" << endl;
-    cout << "IPv6:" << endl;
-    cout << "src:'" <<  flowDataIPv6.src_ip << "' '" << flowDataIPv6.src_port << "'" << endl;
-    cout << "dst:'" <<  flowDataIPv6.dst_ip << "' '" << flowDataIPv6.dst_port << "'" << endl;
+   ConvertedFlowData flowDataIPv4(rec.src_ip.v4, rec.dst_ip.v4, rec.src_port, rec.dst_port);
 
-    if (manager->readInfoAboutProgram(flowDataIPv4)) {
-       RecordExtOSQUERY *record = new RecordExtOSQUERY(manager->getRecord());
-       rec.addExtension(record);
+   if (manager->readInfoAboutProgram(flowDataIPv4)) {
+      RecordExtOSQUERY *record = new RecordExtOSQUERY(manager->getRecord());
+      rec.addExtension(record);
 
-       numberOfSuccessfullyRequests++;
+      numberOfSuccessfullyRequests++;
    }
 
    return 0;
 }
-
-int OSQUERYPlugin::pre_update(Flow &rec, Packet &pkt)
-{
-   return 0;
-}
-
-int OSQUERYPlugin::post_update(Flow &rec, const Packet &pkt)
-{
-   return 0;
-}
-
-void OSQUERYPlugin::pre_export(Flow &rec)
-{ }
 
 void OSQUERYPlugin::finish()
 {
@@ -165,57 +138,67 @@ bool OSQUERYPlugin::include_basic_flow_fields()
    return true;
 }
 
-ConvertedFlowData::ConvertedFlowData(uint32_t sourceIPv4, uint32_t destinationIPv4, uint16_t sourcePort, uint16_t destinationPort) {
-    convertIPv4(sourceIPv4, true);
-    convertIPv4(destinationIPv4, false);
-    convertPort(sourcePort, true);
-    convertPort(destinationPort, false);
+ConvertedFlowData::ConvertedFlowData(uint32_t sourceIPv4, uint32_t destinationIPv4, uint16_t sourcePort,
+  uint16_t destinationPort)
+{
+   convertIPv4(sourceIPv4, true);
+   convertIPv4(destinationIPv4, false);
+   convertPort(sourcePort, true);
+   convertPort(destinationPort, false);
 }
 
-ConvertedFlowData::ConvertedFlowData(const uint8_t *sourceIPv6, const uint8_t *destinationIPv6, uint16_t sourcePort, uint16_t destinationPort) {
-    convertIPv6(sourceIPv6, true);
-    convertIPv6(destinationIPv6, false);
-    convertPort(sourcePort, true);
-    convertPort(destinationPort, false);
+ConvertedFlowData::ConvertedFlowData(const uint8_t *sourceIPv6, const uint8_t *destinationIPv6, uint16_t sourcePort,
+  uint16_t destinationPort)
+{
+   convertIPv6(sourceIPv6, true);
+   convertIPv6(destinationIPv6, false);
+   convertPort(sourcePort, true);
+   convertPort(destinationPort, false);
 }
 
-void ConvertedFlowData::convertIPv4(uint32_t addr, bool isSourceIP) {
-    stringstream ss;
-    ss << ((addr) & 0x000000ff) << "."
-       << ((addr >> 8) & 0x000000ff) << "."
-       << ((addr >> 16) & 0x000000ff) << "."
-       << ((addr >> 24) & 0x000000ff);
+void ConvertedFlowData::convertIPv4(uint32_t addr, bool isSourceIP)
+{
+   stringstream ss;
 
-    if (isSourceIP) {
-        this->src_ip = ss.str();
-    } else {
-        this->dst_ip = ss.str();
-    }
+   ss << ((addr) & 0x000000ff) << "."
+      << ((addr >> 8) & 0x000000ff) << "."
+      << ((addr >> 16) & 0x000000ff) << "."
+      << ((addr >> 24) & 0x000000ff);
+
+   if (isSourceIP) {
+      this->src_ip = ss.str();
+   } else {
+      this->dst_ip = ss.str();
+   }
 }
 
-void ConvertedFlowData::convertIPv6(const uint8_t *addr, bool isSourceIP) {
-    stringstream ss;
-    ss << HEX(addr[0]);
-    for (int i = 1; i < 16; i++) {
-        ss << ":" << HEX(addr[i]);
-    }
+void ConvertedFlowData::convertIPv6(const uint8_t *addr, bool isSourceIP)
+{
+   stringstream ss;
 
-    if (isSourceIP) {
-        this->src_ip = ss.str();
-    } else {
-        this->dst_ip = ss.str();
-    }
+   ss << HEX(addr[0]);
+   for (int i = 1; i < 16; i++) {
+      ss << ":" << HEX(addr[i]);
+   }
+
+   if (isSourceIP) {
+      this->src_ip = ss.str();
+   } else {
+      this->dst_ip = ss.str();
+   }
 }
 
-void ConvertedFlowData::convertPort(uint16_t port, bool isSourcePort) {
-    stringstream ss;
-    ss << port;
+void ConvertedFlowData::convertPort(uint16_t port, bool isSourcePort)
+{
+   stringstream ss;
 
-    if (isSourcePort) {
-        this->src_port = ss.str();
-    } else {
-        this->dst_port = ss.str();
-    }
+   ss << port;
+
+   if (isSourcePort) {
+      this->src_port = ss.str();
+   } else {
+      this->dst_port = ss.str();
+   }
 }
 
 OsqueryRequestManager::OsqueryRequestManager() :
@@ -228,23 +211,23 @@ OsqueryRequestManager::OsqueryRequestManager() :
    numberOfAttempts(0),
    osqueryProcessId(-1)
 {
-    buffer = new char [BUFFER_SIZE];
+   buffer = new char [BUFFER_SIZE];
 
-    pfd = new pollfd;
-    pfd->events = POLLIN;
+   pfd         = new pollfd;
+   pfd->events = POLLIN;
 
-    recOsquery = new RecordExtOSQUERY();
+   recOsquery = new RecordExtOSQUERY();
 
-    while (true) {
-        openOsqueryFD();
-        if (handler.isFatalError()) {
-            break;
-        } else if (handler.isOpenFDError()) {
-            continue;
-        } else {
-            break;
-        }
-    }
+   while (true) {
+      openOsqueryFD();
+      if (handler.isFatalError()) {
+         break;
+      } else if (handler.isOpenFDError()) {
+         continue;
+      } else {
+         break;
+      }
+   }
 }
 
 OsqueryRequestManager::~OsqueryRequestManager()
@@ -265,72 +248,64 @@ void OsqueryRequestManager::readInfoAboutOS()
    }
 }
 
-bool OsqueryRequestManager::readInfoAboutProgram(const ConvertedFlowData &flowData) {
-    if (handler.isFatalError()) {
-        return false;
-    }
+bool OsqueryRequestManager::readInfoAboutProgram(const ConvertedFlowData &flowData)
+{
+   if (handler.isFatalError()) {
+      return false;
+   }
 
-    recOsquery->program_name = DEFAULT_FILL_TEXT;
-    recOsquery->username = DEFAULT_FILL_TEXT;
+   recOsquery->program_name = DEFAULT_FILL_TEXT;
+   recOsquery->username     = DEFAULT_FILL_TEXT;
 
-    string pid;
+   string pid;
 
-    if (!getPID(pid, flowData)) {
-        //TODO DEBUG
-        cout << "PID NOT FOUND" << endl;
-        return false;
-    }
+   if (!getPID(pid, flowData)) {
+      return false;
+   }
 
-    string query = "SELECT p.name, u.username FROM processes AS p INNER JOIN users AS u ON p.uid=u.uid "
-                   "WHERE p.pid='" + pid + "';\r\n";
+   string query = "SELECT p.name, u.username FROM processes AS p INNER JOIN users AS u ON p.uid=u.uid "
+     "WHERE p.pid='" + pid + "';\r\n";
 
-    //TODO DEBUG
-    cout << "Query:'" << query << "'" << endl;
-
-    if (executeQuery(query) > 0) {
-        if (parseJsonAboutProgram()) {
-            //TODO DEBUG
-            cout << "'" << recOsquery->program_name << "' '" << recOsquery->username << "'" << endl;
-            return true;
-        }
-    }
-    //TODO DEBUG
-    cout << "PARSE JSON FAIL; Buffer:'" << buffer << "'" << endl;
-    return false;
+   if (executeQuery(query) > 0) {
+      if (parseJsonAboutProgram()) {
+         return true;
+      }
+   }
+   return false;
 }
 
 size_t OsqueryRequestManager::executeQuery(const string &query, bool reopenFD)
 {
-    if (reopenFD) {
-        openOsqueryFD();
-    }
+   if (reopenFD) {
+      openOsqueryFD();
+   }
 
-    if (handler.isFatalError()) {
-        return 0;
-    }
+   if (handler.isFatalError()) {
+      return 0;
+   }
 
-    if (handler.isOpenFDError()) {
-        return executeQuery(query, true);
-    }
+   if (handler.isOpenFDError()) {
+      return executeQuery(query, true);
+   }
 
-    handler.refresh();
+   handler.refresh();
 
-    if (!writeToOsquery(query.c_str())) {
-        return executeQuery(query, true);
-    }
+   if (!writeToOsquery(query.c_str())) {
+      return executeQuery(query, true);
+   }
 
-    size_t ret = readFromOsquery();
+   size_t ret = readFromOsquery();
 
-    if (handler.isReadError()) {
-        return executeQuery(query, true);
-    }
+   if (handler.isReadError()) {
+      return executeQuery(query, true);
+   }
 
-    if (handler.isReadSuccess()) {
-        numberOfAttempts = 0;
-        return ret;
-    }
+   if (handler.isReadSuccess()) {
+      numberOfAttempts = 0;
+      return ret;
+   }
 
-    return 0;
+   return 0;
 }
 
 bool OsqueryRequestManager::writeToOsquery(const char *query)
@@ -415,7 +390,7 @@ size_t OsqueryRequestManager::readFromOsquery()
    }
    handler.setReadError();
    return 0;
-}
+} // OsqueryRequestManager::readFromOsquery
 
 void OsqueryRequestManager::openOsqueryFD()
 {
@@ -442,7 +417,6 @@ void OsqueryRequestManager::openOsqueryFD()
    } else {
       isFDOpened = true;
       pfd->fd    = outputFD;
-       checkAuditMode();
       return;
    }
 }
@@ -467,84 +441,64 @@ void OsqueryRequestManager::killPreviousProcesses(bool useWhonangOption) const
    }
 }
 
-void OsqueryRequestManager::checkAuditMode() {
-    string query = "SELECT active FROM osquery_events WHERE name='socket_events';\r\n";
-    string value;
-    if (executeQuery(query) > 0) {
-        if (parseJsonSingleItem("active" , value)) {
-            if (value == "1") {
-                handler.setAuditEnabled(true);
-            }
-        }
-    }
+bool OsqueryRequestManager::getPID(string &pid, const ConvertedFlowData &flowData)
+{
+   string query = "SELECT pid FROM process_open_sockets WHERE "
+     "(local_address='" + flowData.src_ip + "' AND "
+     "remote_address='" + flowData.dst_ip + "' AND "
+     "local_port='" + flowData.src_port + "' AND "
+     "remote_port='" + flowData.dst_port + "') OR "
+     "(local_address='" + flowData.dst_ip + "' AND "
+     "remote_address='" + flowData.src_ip + "' AND "
+     "local_port='" + flowData.dst_port + "' AND "
+     "remote_port='" + flowData.src_port + "') LIMIT 1;\r\n";
+
+   if (executeQuery(query) > 0) {
+      if (parseJsonSingleItem("pid", pid)) {
+         return true;
+      }
+   }
+
+   return false;
 }
 
-bool OsqueryRequestManager::getPID(string &pid, const ConvertedFlowData &flowData) {
-    string query = "SELECT pid FROM process_open_sockets WHERE "
-                   "local_address='" + flowData.src_ip + "' AND "
-                   + "remote_address='" + flowData.dst_ip + "' AND "
-                   + "local_port='" + flowData.src_port + "' AND "
-                   + "remote_port='" + flowData.dst_port + "' LIMIT 1;\r\n";
+bool OsqueryRequestManager::parseJsonSingleItem(const string &singleKey, string &singleValue)
+{
+   int pos = getPositionForParseJson();
 
-    if (executeQuery(query) > 0) {
-        if (parseJsonSingleItem("pid" ,pid)) {
-            return true;
-        }
-    }
+   if (pos == -1) {
+      return false;
+   }
 
-    if (handler.isFatalError() || !handler.isAuditEnabled()) {
-        return false;
-    }
+   int count = 0;
+   string key, value;
+   while (true) {
+      key.clear();
+      value.clear();
+      pos = parseJsonItem(pos, key, value);
+      if (pos < 0) {
+         return false;
+      }
+      if (pos == 0) {
+         return count == 1;
+      }
 
-    string auditQuery = "SELECT pid FROM socket_events WHERE "
-                        "local_address='" + flowData.src_ip + "' AND "
-                        + "remote_address='" + flowData.dst_ip + "' AND "
-                        + "local_port='" + flowData.src_port + "' AND "
-                        + "remote_port='" + flowData.dst_port + "' LIMIT 1;\r\n";
-
-    if (executeQuery(auditQuery) > 0) {
-        if (parseJsonSingleItem("pid" ,pid)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool OsqueryRequestManager::parseJsonSingleItem(const string &singleKey, string &singleValue) {
-    int pos = getPositionForParseJson();
-    if (pos == -1) {
-        return false;
-    }
-
-    int count = 0;
-    string key, value;
-    while (true) {
-        key.clear();
-        value.clear();
-        pos = parseJsonItem(pos, key, value);
-        if (pos < 0) {
-            return false;
-        }
-        if (pos == 0) {
-            return count == 1;
-        }
-
-        if (key == singleKey) {
-            singleValue = value;
-            count++;
-        } else {
-            return false;
-        }
-    }
+      if (key == singleKey) {
+         singleValue = value;
+         count++;
+      } else {
+         return false;
+      }
+   }
 }
 
 bool OsqueryRequestManager::parseJsonOSVersion()
 {
-    int pos = getPositionForParseJson();
-    if (pos == -1) {
-        return false;
-    }
+   int pos = getPositionForParseJson();
+
+   if (pos == -1) {
+      return false;
+   }
 
    int count = 0;
    string key, value;
@@ -590,14 +544,15 @@ bool OsqueryRequestManager::parseJsonOSVersion()
          return false;
       }
    }
-}
+} // OsqueryRequestManager::parseJsonOSVersion
 
 bool OsqueryRequestManager::parseJsonAboutProgram()
 {
-    int pos = getPositionForParseJson();
-    if (pos == -1) {
-        return false;
-    }
+   int pos = getPositionForParseJson();
+
+   if (pos == -1) {
+      return false;
+   }
 
    int count = 0;
    string key, value;
@@ -701,13 +656,15 @@ pid_t OsqueryRequestManager::popen2(const char *command, int *inFD, int *outFD) 
    return pid;
 }
 
-int OsqueryRequestManager::getPositionForParseJson() {
-    int position = 0;
-    while (buffer[position] != 0) {
-        if (buffer[position] == '[') {
-            return position + 1;
-        }
-        position++;
-    }
-    return -1;
+int OsqueryRequestManager::getPositionForParseJson()
+{
+   int position = 0;
+
+   while (buffer[position] != 0) {
+      if (buffer[position] == '[') {
+         return position + 1;
+      }
+      position++;
+   }
+   return -1;
 }
