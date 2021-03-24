@@ -246,7 +246,7 @@ struct RecordExtOSQUERY : RecordExt {
  * \brief Additional structure for handling osquery states.
  */
 struct OsqueryStateHandler {
-    OsqueryStateHandler() : OSQUERY_STATE(0) {}
+    OsqueryStateHandler() : OSQUERY_STATE(0), isSocketEventsAuditEnabled(false) {}
 
     bool isErrorState() const { return (OSQUERY_STATE & (FATAL_ERROR | OPEN_FD_ERROR | READ_ERROR)); }
 
@@ -262,18 +262,73 @@ struct OsqueryStateHandler {
     void setReadSuccess() { OSQUERY_STATE |= READ_SUCCESS; }
     bool isReadSuccess() const { return (OSQUERY_STATE & READ_SUCCESS); }
 
+    void setAuditEnabled(bool enabled) { isSocketEventsAuditEnabled = enabled; }
+    bool isAuditEnabled() const { return isSocketEventsAuditEnabled; }
+
     /**
-     * Reset the state. Fatal and open fd errors will not be reset.
+     * Reset the \p OSQUERY_STATE. Fatal and open fd errors will not be reset.
      */
     void refresh() { OSQUERY_STATE = OSQUERY_STATE & (FATAL_ERROR | OPEN_FD_ERROR); }
 
     /**
-     * Reset the state. Fatal and open fd errors will be reset.
+     * Reset the \p OSQUERY_STATE and \p isSocketEventsAuditEnabled. Fatal and open fd errors will be reset.
      */
-    void reset() { OSQUERY_STATE = 0; }
+    void reset() { OSQUERY_STATE = 0; isSocketEventsAuditEnabled = false; }
 
 private:
     uint8_t OSQUERY_STATE;
+    bool isSocketEventsAuditEnabled;
+};
+
+
+/**
+ * \brief Additional structure for store and convert data from flow (src_ip, dst_ip, src_port, dst_port) to string.
+ */
+struct ConvertedFlowData {
+    /**
+     * Constructor for IPv4-based flow.
+     * @param sourceIPv4 source IPv4 address.
+     * @param destinationIPv4 destination IPv4 address.
+     * @param sourcePort source port.
+     * @param destinationPort destination port.
+     */
+    ConvertedFlowData(uint32_t sourceIPv4, uint32_t destinationIPv4, uint16_t sourcePort, uint16_t destinationPort);
+
+    /**
+ * Constructor for IPv6-based flow.
+ * @param sourceIPv6 source IPv6 address.
+ * @param destinationIPv6 destination IPv6 address.
+ * @param sourcePort source port.
+ * @param destinationPort destination port.
+ */
+    ConvertedFlowData(const uint8_t *sourceIPv6, const uint8_t *destinationIPv6, uint16_t sourcePort, uint16_t destinationPort);
+
+    string src_ip;
+    string dst_ip;
+    string src_port;
+    string dst_port;
+
+private:
+    /**
+     * Converts an IPv4 numeric value to a string.
+     * @param addr IPv4 address.
+     * @param isSourceIP if true - source IP conversion mode, if false - destination IP conversion mode.
+     */
+    void convertIPv4(uint32_t addr, bool isSourceIP);
+
+    /**
+     * Converts an IPv6 numeric value to a string.
+     * @param addr IPv6 address.
+     * @param isSourceIP if true - source IP conversion mode, if false - destination IP conversion mode.
+     */
+    void convertIPv6(const uint8_t *addr, bool isSourceIP);
+
+    /**
+     * Converts the numeric port value to a string.
+     * @param port
+     * @param isSourcePort if true - source port conversion mode, if false - destination port conversion mode.
+     */
+    void convertPort(uint16_t port, bool isSourcePort);
 };
 
 
@@ -292,11 +347,12 @@ struct OsqueryRequestManager {
     */
    void readInfoAboutOS();
 
-   /**
-    * Fills the record with program values from osquery.
-    */
-    //todo comment
-   void readInfoAboutProgram(const string &query);
+    /**
+      * Fills the record with program values from osquery.
+      * @param flowData flow data converted to string.
+      * @return true if success or false.
+      */
+    bool readInfoAboutProgram(const ConvertedFlowData &flowData);
 
 private:
 
@@ -348,6 +404,29 @@ private:
      */
    void killPreviousProcesses(bool useWhonangOption = true) const;
 
+    /**
+      * Checks if audit socket event mode is enabled.
+      */
+    void checkAuditMode();
+
+    /**
+     * Tries to get the process id from table "process_open_sockets".
+     * In case of failure and the socket audit mode is enabled, it
+     * tries to get the pid of the process from table "socket_events".
+     * @param[out] pid      process id.
+     * @param[in]  flowData flow data converted to string.
+     * @return true true if success or false.
+     */
+    bool getPID(string &pid, const ConvertedFlowData &flowData);
+
+    /**
+      * Parses json string with only one element.
+      * @param[in]  singleKey    key.
+      * @param[out] singleValue  value.
+      * @return true if success or false.
+      */
+    bool parseJsonSingleItem(const string &singleKey, string &singleValue);
+
    /**
     * Parses json by template.
     * @return true if success or false.
@@ -387,12 +466,15 @@ private:
    pid_t popen2(const char *command, int *inFD, int *outFD) const;
 
    /**
-    * Sets the first five elements of the buffer to zero.
-    * This is necessary because currently the parser methods
-    * start parsing at the second character, but for further
-    * parser implementations they can start parsing at the fifth character.
+    * Sets the first byte in the buffer to zero
     */
-   void clearBuffer(){ buffer[0] = buffer[1] = buffer[2] = buffer[3] = buffer[4] = 0; }
+   void clearBuffer(){ buffer[0] = 0; }
+
+    /**
+  * Tries to find the position in the buffer where the json data starts.
+  * @return position number or -1 if position was not found.
+  */
+    int getPositionForParseJson();
 
    int                 inputFD;
    int                 outputFD;
@@ -428,7 +510,7 @@ public:
 
 private:
    OsqueryRequestManager *manager;
-   int numberOfQueries;
+   int numberOfSuccessfullyRequests;
    bool print_stats; /**< Print stats when flow cache finish. */
 };
 
