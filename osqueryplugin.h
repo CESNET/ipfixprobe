@@ -65,10 +65,10 @@ using namespace std;
 #define DEFAULT_FILL_TEXT "UNDEFINED"
 
 // OsqueryStateHandler
-#define FATAL_ERROR_FLAG   0b00000001 // 1;  Fatal error, cannot be fixed
-#define OPEN_FD_ERROR_FLAG 0b00000010 // 2;  Failed to open osquery FD
-#define READ_ERROR_FLAG    0b00000100 // 4;  Error while reading
-#define READ_SUCCESS_FLAG  0b00001000 // 8;  Data read successfully
+#define FATAL_ERROR    0b00000001 // 1;  Fatal error, cannot be fixed
+#define OPEN_FD_ERROR  0b00000010 // 2;  Failed to open osquery FD
+#define READ_ERROR     0b00000100 // 4;  Error while reading
+#define READ_SUCCESS   0b00001000 // 8;  Data read successfully
 
 // OsqueryRequestManager
 #define BUFFER_SIZE            1024 * 20 + 1
@@ -243,41 +243,37 @@ struct RecordExtOSQUERY : RecordExt {
 
 
 /**
- * \brief Osquery state handler.
+ * \brief Additional structure for handling osquery states.
  */
 struct OsqueryStateHandler {
-   OsqueryStateHandler() : OSQUERY_STATE(0){ }
+    OsqueryStateHandler() : OSQUERY_STATE(0) {}
 
-   bool isErrorState() const { return (OSQUERY_STATE & (FATAL_ERROR_FLAG | OPEN_FD_ERROR_FLAG | READ_ERROR_FLAG)); }
+    bool isErrorState() const { return (OSQUERY_STATE & (FATAL_ERROR | OPEN_FD_ERROR | READ_ERROR)); }
 
-   void setFatalErrorFlag(){ OSQUERY_STATE |= FATAL_ERROR_FLAG; }
+    void setFatalError() { OSQUERY_STATE |= FATAL_ERROR; }
+    bool isFatalError() const { return (OSQUERY_STATE & FATAL_ERROR); }
 
-   bool getFatalErrorFlag() const { return (OSQUERY_STATE & FATAL_ERROR_FLAG); }
+    void setOpenFDError() { OSQUERY_STATE |= OPEN_FD_ERROR; }
+    bool isOpenFDError() const { return (OSQUERY_STATE & OPEN_FD_ERROR); }
 
-   void setOpenFDErrorFlag(){ OSQUERY_STATE |= OPEN_FD_ERROR_FLAG; }
+    void setReadError() { OSQUERY_STATE |= READ_ERROR; }
+    bool isReadError() const { return (OSQUERY_STATE & READ_ERROR); }
 
-   bool getOpenFDErrorFlag() const { return (OSQUERY_STATE & OPEN_FD_ERROR_FLAG); }
+    void setReadSuccess() { OSQUERY_STATE |= READ_SUCCESS; }
+    bool isReadSuccess() const { return (OSQUERY_STATE & READ_SUCCESS); }
 
-   void setReadErrorFlag(){ OSQUERY_STATE |= READ_ERROR_FLAG; }
+    /**
+     * Reset the state. Fatal and open fd errors will not be reset.
+     */
+    void refresh() { OSQUERY_STATE = OSQUERY_STATE & (FATAL_ERROR | OPEN_FD_ERROR); }
 
-   bool getReadErrorFlag() const { return (OSQUERY_STATE & READ_ERROR_FLAG); }
-
-   void setReadSuccessFlag(){ OSQUERY_STATE |= READ_SUCCESS_FLAG; }
-
-   bool getReadSuccessFlag() const { return (OSQUERY_STATE & READ_SUCCESS_FLAG); }
-
-   /**
-    * Reset the state. Fatal and open fd errors will not be reset.
-    */
-   void refresh(){ OSQUERY_STATE = OSQUERY_STATE & 0b00000011; }
-
-   /**
-    * Reset the state. Fatal and open fd errors will be reset.
-    */
-   void reset(){ OSQUERY_STATE = 0; }
+    /**
+     * Reset the state. Fatal and open fd errors will be reset.
+     */
+    void reset() { OSQUERY_STATE = 0; }
 
 private:
-   uint8_t OSQUERY_STATE;
+    uint8_t OSQUERY_STATE;
 };
 
 
@@ -299,97 +295,102 @@ struct OsqueryRequestManager {
    /**
     * Fills the record with program values from osquery.
     */
+    //todo comment
    void readInfoAboutProgram(const string &query);
 
 private:
 
-   /**
-    * Sends a request and receives a response from osquery
-    * @param query
-    * @param reopenFD if true, tries to reopen fd
-    * @return number of bytes read
-    */
+    /**
+     * Sends a request and receives a response from osquery.
+     * @param query sql query according to osquery standards.
+     * @param reopenFD if true - tries to reopen fd.
+     * @return number of bytes read.
+     */
    size_t executeQuery(const string &query, bool reopenFD = false);
 
-   /**
-    * Writes query to osquery input FD.
-    * @param query - sql query according to osquery standards
-    * @return true if success or false
-    */
+    /**
+     * Writes query to osquery input FD.
+     * @param query sql query according to osquery standards.
+     * @return true if success or false.
+     */
    bool writeToOsquery(const char *query);
 
-   /**
-    * Reads data from osquery output FD.
-    * Can set flags: READ_ERROR_FLAG, READ_SUCCESS_FLAG
-    * @return number of bytes read
-    */
+    /**
+     * Reads data from osquery output FD.
+     * \note Can change osquery state. Possible changes: READ_ERROR, READ_SUCCESS.
+     * @return number of bytes read.
+     */
    size_t readFromOsquery();
 
-   /**
-    * Opens osquery FD.
-    * Can set flags: FATAL_ERROR_FLAG, OPEN_FD_ERROR_FLAG;
-    */
+    /**
+     * Opens osquery FD.
+     * \note Can change osquery state. Possible changes: FATAL_ERROR, OPEN_FD_ERROR.
+     */
    void openOsqueryFD();
 
    /**
-    * Closes osquery FD
+    * Closes osquery FD.
     */
    void closeOsqueryFD();
 
-   /**
-    * Before reopening osquery tries to kill the previous osquery process.
-    * @param useWhonangOption - default true
-    * If \param useWhonangOption == true then the waitpid() function will be used
-    * in non-blocking mode(can be called before the process is ready to close,
-    * the process will remain in a zombie state). At the end of the application,
-    * a zombie process may remain, it will be killed when the application is closed.
-    *
-    * if \param useWhonangOption == false then the waitpid() function will be used
-    * in blocking mode(will wait for the process to complete). Will kill all unnecessary
-    * processes, but will block the application until the killed process is finished.
-    */
+    /**
+     * Before reopening osquery tries to kill the previous osquery process.
+     *
+     * If \p useWhonangOption is true then the waitpid() function will be used
+     * in non-blocking mode(can be called before the process is ready to close,
+     * the process will remain in a zombie state). At the end of the application,
+     * a zombie process may remain, it will be killed when the application is closed.
+     * Else if \p useWhonangOption is false then the waitpid() function will be used
+     * in blocking mode(will wait for the process to complete). Will kill all unnecessary
+     * processes, but will block the application until the killed process is finished.
+     *
+     * @param useWhonangOption if true will be used non-blocking mode.
+     */
    void killPreviousProcesses(bool useWhonangOption = true) const;
 
    /**
     * Parses json by template.
-    * @return true if success or false
+    * @return true if success or false.
     */
    bool parseJsonOSVersion();
 
    /**
     * Parses json by template.
-    * @return true if success or false
+    * @return true if success or false.
     */
    bool parseJsonAboutProgram();
 
-   /**
-    * From position \param from tries to find two strings between quotes ["key":"value"].
-    * @param from - start position in the buffer
-    * @param key - value for the "key" parsing result
-    * @param value - value for the "value" parsing result
-    * @return the position where the text search ended, 0 - end of json row, -1 - end of buffer
-    */
+    /**
+     * From position \p from tries to find two strings between quotes ["key":"value"].
+     * @param[in]  from  start position in the buffer.
+     * @param[out] key   value for the "key" parsing result.
+     * @param[out] value value for the "value" parsing result.
+     * @return the position where the text search ended, 0 if end of json row or -1 if end of buffer.
+     */
    int parseJsonItem(int from, string &key, string &value);
 
-   /**
-    * From position \param from tries to find string between quotes.
-    * @param from - start position in the buffer
-    * @param str - value for the parsing result
-    * @return the position where the text search ended, 0 - end of json row, -1 - end of buffer
-    */
+    /**
+     * From position \p from tries to find string between quotes.
+     * @param[in]  from start position in the buffer.
+     * @param[out] str  value for the parsing result.
+     * @return the position where the text search ended, 0 if end of json row or -1 if end of buffer.
+     */
    int parseString(int from, string &str);
 
-   /**
-    * Create a new process for connecting FD.
-    * @param command - command to execute in sh
-    * @param inFD - input FD
-    * @param outFD - output FD
-    * @return pid of the new process
-    */
+    /**
+     * Create a new process for connecting FD.
+     * @param[in]  command  command to execute in sh.
+     * @param[out] inFD     input FD.
+     * @param[out] outFD    output FD.
+     * @return pid of the new process.
+     */
    pid_t popen2(const char *command, int *inFD, int *outFD) const;
 
    /**
     * Sets the first five elements of the buffer to zero.
+    * This is necessary because currently the parser methods
+    * start parsing at the second character, but for further
+    * parser implementations they can start parsing at the fifth character.
     */
    void clearBuffer(){ buffer[0] = buffer[1] = buffer[2] = buffer[3] = buffer[4] = 0; }
 

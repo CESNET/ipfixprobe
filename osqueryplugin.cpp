@@ -196,9 +196,9 @@ OsqueryRequestManager::OsqueryRequestManager() : inputFD(0),
 
    while (true) {
       openOsqueryFD();
-      if (handler.getFatalErrorFlag()) {
+      if (handler.isFatalError()) {
          break;
-      } else if (handler.getOpenFDErrorFlag()) {
+      } else if (handler.isOpenFDError()) {
          continue;
       } else {
          buffer = new char [BUFFER_SIZE];
@@ -237,36 +237,36 @@ void OsqueryRequestManager::readInfoAboutProgram(const string &query)
 
 size_t OsqueryRequestManager::executeQuery(const string &query, bool reopenFD)
 {
-   if (reopenFD) {
-      openOsqueryFD();
-   }
+    if (reopenFD) {
+        openOsqueryFD();
+    }
 
-   if (handler.getFatalErrorFlag()) {
-      return 0;
-   }
+    if (handler.isFatalError()) {
+        return 0;
+    }
 
-   if (handler.getOpenFDErrorFlag()) {
-      return executeQuery(query, true);
-   }
+    if (handler.isOpenFDError()) {
+        return executeQuery(query, true);
+    }
 
-   handler.refresh();
+    handler.refresh();
 
-   if (!writeToOsquery(query.c_str())) {
-      return executeQuery(query, true);
-   }
+    if (!writeToOsquery(query.c_str())) {
+        return executeQuery(query, true);
+    }
 
-   size_t ret = readFromOsquery();
+    size_t ret = readFromOsquery();
 
-   if (handler.getReadErrorFlag()) {
-      return executeQuery(query, true);
-   }
+    if (handler.isReadError()) {
+        return executeQuery(query, true);
+    }
 
-   if (handler.getReadSuccessFlag()) {
-      numberOfAttempts = 0;
-      return ret;
-   }
+    if (handler.isReadSuccess()) {
+        numberOfAttempts = 0;
+        return ret;
+    }
 
-   return 0;
+    return 0;
 }
 
 bool OsqueryRequestManager::writeToOsquery(const char *query)
@@ -274,7 +274,7 @@ bool OsqueryRequestManager::writeToOsquery(const char *query)
    // If expression is true, a logical error has occurred.
    // There should be no logged errors when executing this method
    if (handler.isErrorState()) {
-      handler.setFatalErrorFlag();
+      handler.setFatalError();
       return false;
    }
 
@@ -289,7 +289,7 @@ size_t OsqueryRequestManager::readFromOsquery()
    // If expression is true, a logical error has occurred.
    // There should be no logged errors when executing this method
    if (handler.isErrorState()) {
-      handler.setFatalErrorFlag();
+      handler.setFatalError();
       return 0;
    }
 
@@ -302,7 +302,7 @@ size_t OsqueryRequestManager::readFromOsquery()
    // ret == 0 -> poll timeout (osquery in json mode always returns at least empty json string("[\n\n]\n"),
    // if no response has been received, this is considered an error).
    if (ret == -1 || ret == 0) {
-      handler.setReadErrorFlag();
+      handler.setReadError();
       return 0;
    }
 
@@ -314,7 +314,7 @@ size_t OsqueryRequestManager::readFromOsquery()
 
             // read error
             if (n < 0) {
-               handler.setReadErrorFlag();
+               handler.setReadError();
                return 0;
             }
 
@@ -323,13 +323,13 @@ size_t OsqueryRequestManager::readFromOsquery()
             // Error: less than 5 bytes were read
             if (bytesRead < 5) {
                clearBuffer();
-               handler.setReadErrorFlag();
+               handler.setReadError();
                return 0;
             }
 
             if (n < READ_SIZE || buffer[bytesRead - 2] == ']') {
                buffer[bytesRead] = 0;
-               handler.setReadSuccessFlag();
+               handler.setReadSuccess();
                return bytesRead;
             }
          } else {
@@ -337,31 +337,31 @@ size_t OsqueryRequestManager::readFromOsquery()
 
             // read error
             if (n < 0) {
-               handler.setReadErrorFlag();
+               handler.setReadError();
                return 0;
             }
 
             if (n < READ_SIZE || buffer[n - 2] == ']') {
                clearBuffer();
-               handler.setReadSuccessFlag();
+               handler.setReadSuccess();
                return 0;
             }
          }
       }
    }
-   handler.setReadErrorFlag();
+   handler.setReadError();
    return 0;
 } // OsqueryRequestManager::readFromOsquery
 
 void OsqueryRequestManager::openOsqueryFD()
 {
-   if (handler.getFatalErrorFlag()) {
+   if (handler.isFatalError()) {
       return;
    }
 
    // All attempts have been exhausted
    if (numberOfAttempts >= MAX_NUMBER_OF_ATTEMPTS) {
-      handler.setFatalErrorFlag();
+      handler.setFatalError();
       return;
    }
 
@@ -373,7 +373,7 @@ void OsqueryRequestManager::openOsqueryFD()
    osqueryProcessId = popen2("osqueryi --json", &inputFD, &outputFD);
 
    if (osqueryProcessId <= 0) {
-      handler.setOpenFDErrorFlag();
+      handler.setOpenFDError();
       return;
    } else {
       isFDOpened = true;
