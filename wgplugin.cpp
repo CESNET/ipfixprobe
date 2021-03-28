@@ -143,21 +143,21 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, RecordExtWG 
    if (pkt_type < WG_PACKETTYPE_INIT_TO_RESP || pkt_type > WG_PACKETTYPE_TRANSPORT_DATA) {
       return false;
    }
-   // TODO: possible endianity issues?
    if (data[1] != 0x0 || data[2] != 0x0 || data[3] != 0x0) {
       return false;
    }
 
+   // TODO: possible endianity issues?
    // TODO: more properties need to be parsed
    if (pkt_type == WG_PACKETTYPE_INIT_TO_RESP) {
-      ext->src_peer = *(data+4);
+      memcpy(&(ext->src_peer), (data+4), sizeof(uint32_t));
    } else if (pkt_type == WG_PACKETTYPE_RESP_TO_INIT) {
-      ext->src_peer = *(data+4);
-      ext->dst_peer = *(data+8);
+      memcpy(&(ext->src_peer), (data+4), sizeof(uint32_t));
+      memcpy(&(ext->dst_peer), (data+8), sizeof(uint32_t));
    } else if (pkt_type == WG_PACKETTYPE_COOKIE_REPLY) {
-      ext->dst_peer = *(data+4);
+      memcpy(&(ext->dst_peer), (data+4), sizeof(uint32_t));
    } else if (pkt_type == WG_PACKETTYPE_TRANSPORT_DATA) {
-      ext->dst_peer = *(data+4);
+      memcpy(&(ext->dst_peer), (data+4), sizeof(uint32_t));
    }
 
    // TODO see if this is really enough

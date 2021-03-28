@@ -80,13 +80,14 @@ struct RecordExtWG : RecordExt {
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
+      ur_set(tmplt, record, F_WG_SRC_PEER, src_peer);
+      ur_set(tmplt, record, F_WG_DST_PEER, dst_peer);
    }
 #endif
 
    virtual int fillIPFIX(uint8_t *buffer, int size)
    {
-      int requiredLen = 0,
-          currentLen  = 0;
+      int requiredLen = 0;
 
       requiredLen += sizeof(src_peer); // WG_SRC_PEER
       requiredLen += sizeof(dst_peer); // WG_DST_PEER
@@ -95,12 +96,12 @@ struct RecordExtWG : RecordExt {
          return -1;
       }
 
-      buffer[currentLen] = (uint32_t) src_peer;
-      currentLen += sizeof(src_peer);
-      buffer[currentLen] = (uint32_t) dst_peer;
-      currentLen += sizeof(dst_peer);
+      memcpy(buffer, &src_peer, sizeof(src_peer));
+      buffer += sizeof(src_peer);
+      memcpy(buffer, &dst_peer, sizeof(dst_peer));
+      buffer += sizeof(dst_peer);
       
-      return currentLen;
+      return requiredLen;
    }
 };
 
