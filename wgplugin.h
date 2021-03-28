@@ -75,6 +75,8 @@ struct RecordExtWG : RecordExt {
 
    RecordExtWG() : RecordExt(wg)
    {
+      src_peer = 0;
+      dst_peer = 0;
    }
 
 #ifdef WITH_NEMEA

@@ -62,11 +62,15 @@ UR_FIELDS (
 WGPlugin::WGPlugin(const options_t &module_options)
 {
    print_stats = module_options.print_stats;
+   total = 0;
+   identified = 0;
 }
 
 WGPlugin::WGPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
 {
    print_stats = module_options.print_stats;
+   total = 0;
+   identified = 0;
 }
 
 int WGPlugin::post_create(Flow &rec, const Packet &pkt)
