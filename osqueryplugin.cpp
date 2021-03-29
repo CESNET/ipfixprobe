@@ -114,7 +114,7 @@ void OSQUERYPlugin::finish()
 
    if (print_stats) {
       cout << "OSQUERY plugin stats:" << endl;
-      cout << "Number of successfully processed requests:" << numberOfSuccessfullyRequests << endl;
+      cout << "Number of successfully processed requests: " << numberOfSuccessfullyRequests << endl;
    }
 }
 
@@ -409,7 +409,7 @@ void OsqueryRequestManager::openOsqueryFD()
    handler.reset();
    numberOfAttempts++;
 
-   osqueryProcessId = popen2("osqueryi --json", &inputFD, &outputFD);
+   osqueryProcessId = popen2("osqueryi --json 2>/dev/null", &inputFD, &outputFD);
 
    if (osqueryProcessId <= 0) {
       handler.setOpenFDError();
