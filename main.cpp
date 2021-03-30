@@ -218,8 +218,7 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
          tmp.push_back(plugin_opt("pstats", pstats, ifc_num++, params));
 
          plugins.push_back(new PSTATSPlugin(module_options, tmp));
-      }
-      else if (proto == "osquery") {
+      } else if (proto == "osquery") {
 #ifdef WITH_OSQUERY
          vector<plugin_opt> tmp;
          tmp.push_back(plugin_opt("osquery", osquery, ifc_num++));
@@ -228,8 +227,7 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
 #endif
          fprintf(stderr, "Unsupported plugin: \"%s\"\n", proto.c_str());
          return -1;
-      }
-      else if (proto == "ovpn"){
+      } else if (proto == "ovpn"){
           vector<plugin_opt> tmp;
           tmp.push_back(plugin_opt("ovpn", ovpn, ifc_num++));
 
