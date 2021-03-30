@@ -18,6 +18,12 @@ endif
 
 ipfixprobe_CXXFLAGS=-std=c++98 -Wno-write-strings -I./nfbCInterface/include/
 
+if WITH_OSQUERY
+osquery_src=osqueryplugin.h \
+            osqueryplugin.cpp
+else
+osquery_src=
+endif
 
 ipfixprobe_src=main.cpp \
 		ipfixprobe.h \
@@ -62,8 +68,6 @@ ipfixprobe_src=main.cpp \
 		conversion.cpp \
 		pstatsplugin.h \
 		pstatsplugin.cpp \
-		osqueryplugin.h \
-		osqueryplugin.cpp \
 		ovpnplugin.h \
 		ovpnplugin.cpp \
 		byte-utils.h \
@@ -80,7 +84,8 @@ ipfixprobe_src=main.cpp \
 		ipfix-basiclist.cpp \
 		ipfix-basiclist.h \
 		basicplusplugin.h \
-		basicplusplugin.cpp
+		basicplusplugin.cpp \
+		$(osquery_src)
 
 
 if WITH_NEMEA

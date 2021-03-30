@@ -78,13 +78,16 @@
 #include "passivednsplugin.h"
 #include "smtpplugin.h"
 #include "pstatsplugin.h"
-#include "osqueryplugin.h"
 #include "ovpnplugin.h"
 #include "ssdpplugin.h"
 #include "dnssdplugin.h"
 #include "idpcontentplugin.h"
 #include "netbiosplugin.h"
 #include "basicplusplugin.h"
+
+#ifdef WITH_OSQUERY
+#include "osqueryplugin.h"
+#endif
 
 using namespace std;
 
@@ -97,7 +100,11 @@ static int stop = 0;
 #define MODULE_BASIC_INFO(BASIC) \
   BASIC("ipfixprobe", "Convert packets from PCAP file or network interface into biflow records.", 0, -1)
 
+#ifdef WITH_OSQUERY
 #define SUPPORTED_PLUGINS_LIST "http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,osquery,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus"
+#else
+#define SUPPORTED_PLUGINS_LIST "http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus"
+#endif
 
 // TODO: remove parameters when using ndp
 #define MODULE_PARAMS(PARAM) \
@@ -211,12 +218,18 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
          tmp.push_back(plugin_opt("pstats", pstats, ifc_num++, params));
 
          plugins.push_back(new PSTATSPlugin(module_options, tmp));
-      } else if (proto == "osquery") {
+      }
+      else if (proto == "osquery") {
+#ifdef WITH_OSQUERY
          vector<plugin_opt> tmp;
          tmp.push_back(plugin_opt("osquery", osquery, ifc_num++));
 
          plugins.push_back(new OSQUERYPlugin(module_options, tmp));
-      } else if (proto == "ovpn"){
+#endif
+         fprintf(stderr, "Unsupported plugin: \"%s\"\n", proto.c_str());
+         return -1;
+      }
+      else if (proto == "ovpn"){
           vector<plugin_opt> tmp;
           tmp.push_back(plugin_opt("ovpn", ovpn, ifc_num++));
 

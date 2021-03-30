@@ -130,6 +130,25 @@ RPM_REQUIRES+=" libtrap"
 RPM_BUILDREQ+=" libtrap-devel unirec"
 fi
 
+AC_ARG_WITH([osquery],
+        AC_HELP_STRING([--with-osquery],[Compile with osquery framework (osquery.io).]),
+        [
+      if test "$withval" = "yes"; then
+        withosquery="yes"
+        AC_CHECK_PROG(OSQUERY, osqueryi, yes)
+        AS_IF([test x${OSQUERY} != xyes], [AC_MSG_ERROR([Please install osquery before configuring.])])
+      else
+        withosquery="no"
+      fi
+        ], [withosquery="no"]
+)
+
+AM_CONDITIONAL(WITH_OSQUERY, test x${withosquery} = xyes)
+
+if [[ -z "$WITH_OSQUERY_TRUE" ]]; then
+  AC_DEFINE([WITH_OSQUERY], [1], [Define to 1 if the osquery is available])
+fi
+
 AM_CONDITIONAL(COMPILE_FLOWMETER,  test x${libpcap} = xyes || test x${libnfb} = xyes)
 
 AM_CONDITIONAL(MAKE_RPMS, test x$RPMBUILD != x)
