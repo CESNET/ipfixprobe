@@ -224,9 +224,10 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
          tmp.push_back(plugin_opt("osquery", osquery, ifc_num++));
 
          plugins.push_back(new OSQUERYPlugin(module_options, tmp));
-#endif
+#else
          fprintf(stderr, "Unsupported plugin: \"%s\"\n", proto.c_str());
          return -1;
+#endif
       } else if (proto == "ovpn"){
           vector<plugin_opt> tmp;
           tmp.push_back(plugin_opt("ovpn", ovpn, ifc_num++));
