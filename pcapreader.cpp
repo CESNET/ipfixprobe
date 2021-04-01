@@ -440,6 +440,10 @@ inline uint16_t parse_tcp_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
          // Parse Maximum Segment Size (MSS)
          pkt->tcp_mss = ntohl(*(uint32_t *) (opt_ptr + 2));
       }
+      if (opt_len == 0) {
+         // Prevent infinity loop
+         throw "Parser detected malformed packet";
+      }
       i += opt_len;
    }
 
