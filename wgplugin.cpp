@@ -76,27 +76,22 @@ WGPlugin::WGPlugin(const options_t &module_options, vector<plugin_opt> plugin_op
 int WGPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.ip_proto == IPPROTO_UDP) {
-      return add_ext_wg(pkt.payload, pkt.payload_length, rec);
+      add_ext_wg(pkt.payload, pkt.payload_length, rec);
    }
 
    return 0;
 }
 
-int WGPlugin::post_update(Flow &rec, const Packet &pkt)
+int WGPlugin::pre_update(Flow &rec, Packet &pkt)
 {
-   if (pkt.ip_proto == IPPROTO_UDP) {
-      RecordExt *ext = rec.getExtension(wg);
-      if (ext == NULL) {
-         return add_ext_wg(pkt.payload, pkt.payload_length, rec);
-      } else {
-         if (parse_wg(pkt.payload, pkt.payload_length, dynamic_cast<RecordExtWG *>(ext))) {
-            return FLOW_FLUSH;
-         }
-      }
+   RecordExtWG *vpn_data = (RecordExtWG *) rec.getExtension(wg);
+   if (vpn_data != NULL) {
+      parse_wg(pkt.payload, pkt.payload_length, vpn_data);
    }
-
+   
    return 0;
 }
+
 
 void WGPlugin::pre_export(Flow &rec)
 {
@@ -176,10 +171,9 @@ int WGPlugin::add_ext_wg(const char *data, unsigned int payload_len, Flow &rec)
    if (!parse_wg(data, payload_len, ext)) {
       delete ext;
       return 0;
-   } else {
-      rec.addExtension(ext);
    }
-
-   return FLOW_FLUSH;
+   
+   rec.addExtension(ext);
+   return 0;
 }
 

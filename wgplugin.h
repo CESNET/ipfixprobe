@@ -116,7 +116,7 @@ public:
    WGPlugin(const options_t &module_options);
    WGPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
    int post_create(Flow &rec, const Packet &pkt);
-   int post_update(Flow &rec, const Packet &pkt);
+   int pre_update(Flow &rec, Packet &pkt);
    void pre_export(Flow &rec);
    void finish();
    const char **get_ipfix_string();
