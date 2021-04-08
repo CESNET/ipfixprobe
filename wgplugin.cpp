@@ -126,10 +126,6 @@ bool WGPlugin::include_basic_flow_fields()
    return true;
 }
 
-bool equal_ipaddr_t(const ipaddr_t &i1, const ipaddr_t &i2) {
-   return (0 == memcmp(&i1, &i2, sizeof (ipaddr_t)));
-}
-
 bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_pkt, RecordExtWG *ext)
 {
    total++;
