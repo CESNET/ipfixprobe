@@ -124,8 +124,8 @@ public:
    bool include_basic_flow_fields();
 
 private:
-   bool parse_wg(const char *data, unsigned int payload_len, RecordExtWG *ext);
-   int add_ext_wg(const char *data, unsigned int payload_len, Flow &rec);
+   bool parse_wg(const char *data, unsigned int payload_len, bool source_pkt, RecordExtWG *ext);
+   int add_ext_wg(const char *data, unsigned int payload_len, bool source_pkt, Flow &rec);
 
    bool print_stats;       /**< Print stats when flow cache finish. */
    uint32_t total;         /**< Total number of processed packets. */

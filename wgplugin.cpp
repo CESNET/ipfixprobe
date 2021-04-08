@@ -76,7 +76,7 @@ WGPlugin::WGPlugin(const options_t &module_options, vector<plugin_opt> plugin_op
 int WGPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.ip_proto == IPPROTO_UDP) {
-      add_ext_wg(pkt.payload, pkt.payload_length, rec);
+      add_ext_wg(pkt.payload, pkt.payload_length, pkt.source_pkt, rec);
    }
 
    return 0;
@@ -86,9 +86,9 @@ int WGPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    RecordExtWG *vpn_data = (RecordExtWG *) rec.getExtension(wg);
    if (vpn_data != NULL) {
-      parse_wg(pkt.payload, pkt.payload_length, vpn_data);
+      parse_wg(pkt.payload, pkt.payload_length, pkt.source_pkt, vpn_data);
    }
-   
+
    return 0;
 }
 
@@ -126,7 +126,11 @@ bool WGPlugin::include_basic_flow_fields()
    return true;
 }
 
-bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, RecordExtWG *ext)
+bool equal_ipaddr_t(const ipaddr_t &i1, const ipaddr_t &i2) {
+   return (0 == memcmp(&i1, &i2, sizeof (ipaddr_t)));
+}
+
+bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_pkt, RecordExtWG *ext)
 {
    total++;
 
@@ -149,14 +153,19 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, RecordExtWG 
    // TODO: possible endianity issues?
    // TODO: more properties need to be parsed
    if (pkt_type == WG_PACKETTYPE_INIT_TO_RESP) {
-      memcpy(&(ext->src_peer), (data+4), sizeof(uint32_t));
+      memcpy(source_pkt ? &(ext->src_peer) : &(ext->dst_peer), (data+4), sizeof(uint32_t));
    } else if (pkt_type == WG_PACKETTYPE_RESP_TO_INIT) {
       memcpy(&(ext->src_peer), (data+4), sizeof(uint32_t));
       memcpy(&(ext->dst_peer), (data+8), sizeof(uint32_t));
+      
+      // let's swap for the opposite direction
+      if (! source_pkt) {
+         swap(ext->src_peer, ext->dst_peer);
+      }
    } else if (pkt_type == WG_PACKETTYPE_COOKIE_REPLY) {
-      memcpy(&(ext->dst_peer), (data+4), sizeof(uint32_t));
+      memcpy(source_pkt ? &(ext->dst_peer) : &(ext->src_peer), (data+4), sizeof(uint32_t));
    } else if (pkt_type == WG_PACKETTYPE_TRANSPORT_DATA) {
-      memcpy(&(ext->dst_peer), (data+4), sizeof(uint32_t));
+      memcpy(source_pkt ? &(ext->dst_peer) : &(ext->src_peer), (data+4), sizeof(uint32_t));
    }
 
    // TODO see if this is really enough
@@ -164,11 +173,11 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, RecordExtWG 
    return true;
 }
 
-int WGPlugin::add_ext_wg(const char *data, unsigned int payload_len, Flow &rec)
+int WGPlugin::add_ext_wg(const char *data, unsigned int payload_len, bool source_pkt, Flow &rec)
 {
    RecordExtWG *ext = new RecordExtWG();
    // try to parse WireGuard packet
-   if (!parse_wg(data, payload_len, ext)) {
+   if (!parse_wg(data, payload_len, source_pkt, ext)) {
       delete ext;
       return 0;
    }
