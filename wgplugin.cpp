@@ -61,6 +61,7 @@ UR_FIELDS (
 
 WGPlugin::WGPlugin(const options_t &module_options)
 {
+   flow_flush = false;
    print_stats = module_options.print_stats;
    total = 0;
    identified = 0;
@@ -68,6 +69,7 @@ WGPlugin::WGPlugin(const options_t &module_options)
 
 WGPlugin::WGPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
 {
+   flow_flush = false;
    print_stats = module_options.print_stats;
    total = 0;
    identified = 0;
@@ -87,6 +89,11 @@ int WGPlugin::pre_update(Flow &rec, Packet &pkt)
    RecordExtWG *vpn_data = (RecordExtWG *) rec.getExtension(wg);
    if (vpn_data != NULL) {
       parse_wg(pkt.payload, pkt.payload_length, pkt.source_pkt, vpn_data);
+
+      if (flow_flush) {
+         flow_flush = false;
+         return FLOW_FLUSH_WITH_REINSERT;
+      }
    }
 
    return 0;
@@ -128,6 +135,9 @@ bool WGPlugin::include_basic_flow_fields()
 
 bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_pkt, RecordExtWG *ext)
 {
+   uint32_t cmp_peer;
+   uint32_t cmp_new_peer;
+
    total++;
 
    // The smallest message (according to specs) is the data message (0x04) with 16 header bytes.
@@ -146,9 +156,21 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
       return false;
    }
 
-   // TODO: possible endianity issues?
+
    // TODO: more properties need to be parsed
    if (pkt_type == WG_PACKETTYPE_INIT_TO_RESP) {
+      // compare the current dst_peer and see if it matches the original source.
+      // If not, the flow flush may be needed to create a new flow.
+      cmp_peer = source_pkt ? ext->src_peer : ext->dst_peer;
+      memcpy(&cmp_new_peer, (data+4), sizeof(uint32_t));
+      
+      // cerr << "handshake init: new sender " << cmp_new_peer << ", old sender " << cmp_peer << endl;
+      if (cmp_peer != 0 && cmp_peer != cmp_new_peer) {
+         cerr << "new flow" << endl;
+         flow_flush = true;
+         return false;
+      }
+
       memcpy(source_pkt ? &(ext->src_peer) : &(ext->dst_peer), (data+4), sizeof(uint32_t));
    } else if (pkt_type == WG_PACKETTYPE_RESP_TO_INIT) {
       memcpy(&(ext->src_peer), (data+4), sizeof(uint32_t));

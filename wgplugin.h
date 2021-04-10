@@ -127,6 +127,7 @@ private:
    bool parse_wg(const char *data, unsigned int payload_len, bool source_pkt, RecordExtWG *ext);
    int add_ext_wg(const char *data, unsigned int payload_len, bool source_pkt, Flow &rec);
 
+   bool flow_flush;        /**< Instructs the engine to create new flow, during pre_update. */
    bool print_stats;       /**< Print stats when flow cache finish. */
    uint32_t total;         /**< Total number of processed packets. */
    uint32_t identified;    /**< Total number of identified WireGuard packets. */   
