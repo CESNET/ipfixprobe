@@ -42,6 +42,7 @@
  */
 
 #include <iostream>
+#include <cstring>
 
 #include "wgplugin.h"
 #include "flowifc.h"
