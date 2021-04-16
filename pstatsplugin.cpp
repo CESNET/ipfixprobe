@@ -70,19 +70,21 @@ using namespace std;
 #define PSTATS_UNIREC_TEMPLATE "PPI_PKT_LENGTHS,PPI_PKT_TIMES,PPI_PKT_FLAGS,PPI_PKT_DIRECTIONS"
 
 #define INCLUDE_ZEROS_OPT "includezeros"
+#define SKIP_DUP_PACKETS "skipdup"
 
 
 UR_FIELDS (
    uint16* PPI_PKT_LENGTHS,
    time* PPI_PKT_TIMES,
    uint8* PPI_PKT_FLAGS,
-   int8* PPI_PKT_DIRECTIONS,
+   int8* PPI_PKT_DIRECTIONS
 )
 
 PSTATSPlugin::PSTATSPlugin(const options_t &module_options)
 {
    print_stats = module_options.print_stats;
    use_zeros = false;
+   skip_dup_pkts = false;
 }
 
 void PSTATSPlugin::check_plugin_options(vector<plugin_opt>& plugin_options)
@@ -100,6 +102,9 @@ void PSTATSPlugin::check_plugin_options(vector<plugin_opt>& plugin_options)
       if (options[i] == INCLUDE_ZEROS_OPT) {
          DEBUG_MSG("PSTATS include zero-length packets\n");
          use_zeros = true;
+      } else if (options[i] == SKIP_DUP_PACKETS) {
+         DEBUG_MSG("PSTATS skip retransmitted packets\n");
+         skip_dup_pkts = true;
       }
    }
 }
@@ -108,8 +113,8 @@ PSTATSPlugin::PSTATSPlugin(const options_t &module_options, vector<plugin_opt> p
 {
    print_stats = module_options.print_stats;
    use_zeros = false;
+   skip_dup_pkts = false;
    check_plugin_options(plugin_options);
-
 }
 
 FlowCachePlugin *PSTATSPlugin::copy()
@@ -119,15 +124,32 @@ FlowCachePlugin *PSTATSPlugin::copy()
 
 void PSTATSPlugin::update_record(RecordExtPSTATS *pstats_data, const Packet &pkt)
 {
-  if(pkt.payload_length == 0 && use_zeros == false){
-    return;
-  }
+   /**
+    * 0 - client -> server
+    * 1 - server -> client
+    */
+   int8_t dir = pkt.source_pkt ? 0 : 1;
+   if (skip_dup_pkts && pkt.ip_proto == 6 && pstats_data->pkt_count != 0 &&
+         pkt.tcp_seq == pstats_data->tcp_seq[dir] &&
+         pkt.tcp_ack == pstats_data->tcp_ack[dir] &&
+         pkt.payload_length == pstats_data->tcp_len[dir] &&
+         pkt.tcp_control_bits == pstats_data->tcp_flg[dir]) {
+      return;
+   }
+   pstats_data->tcp_seq[dir] = pkt.tcp_seq;
+   pstats_data->tcp_ack[dir] = pkt.tcp_ack;
+   pstats_data->tcp_len[dir] = pkt.payload_length;
+   pstats_data->tcp_flg[dir] = pkt.tcp_control_bits;
+
+   if (pkt.payload_length == 0 && use_zeros == false) {
+      return;
+   }
 
    /*
     * dir =  1 iff client -> server
     * dir = -1 iff server -> client
     */
-   int8_t dir = pkt.source_pkt ? 1 : -1;
+   dir = pkt.source_pkt ? 1 : -1;
    if (pstats_data->pkt_count < PSTATS_MAXELEMCOUNT) {
       uint16_t pkt_cnt = pstats_data->pkt_count;
       pstats_data->pkt_sizes[pkt_cnt] = pkt.payload_length_orig;

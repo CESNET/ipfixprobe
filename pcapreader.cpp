@@ -398,6 +398,8 @@ inline uint16_t parse_tcp_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
    pkt->dst_port = ntohs(tcp->dest);
    pkt->tcp_control_bits = (uint8_t) *(data_ptr + 13) & 0xFF;
    pkt->tcp_window = ntohs(tcp->window);
+   pkt->tcp_seq = ntohl(tcp->seq);
+   pkt->tcp_ack = ntohl(tcp->ack_seq);
 
    DEBUG_MSG("TCP header:\n");
    DEBUG_MSG("\tSrc port:\t%u\n",   ntohs(tcp->source));
@@ -666,6 +668,8 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
    pkt->tcp_window = 0;
    pkt->tcp_options = 0;
    pkt->tcp_mss = 0;
+   pkt->tcp_seq = 0;
+   pkt->tcp_ack = 0;
 
    uint32_t l3_hdr_offset = 0;
    uint32_t l4_hdr_offset = 0;
