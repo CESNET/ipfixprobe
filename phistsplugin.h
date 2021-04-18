@@ -144,6 +144,7 @@ private:
    void update_record(RecordExtPHISTS *phists_data, const Packet &pkt);
    void update_hist(RecordExtPHISTS *phists_data, uint32_t value, uint32_t *histogram);
    uint64_t calculate_ipt(RecordExtPHISTS *phists_data, const struct timeval tv, uint8_t direction);
+   void check_plugin_options(vector<plugin_opt>& plugin_options);
 
    static inline uint32_t fastlog2_32(uint32_t value)
    {
@@ -166,6 +167,7 @@ private:
    static const uint32_t log2_lookup32[32];
 
    bool print_stats; /**< Indicator whether to print stats when flow cache is finishing or not. */
+   bool use_zeros;
 };
 
 #endif // ifndef PHISTSPLUGIN_H

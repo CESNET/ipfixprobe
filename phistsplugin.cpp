@@ -42,6 +42,10 @@
  */
 
 #include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <algorithm>
 #include <limits>
 
 #include "phistsplugin.h"
@@ -56,6 +60,15 @@
 using namespace std;
 
 #define PHISTS_UNIREC_TEMPLATE "S_PHISTS_SIZES,S_PHISTS_IPT,D_PHISTS_SIZES,D_PHISTS_IPT"
+
+#define PHISTS_INCLUDE_ZEROS_OPT "includezeros"
+
+#ifdef DEBUG_PHISTS
+#define DEBUG_MSG(format, ...) fprintf(stderr, format, ##__VA_ARGS__)
+#else
+#define DEBUG_MSG(format, ...)
+#endif
+
 
 UR_FIELDS(
    uint32* S_PHISTS_SIZES,
@@ -79,6 +92,8 @@ PHISTSPlugin::PHISTSPlugin(const options_t &module_options, vector<plugin_opt> p
    : FlowCachePlugin(plugin_options)
 {
    print_stats = module_options.print_stats;
+   use_zeros = false;
+   check_plugin_options(plugin_options);
 }
 
 /*
@@ -98,7 +113,7 @@ void PHISTSPlugin::update_hist(RecordExtPHISTS *phists_data, uint32_t value, uin
    } else if (value > 1023) {
       histogram[HISTOGRAM_SIZE - 1] = no_overflow_increment(histogram[HISTOGRAM_SIZE - 1]);
    } else {
-      histogram[fastlog2_32(value) - 2] = no_overflow_increment(histogram[fastlog2_32(value) - 2]);// -2 means shift cause first bin corresponds to 2^4
+      histogram[fastlog2_32(value) - 2 - 1] = no_overflow_increment(histogram[fastlog2_32(value) - 2 -1]);// -2 means shift cause first bin corresponds to 2^4
    }
    return;
 }
@@ -119,11 +134,12 @@ uint64_t PHISTSPlugin::calculate_ipt(RecordExtPHISTS *phists_data, const struct 
 
 void PHISTSPlugin::update_record(RecordExtPHISTS *phists_data, const Packet &pkt)
 {
+   if(pkt.payload_length_orig == 0 && use_zeros == true){
+      return;
+   }
    uint8_t direction = (uint8_t) !pkt.source_pkt;
-
    update_hist(phists_data, (uint32_t) pkt.payload_length_orig, phists_data->size_hist[direction]);
    int32_t ipt_diff = (uint32_t) calculate_ipt(phists_data, pkt.timestamp, direction);
-
    if (ipt_diff != -1) {
       update_hist(phists_data, (uint32_t) ipt_diff, phists_data->ipt_hist[direction]);
    }
@@ -165,4 +181,25 @@ string PHISTSPlugin::get_unirec_field_string()
 bool PHISTSPlugin::include_basic_flow_fields()
 {
    return true;
+}
+
+
+void PHISTSPlugin::check_plugin_options(vector<plugin_opt>& plugin_options)
+{
+   stringstream rawoptions(plugin_options[0].params);
+   string option;
+   vector<string> options;
+
+   while (std::getline(rawoptions, option, ':')) {
+      std::transform(option.begin(), option.end(), option.begin(), ::tolower);
+      options.push_back(option);
+   }
+
+   for (size_t i = 0; i < options.size(); i++) {
+      std::cout << options[i] << std::endl;
+      if (options[i] == PHISTS_INCLUDE_ZEROS_OPT) {
+         DEBUG_MSG("PHISTS include zero-length packets\n");
+         use_zeros = true;
+      }
+   }
 }
