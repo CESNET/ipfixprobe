@@ -130,8 +130,8 @@ void PSTATSPlugin::update_record(RecordExtPSTATS *pstats_data, const Packet &pkt
     */
    int8_t dir = pkt.source_pkt ? 0 : 1;
    if (skip_dup_pkts && pkt.ip_proto == 6 && pstats_data->pkt_count != 0 &&
-         pkt.tcp_seq == pstats_data->tcp_seq[dir] &&
-         pkt.tcp_ack == pstats_data->tcp_ack[dir] &&
+         pkt.tcp_seq <= pstats_data->tcp_seq[dir] &&
+         pkt.tcp_ack <= pstats_data->tcp_ack[dir] &&
          pkt.payload_length == pstats_data->tcp_len[dir] &&
          pkt.tcp_control_bits == pstats_data->tcp_flg[dir]) {
       return;
