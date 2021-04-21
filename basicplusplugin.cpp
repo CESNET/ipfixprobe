@@ -137,7 +137,3 @@ string BASICPLUSPlugin::get_unirec_field_string()
    return BASICPLUS_UNIREC_TEMPLATE;
 }
 
-bool BASICPLUSPlugin::include_basic_flow_fields()
-{
-   return true;
-}

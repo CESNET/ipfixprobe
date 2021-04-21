@@ -200,7 +200,3 @@ string BSTATSPlugin::get_unirec_field_string()
    return BSTATS_UNIREC_TEMPLATE;
 }
 
-bool BSTATSPlugin::include_basic_flow_fields()
-{
-   return true;
-}

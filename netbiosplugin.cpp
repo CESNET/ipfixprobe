@@ -173,7 +173,3 @@ string NETBIOSPlugin::get_unirec_field_string() {
     return NETBIOS_UNIREC_TEMPLATE;
 }
 
-bool NETBIOSPlugin::include_basic_flow_fields() {
-    return true;
-}
-

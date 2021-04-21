@@ -167,7 +167,3 @@ string PHISTSPlugin::get_unirec_field_string()
    return PHISTS_UNIREC_TEMPLATE;
 }
 
-bool PHISTSPlugin::include_basic_flow_fields()
-{
-   return true;
-}

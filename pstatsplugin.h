@@ -151,7 +151,6 @@ public:
    void update_record(RecordExtPSTATS *pstats_data, const Packet &pkt);
    const char **get_ipfix_string();
    string get_unirec_field_string();
-   bool include_basic_flow_fields();
 
 private:
    void check_plugin_options(vector<plugin_opt>& plugin_options);

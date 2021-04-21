@@ -178,7 +178,3 @@ string PSTATSPlugin::get_unirec_field_string()
    return PSTATS_UNIREC_TEMPLATE;
 }
 
-bool PSTATSPlugin::include_basic_flow_fields()
-{
-   return true;
-}

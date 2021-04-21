@@ -51,8 +51,6 @@ ipfixprobe_src=main.cpp \
 		ntpplugin.cpp \
 		ntpplugin.h \
 		ipaddr.h \
-		arpplugin.cpp \
-		arpplugin.h \
 		ipfixexporter.cpp \
 		ipfix-elements.h \
 		ipfixexporter.h \
@@ -100,7 +98,6 @@ pkgdocdir=${docdir}/ipfixprobe
 pkgdoc_DATA=README.md
 EXTRA_DIST=README.md \
 	traffic-samples/README.md \
-	traffic-samples/arp-sample.pcap \
 	traffic-samples/mixed-sample.pcap \
 	traffic-samples/dns-sample.pcap \
 	traffic-samples/dnssd-sample.pcap \

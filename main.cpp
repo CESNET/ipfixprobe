@@ -80,7 +80,6 @@
 #include "dnsplugin.h"
 #include "sipplugin.h"
 #include "ntpplugin.h"
-#include "arpplugin.h"
 #include "passivednsplugin.h"
 #include "smtpplugin.h"
 #include "pstatsplugin.h"
@@ -107,7 +106,7 @@ int terminate_input = 0;
 #define MODULE_BASIC_INFO(BASIC) \
   BASIC("ipfixprobe", "Convert packets from PCAP file or network interface into biflow records.", 0, -1)
 
-#define SUPPORTED_PLUGINS_LIST "http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus,bstats,phists"
+#define SUPPORTED_PLUGINS_LIST "http,rtsp,tls,dns,sip,ntp,smtp,basic,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus,bstats,phists"
 
 // TODO: remove parameters when using ndp
 #define MODULE_PARAMS(PARAM) \
@@ -210,11 +209,6 @@ int parse_plugin_settings(const string &settings, vector<FlowCachePlugin *> &plu
          tmp.push_back(plugin_opt("smtp", smtp, ifc_num++));
 
          plugins.push_back(new SMTPPlugin(module_options, tmp));
-      } else if (proto == "arp"){
-         vector<plugin_opt> tmp;
-         tmp.push_back(plugin_opt("arp", arp, ifc_num++));
-
-         plugins.push_back(new ARPPlugin(module_options, tmp));
       } else if (proto == "passivedns"){
          vector<plugin_opt> tmp;
          tmp.push_back(plugin_opt("passivedns", passivedns, ifc_num++));
@@ -913,26 +907,8 @@ int main(int argc, char *argv[])
       return error("Specify capture interface (-I) or file for reading (-r). ");
    }
 
-   bool parse_every_pkt = false;
-   uint32_t max_payload_size = 0;
-
-   for (unsigned int i = 0; i < plugin_wrapper.plugins.size(); i++) {
-      /* Check if plugins need all packets. */
-      if (!plugin_wrapper.plugins[i]->include_basic_flow_fields()) {
-         parse_every_pkt = true;
-      }
-      /* Get max payload size from plugins. */
-      if (max_payload_size < plugin_wrapper.plugins[i]->max_payload_length()) {
-         max_payload_size = plugin_wrapper.plugins[i]->max_payload_length();
-      }
-   }
-
    if (options.snaplen == 0) { /* Check if user specified snapshot length. */
-      int max_snaplen = max_payload_size + MIN_SNAPLEN;
-      if (max_snaplen > MAXPCKTSIZE) {
-         max_snaplen = MAXPCKTSIZE;
-      }
-      options.snaplen = max_snaplen;
+      options.snaplen = MAXPCKTSIZE;
    }
 
    if (!options.print_stats) {
@@ -1013,14 +989,14 @@ int main(int argc, char *argv[])
 #endif /* HAVE_NDP */
 
       if (options.interface.size() == 0) {
-         if (packetloader->open_file(options.pcap_file[i], parse_every_pkt) != 0) {
+         if (packetloader->open_file(options.pcap_file[i], true) != 0) {
             error("Can't open input file: " + options.pcap_file[i]);
             delete packetloader;
             ret = EXIT_FAILURE;
             goto EXIT;
          }
       } else {
-         if (packetloader->init_interface(options.interface[i], options.snaplen, parse_every_pkt) != 0) {
+         if (packetloader->init_interface(options.interface[i], options.snaplen, true) != 0) {
             error("Unable to initialize network interface: " + packetloader->error_msg);
             delete packetloader;
             ret = EXIT_FAILURE;

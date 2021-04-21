@@ -381,7 +381,3 @@ string TLSPlugin::get_unirec_field_string()
    return TLS_UNIREC_TEMPLATE;
 }
 
-bool TLSPlugin::include_basic_flow_fields()
-{
-   return true;
-}

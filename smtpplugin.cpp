@@ -411,8 +411,3 @@ string SMTPPlugin::get_unirec_field_string()
    return SMTP_UNIREC_TEMPLATE;
 }
 
-bool SMTPPlugin::include_basic_flow_fields()
-{
-   return true;
-}
-

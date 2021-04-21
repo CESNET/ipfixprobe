@@ -170,7 +170,6 @@ public:
    void finish();
    const char **get_ipfix_string();
    string get_unirec_field_string();
-   bool include_basic_flow_fields();
 
 private:
    void add_tls_record(Flow &rec, const Packet &pkt);

@@ -195,7 +195,6 @@ public:
    IPFIXExporter();
    ~IPFIXExporter();
    int export_flow(Flow &flow);
-   int export_packet(Packet &pkt);
    int init(const vector<FlowCachePlugin *> &plugins, int basic_ifc_num, uint32_t odid, string host, string port,
       bool udp, uint16_t mtu, bool verbose, uint8_t dir = 1);
    void flush();

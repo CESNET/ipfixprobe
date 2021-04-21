@@ -191,7 +191,6 @@ public:
    void pre_export(Flow &rec);
    const char **get_ipfix_string();
    string get_unirec_field_string();
-   bool include_basic_flow_fields();
 
    static const struct timeval min_packet_in_burst;
 private:

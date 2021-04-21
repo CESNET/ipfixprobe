@@ -139,7 +139,6 @@ public:
    int post_update(Flow &rec, const Packet &pkt);
    const char **get_ipfix_string();
    string get_unirec_field_string();
-   bool include_basic_flow_fields();
 
 private:
    void update_record(RecordExtPHISTS *phists_data, const Packet &pkt);

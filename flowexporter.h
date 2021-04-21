@@ -70,12 +70,6 @@ public:
    virtual int export_flow(Flow &flow) = 0;
 
    /**
-    * \brief Send packet to output interface.
-    * \param [in] pkt Packet to send.
-    * \return 0 on success
-    */
-   virtual int export_packet(Packet &pkt) = 0;
-   /**
     * \brief Force exporter to flush flows to collector.
     */
    virtual void flush()

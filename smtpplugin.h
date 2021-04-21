@@ -204,7 +204,6 @@ public:
    int pre_update(Flow &rec, Packet &pkt);
    void finish();
    string get_unirec_field_string();
-   bool include_basic_flow_fields();
    const char **get_ipfix_string();
 
    bool smtp_keyword(const char *data);

@@ -171,12 +171,7 @@ int UnirecExporter::init(const vector<FlowCachePlugin *> &plugins, int ifc_cnt, 
       }
 
       // Create unirec templates.
-      template_str = tmp->get_unirec_field_string();
-      if (tmp->include_basic_flow_fields()) {
-         template_str += string(",") + basic_tmplt;
-      } else {
-         template_str += string (",") + PACKET_TEMPLATE;
-      }
+      template_str = tmp->get_unirec_field_string() + string(",") + basic_tmplt;
 
       tmplt[ifc] = ur_create_output_template(ifc, template_str.c_str(), &error);
       if (tmplt[ifc] == NULL) {

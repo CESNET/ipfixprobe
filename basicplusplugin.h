@@ -141,7 +141,6 @@ public:
    int pre_update(Flow &rec, Packet &pkt);
    const char **get_ipfix_string();
    string get_unirec_field_string();
-   bool include_basic_flow_fields();
 
 private:
    bool print_stats; /**< Indicator whether to print stats when flow cache is finishing or not. */

@@ -110,12 +110,6 @@ template_file_record_t ipfix_fields[][1] = {
    NULL
 };
 
-/* Packet template. */
-const char *packet_tmplt[] = {
-   PACKET_TMPLT(IPFIX_FIELD_NAMES)
-   NULL
-};
-
 /* Basic IPv4 template. */
 const char *basic_tmplt_v4[] = {
    BASIC_TMPLT_V4(IPFIX_FIELD_NAMES)
@@ -233,17 +227,6 @@ template_t *IPFIXExporter::get_template(Flow &flow)
    return tmpltMap[ipTmpltIdx][tmpltIdx];
 }
 
-template_t *IPFIXExporter::get_template(Packet &pkt)
-{
-   uint64_t tmpltIdx = get_template_id(pkt);
-   if (tmpltMap[2].find(tmpltIdx) == tmpltMap[2].end()) {
-      std::vector<const char *> fields = get_template_fields(tmpltIdx);
-      tmpltMap[2][tmpltIdx] = create_template(packet_tmplt, fields.data());
-   }
-
-   return tmpltMap[2][tmpltIdx];
-}
-
 int fill_extensions(RecordExt *ext, uint8_t *buffer, int size)
 {
    RecordExt *extensions[EXTENSION_CNT] = {0};
@@ -296,24 +279,6 @@ bool IPFIXExporter::fill_template(Flow &flow, template_t *tmplt)
    return true;
 }
 
-bool IPFIXExporter::fill_template(Packet &pkt, template_t *tmplt)
-{
-   RecordExt *ext = pkt.exts;
-   int length = 0;
-
-   length = fill_packet_fields(pkt, tmplt);
-   if (length < 0) {
-      return false;
-   }
-   int ext_written = fill_extensions(ext, tmplt->buffer + tmplt->bufferSize + length, tmpltMaxBufferSize - tmplt->bufferSize - length);
-   if (ext_written < 0) {
-      return false;
-   }
-   tmplt->bufferSize += length + ext_written;
-   tmplt->recordCount++;
-   return true;
-}
-
 int IPFIXExporter::export_flow(Flow &flow)
 {
    records++;
@@ -322,21 +287,6 @@ int IPFIXExporter::export_flow(Flow &flow)
       flush();
 
       if (!fill_template(flow, tmplt)) {
-         dropped++;
-         return 1;
-      }
-   }
-   return 0;
-}
-
-int IPFIXExporter::export_packet(Packet &pkt)
-{
-   records++;
-   template_t *tmplt = get_template(pkt);
-   if (!fill_template(pkt, tmplt)) {
-      flush();
-
-      if (!fill_template(pkt, tmplt)) {
          dropped++;
          return 1;
       }
@@ -1037,30 +987,6 @@ int IPFIXExporter::reconnect()
 
    return 0;
 }
-
-/**
- * \brief Fill template buffer with packet fields.
- * @param pkt Packet
- * @param tmplt Template containing buffer
- * @return Number of written bytes or -1 if buffer is not big enough
- */
-int IPFIXExporter::fill_packet_fields(Packet &pkt, template_t *tmplt)
-{
-   uint8_t *buffer;
-
-   if (tmplt->bufferSize + 22 > tmpltMaxBufferSize) {
-      return -1;
-   }
-
-   buffer = tmplt->buffer + tmplt->bufferSize;
-   memcpy(buffer, pkt.packet, 6);
-   memcpy(buffer + 6, pkt.packet + 6, 6);
-   *(uint16_t *) (buffer + 12) = ntohs(pkt.ethertype);
-   *(uint64_t *) (buffer + 14) = swap_uint64(((uint64_t) pkt.timestamp.tv_sec * 1000) + (uint64_t) (pkt.timestamp.tv_usec / 1000));
-
-   return 22;
-}
-
 
 #define GEN_FIELDS_SUMLEN_INT(FIELD) FIELD_LEN(FIELD) +
 #define GEN_FILLFIELDS_INT(TMPLT) IPFIX_FILL_FIELD(p, TMPLT);

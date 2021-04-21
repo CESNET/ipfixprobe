@@ -185,12 +185,6 @@ int NHTFlowCache::put_pkt(Packet &pkt)
 {
    int ret = plugins_pre_create(pkt);
 
-   if (ret == EXPORT_PACKET) {
-      //exporter->export_packet(pkt); // TODO
-      pkt.removeExtensions();
-      return 0;
-   }
-
    if (!create_hash_key(pkt)) { // saves key value and key length into attributes NHTFlowCache::key and NHTFlowCache::key_len
       return 0;
    }

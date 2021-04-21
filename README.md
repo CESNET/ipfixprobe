@@ -72,7 +72,7 @@ us.
 
 ## Parameters
 ### Module specific parameters
-- `-p STRING`        Activate specified parsing plugins. Output interface (NEMEA only) for each plugin correspond the order which you specify items in -i and -p param. For example: '-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus
+- `-p STRING`        Activate specified parsing plugins. Output interface (NEMEA only) for each plugin correspond the order which you specify items in -i and -p param. For example: '-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: http,rtsp,tls,dns,sip,ntp,smtp,basic,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus
   - Some plugins have features activated with additional parameters. Format: plugin_name[:plugin_param=value[:...]][,...] If plugin does not support parameters, any parameters given will be ignored. Supported plugin parameters are listed bellow with output data.
 - `-c NUMBER`        Quit after `NUMBER` of packets on each input are captured.
 - `-I STRING`        Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can specify channel after interface delimited by : (/dev/nfb0:1) default channel is 0.
@@ -378,24 +378,6 @@ Note: the following fields are UniRec arrays.
 ```
 ipfixprobe -p pstats:includezeros -r sample.pcap -i "f:output.trapcap"
 ```
-
-### ARP
-List of unirec fields exported on interface by ARP plugin.
-
-| UniRec field    | Type     | Description                        |
-|:---------------:|:--------:|:----------------------------------:|
-| SRC_MAC         | macaddr  | source MAC address                 |
-| DST_MAC         | macaddr  | destinaton MAC address             |
-| ETHERTYPE       | uint16   | protocol encapsulated in L2 frame  |
-| TIME            | time     | time packet was received           |
-| ARP_HA_FORMAT   | uint16   | hardware address format            |
-| ARP_PA_FORMAT   | uint16   | protocol address format            |
-| ARP_OPCODE      | uint16   | type of ARP message                |
-| ARP_SRC_HA      | bytes    | source hardware address            |
-| ARP_SRC_PA      | bytes    | source protocol address            |
-| ARP_DST_HA      | bytes    | destination hardware address       |
-| ARP_DST_PA      | bytes    | destination protocol address       |
-
 
 ### SSDP
 List of unirec fields exported together with basic flow fields on interface by SSDP plugin.
