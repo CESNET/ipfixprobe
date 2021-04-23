@@ -47,25 +47,13 @@
 #define PCAPREADER_H
 
 #include <config.h>
-#ifdef HAVE_NDP
-#include <ndpreader.hpp>
-#else
+#ifndef HAVE_NDP
 #include <pcap/pcap.h>
 #endif /* HAVE_NDP */
 
 #include "ipfixprobe.h"
 #include "packet.h"
 #include "packetreceiver.h"
-
-using namespace std;
-
-#ifndef ETH_P_8021AD
-#define ETH_P_8021AD	0x88A8          /* 802.1ad Service VLAN*/
-#endif
-
-#ifndef ETH_P_TRILL
-#define ETH_P_TRILL	0x22F3          /* TRILL protocol */
-#endif
 
 /*
  * \brief Minimum snapshot length of pcap handle.
@@ -88,9 +76,9 @@ public:
    PcapReader(const options_t &options);
    ~PcapReader();
 
-   int open_file(const string &file, bool parse_every_pkt);
-   int init_interface(const string &interface, int snaplen, bool parse_every_pkt);
-   int set_filter(const string &filter_str);
+   int open_file(const std::string &file, bool parse_every_pkt);
+   int init_interface(const std::string &interface, int snaplen, bool parse_every_pkt);
+   int set_filter(const std::string &filter_str);
    void print_stats();
    void printStats();
    void close();
@@ -108,30 +96,6 @@ private:
 
 void packet_handler(u_char *arg, const struct pcap_pkthdr *h, const u_char *data);
 
-#else /* HAVE_NDP */
-
-class NdpPacketReader : public PacketReceiver {
-public:
-   NdpPacketReader();
-   NdpPacketReader(const options_t &options);
-   ~NdpPacketReader();
-   int open_file(const string &file, bool parse_every_pkt);
-   int init_interface(const string &interface, int snaplen, bool parse_every_pkt);
-   int set_filter(const string &filter_str);
-   //void print_stats();
-   void printStats();
-   void close();
-   int get_pkt(PacketBlock &packets);
-
-private:
-   bool live_capture;          /**< PcapReader is capturing from network interface. */
-   bool print_pcap_stats;      /**< Print stats. */
-   bool parse_all;
-
-   NdpReader ndpReader;
-};
-
-void packet_ndp_handler(Packet *pkt, const struct ndp_packet *ndp_packet, const struct ndp_header *ndp_header);
 #endif /* HAVE_NDP */
 
 #endif

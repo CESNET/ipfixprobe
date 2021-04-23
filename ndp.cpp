@@ -1,5 +1,5 @@
 /**
- * \file ndpreader.cpp
+ * \file ndp.cpp
  * \brief Packet reader using NDP library for high speed capture.
  * \author Tomas Benes <benesto@fit.cvut.cz>
  * \author Jiri Havranek <havraji6@fit.cvut.cz>
@@ -57,7 +57,7 @@
 #include <netinet/icmp6.h>
 #include <net/if_arp.h>
 
-#include "ndpreader.h"
+#include "ndp.h"
 #include "parser.h"
 
 
@@ -115,7 +115,6 @@ int NdpPacketReader::init_interface(const string &interface, int snaplen, bool p
    res = ndpReader.init_interface(interface);
    error_msg = ndpReader.error_msg;
 
-   live_capture = true;
    parse_all = parse_every_pkt;
    return res;
 }
@@ -162,7 +161,7 @@ int NdpPacketReader::get_pkt(PacketBlock &packets)
          if (opt.pkts->cnt) {
             break;
          }
-         return (live_capture ? 3 : 0);
+         return 3;
       } else if (ret < 0) {
          // Error occured.
          error_msg = ndpReader.error_msg;

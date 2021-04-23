@@ -1,5 +1,5 @@
 /**
- * \file ndpreader.h
+ * \file ndp.h
  * \brief Packet reader using NDP library for high speed capture.
  * \author Tomas Benes <benesto@fit.cvut.cz>
  * \author Jiri Havranek <havraji6@fit.cvut.cz>
@@ -60,9 +60,9 @@ public:
    NdpPacketReader();
    NdpPacketReader(const options_t &options);
    ~NdpPacketReader();
-   int open_file(const string &file, bool parse_every_pkt);
-   int init_interface(const string &interface, int snaplen, bool parse_every_pkt);
-   int set_filter(const string &filter_str);
+   int open_file(const std::string &file, bool parse_every_pkt);
+   int init_interface(const std::string &interface, int snaplen, bool parse_every_pkt);
+   int set_filter(const std::string &filter_str);
    void printStats();
    void close();
    int get_pkt(PacketBlock &packets);

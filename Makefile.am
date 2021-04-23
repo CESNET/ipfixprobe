@@ -27,8 +27,8 @@ ipfixprobe_src=main.cpp \
 		flowcache.h \
 		pcapreader.cpp \
 		pcapreader.h \
-		ndpreader.cpp \
-		ndpreader.h \
+		ndp.cpp \
+		ndp.h \
 		parser.cpp \
 		parser.h \
 		nhtflowcache.cpp \

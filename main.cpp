@@ -67,6 +67,7 @@
 #include "packet.h"
 #include "flowifc.h"
 #include "pcapreader.h"
+#include "ndp.h"
 #include "nhtflowcache.h"
 #include "unirecexporter.h"
 #include "ipfixexporter.h"
