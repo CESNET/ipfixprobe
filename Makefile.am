@@ -22,11 +22,15 @@ ipfixprobe_src=main.cpp \
 		ipfixprobe.h \
 		packet.h \
 		packetreceiver.h \
-		pcapreader.h \
 		flowexporter.h \
 		flowifc.h \
 		flowcache.h \
 		pcapreader.cpp \
+		pcapreader.h \
+		ndpreader.cpp \
+		ndpreader.h \
+		parser.cpp \
+		parser.h \
 		nhtflowcache.cpp \
 		nhtflowcache.h \
 		stats.cpp \
