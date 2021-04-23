@@ -122,6 +122,11 @@ FlowCachePlugin *PSTATSPlugin::copy()
    return new PSTATSPlugin(*this);
 }
 
+inline bool seq_overflowed(uint32_t curr, uint32_t prev)
+{
+   return (int64_t) curr - (int64_t) prev < -4252017623LL;
+}
+
 void PSTATSPlugin::update_record(RecordExtPSTATS *pstats_data, const Packet &pkt)
 {
    /**
@@ -129,12 +134,19 @@ void PSTATSPlugin::update_record(RecordExtPSTATS *pstats_data, const Packet &pkt
     * 1 - server -> client
     */
    int8_t dir = pkt.source_pkt ? 0 : 1;
-   if (skip_dup_pkts && pkt.ip_proto == 6 && pstats_data->pkt_count != 0 &&
-         pkt.tcp_seq <= pstats_data->tcp_seq[dir] &&
-         pkt.tcp_ack <= pstats_data->tcp_ack[dir] &&
-         pkt.payload_length == pstats_data->tcp_len[dir] &&
-         pkt.tcp_control_bits == pstats_data->tcp_flg[dir]) {
-      return;
+   if (skip_dup_pkts && pkt.ip_proto == 6) {
+      // Current seq <= previous ack?
+      bool seq_susp = (pkt.tcp_seq <= pstats_data->tcp_seq[dir] && !seq_overflowed(pkt.tcp_seq, pstats_data->tcp_seq[dir])) ||
+                      (pkt.tcp_seq > pstats_data->tcp_seq[dir] && seq_overflowed(pkt.tcp_seq, pstats_data->tcp_seq[dir]));
+      // Current ack <= previous ack?
+      bool ack_susp = (pkt.tcp_ack <= pstats_data->tcp_ack[dir] && !seq_overflowed(pkt.tcp_ack, pstats_data->tcp_ack[dir])) ||
+                      (pkt.tcp_ack > pstats_data->tcp_ack[dir] && seq_overflowed(pkt.tcp_ack, pstats_data->tcp_ack[dir]));
+      if (seq_susp && ack_susp &&
+            pkt.payload_length == pstats_data->tcp_len[dir] &&
+            pkt.tcp_control_bits == pstats_data->tcp_flg[dir] &&
+            pstats_data->pkt_count != 0) {
+         return;
+      }
    }
    pstats_data->tcp_seq[dir] = pkt.tcp_seq;
    pstats_data->tcp_ack[dir] = pkt.tcp_ack;
