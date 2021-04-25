@@ -67,6 +67,14 @@ using namespace std;
 #define WG_PACKETTYPE_TRANSPORT_DATA 0x04    /**< Transport Data message **/
 
 /**
+ * \brief WireGuard UDP payload (minimum) lengths.
+ */
+#define WG_PACKETLEN_INIT_TO_RESP        148
+#define WG_PACKETLEN_RESP_TO_INIT        92
+#define WG_PACKETLEN_COOKIE_REPLY        64
+#define WG_PACKETLEN_MIN_TRANSPORT_DATA  32
+
+/**
  * \brief Flow record extension header for storing parsed WG packets.
  */
 struct RecordExtWG : RecordExt {
