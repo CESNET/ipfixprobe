@@ -171,9 +171,7 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
       cmp_peer = source_pkt ? ext->src_peer : ext->dst_peer;
       memcpy(&cmp_new_peer, (data+4), sizeof(uint32_t));
       
-      // cerr << "handshake init: new sender " << cmp_new_peer << ", old sender " << cmp_peer << endl;
       if (cmp_peer != 0 && cmp_peer != cmp_new_peer) {
-         cerr << "new flow" << endl;
          flow_flush = true;
          return false;
       }
