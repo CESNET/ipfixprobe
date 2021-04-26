@@ -78,11 +78,13 @@ using namespace std;
  * \brief Flow record extension header for storing parsed WG packets.
  */
 struct RecordExtWG : RecordExt {
+   uint8_t possible_wg;
    uint32_t src_peer;
    uint32_t dst_peer;
 
    RecordExtWG() : RecordExt(wg)
    {
+      possible_wg = 0;
       src_peer = 0;
       dst_peer = 0;
    }
@@ -90,6 +92,7 @@ struct RecordExtWG : RecordExt {
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {
+      ur_set(tmplt, record, F_WG_CONF_LEVEL, possible_wg);
       ur_set(tmplt, record, F_WG_SRC_PEER, src_peer);
       ur_set(tmplt, record, F_WG_DST_PEER, dst_peer);
    }
@@ -99,6 +102,7 @@ struct RecordExtWG : RecordExt {
    {
       int requiredLen = 0;
 
+      requiredLen += sizeof(possible_wg); // WG_CONF_LEVEL
       requiredLen += sizeof(src_peer); // WG_SRC_PEER
       requiredLen += sizeof(dst_peer); // WG_DST_PEER
 
@@ -106,6 +110,8 @@ struct RecordExtWG : RecordExt {
          return -1;
       }
 
+      memcpy(buffer, &possible_wg, sizeof(possible_wg));
+      buffer += sizeof(possible_wg);
       memcpy(buffer, &src_peer, sizeof(src_peer));
       buffer += sizeof(src_peer);
       memcpy(buffer, &dst_peer, sizeof(dst_peer));

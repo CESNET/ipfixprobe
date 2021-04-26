@@ -53,9 +53,10 @@
 
 using namespace std;
 
-#define WG_UNIREC_TEMPLATE "WG_SRC_PEER,WG_DST_PEER"
+#define WG_UNIREC_TEMPLATE "WG_CONF_LEVEL,WG_SRC_PEER,WG_DST_PEER"
 
 UR_FIELDS (
+   uint8 WG_CONF_LEVEL,
    uint32 WG_SRC_PEER,
    uint32 WG_DST_PEER
 )
@@ -205,7 +206,7 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
       memcpy(source_pkt ? &(ext->dst_peer) : &(ext->src_peer), (data+4), sizeof(uint32_t));
    }
 
-   // TODO see if this is really enough
+   ext->possible_wg = 100;
    identified++;
    return true;
 }
