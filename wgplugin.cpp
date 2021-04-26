@@ -159,49 +159,56 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
       return false;
    }
 
+   // Next, check the packet contents based on the message type.
+   switch(pkt_type) {
+      case WG_PACKETTYPE_INIT_TO_RESP:
+         if (payload_len != WG_PACKETLEN_INIT_TO_RESP) {
+            return false;
+         }
+         
+         // compare the current dst_peer and see if it matches the original source.
+         // If not, the flow flush may be needed to create a new flow.
+         cmp_peer = source_pkt ? ext->src_peer : ext->dst_peer;
+         memcpy(&cmp_new_peer, (data+4), sizeof(uint32_t));
+         
+         if (cmp_peer != 0 && cmp_peer != cmp_new_peer) {
+            flow_flush = true;
+            return false;
+         }
 
-   // TODO: more properties need to be parsed
-   if (pkt_type == WG_PACKETTYPE_INIT_TO_RESP) {
-      if (payload_len != WG_PACKETLEN_INIT_TO_RESP) {
-         return false;
-      }
-      
-      // compare the current dst_peer and see if it matches the original source.
-      // If not, the flow flush may be needed to create a new flow.
-      cmp_peer = source_pkt ? ext->src_peer : ext->dst_peer;
-      memcpy(&cmp_new_peer, (data+4), sizeof(uint32_t));
-      
-      if (cmp_peer != 0 && cmp_peer != cmp_new_peer) {
-         flow_flush = true;
-         return false;
-      }
+         memcpy(source_pkt ? &(ext->src_peer) : &(ext->dst_peer), (data+4), sizeof(uint32_t));
+         break;
 
-      memcpy(source_pkt ? &(ext->src_peer) : &(ext->dst_peer), (data+4), sizeof(uint32_t));
-   } else if (pkt_type == WG_PACKETTYPE_RESP_TO_INIT) {
-      if (payload_len != WG_PACKETLEN_RESP_TO_INIT) {
-         return false;
-      }
+      case WG_PACKETTYPE_RESP_TO_INIT:
+         if (payload_len != WG_PACKETLEN_RESP_TO_INIT) {
+            return false;
+         }
 
-      memcpy(&(ext->src_peer), (data+4), sizeof(uint32_t));
-      memcpy(&(ext->dst_peer), (data+8), sizeof(uint32_t));
-      
-      // let's swap for the opposite direction
-      if (! source_pkt) {
-         swap(ext->src_peer, ext->dst_peer);
-      }
-   } else if (pkt_type == WG_PACKETTYPE_COOKIE_REPLY) {
-      if (payload_len != WG_PACKETLEN_COOKIE_REPLY) {
-         return false;
-      }
+         memcpy(&(ext->src_peer), (data+4), sizeof(uint32_t));
+         memcpy(&(ext->dst_peer), (data+8), sizeof(uint32_t));
+         
+         // let's swap for the opposite direction
+         if (! source_pkt) {
+            swap(ext->src_peer, ext->dst_peer);
+         }
+         break;
+   
+      case WG_PACKETTYPE_COOKIE_REPLY:
+         if (payload_len != WG_PACKETLEN_COOKIE_REPLY) {
+            return false;
+         }
 
-      memcpy(source_pkt ? &(ext->dst_peer) : &(ext->src_peer), (data+4), sizeof(uint32_t));
-   } else if (pkt_type == WG_PACKETTYPE_TRANSPORT_DATA) {
-      // Each packet of transport data is zero-padded to the multiple of 16 bytes in length.
-      if (payload_len < WG_PACKETLEN_MIN_TRANSPORT_DATA || (payload_len % 16) != 0) {
-         return false;
-      }
+         memcpy(source_pkt ? &(ext->dst_peer) : &(ext->src_peer), (data+4), sizeof(uint32_t));
+         break;
 
-      memcpy(source_pkt ? &(ext->dst_peer) : &(ext->src_peer), (data+4), sizeof(uint32_t));
+      case WG_PACKETTYPE_TRANSPORT_DATA:
+         // Each packet of transport data is zero-padded to the multiple of 16 bytes in length.
+         if (payload_len < WG_PACKETLEN_MIN_TRANSPORT_DATA || (payload_len % 16) != 0) {
+            return false;
+         }
+
+         memcpy(source_pkt ? &(ext->dst_peer) : &(ext->src_peer), (data+4), sizeof(uint32_t));
+         break;
    }
 
    ext->possible_wg = 100;
