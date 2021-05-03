@@ -276,6 +276,15 @@ int NHTFlowCache::put_pkt(Packet &pkt)
 
    pkt.source_pkt = source_flow;
    flow = flow_array[flow_index];
+
+   uint8_t flw_flags = source_flow ? flow->flow.src_tcp_control_bits : flow->flow.dst_tcp_control_bits;
+   if ((pkt.tcp_control_bits & 0x02) && (flw_flags & (0x01 | 0x04))) {
+      // Flows with FIN or RST TCP flags are exported when new SYN packet arrives
+      export_flow(flow_index);
+      put_pkt(pkt);
+      return 0;
+   }
+
    if (flow->is_empty()) {
       flow->create(pkt, hashval);
       ret = plugins_post_create(flow->flow, pkt);

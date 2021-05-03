@@ -87,6 +87,8 @@ struct Packet : public Record {
    uint16_t    tcp_window;
    uint64_t    tcp_options;
    uint32_t    tcp_mss;
+   uint32_t    tcp_seq;
+   uint32_t    tcp_ack;
 
    uint16_t    total_length; /**< Length of bytes in `packet` variable. */
    char        *packet; /**< Array containing whole packet. */

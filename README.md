@@ -373,6 +373,7 @@ Note: the following fields are UniRec arrays.
 
 #### Plugin parameters:
 - includezeros - Include zero-length packets in the lists.
+- skipdup - Skip retransmitted (duplicated) TCP packets.
 
 ##### Example:
 ```
