@@ -115,7 +115,8 @@ EXTRA_DIST=README.md \
 	traffic-samples/smtp-sample.pcap \
 	traffic-samples/ovpn-sample.pcap \
 	traffic-samples/idpcontent-sample.pcap \
-	traffic-samples/bstats-sample.pcap
+	traffic-samples/bstats-sample.pcap \
+	traffic-samples/wg-sample.pcap
 
 bashcompl_DATA=ipfixprobe.bash
 
