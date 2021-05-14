@@ -129,6 +129,7 @@ class WGPlugin : public FlowCachePlugin
 public:
    WGPlugin(const options_t &module_options);
    WGPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   virtual ~WGPlugin();
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    void pre_export(Flow &rec);
@@ -141,6 +142,7 @@ private:
    bool parse_wg(const char *data, unsigned int payload_len, bool source_pkt, RecordExtWG *ext);
    int add_ext_wg(const char *data, unsigned int payload_len, bool source_pkt, Flow &rec);
 
+   RecordExtWG *preallocated_record;    /**< Preallocated instance of record to use */
    bool flow_flush;        /**< Instructs the engine to create new flow, during pre_update. */
    bool print_stats;       /**< Print stats when flow cache finish. */
    uint32_t total;         /**< Total number of processed packets. */

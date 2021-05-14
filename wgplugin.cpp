@@ -63,6 +63,7 @@ UR_FIELDS (
 
 WGPlugin::WGPlugin(const options_t &module_options)
 {
+   preallocated_record = NULL;
    flow_flush = false;
    print_stats = module_options.print_stats;
    total = 0;
@@ -71,10 +72,17 @@ WGPlugin::WGPlugin(const options_t &module_options)
 
 WGPlugin::WGPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
 {
+   preallocated_record = NULL;
    flow_flush = false;
    print_stats = module_options.print_stats;
    total = 0;
    identified = 0;
+}
+
+WGPlugin::~WGPlugin() {
+   if (preallocated_record != NULL) {
+      delete preallocated_record;
+   }
 }
 
 int WGPlugin::post_create(Flow &rec, const Packet &pkt)
@@ -218,14 +226,16 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
 
 int WGPlugin::add_ext_wg(const char *data, unsigned int payload_len, bool source_pkt, Flow &rec)
 {
-   RecordExtWG *ext = new RecordExtWG();
+   if (preallocated_record == NULL) {
+      preallocated_record = new RecordExtWG();
+   }
    // try to parse WireGuard packet
-   if (!parse_wg(data, payload_len, source_pkt, ext)) {
-      delete ext;
+   if (!parse_wg(data, payload_len, source_pkt, preallocated_record)) {
       return 0;
    }
    
-   rec.addExtension(ext);
+   rec.addExtension(preallocated_record);
+   preallocated_record = NULL;
    return 0;
 }
 
