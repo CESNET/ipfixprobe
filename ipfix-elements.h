@@ -240,6 +240,11 @@
 #define D_PHISTS_SIZES(F)             F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1062 (uint16*)
 #define S_PHISTS_SIZES(F)             F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1060 (uint16*)
 #define S_PHISTS_IPT(F)               F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1061 (uint16*)
+
+#define WG_CONF_LEVEL(F)              F(8057,    861,   1,   NULL)
+#define WG_SRC_PEER(F)                F(8057,    862,   4,   NULL)
+#define WG_DST_PEER(F)                F(8057,    863,   4,   NULL)
+  
 /**
  * IPFIX Templates - list of elements
  *
@@ -436,6 +441,11 @@
   F(D_PHISTS_SIZES) \
   F(D_PHISTS_IPT)
 
+#define IPFIX_WG_TEMPLATE(F) \
+  F(WG_CONF_LEVEL) \
+  F(WG_SRC_PEER) \
+  F(WG_DST_PEER)
+
 /**
  * List of all known templated.
  *
@@ -462,7 +472,8 @@
    IPFIX_NETBIOS_TEMPLATE(F) \
    IPFIX_BASICPLUS_TEMPLATE(F) \
    IPFIX_BSTATS_TEMPLATE(F) \
-   IPFIX_PHISTS_TEMPLATE(F)
+   IPFIX_PHISTS_TEMPLATE(F) \
+   IPFIX_WG_TEMPLATE(F)
 
 
 

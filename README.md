@@ -466,7 +466,13 @@ The exported unirec fields and IPFIX basiclists is shown in following table:
 | S_PHISTS_IPT        | uint32\*| SRC->DST: Histogram of interpacket times|
 | S_PHISTS_SIZES      | uint32\*| SRC->DST: Histogram of packet sizes     |
 
+#### Plugin parameters:
+- includezeros - Include zero-length packets in the lists.
 
+##### Example:
+```
+ipfixprobe -p phists:includezeros -r sample.pcap -i "f:output.trapcap"
+```
 ### BSTATS
 
 List of UniRec fields exported together with basic flow fields on the interface by BSTATS plugin.
@@ -484,6 +490,15 @@ The bursts are computed separately for each direction. Burst is defined by `MINI
 | DBI_BRST_TIME_START | time\*   | DST->SRC: Start time of the i<sup>th</sup> burst               |
 | DBI_BRST_TIME_STOP  | time\*   | DST->SRC: End time of the i<sup>th</sup> burst                 |
 
+### WG (WireGuard)
+
+List of UniRec fields exported together with basic flow fields on interface by WG plugin.
+
+| UniRec field       | Type   | Description                     |
+|:------------------:|:------:|:-------------------------------:|
+| WG_CONF_LEVEL      | uint8  | level of confidence that the flow record is a WireGuard tunnel|
+| WG_SRC_PEER        | uint32 | ephemeral SRC peer identifier                                 |
+| WG_DST_PEER        | uint32 | ephemeral DST peer identifier                                 |
 
 ## Simplified function diagram
 Diagram below shows how `ipfixprobe` works.
