@@ -983,6 +983,8 @@ int main(int argc, char *argv[])
    size_t blocks_cnt = (options.input_qsize + 1) * worker_cnt;
    size_t pkts_cnt = blocks_cnt * options.input_pktblock_size;
    size_t pkt_data_cnt = pkts_cnt * (MAXPCKTSIZE + 1);
+   int ret = EXIT_SUCCESS;
+   bool print_stats = false;
    bool livecapture = options.interface.size();
 
    PacketBlock *blocks = new PacketBlock[blocks_cnt];
@@ -998,7 +1000,6 @@ int main(int argc, char *argv[])
       }
    }
 
-   int ret = EXIT_SUCCESS;
    for (unsigned i = 0; i < worker_cnt; i++) {
 #ifdef HAVE_NDP
       PacketReceiver *packetloader = new NdpPacketReader(options);
@@ -1073,6 +1074,7 @@ int main(int argc, char *argv[])
       pipelines.push_back(tmp);
    }
 
+   print_stats = true;
    while (!stop) {
       bool alldone = true;
       for (unsigned i = 0; i < inputFutures.size(); i++) {
@@ -1100,28 +1102,30 @@ EXIT:
       delete pipelines[i].input.promise;
    }
 
-   std::cout << "Input stats:" << std::endl <<
-      std::setw(3) << "#" <<
-      std::setw(10) << "packets" <<
-      std::setw(10) << "parsed" <<
-      std::setw(16) << "bytes" <<
-      std::setw(10) << "qtime" <<
-      std::setw(7)  << "status" << std::endl;
+   if (print_stats) {
+      std::cout << "Input stats:" << std::endl <<
+         std::setw(3) << "#" <<
+         std::setw(10) << "packets" <<
+         std::setw(10) << "parsed" <<
+         std::setw(16) << "bytes" <<
+         std::setw(10) << "qtime" <<
+         std::setw(7)  << "status" << std::endl;
 
-   for (unsigned i = 0; i < inputFutures.size(); i++) {
-      InputStats input = inputFutures[i].get();
-      std::string status = "ok";
-      if (input.error) {
-         ret = EXIT_FAILURE;
-         status = input.msg;
+      for (unsigned i = 0; i < inputFutures.size(); i++) {
+         InputStats input = inputFutures[i].get();
+         std::string status = "ok";
+         if (input.error) {
+            ret = EXIT_FAILURE;
+            status = input.msg;
+         }
+         std::cout <<
+            std::setw(3) << i << " " <<
+            std::setw(9) << input.packets << " " <<
+            std::setw(9) << input.parsed << " " <<
+            std::setw(15) << input.bytes << " " <<
+            std::setw(9) << input.qtime << " " <<
+            std::setw(6) << status << std::endl;
       }
-      std::cout <<
-         std::setw(3) << i << " " <<
-         std::setw(9) << input.packets << " " <<
-         std::setw(9) << input.parsed << " " <<
-         std::setw(15) << input.bytes << " " <<
-         std::setw(9) << input.qtime << " " <<
-         std::setw(6) << status << std::endl;
    }
 
    terminate_storage = 1;
@@ -1142,21 +1146,23 @@ EXIT:
       ipx_ring_destroy(exporters[i].queue);
    }
 
-   std::cout << "Output stats:" << std::endl <<
-      std::setw(3) << "#" <<
-      std::setw(10) << "biflows" <<
-      std::setw(10) << "packets" <<
-      std::setw(16) << "bytes" <<
-      std::setw(10) << "dropped" << std::endl;
+   if (print_stats) {
+      std::cout << "Output stats:" << std::endl <<
+         std::setw(3) << "#" <<
+         std::setw(10) << "biflows" <<
+         std::setw(10) << "packets" <<
+         std::setw(16) << "bytes" <<
+         std::setw(10) << "dropped" << std::endl;
 
-   for (unsigned i = 0; i < outputFutures.size(); i++) {
-      OutputStats output = outputFutures[i].get();
-      std::cout <<
-         std::setw(3) << i << " " <<
-         std::setw(9) << output.biflows << " " <<
-         std::setw(9) << output.packets << " " <<
-         std::setw(15) << output.bytes << " " <<
-         std::setw(9) << output.dropped << std::endl;
+      for (unsigned i = 0; i < outputFutures.size(); i++) {
+         OutputStats output = outputFutures[i].get();
+         std::cout <<
+            std::setw(3) << i << " " <<
+            std::setw(9) << output.biflows << " " <<
+            std::setw(9) << output.packets << " " <<
+            std::setw(15) << output.bytes << " " <<
+            std::setw(9) << output.dropped << std::endl;
+      }
    }
 
    for (unsigned i = 0; i < pipelines.size(); i++) {
