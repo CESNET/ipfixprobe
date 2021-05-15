@@ -45,16 +45,6 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
-#include <arpa/inet.h>
-#include <netinet/ether.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netinet/ip6.h>
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
-#include <netinet/ip_icmp.h>
-#include <netinet/icmp6.h>
-#include <net/if_arp.h>
 
 #ifndef HAVE_NDP
 #include <pcap/sll.h>
@@ -62,6 +52,7 @@
 
 #include "parser.h"
 #include "packet.h"
+#include "headers.h"
 
 #ifndef DLT_EN10MB
 #define DLT_EN10MB 1
@@ -97,8 +88,21 @@ inline uint16_t parse_eth_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
    uint16_t ethertype = ntohs(eth->h_proto);
 
    DEBUG_MSG("Ethernet header:\n");
+#ifndef __CYGWIN__
    DEBUG_MSG("\tDest mac:\t%s\n",         ether_ntoa((struct ether_addr *) eth->h_dest));
    DEBUG_MSG("\tSrc mac:\t%s\n",          ether_ntoa((struct ether_addr *) eth->h_source));
+#else
+   DEBUG_CODE(
+      char src_mac[18]; // ether_ntoa missing on some platforms
+      char dst_mac[18];
+      uint8_t *p = (uint8_t *) eth->h_source;
+      snprintf(src_mac, sizeof(src_mac), "%02x:%02x:%02x:%02x:%02x:%02x", p[0], p[1], p[2], p[3], p[4], p[5]);
+      p = (uint8_t *) eth->h_dest;
+      snprintf(dst_mac, sizeof(dst_mac), "%02x:%02x:%02x:%02x:%02x:%02x", p[0], p[1], p[2], p[3], p[4], p[5]);
+   );
+   DEBUG_MSG("\tDest mac:\t%s\n",         dst_mac);
+   DEBUG_MSG("\tSrc mac:\t%s\n",          src_mac);
+#endif
    DEBUG_MSG("\tEthertype:\t%#06x\n",     ethertype);
 
    memcpy(pkt->dst_mac, eth->h_dest, 6);
@@ -176,26 +180,6 @@ inline uint16_t parse_sll(const u_char *data_ptr, uint16_t data_len, Packet *pkt
    return sizeof(struct sll_header);
 }
 #endif /* HAVE_NDP */
-
-struct __attribute__((packed)) trill_hdr {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-   uint8_t op_len1:3;
-   uint8_t m:1;
-   uint8_t res:2;
-   uint8_t version:2;
-   uint8_t hop_cnt:6;
-   uint8_t op_len2:2;
-#elif __BYTE_ORDER == __BIG_ENDIAN
-   uint8_t version:2;
-   uint8_t res:2;
-   uint8_t m:1;
-   uint8_t op_len1:3;
-   uint8_t op_len2:2;
-   uint8_t hop_cnt:6;
-#endif
-   uint16_t egress_nick;
-   uint16_t ingress_nick;
-};
 
 
 /**

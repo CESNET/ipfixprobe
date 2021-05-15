@@ -42,6 +42,7 @@
  */
 
 #include <iostream>
+#include <ctype.h>
 
 #include "smtpplugin.h"
 #include "flowifc.h"
@@ -122,6 +123,25 @@ int SMTPPlugin::pre_update(Flow &rec, Packet &pkt)
    }
 
    return 0;
+}
+
+char *strncasestr(const char *str, size_t n, const char *substr)
+{
+   size_t i = 0;
+   size_t j = 0;
+   while (i < n && *str) {
+      if (tolower(*str) == tolower(substr[j])) {
+         j++;
+         if (!substr[j]) {
+            return (char *) str;
+         }
+      } else {
+         j = 0;
+      }
+      i++;
+      str++;
+   }
+   return NULL;
 }
 
 /**
@@ -221,7 +241,7 @@ bool SMTPPlugin::parse_smtp_response(const char *data, int payload_len, RecordEx
          break;
    }
 
-   if (strcasestr(data, "SPAM") != NULL) {
+   if (strncasestr(data, payload_len, "SPAM") != NULL) {
       rec->mail_code_flags |= SC_SPAM;
    }
 

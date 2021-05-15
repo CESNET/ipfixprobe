@@ -46,6 +46,31 @@ The output source RPM can be uploaded to copr.
 To install ipfixprobe with NEMEA dependency from binary RPM packages, it is possible to follow instructions on:
 [https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/)
 
+### Windows 10 CygWin
+
+Install CygWin and the following packages:
+- git
+- pkg-config
+- make
+- automake
+- autoconf
+- libtool
+- binutils
+- gcc-core
+- gcc-g++
+
+Download npcap SDK [https://nmap.org/npcap/dist/npcap-sdk-1.07.zip](https://nmap.org/npcap/dist/npcap-sdk-1.07.zip) and copy content of the `Include` folder to `/usr/include` folder in your cygwin root installation folder (`C:\cygwin64\usr\include` for example). Then copy files of the `Lib` folder to `/lib` folder (or `Lib/x64/` based on your architecture).
+
+Download npcap library [https://nmap.org/npcap/dist/npcap-1.31.exe](https://nmap.org/npcap/dist/npcap-1.31.exe) and install.
+
+Add the following line to the `~/.bashrc` file
+```
+export PATH="/cygdrive/c/Windows/system32/Npcap:$PATH"
+```
+
+Build project using commands in previous sections. Tested on cygwin version 2.908
+
+
 ## Input / Output of the flow exporter
 
 Input and output interfaces are dependent on the configuration (by `configure`).

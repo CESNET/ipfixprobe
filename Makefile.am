@@ -12,10 +12,10 @@ DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(syste
 if HAVE_NDP
 ipfixprobe_LDFLAGS=-lpthread -lnuma -lnfb -lndpRI -L${srcdir}/nfbCInterface/
 else
-ipfixprobe_LDFLAGS=-lpthread -lpcap
+ipfixprobe_LDFLAGS=-lpthread
 endif
 
-ipfixprobe_CXXFLAGS=-std=c++11 -Wno-write-strings -I./nfbCInterface/include/
+ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I./nfbCInterface/include/
 
 
 ipfixprobe_src=main.cpp \
@@ -31,6 +31,7 @@ ipfixprobe_src=main.cpp \
 		ndp.h \
 		parser.cpp \
 		parser.h \
+		headers.h \
 		nhtflowcache.cpp \
 		nhtflowcache.h \
 		stats.cpp \

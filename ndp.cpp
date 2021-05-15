@@ -42,26 +42,15 @@
  *
  */
 
+#ifdef HAVE_NDP
+
 #include <config.h>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
-#include <arpa/inet.h>
-#include <netinet/ether.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netinet/ip6.h>
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
-#include <netinet/ip_icmp.h>
-#include <netinet/icmp6.h>
-#include <net/if_arp.h>
 
 #include "ndp.h"
 #include "parser.h"
-
-
-#ifdef HAVE_NDP
 
 void packet_ndp_handler(parser_opt_t *opt, const struct ndp_packet *ndp_packet, const struct ndp_header *ndp_header)
 {

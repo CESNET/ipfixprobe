@@ -66,6 +66,7 @@
 #define MAX_SNAPLEN  65535
 
 #ifndef HAVE_NDP
+
 /**
  * \brief Class for reading packets from file or network interface.
  */
@@ -83,6 +84,8 @@ public:
    void printStats();
    void close();
    int get_pkt(PacketBlock &packets);
+
+   static void print_interfaces();
 
 private:
    pcap_t *handle;                  /**< libpcap file handler. */

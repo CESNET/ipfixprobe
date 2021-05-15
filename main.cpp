@@ -341,9 +341,14 @@ void input_thread(PacketReceiver *packetloader, PacketBlock *pkts, size_t block_
          continue;
       } else if (ret == 2) {
          stats.bytes += block->bytes;
-         clock_gettime(CLOCK_MONOTONIC_COARSE, &start);
+         #ifdef __linux__
+         const clockid_t clk_id = CLOCK_MONOTONIC_COARSE;
+         #else
+         const clockid_t clk_id = CLOCK_MONOTONIC;
+         #endif
+         clock_gettime(clk_id, &start);
          ipx_ring_push(queue, (void *) block);
-         clock_gettime(CLOCK_MONOTONIC_COARSE, &end);
+         clock_gettime(clk_id, &end);
 
          int64_t time = end.tv_nsec - start.tv_nsec;
          if (start.tv_sec != end.tv_sec) {
@@ -891,6 +896,12 @@ int main(int argc, char *argv[])
          TRAP_DEFAULT_FINALIZATION();
 #endif
          if (!help) {
+#ifndef HAVE_NDP
+            if (optopt == 'I') {
+               PcapReader::print_interfaces();
+               return 1;
+            }
+#endif
             return error("Invalid arguments");
          } else {
             return 0;

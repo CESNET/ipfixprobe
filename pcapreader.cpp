@@ -47,16 +47,6 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
-#include <arpa/inet.h>
-#include <netinet/ether.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netinet/ip6.h>
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
-#include <netinet/ip_icmp.h>
-#include <netinet/icmp6.h>
-#include <net/if_arp.h>
 
 #ifndef HAVE_NDP
 #include <pcap/pcap.h>
@@ -81,7 +71,19 @@
  */
 void packet_handler(u_char *arg, const struct pcap_pkthdr *h, const u_char *data)
 {
+#ifdef __CYGWIN__
+   // WinPcap, uses Microsoft's definition of struct timeval, which has `long` data type
+   // used for both tv_sec and tv_usec and has 32 bit even on 64 bit platform.
+   // Cygwin uses 64 bit tv_sec and tv_usec, thus a little reinterpretation of bytes needs to be used.
+   struct pcap_pkthdr new_h;
+   new_h.ts.tv_sec = *(uint32_t *) h;
+   new_h.ts.tv_usec = *(((uint32_t *) h) + 1);
+   new_h.caplen = *((uint32_t *) h + 2);
+   new_h.len = *((uint32_t *) h + 3);
+   parse_packet((parser_opt_t *) arg, new_h.ts, data, new_h.len, new_h.caplen);
+#else
    parse_packet((parser_opt_t *) arg, h->ts, data, h->len, h->caplen);
+#endif
 }
 
 static void print_libpcap_stats(pcap_t *handle)
@@ -153,6 +155,46 @@ int PcapReader::open_file(const std::string &file, bool parse_every_pkt)
    parse_all = parse_every_pkt;
    error_msg = "";
    return 0;
+}
+
+void PcapReader::print_interfaces()
+{
+   char errbuf[PCAP_ERRBUF_SIZE];
+   pcap_if_t *devs;
+   pcap_if_t *d;
+   int max_width = 0;
+   int i = 0;
+
+   if (pcap_findalldevs(&devs, errbuf) == -1) {
+      fprintf(stderr,"Error in pcap_findalldevs: %s\n", errbuf);
+      return;
+   }
+
+   if (devs != NULL) {
+      printf("List of available interfaces:\n");
+   }
+
+   for (d = devs; d != NULL; d = d->next) {
+      int len = strlen(d->name);
+      if (len > max_width) {
+         max_width = len;
+      }
+   }
+   for (d = devs; d != NULL; d = d->next) {
+      if (d->flags & PCAP_IF_UP) {
+         printf("%2d.  %-*s", ++i, max_width, d->name);
+         if (d->description) {
+            printf("    %s\n", d->description);
+         } else {
+            printf("\n");
+         }
+      }
+   }
+   if (i == 0) {
+      printf("No available interfaces found\n");
+   }
+
+   pcap_freealldevs(devs);
 }
 
 /**

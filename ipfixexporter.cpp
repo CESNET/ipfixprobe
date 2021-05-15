@@ -884,6 +884,7 @@ int IPFIXExporter::connect_to_collector()
 
    memset(&hints, 0, sizeof(hints));
    hints.ai_family = ip;
+   hints.ai_socktype = protocol == IPPROTO_UDP ? SOCK_DGRAM : SOCK_STREAM;
    hints.ai_protocol = protocol;
    hints.ai_flags = AI_ADDRCONFIG | flags;
 
@@ -899,7 +900,6 @@ int IPFIXExporter::connect_to_collector()
 
    /* Try addrinfo strucutres one by one */
    for (tmp = addrinfo; tmp != NULL; tmp = tmp->ai_next) {
-
       if (tmp->ai_family != AF_INET && tmp->ai_family != AF_INET6) {
          continue;
       }
@@ -919,7 +919,7 @@ int IPFIXExporter::connect_to_collector()
       }
 
       /* create socket */
-      fd = socket(addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol);
+      fd = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
       if (fd == -1) {
          if (verbose) {
             perror("VERBOSE: Cannot create new socket");
@@ -929,7 +929,7 @@ int IPFIXExporter::connect_to_collector()
 
       /* connect to server with TCP and SCTP */
       if (protocol != IPPROTO_UDP &&
-            connect(fd, addrinfo->ai_addr, addrinfo->ai_addrlen) == -1) {
+            connect(fd, tmp->ai_addr, tmp->ai_addrlen) == -1) {
          if (verbose) {
             perror("VERBOSE: Cannot connect to collector");
          }
