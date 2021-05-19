@@ -1,5 +1,5 @@
 /**
- * \file flow_meter.h
+ * \file ipfixprobe.h
  * \author Vaclav Bartos <bartos@cesnet.cz>
  * \author Jiri Havranek <havraji6@fit.cvut.cz>
  * \date 2014
@@ -55,6 +55,8 @@
 
 using namespace std;
 
+extern int stop;
+
 #ifdef FLOW_CACHE_SIZE
 const unsigned int DEFAULT_FLOW_CACHE_SIZE = FLOW_CACHE_SIZE;
 #else
@@ -83,20 +85,24 @@ struct options_t {
    bool print_stats;
    bool print_pcap_stats;
    uint32_t flow_cache_size;
+   uint32_t flow_cache_qsize;
    uint32_t flow_line_size;
+   uint32_t input_qsize;
+   uint32_t input_pktblock_size;
    uint32_t snaplen;
+   uint32_t fps; // max exported flows per second
    struct timeval inactive_timeout;
    struct timeval active_timeout;
    struct timeval cache_stats_interval;
-   string interface;
-   string pcap_file;
+   std::vector<std::string> interface;
+   std::vector<std::string> pcap_file;
 };
 
 /**
  * \brief Wrapper for array of plugins.
  */
 struct plugins_t {
-   vector<FlowCachePlugin *> plugins;
+   std::vector<FlowCachePlugin *> plugins;
 
    /**
     * \brief Destructor.

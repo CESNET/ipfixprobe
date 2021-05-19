@@ -1,7 +1,7 @@
 /**
  * \file ipfixexporter.cpp
  * \brief Export flows in IPFIX format.
- *    The following code was used https://dior.ics.muni.cz/~velan/flowmon-export-ipfix/
+ *    The following, modified, code was used https://dior.ics.muni.cz/~velan/flowmon-export-ipfix/
  * \author Jiri Havranek <havraji6@fit.cvut.cz>
  * \author Tomas Cejka <cejkat@cesnet.cz>
  * \date 2017
@@ -46,6 +46,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <errno.h>
+#include <assert.h>
 #include <endian.h>
 #include <config.h>
 
@@ -109,12 +110,6 @@ template_file_record_t ipfix_fields[][1] = {
    NULL
 };
 
-/* Packet template. */
-const char *packet_tmplt[] = {
-   PACKET_TMPLT(IPFIX_FIELD_NAMES)
-   NULL
-};
-
 /* Basic IPv4 template. */
 const char *basic_tmplt_v4[] = {
    BASIC_TMPLT_V4(IPFIX_FIELD_NAMES)
@@ -129,10 +124,10 @@ const char *basic_tmplt_v6[] = {
 
 IPFIXExporter::IPFIXExporter()
 {
-   templateArray = NULL;
+   records = 0;
+   dropped = 0;
    templates = NULL;
    templatesDataSize = 0;
-   tmpltMapping = NULL;
    basic_ifc_num = -1;
    verbose = false;
 
@@ -151,6 +146,8 @@ IPFIXExporter::IPFIXExporter()
    odid = 0;
    templateRefreshTime = TEMPLATE_REFRESH_TIME;
    templateRefreshPackets = TEMPLATE_REFRESH_PACKETS;
+   dir_bit_field = 0;
+   packetDataBuffer = NULL;
 }
 
 IPFIXExporter::~IPFIXExporter()
@@ -171,115 +168,128 @@ void IPFIXExporter::shutdown()
       freeaddrinfo(addrinfo);
       fd = -1;
    }
-   if (templateArray) {
-      delete [] templateArray;
-      templateArray = NULL;
-   }
 
    template_t *tmp = templates;
    while (tmp != NULL) {
       templates = templates->next;
+      free(tmp->buffer);
       free(tmp);
       tmp = templates;
    }
    tmp = NULL;
 
-   if (tmpltMapping) {
-      delete [] tmpltMapping;
-      tmpltMapping = NULL;
+   free(packetDataBuffer);
+   packetDataBuffer = NULL;
+}
+
+uint64_t IPFIXExporter::get_template_id(Record &flow)
+{
+   RecordExt *ext = flow.exts;
+   uint64_t tmpltIdx = 0;
+   while (ext != NULL) {
+      tmpltIdx |= ((uint64_t) 1 << ext->extType);
+      ext = ext->next;
    }
+
+   return tmpltIdx;
+}
+
+std::vector<const char *> IPFIXExporter::get_template_fields(uint64_t tmpltId)
+{
+   std::vector<const char *> fields;
+   uint64_t mask = 1;
+   int i = 0;
+   while (mask <= tmpltId) {
+      if (tmpltId & mask) {
+         const char **field = templateFields[i];
+         while (*field != NULL) {
+            fields.push_back(*field);
+            field++;
+         }
+      }
+      mask <<= 1;
+      i++;
+   }
+   fields.push_back(NULL);
+   return fields;
+}
+
+template_t *IPFIXExporter::get_template(Flow &flow)
+{
+   int ipTmpltIdx = flow.ip_version == 6 ? 1 : 0;
+   uint64_t tmpltIdx = get_template_id(flow);
+   if (tmpltMap[ipTmpltIdx].find(tmpltIdx) == tmpltMap[ipTmpltIdx].end()) {
+      std::vector<const char *> fields = get_template_fields(tmpltIdx);
+      tmpltMap[0][tmpltIdx] = create_template(basic_tmplt_v4, fields.data());
+      tmpltMap[1][tmpltIdx] = create_template(basic_tmplt_v6, fields.data());
+   }
+
+   return tmpltMap[ipTmpltIdx][tmpltIdx];
+}
+
+int fill_extensions(RecordExt *ext, uint8_t *buffer, int size)
+{
+   RecordExt *extensions[EXTENSION_CNT] = {0};
+   int length = 0;
+   int extCnt = 0;
+   while (ext != NULL) {
+      extensions[ext->extType] = ext;
+      extCnt++;
+      ext = ext->next;
+   }
+   // TODO: export multiple extension header of same type
+   for (unsigned i = 0; i < EXTENSION_CNT; i++) {
+      if (extensions[i] == NULL) {
+         continue;
+      }
+      int length_ext = extensions[i]->fillIPFIX(buffer + length, size - length);
+      if (length_ext < 0) {
+         return -1;
+      }
+      length += length_ext;
+   }
+   return length;
+}
+
+bool IPFIXExporter::fill_template(Flow &flow, template_t *tmplt)
+{
+   RecordExt *ext = flow.exts;
+   int length = 0;
+
+   if (basic_ifc_num >= 0 && ext == NULL) {
+      length = fill_basic_flow(flow, tmplt);
+      if (length < 0) {
+         return false;
+      }
+   } else {
+      length = fill_basic_flow(flow, tmplt);
+      if (length < 0) {
+         return false;
+      }
+
+      int ext_written = fill_extensions(ext, tmplt->buffer + tmplt->bufferSize + length, tmpltMaxBufferSize - tmplt->bufferSize - length);
+      if (ext_written < 0) {
+         return false;
+      }
+      length += ext_written;
+   }
+
+   tmplt->bufferSize += length;
+   tmplt->recordCount++;
+   return true;
 }
 
 int IPFIXExporter::export_flow(Flow &flow)
 {
-   RecordExt *ext = flow.exts;
-   template_t *tmplt;
-   int ipv6_tmplt = 0;
+   records++;
+   template_t *tmplt = get_template(flow);
+   if (!fill_template(flow, tmplt)) {
+      flush();
 
-   if (flow.ip_version == 6) {
-      ipv6_tmplt = 1;
-   }
-
-   if (ext == NULL && basic_ifc_num >= 0) {
-      tmplt = templateArray[basic_ifc_num * 2 + ipv6_tmplt];
-
-      int length = fill_basic_flow(flow, tmplt);
-      while (length == -1) {
-         send_templates();
-         send_data();
-
-         length = fill_basic_flow(flow, tmplt);
+      if (!fill_template(flow, tmplt)) {
+         dropped++;
+         return 1;
       }
-      tmplt->bufferSize += length;
-      tmplt->recordCount++;
-   } else {
-      while (ext != NULL) {
-         int tmplt_num = tmpltMapping[ext->extType];
-         if (tmplt_num >= 0) {
-            tmplt = templateArray[tmplt_num * 2 + ipv6_tmplt];
-
-            int length_basic = fill_basic_flow(flow, tmplt);
-            while (length_basic == -1) {
-               send_templates();
-               send_data();
-
-               length_basic = fill_basic_flow(flow, tmplt);
-            }
-
-            int length_ext = ext->fillIPFIX(tmplt->buffer + tmplt->bufferSize + length_basic,
-                              TEMPLATE_BUFFER_SIZE - tmplt->bufferSize - length_basic);
-            while (length_ext == -1) {
-               send_templates();
-               send_data();
-
-               length_basic = fill_basic_flow(flow, tmplt);
-               length_ext = ext->fillIPFIX(tmplt->buffer + tmplt->bufferSize + length_basic,
-                              TEMPLATE_BUFFER_SIZE - tmplt->bufferSize - length_basic);
-            }
-
-            tmplt->bufferSize += length_basic + length_ext;
-            tmplt->recordCount++;
-         }
-         ext = ext->next;
-      }
-   }
-
-   return 0;
-}
-
-int IPFIXExporter::export_packet(Packet &pkt)
-{
-   RecordExt *ext = pkt.exts;
-   template_t *tmplt;
-
-   while (ext != NULL) {
-      int tmplt_num = tmpltMapping[ext->extType];
-      if (tmplt_num >= 0) {
-         tmplt = templateArray[tmplt_num * 2];
-
-         int length_packet = fill_packet_fields(pkt, tmplt);
-         if (length_packet == -1) {
-            send_templates();
-            send_data();
-
-            length_packet = fill_packet_fields(pkt, tmplt);
-         }
-
-         int length_ext = ext->fillIPFIX(tmplt->buffer + tmplt->bufferSize + length_packet,
-               TEMPLATE_BUFFER_SIZE - tmplt->bufferSize - length_packet);
-         if (length_ext == -1) {
-            send_templates();
-            send_data();
-
-            length_packet = fill_packet_fields(pkt, tmplt);
-            length_ext = ext->fillIPFIX(tmplt->buffer + tmplt->bufferSize + length_packet,
-                  TEMPLATE_BUFFER_SIZE - tmplt->bufferSize - length_packet);
-         }
-
-         tmplt->bufferSize += length_packet + length_ext;
-         tmplt->recordCount++;
-      }
-      ext = ext->next;
    }
    return 0;
 }
@@ -293,73 +303,49 @@ int IPFIXExporter::export_packet(Packet &pkt)
  * @param host Collector address
  * @param port Collector port
  * @param udp Use UDP instead of TCP
+ * @param mtu Size of packet payload sent
  * @return Returns 0 on succes, non 0 otherwise.
  */
-int IPFIXExporter::init(const vector<FlowCachePlugin *> &plugins, int basic_num, uint32_t odid, string host, string port, bool udp, bool verbose, uint8_t dir)
+int IPFIXExporter::init(const vector<FlowCachePlugin *> &plugins, int basic_num, uint32_t odid, string host, string port,
+   bool udp, uint16_t mtu, bool verbose, uint8_t dir)
 {
-   int ret, templateCnt;
+   int ret;
 
    if (verbose) {
       fprintf(stderr, "VERBOSE: IPFIX export plugin init start\n");
    }
 
    /* Init plugin configuration */
-   templateCnt = EXTENSION_CNT * 2 + 2;
-   templateArray = new template_t*[templateCnt];
-   for (int i = 0; i < templateCnt; i++) {
-      templateArray[i] = NULL;
-   }
    this->verbose = verbose;
    this->host = host;
    this->port = port;
    this->odid = odid;
+   this->mtu = mtu;
    basic_ifc_num = basic_num;
    this->dir_bit_field = dir;
+
+   if (mtu <= IPFIX_HEADER_SIZE) {
+      fprintf(stderr, "Error: IPFIX message MTU should be at least %d bytes\n", IPFIX_HEADER_SIZE);
+      return 1;
+   }
+
+   tmpltMaxBufferSize = mtu - IPFIX_HEADER_SIZE;
+   packetDataBuffer = (uint8_t *) malloc(sizeof(uint8_t) * mtu);
+   if (!packetDataBuffer) {
+      return 1;
+   }
 
    if (udp) {
       protocol = IPPROTO_UDP;
    }
 
-   if (basic_num >= 0) {
-      templateArray[basic_ifc_num * 2] = create_template(basic_tmplt_v4, NULL);
-      templateArray[basic_ifc_num * 2 + 1] = create_template(basic_tmplt_v6, NULL);
-
-      if (templateArray[basic_ifc_num * 2] == NULL || templateArray[basic_ifc_num * 2 + 1] == NULL) {
-         fprintf(stderr, "IPFIX template creation failed.\n");
-         shutdown();
-         return 1;
-      }
-   }
-
-   tmpltMapping = new int[EXTENSION_CNT];
    for (int i = 0; i < EXTENSION_CNT; i++) {
-      tmpltMapping[i] = -1;
+      templateFields[i] = NULL;
    }
    for (unsigned int i = 0; i < plugins.size(); i++) {
       FlowCachePlugin * const tmp = plugins[i];
-      vector<plugin_opt> &opts = tmp->get_options();
-      int ifc = -1;
-
-      for (unsigned int j = 0; j < opts.size(); j++) { // Create plugin extension id -> output interface mapping.
-         tmpltMapping[opts[j].ext_type] = opts[j].out_ifc_num;
-         ifc = opts[j].out_ifc_num;
-      }
-
-      if (ifc >= 0) {
-         if (tmp->include_basic_flow_fields()) {
-            templateArray[ifc * 2] = create_template(basic_tmplt_v4, tmp->get_ipfix_string());
-            templateArray[ifc * 2 + 1] = create_template(basic_tmplt_v6, tmp->get_ipfix_string());
-         } else {
-            templateArray[ifc * 2] = create_template(packet_tmplt, tmp->get_ipfix_string());
-         }
-
-         if (templateArray[ifc * 2] == NULL || (tmp->include_basic_flow_fields() &&
-             templateArray[ifc * 2 + 1] == NULL)) {
-            fprintf(stderr, "IPFIX template creation failed.\n");
-            shutdown();
-            return 1;
-         }
-      }
+      const vector<plugin_opt> &opts = tmp->get_options();
+      templateFields[opts[0].ext_type] = tmp->get_ipfix_string();
    }
 
    ret = connect_to_collector();
@@ -401,7 +387,7 @@ void IPFIXExporter::init_template_buffer(template_t *tmpl)
  * @param size Size of the template set including set header
  * @return size of the template set header
  */
-int IPFIXExporter::fill_template_set_header(char *ptr, uint16_t size)
+int IPFIXExporter::fill_template_set_header(uint8_t *ptr, uint16_t size)
 {
    ipfix_template_set_header_t *header = (ipfix_template_set_header_t *) ptr;
 
@@ -442,7 +428,7 @@ void IPFIXExporter::check_template_lifetime(template_t *tmpl)
  * @param size Size of the IPFIX packet not including the header.
  * @return Returns size of the header
  */
-int IPFIXExporter::fill_ipfix_header(char *ptr, uint16_t size)
+int IPFIXExporter::fill_ipfix_header(uint8_t *ptr, uint16_t size)
 {
    ipfix_header_t *header = (ipfix_header_t *)ptr;
 
@@ -512,8 +498,10 @@ void IPFIXExporter::expire_templates()
  */
 template_t *IPFIXExporter::create_template(const char **tmplt, const char **ext)
 {
-   uint16_t maxID = FIRST_TEMPLATE_ID, len;
-   template_t *tmpTemplate = templates, *newTemplate;
+   uint16_t maxID = FIRST_TEMPLATE_ID;
+   uint16_t len;
+   template_t *tmpTemplate = templates;
+   template_t *newTemplate;
    const char **tmp = tmplt;
 
    /* Create new template structure */
@@ -522,8 +510,15 @@ template_t *IPFIXExporter::create_template(const char **tmplt, const char **ext)
       fprintf(stderr, "Error: Not enough memory for IPFIX template.\n");
       return NULL;
    }
+
    newTemplate->fieldCount = 0;
    newTemplate->recordCount = 0;
+   newTemplate->buffer = (uint8_t *) malloc(sizeof(uint8_t) * tmpltMaxBufferSize);
+   if (!newTemplate->buffer) {
+      free(newTemplate);
+      fprintf(stderr, "Error: Not enough memory for IPFIX template buffer.\n");
+      return NULL;
+   }
 
    /* Set template ID to maximum + 1 */
    while (tmpTemplate != NULL) {
@@ -542,6 +537,7 @@ template_t *IPFIXExporter::create_template(const char **tmplt, const char **ext)
 
    while (1) {
       while (tmp && *tmp) {
+         assert(newTemplate->templateSize + 8u < sizeof(newTemplate->templateRecord));
          /* Find appropriate template file record */
          template_file_record_t *tmpFileRecord = get_template_record_by_name(*tmp);
          if (tmpFileRecord != NULL) {
@@ -628,7 +624,7 @@ uint16_t IPFIXExporter::create_template_packet(ipfix_packet_t *packet)
 {
    template_t *tmp = templates;
    uint16_t totalSize = 0;
-   char *ptr;
+   uint8_t *ptr;
 
    /* Get total size */
    while (tmp != NULL) {
@@ -650,7 +646,7 @@ uint16_t IPFIXExporter::create_template_packet(ipfix_packet_t *packet)
    totalSize += IPFIX_HEADER_SIZE + IPFIX_SET_HEADER_SIZE;
 
    /* Allocate memory for the packet */
-   packet->data = (char *) malloc(sizeof(char)*(totalSize));
+   packet->data = (uint8_t *) malloc(sizeof(uint8_t)*(totalSize));
    if (!packet->data) {
       return 0;
    }
@@ -695,7 +691,7 @@ uint16_t IPFIXExporter::create_data_packet(ipfix_packet_t *packet)
    template_t *tmp = templates;
    uint16_t totalSize = IPFIX_HEADER_SIZE; /* Include IPFIX header to total size */
    uint32_t deltaSequenceNum = 0; /* Number of exported records in this packet */
-   char *ptr;
+   uint8_t *ptr;
 
    /* Start adding data after the header */
    ptr = packet->data + totalSize;
@@ -704,7 +700,7 @@ uint16_t IPFIXExporter::create_data_packet(ipfix_packet_t *packet)
    templatesDataSize = 0; /* Erase total data size */
    while (tmp != NULL) {
       /* Add only templates with data that fits to one packet */
-      if (tmp->recordCount > 0 && totalSize + tmp->bufferSize <= PACKET_DATA_SIZE) {
+      if (tmp->recordCount > 0 && totalSize + tmp->bufferSize <= mtu) {
          memcpy(ptr, tmp->buffer, tmp->bufferSize);
          /* Set SET length */
          ((ipfix_template_set_header_t *) ptr)->length = htons(tmp->bufferSize);
@@ -732,7 +728,6 @@ uint16_t IPFIXExporter::create_data_packet(ipfix_packet_t *packet)
    }
 
    /* Create ipfix message header at the beginning */
-   //fill_ipfix_header(buff, totalSize);
    fill_ipfix_header(packet->data, totalSize);
 
    /* Fill number of flows and size of the packet */
@@ -765,12 +760,11 @@ void IPFIXExporter::send_templates()
  */
 void IPFIXExporter::send_data()
 {
-   char buffer[PACKET_DATA_SIZE];
    ipfix_packet_t pkt;
-   pkt.data = buffer;
+   pkt.data = packetDataBuffer;
 
    /* Send all new templates */
-   if (create_data_packet(&pkt)) {
+   while (create_data_packet(&pkt)) {
       if (send_packet(&pkt) == 1) {
          /* Collector reconnected, resend the packet */
          send_packet(&pkt);
@@ -890,6 +884,7 @@ int IPFIXExporter::connect_to_collector()
 
    memset(&hints, 0, sizeof(hints));
    hints.ai_family = ip;
+   hints.ai_socktype = protocol == IPPROTO_UDP ? SOCK_DGRAM : SOCK_STREAM;
    hints.ai_protocol = protocol;
    hints.ai_flags = AI_ADDRCONFIG | flags;
 
@@ -905,7 +900,6 @@ int IPFIXExporter::connect_to_collector()
 
    /* Try addrinfo strucutres one by one */
    for (tmp = addrinfo; tmp != NULL; tmp = tmp->ai_next) {
-
       if (tmp->ai_family != AF_INET && tmp->ai_family != AF_INET6) {
          continue;
       }
@@ -925,7 +919,7 @@ int IPFIXExporter::connect_to_collector()
       }
 
       /* create socket */
-      fd = socket(addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol);
+      fd = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
       if (fd == -1) {
          if (verbose) {
             perror("VERBOSE: Cannot create new socket");
@@ -935,7 +929,7 @@ int IPFIXExporter::connect_to_collector()
 
       /* connect to server with TCP and SCTP */
       if (protocol != IPPROTO_UDP &&
-            connect(fd, addrinfo->ai_addr, addrinfo->ai_addrlen) == -1) {
+            connect(fd, tmp->ai_addr, tmp->ai_addrlen) == -1) {
          if (verbose) {
             perror("VERBOSE: Cannot connect to collector");
          }
@@ -994,30 +988,6 @@ int IPFIXExporter::reconnect()
    return 0;
 }
 
-/**
- * \brief Fill template buffer with packet fields.
- * @param pkt Packet
- * @param tmplt Template containing buffer
- * @return Number of written bytes or -1 if buffer is not big enough
- */
-int IPFIXExporter::fill_packet_fields(Packet &pkt, template_t *tmplt)
-{
-   uint8_t *buffer;
-
-   if (tmplt->bufferSize + 22 > TEMPLATE_BUFFER_SIZE) {
-      return -1;
-   }
-
-   buffer = tmplt->buffer + tmplt->bufferSize;
-   memcpy(buffer, pkt.packet, 6);
-   memcpy(buffer + 6, pkt.packet + 6, 6);
-   *(uint16_t *) (buffer + 12) = ntohs(pkt.ethertype);
-   *(uint64_t *) (buffer + 14) = swap_uint64(((uint64_t) pkt.timestamp.tv_sec * 1000) + (uint64_t) (pkt.timestamp.tv_usec / 1000));
-
-   return 22;
-}
-
-
 #define GEN_FIELDS_SUMLEN_INT(FIELD) FIELD_LEN(FIELD) +
 #define GEN_FILLFIELDS_INT(TMPLT) IPFIX_FILL_FIELD(p, TMPLT);
 #define GEN_FILLFIELDS_MAXLEN(TMPLT) IPFIX_FILL_FIELD(p, TMPLT);
@@ -1048,7 +1018,7 @@ int IPFIXExporter::fill_basic_flow(Flow &flow, template_t *tmplt)
    buffer = tmplt->buffer + tmplt->bufferSize;
    p = buffer;
    if (flow.ip_version == 4) {
-      if (tmplt->bufferSize + GENERATE_FIELDS_SUMLEN(BASIC_TMPLT_V4) > TEMPLATE_BUFFER_SIZE) {
+      if (tmplt->bufferSize + GENERATE_FIELDS_SUMLEN(BASIC_TMPLT_V4) > tmpltMaxBufferSize) {
          return -1;
       }
 
@@ -1066,7 +1036,7 @@ int IPFIXExporter::fill_basic_flow(Flow &flow, template_t *tmplt)
 #endif
 
    } else {
-      if (tmplt->bufferSize + GENERATE_FIELDS_SUMLEN(BASIC_TMPLT_V6) > TEMPLATE_BUFFER_SIZE) {
+      if (tmplt->bufferSize + GENERATE_FIELDS_SUMLEN(BASIC_TMPLT_V6) > tmpltMaxBufferSize) {
          return -1;
       }
 

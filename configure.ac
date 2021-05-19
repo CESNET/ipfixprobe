@@ -94,13 +94,21 @@ fi
 
 if test x${withndp} = xno; then
    AC_CHECK_HEADER(pcap.h,
-              AC_CHECK_LIB(pcap, pcap_open_live, [libpcap=yes], AC_MSG_ERROR([libpcap not found. The ipfixprobe flow exporter will not be compiled.])), AC_MSG_ERROR([pcap.h not found. The ipfixprobe flow exporter will not be compiled.]))
+              AC_CHECK_LIB(pcap, pcap_open_live, [libpcap=yes],
+                           AC_CHECK_LIB(wpcap, pcap_open_live, [libwpcap=yes], AC_MSG_ERROR([libpcap not found. The ipfixprobe flow exporter will not be compiled.]))),
+                           AC_MSG_ERROR([pcap.h not found. The ipfixprobe flow exporter will not be compiled.]))
 
-   AM_CONDITIONAL(HAVE_LIBPCAP, test x${libpcap} = xyes)
+   AM_CONDITIONAL(HAVE_LIBPCAP, test x${libpcap} = xyes || test x${libwpcap} = xyes)
    if [[ -z "$HAVE_LIBPCAP_TRUE" ]]; then
-      LIBS="-lpcap $LIBS"
-      RPM_REQUIRES+=" libpcap"
-      RPM_BUILDREQ+=" libpcap-devel"
+      if test x${libpcap} = xyes; then
+         LIBS="-lpcap $LIBS"
+         RPM_REQUIRES+=" libpcap"
+         RPM_BUILDREQ+=" libpcap-devel"
+      else
+         LIBS="-lwpcap $LIBS"
+         RPM_REQUIRES+=" libwpcap"
+         RPM_BUILDREQ+=" libwpcap-devel"
+      fi
    fi
 else
    AM_CONDITIONAL(HAVE_LIBPCAP, false)
@@ -130,7 +138,7 @@ RPM_REQUIRES+=" libtrap"
 RPM_BUILDREQ+=" libtrap-devel unirec"
 fi
 
-AM_CONDITIONAL(COMPILE_FLOWMETER,  test x${libpcap} = xyes || test x${libnfb} = xyes)
+AM_CONDITIONAL(COMPILE_FLOWMETER,  test x${libpcap} = xyes || test x${libwpcap} = xyes || test x${libnfb} = xyes)
 
 AM_CONDITIONAL(MAKE_RPMS, test x$RPMBUILD != x)
 
@@ -138,7 +146,6 @@ AM_CONDITIONAL(MAKE_DEB, test x$DEBUILD != x)
 
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
-AC_FUNC_MALLOC
 AC_FUNC_STRTOD
 AC_CHECK_FUNCS([gettimeofday inet_ntoa memset socket strchr strerror strncasecmp strstr strtol strtoul strtoull])
 

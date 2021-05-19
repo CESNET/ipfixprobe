@@ -7,7 +7,6 @@ TESTS=test_http_plugin.sh \
 	test_sip_plugin.sh \
 	test_smtp_plugin.sh \
 	test_ntp_plugin.sh \
-	test_arp_plugin.sh \
 	test_pstats_plugin.sh \
 	test_ovpn_plugin.sh \
 	test_ssdp_plugin.sh \
@@ -29,7 +28,6 @@ EXTRA_DIST=test_plugin.sh \
 	test_sip_plugin.sh \
 	test_smtp_plugin.sh \
 	test_ntp_plugin.sh \
-	test_arp_plugin.sh \
 	test_pstats_plugin.sh \
 	test_ovpn_plugin.sh \
 	test_ssdp_plugin.sh \
@@ -45,7 +43,6 @@ EXTRA_DIST=test_plugin.sh \
 	test_reference/basicplus \
 	test_reference/pstats \
 	test_reference/ssdp \
-	test_reference/arp \
 	test_reference/dns \
 	test_reference/dnssd \
 	test_reference/http \

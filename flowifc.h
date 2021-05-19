@@ -76,7 +76,6 @@ enum extTypeEnum {
    sip,
    ntp,
    smtp,
-   arp,
    passivedns,
    pstats,
    idpcontent,

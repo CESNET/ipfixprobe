@@ -70,6 +70,11 @@ OVPNPlugin::OVPNPlugin(const options_t &module_options, vector<plugin_opt> plugi
    print_stats = module_options.print_stats;
 }
 
+FlowCachePlugin *OVPNPlugin::copy()
+{
+   return new OVPNPlugin(*this);
+}
+
 void OVPNPlugin::update_record(RecordExtOVPN* vpn_data, const Packet &pkt)
 {
    uint8_t opcode = 0;

@@ -136,11 +136,11 @@ class BASICPLUSPlugin : public FlowCachePlugin
 public:
    BASICPLUSPlugin(const options_t &module_options);
    BASICPLUSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   FlowCachePlugin *copy();
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    const char **get_ipfix_string();
    string get_unirec_field_string();
-   bool include_basic_flow_fields();
 
 private:
    bool print_stats; /**< Indicator whether to print stats when flow cache is finishing or not. */

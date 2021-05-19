@@ -134,11 +134,11 @@ class PHISTSPlugin : public FlowCachePlugin
 public:
    PHISTSPlugin(const options_t &module_options);
    PHISTSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   FlowCachePlugin *copy();
    int post_create(Flow &rec, const Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
    const char **get_ipfix_string();
    string get_unirec_field_string();
-   bool include_basic_flow_fields();
 
 private:
    void update_record(RecordExtPHISTS *phists_data, const Packet &pkt);

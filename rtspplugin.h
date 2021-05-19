@@ -126,7 +126,7 @@ struct RecordExtRTSP : RecordExt {
       }
       buffer[total_length] = length;
       memcpy(buffer + total_length + 1, user_agent, length);
-      total_length = length + 1;
+      total_length += length + 1;
 
       // URI
       length = strlen(uri);
@@ -172,6 +172,7 @@ public:
    RTSPPlugin(const options_t &module_options);
    RTSPPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
    ~RTSPPlugin();
+   FlowCachePlugin *copy();
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    void finish();

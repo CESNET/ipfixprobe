@@ -85,6 +85,11 @@ WGPlugin::~WGPlugin() {
    }
 }
 
+FlowCachePlugin *WGPlugin::copy()
+{
+   return new WGPlugin(*this);
+}
+
 int WGPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.ip_proto == IPPROTO_UDP) {
@@ -108,7 +113,6 @@ int WGPlugin::pre_update(Flow &rec, Packet &pkt)
 
    return 0;
 }
-
 
 void WGPlugin::pre_export(Flow &rec)
 {
@@ -136,11 +140,6 @@ const char **WGPlugin::get_ipfix_string()
 string WGPlugin::get_unirec_field_string()
 {
    return WG_UNIREC_TEMPLATE;
-}
-
-bool WGPlugin::include_basic_flow_fields()
-{
-   return true;
 }
 
 bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_pkt, RecordExtWG *ext)
@@ -173,12 +172,12 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
          if (payload_len != WG_PACKETLEN_INIT_TO_RESP) {
             return false;
          }
-         
+
          // compare the current dst_peer and see if it matches the original source.
          // If not, the flow flush may be needed to create a new flow.
          cmp_peer = source_pkt ? ext->src_peer : ext->dst_peer;
          memcpy(&cmp_new_peer, (data + 4), sizeof(uint32_t));
-         
+
          if (cmp_peer != 0 && cmp_peer != cmp_new_peer) {
             flow_flush = true;
             return false;
@@ -194,13 +193,13 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
 
          memcpy(&(ext->src_peer), (data + 4), sizeof(uint32_t));
          memcpy(&(ext->dst_peer), (data + 8), sizeof(uint32_t));
-         
+
          // let's swap for the opposite direction
          if (!source_pkt) {
             swap(ext->src_peer, ext->dst_peer);
          }
          break;
-   
+
       case WG_PACKETTYPE_COOKIE_REPLY:
          if (payload_len != WG_PACKETLEN_COOKIE_REPLY) {
             return false;
@@ -233,7 +232,7 @@ int WGPlugin::add_ext_wg(const char *data, unsigned int payload_len, bool source
    if (!parse_wg(data, payload_len, source_pkt, preallocated_record)) {
       return 0;
    }
-   
+
    rec.addExtension(preallocated_record);
    preallocated_record = NULL;
    return 0;

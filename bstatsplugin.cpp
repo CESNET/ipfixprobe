@@ -81,6 +81,11 @@ BSTATSPlugin::BSTATSPlugin(const options_t &module_options, vector<plugin_opt> p
    print_stats = module_options.print_stats;
 }
 
+FlowCachePlugin *BSTATSPlugin::copy()
+{
+   return new BSTATSPlugin(*this);
+}
+
 int BSTATSPlugin::pre_create(Packet &pkt)
 {
    return 0;
@@ -195,7 +200,3 @@ string BSTATSPlugin::get_unirec_field_string()
    return BSTATS_UNIREC_TEMPLATE;
 }
 
-bool BSTATSPlugin::include_basic_flow_fields()
-{
-   return true;
-}

@@ -104,6 +104,7 @@ class OVPNPlugin : public FlowCachePlugin
 public:
    OVPNPlugin(const options_t &module_options);
    OVPNPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   FlowCachePlugin *copy();
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    void update_record(RecordExtOVPN* vpn_data, const Packet &pkt);
@@ -119,7 +120,7 @@ public:
    static const uint32_t c_udp_opcode_index = 0;
    static const uint32_t c_tcp_opcode_index = 2;
    static const uint32_t min_pckt_treshold = 20;
-   static const float data_pckt_treshold = 0.6;
+   static constexpr float data_pckt_treshold = 0.6f;
    static const int32_t invalid_pckt_treshold = 4;
    static const uint32_t min_opcode = 1;
    static const uint32_t max_opcode = 10;

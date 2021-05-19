@@ -336,15 +336,6 @@
    F(NTP_RECV) \
    F(NTP_SENT)
 
-#define IPFIX_ARP_TEMPLATE(F) \
-   F(ARP_HA_FORMAT) \
-   F(ARP_PA_FORMAT) \
-   F(ARP_OPCODE) \
-   F(ARP_SRC_HA) \
-   F(ARP_SRC_PA) \
-   F(ARP_DST_HA) \
-   F(ARP_DST_PA)
-
 #define IPFIX_DNS_TEMPLATE(F) \
    F(DNS_ANSWERS) \
    F(DNS_RCODE) \
@@ -454,7 +445,7 @@
   F(WG_CONF_LEVEL) \
   F(WG_SRC_PEER) \
   F(WG_DST_PEER)
-  
+
 /**
  * List of all known templated.
  *
@@ -469,7 +460,6 @@
    IPFIX_RTSP_TEMPLATE(F) \
    IPFIX_TLS_TEMPLATE(F) \
    IPFIX_NTP_TEMPLATE(F) \
-   IPFIX_ARP_TEMPLATE(F) \
    IPFIX_SIP_TEMPLATE(F) \
    IPFIX_DNS_TEMPLATE(F) \
    IPFIX_PASSIVEDNS_TEMPLATE(F) \

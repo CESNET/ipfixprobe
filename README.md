@@ -46,6 +46,31 @@ The output source RPM can be uploaded to copr.
 To install ipfixprobe with NEMEA dependency from binary RPM packages, it is possible to follow instructions on:
 [https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/)
 
+### Windows 10 CygWin
+
+Install CygWin and the following packages:
+- git
+- pkg-config
+- make
+- automake
+- autoconf
+- libtool
+- binutils
+- gcc-core
+- gcc-g++
+
+Download npcap SDK [https://nmap.org/npcap/dist/npcap-sdk-1.07.zip](https://nmap.org/npcap/dist/npcap-sdk-1.07.zip) and copy content of the `Include` folder to `/usr/include` folder in your cygwin root installation folder (`C:\cygwin64\usr\include` for example). Then copy files of the `Lib` folder to `/lib` folder (or `Lib/x64/` based on your architecture).
+
+Download npcap library [https://nmap.org/npcap/dist/npcap-1.31.exe](https://nmap.org/npcap/dist/npcap-1.31.exe) and install.
+
+Add the following line to the `~/.bashrc` file
+```
+export PATH="/cygdrive/c/Windows/system32/Npcap:$PATH"
+```
+
+Build project using commands in previous sections. Tested on cygwin version 2.908
+
+
 ## Input / Output of the flow exporter
 
 Input and output interfaces are dependent on the configuration (by `configure`).
@@ -72,12 +97,12 @@ us.
 
 ## Parameters
 ### Module specific parameters
-- `-p STRING`        Activate specified parsing plugins. Output interface for each plugin correspond the order which you specify items in -i and -p param. For example: '-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: http,rtsp,tls,dns,sip,ntp,smtp,basic,arp,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus
+- `-p STRING`        Activate specified parsing plugins. Output interface (NEMEA only) for each plugin correspond the order which you specify items in -i and -p param. For example: '-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: http,rtsp,tls,dns,sip,ntp,smtp,basic,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus
   - Some plugins have features activated with additional parameters. Format: plugin_name[:plugin_param=value[:...]][,...] If plugin does not support parameters, any parameters given will be ignored. Supported plugin parameters are listed bellow with output data.
-- `-c NUMBER`        Quit after `NUMBER` of packets are captured.
-- `-I STRING`        Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can channel after interface delimited by : (/dev/nfb0:1) default is 0.
+- `-c NUMBER`        Quit after `NUMBER` of packets on each input are captured.
+- `-I STRING`        Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can specify channel after interface delimited by : (/dev/nfb0:1) default channel is 0.
 - `-r STRING`        Pcap file to read. `-` to read from stdin.
-- `-n`               Don't send NULL record when ipfixprobe exits (for NEMEA output).
+- `-n`               Don't send NULL record on exit (for NEMEA output).
 - `-l NUMBER`        Snapshot length when reading packets. Set value between `120`-`65535`.
 - `-t NUM:NUM`       Active and inactive timeout in seconds. Format: DOUBLE:DOUBLE. Value default means use default value 300.0:30.0.
 - `-s STRING`        Size of flow cache. Parameter is used as an exponent to the power of two. Valid numbers are in range 4-30. default is 17 (131072 records).
@@ -87,8 +112,14 @@ us.
 - `-D NUMBER`        Direction bit field value.
 - `-F STRING`        String containing filter expression to filter traffic. See man pcap-filter.
 - `-O`               Send ODID field instead of LINK_BIT_FIELD.
+- `-q NUMBER`        Input queue size (default 64).
+- `-Q NUMBER`        Output queue size (default 16536).
+- `-e NUMBER`        Export max N flows per second.
+- `-m NUMBER`        Max size of IPFIX data packet payload to send.
 - `-x STRING`        Export to IPFIX collector. Format: HOST:PORT or [HOST]:PORT.
 - `-u`               Use UDP when exporting to IPFIX collector.
+- `-V`               Print version.
+- `-v`               Increase verbosity of the output, it can be duplicated like -vv / -vvv.
 
 ### Common TRAP parameters
 - `-h [trap,1]`      Print help message for this module / for libtrap specific parameters.
@@ -367,29 +398,12 @@ Note: the following fields are UniRec arrays.
 
 #### Plugin parameters:
 - includezeros - Include zero-length packets in the lists.
+- skipdup - Skip retransmitted (duplicated) TCP packets.
 
 ##### Example:
 ```
 ipfixprobe -p pstats:includezeros -r sample.pcap -i "f:output.trapcap"
 ```
-
-### ARP
-List of unirec fields exported on interface by ARP plugin.
-
-| UniRec field    | Type     | Description                        |
-|:---------------:|:--------:|:----------------------------------:|
-| SRC_MAC         | macaddr  | source MAC address                 |
-| DST_MAC         | macaddr  | destinaton MAC address             |
-| ETHERTYPE       | uint16   | protocol encapsulated in L2 frame  |
-| TIME            | time     | time packet was received           |
-| ARP_HA_FORMAT   | uint16   | hardware address format            |
-| ARP_PA_FORMAT   | uint16   | protocol address format            |
-| ARP_OPCODE      | uint16   | type of ARP message                |
-| ARP_SRC_HA      | bytes    | source hardware address            |
-| ARP_SRC_PA      | bytes    | source protocol address            |
-| ARP_DST_HA      | bytes    | destination hardware address       |
-| ARP_DST_PA      | bytes    | destination protocol address       |
-
 
 ### SSDP
 List of unirec fields exported together with basic flow fields on interface by SSDP plugin.

@@ -126,6 +126,11 @@ DNSPlugin::DNSPlugin(const options_t &module_options, vector<plugin_opt> plugin_
    total = 0;
 }
 
+FlowCachePlugin *DNSPlugin::copy()
+{
+   return new DNSPlugin(*this);
+}
+
 int DNSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.dst_port == 53 || pkt.src_port == 53) {

@@ -116,7 +116,7 @@ struct RecordExtWG : RecordExt {
       buffer += sizeof(src_peer);
       memcpy(buffer, &dst_peer, sizeof(dst_peer));
       buffer += sizeof(dst_peer);
-      
+
       return requiredLen;
    }
 };
@@ -129,6 +129,7 @@ class WGPlugin : public FlowCachePlugin
 public:
    WGPlugin(const options_t &module_options);
    WGPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   FlowCachePlugin *copy();
    virtual ~WGPlugin();
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
@@ -136,7 +137,6 @@ public:
    void finish();
    const char **get_ipfix_string();
    string get_unirec_field_string();
-   bool include_basic_flow_fields();
 
 private:
    bool parse_wg(const char *data, unsigned int payload_len, bool source_pkt, RecordExtWG *ext);
@@ -146,7 +146,7 @@ private:
    bool flow_flush;        /**< Instructs the engine to create new flow, during pre_update. */
    bool print_stats;       /**< Print stats when flow cache finish. */
    uint32_t total;         /**< Total number of processed packets. */
-   uint32_t identified;    /**< Total number of identified WireGuard packets. */   
+   uint32_t identified;    /**< Total number of identified WireGuard packets. */
 };
 
 

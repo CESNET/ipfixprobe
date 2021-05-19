@@ -49,6 +49,7 @@
 
 #include <cstring>
 
+#include "ring.h"
 #include "packet.h"
 #include "flowifc.h"
 #include "flowcacheplugin.h"
@@ -62,7 +63,7 @@ using namespace std;
 class FlowCache
 {
 protected:
-   FlowExporter *exporter; /**< Instance of FlowExporter used to export flows. */
+   ipx_ring_t *export_queue;
 private:
    FlowCachePlugin **plugins; /**< Array of plugins. */
    uint32_t plugin_cnt;
@@ -72,7 +73,7 @@ public:
    {
    }
 
-   ~FlowCache()
+   virtual ~FlowCache()
    {
       if (plugins != NULL) {
          delete [] plugins;
@@ -107,9 +108,13 @@ public:
    /**
     * \brief Set an instance of FlowExporter used to export flows.
     */
-   void set_exporter(FlowExporter *exp)
+   void set_queue(ipx_ring_t *queue)
    {
-      exporter = exp;
+      export_queue = queue;
+   }
+
+   virtual void export_expired(time_t ts)
+   {
    }
 
    /**

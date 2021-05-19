@@ -42,6 +42,7 @@
  */
 
 #include <iostream>
+#include <ctype.h>
 
 #include "smtpplugin.h"
 #include "flowifc.h"
@@ -86,6 +87,11 @@ SMTPPlugin::SMTPPlugin(const options_t &module_options, vector<plugin_opt> plugi
    ext_ptr = NULL;
 }
 
+FlowCachePlugin *SMTPPlugin::copy()
+{
+   return new SMTPPlugin(*this);
+}
+
 const char *ipfix_smtp_template[] = {
    IPFIX_SMTP_TEMPLATE(IPFIX_FIELD_NAMES)
    NULL
@@ -117,6 +123,25 @@ int SMTPPlugin::pre_update(Flow &rec, Packet &pkt)
    }
 
    return 0;
+}
+
+char *strncasestr(const char *str, size_t n, const char *substr)
+{
+   size_t i = 0;
+   size_t j = 0;
+   while (i < n && *str) {
+      if (tolower(*str) == tolower(substr[j])) {
+         j++;
+         if (!substr[j]) {
+            return (char *) str;
+         }
+      } else {
+         j = 0;
+      }
+      i++;
+      str++;
+   }
+   return NULL;
 }
 
 /**
@@ -216,7 +241,7 @@ bool SMTPPlugin::parse_smtp_response(const char *data, int payload_len, RecordEx
          break;
    }
 
-   if (strcasestr(data, "SPAM") != NULL) {
+   if (strncasestr(data, payload_len, "SPAM") != NULL) {
       rec->mail_code_flags |= SC_SPAM;
    }
 
@@ -404,10 +429,5 @@ void SMTPPlugin::finish()
 string SMTPPlugin::get_unirec_field_string()
 {
    return SMTP_UNIREC_TEMPLATE;
-}
-
-bool SMTPPlugin::include_basic_flow_fields()
-{
-   return true;
 }
 

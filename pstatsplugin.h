@@ -74,6 +74,10 @@ struct RecordExtPSTATS : RecordExt {
    struct timeval pkt_timestamps[PSTATS_MAXELEMCOUNT];
    int8_t         pkt_dirs[PSTATS_MAXELEMCOUNT];
    uint16_t       pkt_count;
+   uint32_t       tcp_seq[2];
+   uint32_t       tcp_ack[2];
+   uint16_t       tcp_len[2];
+   uint8_t        tcp_flg[2];
 
    typedef enum eHdrFieldID {
       PktSize  = 1013,
@@ -145,17 +149,18 @@ class PSTATSPlugin : public FlowCachePlugin
 public:
    PSTATSPlugin(const options_t &module_options);
    PSTATSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   FlowCachePlugin *copy();
    int post_create(Flow &rec, const Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
    void update_record(RecordExtPSTATS *pstats_data, const Packet &pkt);
    const char **get_ipfix_string();
    string get_unirec_field_string();
-   bool include_basic_flow_fields();
 
 private:
    void check_plugin_options(vector<plugin_opt>& plugin_options);
    bool print_stats; /**< Indicator whether to print stats when flow cache is finishing or not. */
    bool use_zeros;
+   bool skip_dup_pkts;
 };
 
 #endif // ifndef PSTATSPLUGIN_H

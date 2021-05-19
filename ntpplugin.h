@@ -197,6 +197,7 @@ class NTPPlugin : public FlowCachePlugin
 public:
    NTPPlugin(const options_t &module_options);
    NTPPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   FlowCachePlugin *copy();
    int post_create(Flow &rec, const Packet &pkt);
    void finish();
    string get_unirec_field_string();

@@ -120,6 +120,9 @@ class NHTFlowCache : public FlowCache
    uint32_t line_size;
    uint32_t line_size_mask;
    uint32_t line_new_index;
+   uint32_t q_size;
+   uint32_t q_index;
+   uint32_t timeout_idx;
 #ifdef FLOW_CACHE_STATS
    uint64_t empty;
    uint64_t not_empty;
@@ -129,8 +132,6 @@ class NHTFlowCache : public FlowCache
    uint64_t lookups;
    uint64_t lookups2;
 #endif /* FLOW_CACHE_STATS */
-   struct timeval current_ts;
-   time_t last_ts;
    struct timeval active;
    struct timeval inactive;
    char key[MAX_KEY_LENGTH];
@@ -142,6 +143,9 @@ public:
    NHTFlowCache(const options_t &options)
    {
       size = options.flow_cache_size;
+      q_size = options.flow_cache_qsize;
+      q_index = 0;
+      timeout_idx = 0;
       line_size = options.flow_line_size;
       /* Mask for getting flow cache line index. */
       line_size_mask = (size - 1) & ~(line_size - 1);
@@ -155,14 +159,13 @@ public:
       lookups = 0;
       lookups2 = 0;
 #endif /* FLOW_CACHE_STATS */
-      last_ts = 0;
       print_stats = options.print_stats;
       active = options.active_timeout;
       inactive = options.inactive_timeout;
 
-      flow_array = new FlowRecord*[size];
-      flow_records = new FlowRecord[size];
-      for (unsigned int i = 0; i < size; i++) {
+      flow_array = new FlowRecord*[size + q_size];
+      flow_records = new FlowRecord[size + q_size];
+      for (unsigned int i = 0; i < size + q_size; i++) {
          flow_array[i] = flow_records + i;
       }
    };
@@ -178,10 +181,11 @@ public:
    virtual void finish();
 
    void export_expired(time_t ts);
-   void flush(Packet &pkt, FlowRecord *flow, int ret, bool source_flow);
+   void flush(Packet &pkt, size_t flow_index, int ret, bool source_flow);
 
 protected:
    bool create_hash_key(Packet &pkt);
+   void export_flow(size_t index);
    void print_report();
 };
 

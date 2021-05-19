@@ -164,12 +164,12 @@ public:
    TLSPlugin(const options_t &module_options);
    TLSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
    ~TLSPlugin();
+   FlowCachePlugin *copy();
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    void finish();
    const char **get_ipfix_string();
    string get_unirec_field_string();
-   bool include_basic_flow_fields();
 
 private:
    void add_tls_record(Flow &rec, const Packet &pkt);

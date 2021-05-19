@@ -94,8 +94,15 @@ UR_FIELDS (
  * \brief Constructor.
  */
 UnirecExporter::UnirecExporter(bool send_eof) : out_ifc_cnt(0), ifc_mapping(NULL),
-tmplt(NULL), record(NULL), eof(send_eof), send_odid(false)
+   tmplt(NULL), record(NULL), eof(send_eof), send_odid(false)
 {
+   records = 0;
+   dropped = 0;
+}
+
+UnirecExporter::~UnirecExporter()
+{
+   close();
 }
 
 /**
@@ -151,7 +158,7 @@ int UnirecExporter::init(const vector<FlowCachePlugin *> &plugins, int ifc_cnt, 
    string template_str;
    for (unsigned int i = 0; i < plugins.size(); i++) {
       FlowCachePlugin * const tmp = plugins[i];
-      vector<plugin_opt> &opts = tmp->get_options();
+      const vector<plugin_opt> &opts = tmp->get_options();
       int ifc = -1;
 
       for (unsigned int j = 0; j < opts.size(); j++) { // Create plugin extension id -> output interface mapping.
@@ -164,12 +171,7 @@ int UnirecExporter::init(const vector<FlowCachePlugin *> &plugins, int ifc_cnt, 
       }
 
       // Create unirec templates.
-      template_str = tmp->get_unirec_field_string();
-      if (tmp->include_basic_flow_fields()) {
-         template_str += string(",") + basic_tmplt;
-      } else {
-         template_str += string (",") + PACKET_TEMPLATE;
-      }
+      template_str = tmp->get_unirec_field_string() + string(",") + basic_tmplt;
 
       tmplt[ifc] = ur_create_output_template(ifc, template_str.c_str(), &error);
       if (tmplt[ifc] == NULL) {
@@ -248,6 +250,7 @@ int UnirecExporter::export_packet(Packet &pkt)
    void *record_ptr = NULL;
 
    while (ext != NULL) {
+      records++;
       int ifc_num = ifc_mapping[ext->extType];
       if (ifc_num >= 0) {
          tmplt_ptr = tmplt[ifc_num];
@@ -284,6 +287,7 @@ int UnirecExporter::export_flow(Flow &flow)
    }
 
    while (ext != NULL) {
+      records++;
       int ifc_num = ifc_mapping[ext->extType];
       if (ifc_num >= 0) {
          tmplt_ptr = tmplt[ifc_num];

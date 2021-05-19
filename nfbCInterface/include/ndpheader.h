@@ -1,4 +1,4 @@
-#ifndef NDPHEADER_H 
+#ifndef NDPHEADER_H
 #define NDPHEADER_H
 
 #include <nfb/ndp.h>
@@ -22,6 +22,5 @@ struct ndp_header {
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif //NDPHEADER_H

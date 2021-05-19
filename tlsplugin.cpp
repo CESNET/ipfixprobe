@@ -99,6 +99,11 @@ TLSPlugin::TLSPlugin(const options_t &module_options, vector<plugin_opt> plugin_
    ext_ptr     = NULL;
 }
 
+FlowCachePlugin *TLSPlugin::copy()
+{
+   return new TLSPlugin(*this);
+}
+
 TLSPlugin::~TLSPlugin()
 {
    if (ext_ptr != NULL) {
@@ -376,7 +381,3 @@ string TLSPlugin::get_unirec_field_string()
    return TLS_UNIREC_TEMPLATE;
 }
 
-bool TLSPlugin::include_basic_flow_fields()
-{
-   return true;
-}

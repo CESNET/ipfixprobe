@@ -72,6 +72,11 @@ IDPCONTENTPlugin::IDPCONTENTPlugin(const options_t &module_options,
    print_stats = module_options.print_stats;
 }
 
+FlowCachePlugin *IDPCONTENTPlugin::copy()
+{
+   return new IDPCONTENTPlugin(*this);
+}
+
 void IDPCONTENTPlugin::update_record(RecordExtIDPCONTENT *idpcontent_data, const Packet &pkt)
 {
    // create ptr into buffers from packet directions

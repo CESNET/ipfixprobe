@@ -111,12 +111,11 @@ public:
    {
    }
 
-   /**
-    * \brief Virtual destructor.
-    */
    virtual ~FlowCachePlugin()
    {
    }
+
+   virtual FlowCachePlugin *copy() = 0;
 
    /**
     * \brief Called before the start of processing.
@@ -202,26 +201,12 @@ public:
    }
 
    /**
-    * \brief Check if plugin require basic flow fields in unirec template.
-    * \return True if basic flow is need to be included, false otherwise.
-    */
-   virtual bool include_basic_flow_fields()
-   {
-      return true;
-   }
-
-   /**
     * \brief Get plugin options.
     * \return Plugin options.
     */
    vector<plugin_opt> &get_options()
    {
       return options;
-   }
-
-   virtual uint32_t max_payload_length()
-   {
-      return MAX_PAYLOAD_LENGTH;
    }
 
    vector<plugin_opt> options; /**< Plugin options. */

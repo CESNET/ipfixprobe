@@ -48,6 +48,8 @@
 #define FLOWEXPORTER_H
 
 #include "flowifc.h"
+#include "ring.h"
+#include "ipfixprobe.h"
 
 /**
  * \brief Base class for flow exporters.
@@ -55,6 +57,10 @@
 class FlowExporter
 {
 public:
+   uint64_t records;
+   uint64_t dropped;
+
+   virtual ~FlowExporter() {}
 
    /**
     * \brief Send flow record to output interface.
@@ -63,12 +69,6 @@ public:
     */
    virtual int export_flow(Flow &flow) = 0;
 
-   /**
-    * \brief Send packet to output interface.
-    * \param [in] pkt Packet to send.
-    * \return 0 on success
-    */
-   virtual int export_packet(Packet &pkt) = 0;
    /**
     * \brief Force exporter to flush flows to collector.
     */

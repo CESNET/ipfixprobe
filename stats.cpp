@@ -57,6 +57,11 @@ StatsPlugin::StatsPlugin(struct timeval interval, ostream &out)
 {
 }
 
+FlowCachePlugin *StatsPlugin::copy()
+{
+   return new StatsPlugin(*this);
+}
+
 void StatsPlugin::init()
 {
    packets = 0;

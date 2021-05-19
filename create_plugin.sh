@@ -105,6 +105,7 @@ class ${PLUGIN_UPPER}Plugin : public FlowCachePlugin
 public:
    ${PLUGIN_UPPER}Plugin(const options_t &module_options);
    ${PLUGIN_UPPER}Plugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   FlowCachePlugin *copy();
    int pre_create(Packet &pkt);
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
@@ -113,7 +114,6 @@ public:
    void finish();
    const char **get_ipfix_string();
    string get_unirec_field_string();
-   bool include_basic_flow_fields();
 
 private:
    bool print_stats;       /**< Print stats when flow cache finish. */
@@ -149,6 +149,11 @@ ${PLUGIN_UPPER}Plugin::${PLUGIN_UPPER}Plugin(const options_t &module_options)
 ${PLUGIN_UPPER}Plugin::${PLUGIN_UPPER}Plugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
 {
    print_stats = module_options.print_stats;
+}
+
+FlowCachePlugin *${PLUGIN_UPPER}Plugin::copy()
+{
+   return new ${PLUGIN_UPPER}Plugin(*this);
 }
 
 int ${PLUGIN_UPPER}Plugin::pre_create(Packet &pkt)
@@ -197,10 +202,6 @@ string ${PLUGIN_UPPER}Plugin::get_unirec_field_string()
    return ${PLUGIN_UPPER}_UNIREC_TEMPLATE;
 }
 
-bool ${PLUGIN_UPPER}Plugin::include_basic_flow_fields()
-{
-   return true;
-}
 "
 }
 
@@ -217,14 +218,14 @@ print_todo() {
    echo "6.2) Add IPFIX template macro 'IPFIX_${PLUGIN_UPPER}_TEMPLATE' to ipfix-elements.h"
    echo "6.3) Define IPFIX fields"
    echo "6.4) Write function 'fillIPFIX' in ${PLUGIN}plugin.h to fill fields to IPFIX message"
-   echo "7) Do the final work in ${PLUGIN}plugin.cpp and ${PLUGIN}plugin.h files - implement pre_create, post_create, pre_update, post_update, pre_export, include_basic_flow_fields and fill_unirec functions (also read and understand when these functions are called, info in flowcacheplugin.h file)"
+   echo "7) Do the final work in ${PLUGIN}plugin.cpp and ${PLUGIN}plugin.h files - implement pre_create, post_create, pre_update, post_update, pre_export and fill_unirec functions (also read and understand when these functions are called, info in flowcacheplugin.h file)"
    echo "8) Be happy with your new awesome ${PLUGIN} plugin!"
    echo
    echo "Optional work:"
    echo "1) Add pcap traffic sample for ${PLUGIN} plugin to traffic-samples directory"
    echo "2) Add test for ${PLUGIN} to tests directory"
    echo
-   echo "NOTE: If you didn't modify pre_create, post_create, pre_update, post_update, pre_export or include_basic_flow_fields functions, please remove them from ${PLUGIN}plugin.cpp and ${PLUGIN}plugin.h"
+   echo "NOTE: If you didn't modify pre_create, post_create, pre_update, post_update, pre_export functions, please remove them from ${PLUGIN}plugin.cpp and ${PLUGIN}plugin.h"
 }
 
 create_h_file() {

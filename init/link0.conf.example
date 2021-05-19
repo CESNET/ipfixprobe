@@ -1,7 +1,14 @@
 # set up shell-like variables
 
-# Network interface
-NIC=eth0
+# List of interfaces / DMA channels
+#   Specify array of devices using IFCLIST[], indexes (subscripts) must be unique
+IFCLIST[0]=/dev/nfb0:0
+IFCLIST[1]=/dev/nfb0:1
+# ... more IFCLIST can be added
+
+# One network interface
+#   NOTE: remove IFCLIST variables and uncomment NIC if you prefer to use this way:
+# NIC=eth0
 
 # List of activated plugins, to skip plugins, use "basic" only:
 # PLUGINS=basic

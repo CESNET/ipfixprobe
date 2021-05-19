@@ -87,13 +87,16 @@ struct Packet : public Record {
    uint16_t    tcp_window;
    uint64_t    tcp_options;
    uint32_t    tcp_mss;
+   uint32_t    tcp_seq;
+   uint32_t    tcp_ack;
 
-   uint16_t    total_length;
+   uint16_t    total_length; /**< Length of bytes in `packet` variable. */
    char        *packet; /**< Array containing whole packet. */
-   uint16_t    payload_length; /**< Captured payload length. */
+   uint16_t    payload_length; /**< Captured payload length. payload_length <= payload_length_orig */
    uint16_t    payload_length_orig; /**< Original payload length computed from headers. */
    char        *payload; /**< Pointer to packet payload section. */
    bool        source_pkt;
+   uint16_t    wirelen; /**< Packet size on wire */
 
    /**
     * \brief Constructor.
@@ -101,6 +104,13 @@ struct Packet : public Record {
    Packet() : total_length(0), packet(NULL), payload_length(0), payload(NULL)
    {
    }
+};
+
+struct PacketBlock {
+   Packet *pkts;
+   size_t cnt;
+   size_t bytes;
+   size_t size;
 };
 
 #endif

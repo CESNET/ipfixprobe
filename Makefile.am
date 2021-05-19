@@ -10,28 +10,34 @@ bin_PROGRAMS=ipfixprobe
 DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)"
 
 if HAVE_NDP
-AM_LDFLAGS=${srcdir}/nfbCInterface/libndpRI.la
-ipfixprobe_ldflags=-lnuma -lnfb -lndpRI
+ipfixprobe_LDFLAGS=-lpthread -lnuma -lnfb -lndpRI -L${srcdir}/nfbCInterface/
 else
-ipfixprobe_ldflags=-lpcap
+ipfixprobe_LDFLAGS=-lpthread
 endif
 
-ipfixprobe_CXXFLAGS=-std=c++98 -Wno-write-strings -I./nfbCInterface/include/
+ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I./nfbCInterface/include/
 
 
 ipfixprobe_src=main.cpp \
 		ipfixprobe.h \
 		packet.h \
 		packetreceiver.h \
-		pcapreader.h \
 		flowexporter.h \
 		flowifc.h \
 		flowcache.h \
 		pcapreader.cpp \
+		pcapreader.h \
+		ndp.cpp \
+		ndp.h \
+		parser.cpp \
+		parser.h \
+		headers.h \
 		nhtflowcache.cpp \
 		nhtflowcache.h \
 		stats.cpp \
 		stats.h \
+		ring.c \
+		ring.h \
 		flowcacheplugin.h \
 		httpplugin.cpp \
 		httpplugin.h \
@@ -50,8 +56,6 @@ ipfixprobe_src=main.cpp \
 		ntpplugin.cpp \
 		ntpplugin.h \
 		ipaddr.h \
-		arpplugin.cpp \
-		arpplugin.h \
 		ipfixexporter.cpp \
 		ipfix-elements.h \
 		ipfixexporter.h \
@@ -101,7 +105,6 @@ pkgdocdir=${docdir}/ipfixprobe
 pkgdoc_DATA=README.md
 EXTRA_DIST=README.md \
 	traffic-samples/README.md \
-	traffic-samples/arp-sample.pcap \
 	traffic-samples/mixed-sample.pcap \
 	traffic-samples/dns-sample.pcap \
 	traffic-samples/dnssd-sample.pcap \

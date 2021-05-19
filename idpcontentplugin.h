@@ -115,6 +115,7 @@ class IDPCONTENTPlugin : public FlowCachePlugin
 public:
    IDPCONTENTPlugin(const options_t &module_options);
    IDPCONTENTPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   FlowCachePlugin *copy();
    int post_create(Flow &rec, const Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
    const char **get_ipfix_string();

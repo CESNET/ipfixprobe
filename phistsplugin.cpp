@@ -96,6 +96,11 @@ PHISTSPlugin::PHISTSPlugin(const options_t &module_options, vector<plugin_opt> p
    check_plugin_options(plugin_options);
 }
 
+FlowCachePlugin *PHISTSPlugin::copy()
+{
+   return new PHISTSPlugin(*this);
+}
+
 /*
  * 0-15     1. bin
  * 16-31    2. bin
@@ -178,12 +183,6 @@ string PHISTSPlugin::get_unirec_field_string()
    return PHISTS_UNIREC_TEMPLATE;
 }
 
-bool PHISTSPlugin::include_basic_flow_fields()
-{
-   return true;
-}
-
-
 void PHISTSPlugin::check_plugin_options(vector<plugin_opt>& plugin_options)
 {
    stringstream rawoptions(plugin_options[0].params);
@@ -203,3 +202,4 @@ void PHISTSPlugin::check_plugin_options(vector<plugin_opt>& plugin_options)
       }
    }
 }
+

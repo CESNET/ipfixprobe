@@ -199,11 +199,11 @@ class SMTPPlugin : public FlowCachePlugin
 public:
    SMTPPlugin(const options_t &module_options);
    SMTPPlugin(const options_t &module_options, vector<plugin_opt> plugin_options);
+   FlowCachePlugin *copy();
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    void finish();
    string get_unirec_field_string();
-   bool include_basic_flow_fields();
    const char **get_ipfix_string();
 
    bool smtp_keyword(const char *data);
