@@ -46,6 +46,10 @@
 
 #include "packet.h"
 
+#ifndef u_char
+#define u_char unsigned char
+#endif
+
 #ifndef ETH_P_8021AD
 #define ETH_P_8021AD	0x88A8          /* 802.1ad Service VLAN*/
 #endif
