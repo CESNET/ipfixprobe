@@ -1,3 +1,71 @@
+2021-06-08 (Jiri Havranek): fixed missing constant in older libpcap versions
+2021-05-15 (Jiri Havranek): stats are not printed when until init phase ends
+2021-05-15 (Jiri Havranek): cygwin compatibility modifications
+2021-05-14 (Pavel Valach): wgplugin: preallocate RecordExtWG
+2021-05-10 (Pavel Valach): README: added WG (WireGuard) section
+2021-05-10 (Pavel Valach): wgplugin: parse_wg: fix coding style
+2021-05-10 (Pavel Valach): Makefile.am: included wg-sample.pcap in EXTRA_DIST
+2021-04-27 (Pavel Valach): tests: wgplugin - added handshake with cookie reply (under load)
+2021-04-27 (Pavel Valach): tests/test_reference/wg: fixed order of flows and zeroized LINK_BIT_FIELD
+2021-04-27 (Pavel Valach): tests: added test for WireGuard plugin
+2021-04-27 (Pavel Valach): wgplugin.parse_wg: use switch statement instead of else ifs
+2021-04-27 (Pavel Valach): wgplugin: removed debug lines
+2021-04-27 (Pavel Valach): wgplugin: added WG_CONF_LEVEL field to indicate whether this is WireGuard packet or not
+2021-04-26 (Pavel Valach): wgplugin: add strict length checks for packet types
+2021-04-24 (Jiri Havranek): cache: export TCP flows when ports are reused
+2021-04-24 (Jiri Havranek): pstats: added seq overflow check when skipping TCP retransmissions
+2021-04-23 (Jiri Havranek): fixed ndp compilation
+2021-04-23 (Jiri Havranek): refactored input plugins, improved coding style
+2021-04-23 (Jiri Havranek): improved coding style
+2021-04-23 (Jiri Havranek): removed ARP plugin
+2021-04-21 (Jiri Havranek): pstats: fixed packet retransmission detection
+2021-04-18 (Karel Hynek): BUGFIX: Corrected calculation of histograms
+2021-04-16 (Jiri Havranek): pstats: added new option skipdup to not include TCP retransmissions in plugin output
+2021-04-13 (Pavel Valach): wgplugin: added cstring import
+2021-04-10 (Pavel Valach): wgplugin: split flows during new handshakes
+2021-04-09 (Pavel Valach): wgplugin: delete useless comparison
+2021-04-09 (Pavel Valach): wgplugin: assign src_peer and dst_peer properly
+2021-04-08 (Pavel Valach): wgplugin: do not flush the flow after recognition
+2021-04-01 (Jiri Havranek): fixed infinity loop when parsing TCP options
+2021-03-28 (Pavel Valach): wgplugin.h, wgplugin.cpp: initialize types to zeros
+2021-03-28 (Pavel Valach): wgplugin.cpp: memcpy for sender and receiver fields wgplugin.h: implemented fillUnirec
+2021-03-24 (Tomas Cejka): ipfixprobed: extend service to support list of interfaces
+2021-03-24 (Tomas Cejka): ipfixprobed: extend service to support list of interfaces
+2021-03-24 (Jiri Havranek): fixed segfault when using unirec output
+2021-03-24 (Jiri Havranek): improved module arguments
+2021-03-22 (Jiri Havranek): fixed -c parameter
+2021-03-22 (Pavel Valach): WGPlugin: fixed packet type check during parsing
+2021-03-22 (Pavel Valach): WGPlugin: specifically checking for zeroes in header now
+2021-03-22 (Pavel Valach): WGPlugin: implement basic post_update
+2021-03-22 (Pavel Valach): First attempt of Wireguard parsing code
+2021-03-21 (Pavel Valach): First iteration of WireGuard detection plugin
+2021-03-17 (Jiri Havranek): tests: added additional path to search for logger executable
+2021-03-17 (Jiri Havranek): improved help string for -n parameter
+2021-03-17 (Jiri Havranek): removed flow_meter references
+2021-03-17 (Jiri Havranek): ipfiexporter: added configurable MTU
+2021-03-16 (Jiri Havranek): fixed ipfix export dropping flow records sometimes
+2021-03-11 (Karel Hynek): PHISTS: fixed typo in README
+2021-03-10 (Jiri Havranek): fixed some inactive flows not being exported
+2021-03-10 (Jiri Havranek): fixed last flow in export queue not being exported
+2021-03-10 (Jiri Havranek): added status message for each input
+2021-03-10 (Jiri Havranek): fixed memory leaks
+2021-03-10 (Jiri Havranek): removed unused code
+2021-03-09 (Jiri Havranek): added output rate limiting
+2021-03-01 (Jiri Havranek): ndpreader: fixed unexpected end of capture
+2021-02-14 (Karel Hynek): Uncrustyfy now checks for spaces after if,for,switch...
+2021-02-11 (Jiri Havranek): fixed segfault
+2021-02-11 (Jiri Havranek): fixed initialization of ndp reader counters
+2021-02-11 (Jiri Havranek): improved user messages
+2021-02-10 (Jiri Havranek): fixed last packet block not being read when reading from file
+2021-02-10 (Jiri Havranek): fixed build
+2021-02-10 (Jiri Havranek): separated input and storage plugins to separated threads
+2021-02-06 (Jiri Havranek): added deduplication of exported flows in ipifx export
+2021-02-06 (Jiri Havranek): fixed RTSP plugin ipfix export
+2021-02-06 (Jiri Havranek): fixed RTSP plugin cleanup
+2021-02-06 (Jiri Havranek): fixed inactive timeout check
+2021-01-27 (Jiri Havranek): changed strategy of checking inactive timeout
+2021-01-23 (Jiri Havranek): flow export separated to another thread
+
 2021-02-24 (Jiri Havranek): phist: improved coding style
 2021-02-24 (Karel Hynek): PHISTS: Changed histogram array type: uint16* -> uint32*
 2021-02-24 (Karel Hynek): PHISTS: added creation of size histogram for individual directions, added creation of IPT histograms for individual directions
