@@ -1,3 +1,10 @@
+2021-06-07 ipfixprobe-2.20.0
+	* added multi-thread version of ipfixprobe
+	* added wireguard plugin
+	* support cygwin compatibility
+	* bugfixes: RTSP plugin, build, memory
+	* updated tests - test for WireGuard plugin
+	
 2021-02-27 ipfixprobe-2.19.0
 	* added phist plugin - histograms of packets
 	* added bstats plugin - burst characteristics of flows
