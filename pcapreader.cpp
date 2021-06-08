@@ -181,13 +181,16 @@ void PcapReader::print_interfaces()
       }
    }
    for (d = devs; d != NULL; d = d->next) {
-      if (d->flags & PCAP_IF_UP) {
-         printf("%2d.  %-*s", ++i, max_width, d->name);
-         if (d->description) {
-            printf("    %s\n", d->description);
-         } else {
-            printf("\n");
-         }
+#ifdef PCAP_IF_UP
+      if (!(d->flags & PCAP_IF_UP)) {
+         continue;
+      }
+#endif
+      printf("%2d.  %-*s", ++i, max_width, d->name);
+      if (d->description) {
+         printf("    %s\n", d->description);
+      } else {
+         printf("\n");
       }
    }
    if (i == 0) {
