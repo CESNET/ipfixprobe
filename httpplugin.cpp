@@ -74,7 +74,7 @@ using namespace std;
 #endif
 
 #define HTTP_UNIREC_TEMPLATE  "HTTP_REQUEST_METHOD,HTTP_REQUEST_HOST,HTTP_REQUEST_URL,HTTP_REQUEST_AGENT,HTTP_REQUEST_REFERER,HTTP_RESPONSE_STATUS_CODE,HTTP_RESPONSE_CONTENT_TYPE"
-#define HTTP_LINE_DELIMITER   '\n'
+#define HTTP_LINE_DELIMITER   "\r\n"
 #define HTTP_KEYVAL_DELIMITER ':'
 
 UR_FIELDS (
@@ -209,8 +209,8 @@ void copy_str(char *dst, ssize_t size, const char *begin, const char *end)
 
    memcpy(dst, begin, len);
 
-   if (len != 0 && dst[len - 1] == '\r') {
-      len--;
+   if (len >= 2 && dst[len - 1] == '\n' && dst[len - 2] == '\r') {
+      len -= 2;
    }
    dst[len] = 0;
 }
@@ -296,7 +296,6 @@ bool HTTPPlugin::parse_http_request(const char *data, int payload_len, RecordExt
 
    /* Copy and check HTTP method */
    copy_str(buffer, sizeof(buffer), data, begin);
-
    if (rec->req) {
       flush_flow = true;
       total--;
@@ -310,12 +309,12 @@ bool HTTPPlugin::parse_http_request(const char *data, int payload_len, RecordExt
    DEBUG_MSG("\tURI: %s\n",      rec->uri);
 
    /* Find begin of next line after request line. */
-   begin = strchr(end, HTTP_LINE_DELIMITER);
+   begin = strstr(end, HTTP_LINE_DELIMITER);
    if (begin == NULL) {
       DEBUG_MSG("Parser quits:\tNo line delim after request line\n");
       return false;
    }
-   begin++;
+   begin += 2;
 
    /* Header:
     *
@@ -331,13 +330,19 @@ bool HTTPPlugin::parse_http_request(const char *data, int payload_len, RecordExt
    rec->referer[0] = 0;
    /* Process headers. */
    while (begin - data < payload_len) {
-      end = strchr(begin, HTTP_LINE_DELIMITER);
+      end = strstr(begin, HTTP_LINE_DELIMITER);
       keyval_delimiter = strchr(begin, HTTP_KEYVAL_DELIMITER);
 
+      if (end == NULL) {
+         DEBUG_MSG("Parser quits:\theader is fragmented\n");
+         return  false;
+      }
+
+      end += 1;
       int tmp = end - begin;
       if (tmp == 0 || tmp == 1) { /* Check for blank line with \r\n or \n ending. */
          break; /* Double LF found - end of header section. */
-      } else if (end == NULL || keyval_delimiter == NULL) {
+      } else if (keyval_delimiter == NULL) {
          DEBUG_MSG("Parser quits:\theader is fragmented\n");
          return  false;
       }
@@ -439,12 +444,12 @@ bool HTTPPlugin::parse_http_response(const char *data, int payload_len, RecordEx
    rec->code = code;
 
    /* Find begin of next line after request line. */
-   begin = strchr(end, HTTP_LINE_DELIMITER);
+   begin = strstr(end, HTTP_LINE_DELIMITER);
    if (begin == NULL) {
       DEBUG_MSG("Parser quits:\tNo line delim after request line\n");
       return false;
    }
-   begin++;
+   begin += 2;
 
    /* Header:
     *
@@ -458,13 +463,19 @@ bool HTTPPlugin::parse_http_response(const char *data, int payload_len, RecordEx
    rec->content_type[0] = 0;
    /* Process headers. */
    while (begin - data < payload_len) {
-      end = strchr(begin, HTTP_LINE_DELIMITER);
+      end = strstr(begin, HTTP_LINE_DELIMITER);
       keyval_delimiter = strchr(begin, HTTP_KEYVAL_DELIMITER);
 
+      if (end == NULL) {
+         DEBUG_MSG("Parser quits:\theader is fragmented\n");
+         return  false;
+      }
+
+      end += 1;
       int tmp = end - begin;
       if (tmp == 0 || tmp == 1) { /* Check for blank line with \r\n or \n ending. */
          break; /* Double LF found - end of header section. */
-      } else if (end == NULL || keyval_delimiter == NULL) {
+      } else if (keyval_delimiter == NULL) {
          DEBUG_MSG("Parser quits:\theader is fragmented\n");
          return  false;
       }
@@ -482,7 +493,7 @@ bool HTTPPlugin::parse_http_response(const char *data, int payload_len, RecordEx
       }
 
       /* Go to next line. */
-      begin = end + 1 ;
+      begin = end + 1;
    }
 
    DEBUG_MSG("Parser quits:\tend of header section\n");
