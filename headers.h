@@ -135,10 +135,11 @@ struct tcphdr
 # if __BYTE_ORDER == __LITTLE_ENDIAN
          uint8_t th_x2:4;  /* (unused) */
          uint8_t th_off:4; /* data offset */
-# endif
-# if __BYTE_ORDER == __BIG_ENDIAN
+# elif __BYTE_ORDER == __BIG_ENDIAN
          uint8_t th_off:4; /* data offset */
          uint8_t th_x2:4;  /* (unused) */
+# else
+#  error  "Please fix <bits/endian.h>"
 # endif
          uint8_t th_flags;
 # define TH_FIN   0x01
@@ -257,6 +258,8 @@ struct __attribute__((packed)) trill_hdr {
    uint8_t op_len1:3;
    uint8_t op_len2:2;
    uint8_t hop_cnt:6;
+#else
+# error  "Please fix <bits/endian.h>"
 #endif
    uint16_t egress_nick;
    uint16_t ingress_nick;
