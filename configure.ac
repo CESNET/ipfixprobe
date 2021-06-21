@@ -114,6 +114,13 @@ else
    AM_CONDITIONAL(HAVE_LIBPCAP, false)
 fi
 
+AC_ARG_WITH([flowcachesize],
+       AC_HELP_STRING([--with-flowcachesize=NUMBER],[Set default size of flow cache in number of flow records.]),
+       [
+       CPPFLAGS="$CPPFLAGS -DFLOW_CACHE_SIZE=$withval"
+       ]
+)
+
 AC_ARG_WITH([nemea],
         AC_HELP_STRING([--with-nemea],[Compile with NEMEA framework (nemea.liberouter.org).]),
         [
