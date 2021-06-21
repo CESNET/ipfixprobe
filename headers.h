@@ -45,6 +45,7 @@
 #define HEADERS_H
 
 #include <netinet/in.h>
+#include <endian.h>
 
 #define ETH_P_8021AD  0x88A8
 #define ETH_P_8021AH  0x88E7
@@ -68,14 +69,14 @@ struct ethhdr {
 
 struct iphdr
 {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
    unsigned int ihl:4;
    unsigned int version:4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN
    unsigned int version:4;
    unsigned int ihl:4;
 #else
-# error  "Please fix <bits/endian.h>"
+# error  "Please fix <endian.h>"
 #endif
    uint8_t tos;
    uint16_t tot_len;
@@ -132,14 +133,14 @@ struct tcphdr
          uint16_t th_dport;   /* destination port */
          uint32_t th_seq;      /* sequence number */
          uint32_t th_ack;      /* acknowledgement number */
-# if __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
          uint8_t th_x2:4;  /* (unused) */
          uint8_t th_off:4; /* data offset */
-# elif __BYTE_ORDER == __BIG_ENDIAN
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN
          uint8_t th_off:4; /* data offset */
          uint8_t th_x2:4;  /* (unused) */
 # else
-#  error  "Please fix <bits/endian.h>"
+#  error  "Please fix <endian.h>"
 # endif
          uint8_t th_flags;
 # define TH_FIN   0x01
@@ -158,7 +159,7 @@ struct tcphdr
          uint16_t dest;
          uint32_t seq;
          uint32_t ack_seq;
-# if __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
          uint16_t res1:4;
          uint16_t doff:4;
          uint16_t fin:1;
@@ -168,7 +169,7 @@ struct tcphdr
          uint16_t ack:1;
          uint16_t urg:1;
          uint16_t res2:2;
-# elif __BYTE_ORDER == __BIG_ENDIAN
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN
          uint16_t doff:4;
          uint16_t res1:4;
          uint16_t res2:2;
@@ -179,7 +180,7 @@ struct tcphdr
          uint16_t syn:1;
          uint16_t fin:1;
 # else
-#  error "Adjust your <bits/endian.h> defines"
+#  error "Please fix <endian.h>"
 # endif
          uint16_t window;
          uint16_t check;
@@ -244,35 +245,37 @@ struct icmp6_hdr
 };
 
 struct __attribute__((packed)) trill_hdr {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
    uint8_t op_len1:3;
    uint8_t m:1;
    uint8_t res:2;
    uint8_t version:2;
    uint8_t hop_cnt:6;
    uint8_t op_len2:2;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN
    uint8_t version:2;
    uint8_t res:2;
    uint8_t m:1;
    uint8_t op_len1:3;
    uint8_t op_len2:2;
    uint8_t hop_cnt:6;
-#else
-# error  "Please fix <bits/endian.h>"
-#endif
+# else
+#  error  "Please fix <endian.h>"
+# endif
    uint16_t egress_nick;
    uint16_t ingress_nick;
 };
 
 struct __attribute__((packed)) pppoe_hdr {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
    uint8_t type:4;
    uint8_t version:4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN
    uint8_t version:4;
    uint8_t type:4;
-#endif
+# else
+#  error  "Please fix <endian.h>"
+# endif
    uint8_t code;
    uint16_t sid;
    uint16_t length;
