@@ -41,24 +41,27 @@
 #define BYTEUTILS
 
 #include <stdint.h>
+#include <endian.h>
 
 /**
  * \brief Swaps byte order of 8 B value.
  * @param value Value to swap
  * @return Swapped value
  */
-#if BYTEORDER == 4321 /* Big endian */
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN
 static inline uint64_t swap_uint64(uint64_t value)
 {
    return value;
 }
-#else
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
 static inline uint64_t swap_uint64(uint64_t value)
 {
    value = ((value << 8) & 0xFF00FF00FF00FF00ULL ) | ((value >> 8) & 0x00FF00FF00FF00FFULL );
    value = ((value << 16) & 0xFFFF0000FFFF0000ULL ) | ((value >> 16) & 0x0000FFFF0000FFFFULL );
    return (value << 32) | (value >> 32);
 }
-#endif
+# else
+#  error  "Please fix <endian.h>"
+# endif
 
 #endif
