@@ -929,10 +929,6 @@ int main(int argc, char *argv[])
       options.snaplen = MAXPCKTSIZE;
    }
 
-   if (!options.print_stats) {
-      plugin_wrapper.plugins.push_back(new StatsPlugin(options.cache_stats_interval, cout));
-   }
-
    FlowExporter *exporter;
    if (export_unirec) {
 #ifdef WITH_NEMEA
@@ -961,6 +957,10 @@ int main(int argc, char *argv[])
    ipx_ring_t *export_queue = ipx_ring_init(options.flow_cache_qsize, 1);
    if (export_queue == NULL) {
       return error("Unable to initialize ring buffer.");
+   }
+
+   if (!options.print_stats) {
+      plugin_wrapper.plugins.push_back(new StatsPlugin(options.cache_stats_interval, cout));
    }
 
    std::vector<WorkPipeline> pipelines;
