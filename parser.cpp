@@ -45,6 +45,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <sys/types.h>
 
 #ifndef HAVE_NDP
 #include <pcap/sll.h>
