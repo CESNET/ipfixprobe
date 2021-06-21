@@ -265,4 +265,17 @@ struct __attribute__((packed)) trill_hdr {
    uint16_t ingress_nick;
 };
 
+struct __attribute__((packed)) pppoe_hdr {
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+   uint8_t type:4;
+   uint8_t version:4;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+   uint8_t version:4;
+   uint8_t type:4;
+#endif
+   uint8_t code;
+   uint16_t sid;
+   uint16_t length;
+};
+
 #endif /* HEADERS_H */
