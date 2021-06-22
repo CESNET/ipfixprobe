@@ -45,9 +45,9 @@
 #ifndef NDP_H
 #define NDP_H
 
+#include <config.h>
 #ifdef HAVE_NDP
 
-#include <config.h>
 #include <ndpreader.hpp>
 
 #include "ipfixprobe.h"
