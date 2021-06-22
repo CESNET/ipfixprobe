@@ -42,9 +42,10 @@
  *
  */
 
-#ifdef HAVE_NDP
 
 #include <config.h>
+#ifdef HAVE_NDP
+
 #include <cstdio>
 #include <cstring>
 #include <iostream>
