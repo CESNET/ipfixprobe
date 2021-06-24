@@ -58,12 +58,12 @@ using namespace std;
 extern int stop;
 
 #ifdef FLOW_CACHE_SIZE
-const unsigned int DEFAULT_FLOW_CACHE_SIZE = FLOW_CACHE_SIZE;
+const uint32_t DEFAULT_FLOW_CACHE_SIZE = FLOW_CACHE_SIZE;
 #else
 #ifdef HAVE_NDP
-const unsigned int DEFAULT_FLOW_CACHE_SIZE = 524288;
+const uint32_t DEFAULT_FLOW_CACHE_SIZE = 524288;
 #else
-const unsigned int DEFAULT_FLOW_CACHE_SIZE = 131072;
+const uint32_t DEFAULT_FLOW_CACHE_SIZE = 131072;
 #endif /* HAVE_NDP */
 #endif /* FLOW_CACHE_SIZE */
 
@@ -75,6 +75,20 @@ const unsigned int DEFAULT_FLOW_LINE_SIZE = 16;
 #endif /* HAVE_NDP */
 const double DEFAULT_INACTIVE_TIMEOUT = 30.0;
 const double DEFAULT_ACTIVE_TIMEOUT = 300.0;
+
+/*
+ * \brief Count number of bits in 32 bit integer
+ * \param [in] num Number to count ones in
+ * \return Number of ones counted
+ */
+static constexpr int bitcount32(uint32_t num)
+{
+   return num == 0 ? 0 : (bitcount32(num >> 1) + (num & 1));
+}
+
+static_assert(bitcount32(DEFAULT_FLOW_CACHE_SIZE) == 1, "Flow cache size must be power of two number!");
+static_assert(bitcount32(DEFAULT_FLOW_LINE_SIZE) == 1, "Flow cache line size must be power of two number!");
+static_assert(DEFAULT_FLOW_CACHE_SIZE >= DEFAULT_FLOW_LINE_SIZE, "Flow cache size must be at least cache line size!");
 
 /**
  * \brief Struct containing module settings.
