@@ -23,7 +23,7 @@ if [ -e "$CONFFILE" ]; then
       fi
       ifcargs="-I $NIC"
    fi
-   exec /usr/bin/ipfixprobe $ifcargs -p "$PLUGINS" -L "$LINK" -D "$DIR" -x "$COLLECTOR" $udpparam
+   exec /usr/bin/ipfixprobe $ifcargs -s "${CACHE_SIZE:-default}" -p "$PLUGINS" -L "$LINK" -D "$DIR" -x "$COLLECTOR" $udpparam
 else
    echo "Configuration file '$CONFFILE' does not exist, exitting." >&2
    exit 1
