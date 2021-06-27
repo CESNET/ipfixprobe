@@ -61,7 +61,7 @@
 /**
  * Difference between NTP and UNIX epoch in number of seconds.
  */
-#define EPOCH_DIFF 2208988800
+#define EPOCH_DIFF 2208988800ULL
 
 /**
  * Conversion from microseconds to NTP fraction (resolution 1/(2^32)s,  ~233 picoseconds).
@@ -72,7 +72,7 @@
 /**
  * Create 64 bit NTP timestamp which consist of 32 bit seconds part and 32 bit fraction part.
  */
-#define MK_NTP_TS(ts) (htonl(ts.tv_sec + EPOCH_DIFF) | ((uint64_t) htonl(NTP_USEC_TO_FRAC(ts.tv_usec)) << 32))
+#define MK_NTP_TS(ts) (((uint64_t) (ts.tv_sec + EPOCH_DIFF) << 32) | (uint64_t) NTP_USEC_TO_FRAC(ts.tv_usec))
 
 /**
  * Convert FIELD to its "attributes", i.e. BYTES(FIELD) used in the source code produces
@@ -86,8 +86,8 @@
 #define BYTES_REV(F)                  F(29305,    1,    8,   &flow.dst_octet_total_length)
 #define PACKETS(F)                    F(0,        2,    8,   (temp = (uint64_t) flow.src_pkt_total_cnt, &temp))
 #define PACKETS_REV(F)                F(29305,    2,    8,   (temp = (uint64_t) flow.dst_pkt_total_cnt, &temp))
-#define FLOW_START_USEC(F)            F(0,      154,    8,   (temp = swap_uint64(MK_NTP_TS(flow.time_first)), &temp))
-#define FLOW_END_USEC(F)              F(0,      155,    8,   (temp = swap_uint64(MK_NTP_TS(flow.time_last)), &temp))
+#define FLOW_START_USEC(F)            F(0,      154,    8,   (temp = MK_NTP_TS(flow.time_first), &temp))
+#define FLOW_END_USEC(F)              F(0,      155,    8,   (temp = MK_NTP_TS(flow.time_last), &temp))
 #define OBSERVATION_MSEC(F)           F(0,      323,    8,   NULL)
 #define INPUT_INTERFACE(F)            F(0,       10,    2,   &this->dir_bit_field)
 #define OUTPUT_INTERFACE(F)           F(0,       14,    2,   NULL)

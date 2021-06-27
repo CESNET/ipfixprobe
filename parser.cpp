@@ -45,6 +45,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <sys/types.h>
 
 #ifndef HAVE_NDP
 #include <pcap/sll.h>
@@ -547,19 +548,6 @@ uint16_t process_mpls(const u_char *data_ptr, uint16_t data_len, Packet *pkt)
 
    return length;
 }
-
-struct __attribute__((packed)) pppoe_hdr {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-   uint8_t type:4;
-   uint8_t version:4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
-   uint8_t version:4;
-   uint8_t type:4;
-#endif
-   uint8_t code;
-   uint16_t sid;
-   uint16_t length;
-};
 
 /**
  * \brief Parse PPPOE header and the following IP header.

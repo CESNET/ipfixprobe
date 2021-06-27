@@ -45,6 +45,7 @@
 #define DNS_H
 
 #include <stdint.h>
+#include <endian.h>
 
 #define DNS_TYPE_A      1
 #define DNS_TYPE_NS     2
@@ -85,7 +86,7 @@ struct __attribute__ ((packed)) dns_hdr {
    uint16_t id;
    union {
       struct {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
          uint16_t recursion_desired:1;
          uint16_t truncation:1;
          uint16_t authoritative_answer:1;
@@ -96,7 +97,7 @@ struct __attribute__ ((packed)) dns_hdr {
          uint16_t auth_data:1;
          uint16_t reserved:1;
          uint16_t recursion_available:1;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN
          uint16_t query_response:1;
          uint16_t op_code:4;
          uint16_t authoritative_answer:1;
@@ -107,7 +108,9 @@ struct __attribute__ ((packed)) dns_hdr {
          uint16_t auth_data:1;
          uint16_t checking_disabled:1;
          uint16_t response_code:4;
-#endif
+# else
+#  error  "Please fix <endian.h>"
+# endif
       };
       uint16_t flags;
    };

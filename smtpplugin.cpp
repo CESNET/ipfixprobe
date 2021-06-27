@@ -333,6 +333,9 @@ bool SMTPPlugin::parse_smtp_command(const char *data, int payload_len, RecordExt
          if (end != NULL && begin != NULL) {
             begin++;
             len = end - begin;
+            if (len >= sizeof(rec->domain)) {
+               len = sizeof(rec->domain) - 1;
+            }
 
             memcpy(rec->domain, begin, len);
             rec->domain[len] = 0;
@@ -351,6 +354,9 @@ bool SMTPPlugin::parse_smtp_command(const char *data, int payload_len, RecordExt
          if (end != NULL && begin != NULL) {
             begin++;
             len = end - begin;
+            if (len >= sizeof(rec->first_recipient)) {
+               len = sizeof(rec->first_recipient) - 1;
+            }
 
             memcpy(rec->first_recipient, begin, len);
             rec->first_recipient[len] = 0;
@@ -365,6 +371,9 @@ bool SMTPPlugin::parse_smtp_command(const char *data, int payload_len, RecordExt
          if (end != NULL && begin != NULL) {
             begin++;
             len = end - begin;
+            if (len >= sizeof(rec->first_sender)) {
+               len = sizeof(rec->first_sender) - 1;
+            }
 
             memcpy(rec->first_sender, begin, len);
             rec->first_sender[len] = 0;
