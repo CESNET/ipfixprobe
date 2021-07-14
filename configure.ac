@@ -92,6 +92,10 @@ if [[ -z "$HAVE_NDP_TRUE" ]]; then
    RPM_BUILDREQ+=" netcope-common-devel"
 fi
 
+AC_CHECK_HEADER(libunwind.h,
+      AC_CHECK_LIB(unwind, unw_getcontext, AC_MSG_ERROR([libunwind not found. The ipfixprobe flow exporter will not be compiled.])),
+      AC_MSG_ERROR([libunwind.h not found. The ipfixprobe flow exporter will not be compiled.]))
+
 if test x${withndp} = xno; then
    AC_CHECK_HEADER(pcap.h,
               AC_CHECK_LIB(pcap, pcap_open_live, [libpcap=yes],

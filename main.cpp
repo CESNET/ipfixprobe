@@ -74,6 +74,7 @@
 #include "stats.h"
 #include "conversion.h"
 #include "ring.h"
+#include "stacktrace.h"
 
 #include "httpplugin.h"
 #include "rtspplugin.h"
@@ -498,6 +499,10 @@ inline int error(const string &e)
  */
 void signal_handler(int sig)
 {
+   if (sig == SIGSEGV) {
+      stacktrace_print(sig);
+      abort();
+   }
    stop = 1;
 }
 
@@ -656,6 +661,7 @@ int main(int argc, char *argv[])
 
    signal(SIGTERM, signal_handler);
    signal(SIGINT, signal_handler);
+   signal(SIGSEGV, signal_handler);
    signal(SIGPIPE, SIG_IGN);
 
    signed char opt;
