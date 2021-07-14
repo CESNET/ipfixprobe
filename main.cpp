@@ -500,7 +500,7 @@ inline int error(const string &e)
 void signal_handler(int sig)
 {
    if (sig == SIGSEGV) {
-      stacktrace_print(sig);
+      st_dump(STDERR_FILENO, sig);
       abort();
    }
    stop = 1;

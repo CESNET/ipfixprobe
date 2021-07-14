@@ -44,6 +44,6 @@
 #ifndef STACKTRACE_H
 #define STACKTRACE_H
 
-void stacktrace_print(int sig);
+void st_dump(int fd, int sig);
 
 #endif /* STACKTRACE_H */
