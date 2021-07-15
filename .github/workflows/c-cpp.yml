@@ -30,7 +30,7 @@ jobs:
     - name: make distcheck
       run: make distcheck
     - name: configure with debug
-      run: ./configure --with-nemea --enable-debug
+      run: ./configure --with-nemea --enable-debug CXXFLAGS=-coverage CFLAGS=-coverage LDFLAGS=-lgcov
     - name: rebuild and check
       run: make clean; make check
     - uses: codecov/codecov-action@v1
