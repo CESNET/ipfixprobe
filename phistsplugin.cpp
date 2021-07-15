@@ -86,6 +86,7 @@ const uint32_t PHISTSPlugin::log2_lookup32[32] = { 0,  9,  1,  10, 13, 21, 2,  2
 PHISTSPlugin::PHISTSPlugin(const options_t &module_options)
 {
    print_stats = module_options.print_stats;
+   use_zeros = false;
 }
 
 PHISTSPlugin::PHISTSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options)
