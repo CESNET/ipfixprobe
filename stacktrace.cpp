@@ -47,7 +47,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/syscall.h>
-#include <sys/syscall.h>
 #include <sys/types.h>
 
 #define UNW_LOCAL_ONLY

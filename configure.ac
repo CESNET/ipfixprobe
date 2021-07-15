@@ -110,6 +110,7 @@ if test x${withunwind} = xyes; then
 
    AM_CONDITIONAL(HAVE_LIBUNWIND, test x${libunwind} = xyes)
    if [[ -z "$HAVE_LIBUNWIND_TRUE" ]]; then
+      AC_DEFINE([HAVE_LIBUNWIND], [1], [Define to 1 if the libunwind is available])
       LIBS="-lunwind $LIBS"
       RPM_REQUIRES+=" libunwind"
       RPM_BUILDREQ+=" libunwind-devel"
