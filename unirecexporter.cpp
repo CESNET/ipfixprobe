@@ -94,7 +94,7 @@ UR_FIELDS (
  * \brief Constructor.
  */
 UnirecExporter::UnirecExporter(bool send_eof) : out_ifc_cnt(0), ifc_mapping(NULL),
-   ur_tmplts(NULL), ur_records(NULL), eof(send_eof), send_odid(false)
+   ur_tmplts(NULL), ur_records(NULL), eof(send_eof), send_odid(false), dir_bit_field(0)
 {
    records = 0;
    dropped = 0;
