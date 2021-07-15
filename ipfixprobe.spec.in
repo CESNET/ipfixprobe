@@ -1,5 +1,6 @@
 %bcond_with ndp
 %bcond_with nemea
+%bcond_with unwind
 
 %if %{with ndp}
 %global compile_ndp yes
