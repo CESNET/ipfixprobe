@@ -10,9 +10,9 @@ bin_PROGRAMS=ipfixprobe
 DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)"
 
 if HAVE_NDP
-ipfixprobe_LDFLAGS=-lpthread -lunwind -lnuma -lnfb -lndpRI -L${srcdir}/nfbCInterface/
+ipfixprobe_LDFLAGS=-lpthread -lnuma -lnfb -lndpRI -L${srcdir}/nfbCInterface/
 else
-ipfixprobe_LDFLAGS=-lpthread -lunwind
+ipfixprobe_LDFLAGS=-lpthread
 endif
 
 ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I./nfbCInterface/include/

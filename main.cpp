@@ -499,10 +499,12 @@ inline int error(const string &e)
  */
 void signal_handler(int sig)
 {
+#ifdef HAVE_LIBUNWIND
    if (sig == SIGSEGV) {
       st_dump(STDERR_FILENO, sig);
       abort();
    }
+#endif
    stop = 1;
 }
 
@@ -661,7 +663,9 @@ int main(int argc, char *argv[])
 
    signal(SIGTERM, signal_handler);
    signal(SIGINT, signal_handler);
+#ifdef HAVE_LIBUNWIND
    signal(SIGSEGV, signal_handler);
+#endif
    signal(SIGPIPE, SIG_IGN);
 
    signed char opt;

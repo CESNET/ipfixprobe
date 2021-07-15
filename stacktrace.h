@@ -44,6 +44,10 @@
 #ifndef STACKTRACE_H
 #define STACKTRACE_H
 
+#include <config.h>
+
+#ifdef HAVE_LIBUNWIND
 void st_dump(int fd, int sig);
+#endif
 
 #endif /* STACKTRACE_H */
