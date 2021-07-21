@@ -1,3 +1,9 @@
+2021-07-21 ipfixprobe-3.0.1
+	* http: updated HTTP IPFIX element identifiers
+	* ghactions: add coverity and codecov
+	* improved systemd service
+	* build: fixed errors on turris and tplink
+	
 2021-06-08 ipfixprobe-3.0.0
 	* added multi-thread version of ipfixprobe
 	* added wireguard plugin
