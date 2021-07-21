@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([ipfixprobe], [3.0.0], [nemea@cesnet.cz])
+AC_INIT([ipfixprobe], [3.1.0], [nemea@cesnet.cz])
 
 AC_CONFIG_SRCDIR([ipfixprobe.h])
 AC_CONFIG_HEADERS([config.h])
