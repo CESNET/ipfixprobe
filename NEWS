@@ -1,3 +1,18 @@
+2021-07-23 (Jiri Havranek): improved class variables naming
+2021-07-21 (Jiri Havranek): rpm: packages are compiled with libunwind
+2021-07-15 (Jiri Havranek): configure: added missing HAVE_LIBUNWIND macro define
+2021-07-15 (Jiri Havranek): added missing with condition in rpm spec file
+2021-07-15 (Jiri Havranek): fixed uninitialized members reported by coverity
+2021-07-15 (Jiri Havranek): fixed null pointer dereferences reported by coverity
+2021-07-15 (Jiri Havranek): fixed uninitialized members reported by coverity
+2021-07-15 (Jiri Havranek): fixed integer handling issues reported by coverity
+2021-07-15 (Jiri Havranek): configure: added --with-unwind option
+2021-07-14 (Jiri Havranek): fixed stacktrace message
+2021-07-14 (Jiri Havranek): ghactions: updated list of installed packages
+2021-07-14 (Jiri Havranek): added stacktrace print on segmentation fault
+2021-07-14 (Jiri Havranek): added export of flowEndReason IPFIX field
+2021-07-14 (Jiri Havranek): systemd: added restart on failure
+
 2021-07-20 (Tomas Cejka): http: updated HTTP IPFIX element identifiers
 2021-07-16 (Tomas Cejka): ghactions: codeql: install dependencies for build
 2021-07-16 (Tomas Cejka): ghactions: add codeql template
