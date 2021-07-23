@@ -1,3 +1,15 @@
+2021-07-23 ipfixprobe-3.1.1
+    * systemd: added restart on failure
+	* added stacktrace print on segmentation fault
+	* added export of flowEndReason IPFIX field
+	* rpm: packages are compiled with libunwind
+
+2021-07-21 ipfixprobe-3.1.0
+	* http: updated HTTP IPFIX element identifiers
+	* ghactions: add coverity and codecov
+	* improved systemd service
+	* build: fixed errors on turris and tplink
+	
 2021-06-08 ipfixprobe-3.0.0
 	* added multi-thread version of ipfixprobe
 	* added wireguard plugin

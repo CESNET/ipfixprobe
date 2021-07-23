@@ -1,3 +1,41 @@
+2021-07-23 (Jiri Havranek): improved class variables naming
+2021-07-21 (Jiri Havranek): rpm: packages are compiled with libunwind
+2021-07-15 (Jiri Havranek): configure: added missing HAVE_LIBUNWIND macro define
+2021-07-15 (Jiri Havranek): added missing with condition in rpm spec file
+2021-07-15 (Jiri Havranek): fixed uninitialized members reported by coverity
+2021-07-15 (Jiri Havranek): fixed null pointer dereferences reported by coverity
+2021-07-15 (Jiri Havranek): fixed uninitialized members reported by coverity
+2021-07-15 (Jiri Havranek): fixed integer handling issues reported by coverity
+2021-07-15 (Jiri Havranek): configure: added --with-unwind option
+2021-07-14 (Jiri Havranek): fixed stacktrace message
+2021-07-14 (Jiri Havranek): ghactions: updated list of installed packages
+2021-07-14 (Jiri Havranek): added stacktrace print on segmentation fault
+2021-07-14 (Jiri Havranek): added export of flowEndReason IPFIX field
+2021-07-14 (Jiri Havranek): systemd: added restart on failure
+
+2021-07-20 (Tomas Cejka): http: updated HTTP IPFIX element identifiers
+2021-07-16 (Tomas Cejka): ghactions: codeql: install dependencies for build
+2021-07-16 (Tomas Cejka): ghactions: add codeql template
+2021-07-16 (Tomas Cejka): ghactions: limit coverity scan to coverity branch and PR to master
+2021-07-15 (Tomas Cejka): ghactions: add coverage flags for codecov build
+2021-07-15 (Tomas Cejka): ghactions: add codecov
+2021-07-14 (Tomas Cejka): ghactions: add coverity
+2021-06-24 (Jiri Havranek): added compile time checks for cache and cache line sizes
+2021-06-24 (Jiri Havranek): systemd: added configuration option CACHE_SIZE
+2021-06-22 (Jiri Havranek): ndp: fixed compilation
+2021-06-21 (Jiri Havranek): pstats: fixed invalid timestamps being exported on bigendian arch
+2021-06-21 (Jiri Havranek): fixed issues with endianess
+2021-06-21 (Jiri Havranek): moved packet headers to headers.h file
+2021-06-21 (Jiri Havranek): added header file for u_char type
+2021-06-21 (Jiri Havranek): fixed segfault when using flow cache stats plugin
+2021-06-21 (Jiri Havranek): configure: added flowcachesize parameter
+2021-06-18 (Jiri Havranek): fixed invalid timestamps when exporting in IPFIX format
+2021-06-17 (Jiri Havranek): smtp: fixed buffer overflow when parsing some fields
+2021-06-17 (Jiri Havranek): http: fixed buffer overflow when parsing method
+2021-06-17 (Jiri Havranek): http: fixed parsing of header lines
+2021-05-30 (Tomas Cejka): build: tplink: problem with endian checks in header file
+2021-05-30 (Tomas Cejka): build: fixed errors on turris, missing header time.h, missing u_char
+
 2021-06-08 (Jiri Havranek): fixed missing constant in older libpcap versions
 2021-05-15 (Jiri Havranek): stats are not printed when until init phase ends
 2021-05-15 (Jiri Havranek): cygwin compatibility modifications
