@@ -84,8 +84,8 @@ private:
    int out_ifc_cnt;           /**< Number of output interfaces. */
    int basic_ifc_num;         /**< Basic output interface number. */
    int *ifc_mapping;          /**< Contain extension id (as index) -> output interface number mapping. */
-   ur_template_t **ur_tmplts; /**< Pointer to unirec templates. */
-   void **ur_records;         /**< Pointer to unirec records. */
+   ur_template_t **tmplts;    /**< Pointer to unirec templates. */
+   void **records;            /**< Pointer to unirec records. */
    bool eof;                  /**< Send eof when module exits. */
    bool send_odid;            /**< Export ODID field instead of LINK_BIT_FIELD. */
 

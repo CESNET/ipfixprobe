@@ -94,10 +94,10 @@ UR_FIELDS (
  * \brief Constructor.
  */
 UnirecExporter::UnirecExporter(bool send_eof) : out_ifc_cnt(0), ifc_mapping(NULL),
-   ur_tmplts(NULL), ur_records(NULL), eof(send_eof), send_odid(false), dir_bit_field(0)
+   tmplts(NULL), records(NULL), eof(send_eof), send_odid(false), dir_bit_field(0)
 {
-   records = 0;
-   dropped = 0;
+   flows_seen = 0;
+   flows_dropped = 0;
 }
 
 UnirecExporter::~UnirecExporter()
@@ -125,12 +125,12 @@ int UnirecExporter::init(const vector<FlowCachePlugin *> &plugins, int ifc_cnt, 
    dir_bit_field = dir;
    send_odid = odid;
 
-   ur_tmplts = new ur_template_t*[out_ifc_cnt];
-   ur_records = new void*[out_ifc_cnt];
+   tmplts = new ur_template_t*[out_ifc_cnt];
+   records = new void*[out_ifc_cnt];
 
    for (int i = 0; i < out_ifc_cnt; i++) {
-      ur_tmplts[i] = NULL;
-      ur_records[i] = NULL;
+      tmplts[i] = NULL;
+      records[i] = NULL;
    }
 
    if (odid) {
@@ -141,8 +141,8 @@ int UnirecExporter::init(const vector<FlowCachePlugin *> &plugins, int ifc_cnt, 
 
    char *error = NULL;
    if (basic_ifc_num >= 0) {
-      ur_tmplts[basic_ifc_num] = ur_create_output_template(basic_ifc_num, basic_tmplt.c_str(), &error);
-      if (ur_tmplts[basic_ifc_num] == NULL) {
+      tmplts[basic_ifc_num] = ur_create_output_template(basic_ifc_num, basic_tmplt.c_str(), &error);
+      if (tmplts[basic_ifc_num] == NULL) {
          fprintf(stderr, "UnirecExporter: %s\n", error);
          free(error);
          free_unirec_resources();
@@ -173,8 +173,8 @@ int UnirecExporter::init(const vector<FlowCachePlugin *> &plugins, int ifc_cnt, 
       // Create unirec templates.
       template_str = tmp->get_unirec_field_string() + string(",") + basic_tmplt;
 
-      ur_tmplts[ifc] = ur_create_output_template(ifc, template_str.c_str(), &error);
-      if (ur_tmplts[ifc] == NULL) {
+      tmplts[ifc] = ur_create_output_template(ifc, template_str.c_str(), &error);
+      if (tmplts[ifc] == NULL) {
          fprintf(stderr, "UnirecExporter: %s\n", error);
          free(error);
          free_unirec_resources();
@@ -183,10 +183,10 @@ int UnirecExporter::init(const vector<FlowCachePlugin *> &plugins, int ifc_cnt, 
    }
 
    for (int i = 0; i < out_ifc_cnt; i++) { // Create unirec records.
-      if (ur_tmplts[i] != NULL) {
-         ur_records[i] = ur_create_record(ur_tmplts[i], (i == basic_ifc_num ? 0 : UR_MAX_SIZE));
+      if (tmplts[i] != NULL) {
+         records[i] = ur_create_record(tmplts[i], (i == basic_ifc_num ? 0 : UR_MAX_SIZE));
 
-         if (ur_records[i] == NULL) {
+         if (records[i] == NULL) {
             free_unirec_resources();
             return -3;
          }
@@ -219,23 +219,23 @@ void UnirecExporter::close()
  */
 void UnirecExporter::free_unirec_resources()
 {
-   if (ur_tmplts) {
+   if (tmplts) {
       for (int i = 0; i < out_ifc_cnt; i++) {
-         if (ur_tmplts[i] != NULL) {
-            ur_free_template(ur_tmplts[i]);
+         if (tmplts[i] != NULL) {
+            ur_free_template(tmplts[i]);
          }
       }
-      delete [] ur_tmplts;
-      ur_tmplts = NULL;
+      delete [] tmplts;
+      tmplts = NULL;
    }
-   if (ur_records) {
+   if (records) {
       for (int i = 0; i < out_ifc_cnt; i++) {
-         if (ur_records[i] != NULL) {
-            ur_free_record(ur_records[i]);
+         if (records[i] != NULL) {
+            ur_free_record(records[i]);
          }
       }
-      delete [] ur_records;
-      ur_records = NULL;
+      delete [] records;
+      records = NULL;
    }
    if (ifc_mapping) {
       delete [] ifc_mapping;
@@ -250,11 +250,11 @@ int UnirecExporter::export_packet(Packet &pkt)
    void *record_ptr = NULL;
 
    while (ext != NULL) {
-      records++;
+      flows_seen++;
       int ifc_num = ifc_mapping[ext->extType];
       if (ifc_num >= 0) {
-         tmplt_ptr = ur_tmplts[ifc_num];
-         record_ptr = ur_records[ifc_num];
+         tmplt_ptr = tmplts[ifc_num];
+         record_ptr = records[ifc_num];
 
          ur_clear_varlen(tmplt_ptr, record_ptr);
          memset(record_ptr, 0, ur_rec_fixlen_size(tmplt_ptr));
@@ -276,8 +276,8 @@ int UnirecExporter::export_flow(Flow &flow)
    void *record_ptr = NULL;
 
    if (basic_ifc_num >= 0) { // Process basic flow.
-      tmplt_ptr = ur_tmplts[basic_ifc_num];
-      record_ptr = ur_records[basic_ifc_num];
+      tmplt_ptr = tmplts[basic_ifc_num];
+      record_ptr = records[basic_ifc_num];
 
       ur_clear_varlen(tmplt_ptr, record_ptr);
 
@@ -287,11 +287,11 @@ int UnirecExporter::export_flow(Flow &flow)
    }
 
    while (ext != NULL) {
-      records++;
+      flows_seen++;
       int ifc_num = ifc_mapping[ext->extType];
       if (ifc_num >= 0) {
-         tmplt_ptr = ur_tmplts[ifc_num];
-         record_ptr = ur_records[ifc_num];
+         tmplt_ptr = tmplts[ifc_num];
+         record_ptr = records[ifc_num];
 
          ur_clear_varlen(tmplt_ptr, record_ptr);
          memset(record_ptr, 0, ur_rec_fixlen_size(tmplt_ptr));

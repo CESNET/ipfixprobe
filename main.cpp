@@ -467,7 +467,7 @@ void export_thread(FlowExporter *exp, ipx_ring_t *queue, std::promise<OutputStat
          pkts_from_begin = 0;
       }
    }
-   stats.dropped = exp->dropped;
+   stats.dropped = exp->flows_dropped;
    threadOutput->set_value(stats);
 }
 
