@@ -1,5 +1,6 @@
 %bcond_with ndp
 %bcond_with nemea
+%bcond_with unwind
 
 %if %{with ndp}
 %global compile_ndp yes
@@ -11,6 +12,12 @@
 %global compile_nemea yes
 %else
 %global compile_nemea @NEMEARPM@
+%endif
+
+%if %{with unwind}
+%global compile_unwind yes
+%else
+%global compile_unwind no
 %endif
 
 Name: ipfixprobe
@@ -41,6 +48,11 @@ BuildRequires: libtrap-devel
 BuildRequires: unirec
 %endif
 
+%if %{with unwind}
+Requires: libunwind
+BuildRequires: libunwind-devel
+%endif
+
 %description
 This package contains nemea flow exporter.
 
@@ -48,7 +60,7 @@ This package contains nemea flow exporter.
 %setup
 
 %build
-./configure -q --enable-silent-rules --prefix=%{_prefix} --libdir=%{_libdir} --bindir=%{_bindir} --sysconfdir=%{_sysconfdir} --docdir=%{_docdir} --mandir=%{_mandir} --datadir=%{_datadir} --with-ndp=%{compile_ndp} --with-nemea=%{compile_nemea};
+./configure -q --enable-silent-rules --prefix=%{_prefix} --libdir=%{_libdir} --bindir=%{_bindir} --sysconfdir=%{_sysconfdir} --docdir=%{_docdir} --mandir=%{_mandir} --datadir=%{_datadir} --with-ndp=%{compile_ndp} --with-nemea=%{compile_nemea} --with-unwind=%{compile_unwind};
 make clean
 make -j5
 

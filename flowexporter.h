@@ -57,8 +57,8 @@
 class FlowExporter
 {
 public:
-   uint64_t records;
-   uint64_t dropped;
+   uint64_t flows_seen; /**< Number of flows received to export. */
+   uint64_t flows_dropped; /**< Number of flows that could not be exported. */
 
    virtual ~FlowExporter() {}
 

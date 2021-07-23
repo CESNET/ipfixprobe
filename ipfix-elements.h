@@ -91,6 +91,7 @@
 #define OBSERVATION_MSEC(F)           F(0,      323,    8,   NULL)
 #define INPUT_INTERFACE(F)            F(0,       10,    2,   &this->dir_bit_field)
 #define OUTPUT_INTERFACE(F)           F(0,       14,    2,   NULL)
+#define FLOW_END_REASON(F)            F(0,      136,    1,   &flow.end_reason)
 
 #define ETHERTYPE(F)                  F(0,      256,    2,   NULL)
 
@@ -244,7 +245,7 @@
 #define WG_CONF_LEVEL(F)              F(8057,    861,   1,   NULL)
 #define WG_SRC_PEER(F)                F(8057,    862,   4,   NULL)
 #define WG_DST_PEER(F)                F(8057,    863,   4,   NULL)
-  
+
 /**
  * IPFIX Templates - list of elements
  *
@@ -252,17 +253,12 @@
  * This argument must be a macro function which is substituted with every
  * specified element of the template.
  *
- * For instance, PACKET_TMPLT contains L2_SRC_MAC, L2_DST_MAC, ETHERTYPE, OBSERVATION_MSEC,
+ * For instance, BASIC_TMPLT_V4 contains FLOW_END_REASON, BYTES, BYTES_REV, PACKETS,...
  * all of them defined above.
  */
 
-#define PACKET_TMPLT(F) \
-   F(L2_SRC_MAC) \
-   F(L2_DST_MAC) \
-   F(ETHERTYPE) \
-   F(OBSERVATION_MSEC)
-
 #define BASIC_TMPLT_V4(F) \
+   F(FLOW_END_REASON) \
    F(BYTES) \
    F(BYTES_REV) \
    F(PACKETS) \
@@ -282,6 +278,7 @@
    F(L2_DST_MAC)
 
 #define BASIC_TMPLT_V6(F) \
+   F(FLOW_END_REASON) \
    F(BYTES) \
    F(BYTES_REV) \
    F(PACKETS) \
@@ -453,7 +450,6 @@
  * templates at once.
  */
 #define IPFIX_ENABLED_TEMPLATES(F) \
-   PACKET_TMPLT(F) \
    BASIC_TMPLT_V4(F) \
    BASIC_TMPLT_V6(F) \
    IPFIX_HTTP_TEMPLATE(F) \

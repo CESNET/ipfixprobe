@@ -20,6 +20,8 @@ ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I./nfbCInterface/include/
 
 ipfixprobe_src=main.cpp \
 		ipfixprobe.h \
+		stacktrace.cpp \
+		stacktrace.h \
 		packet.h \
 		packetreceiver.h \
 		flowexporter.h \
@@ -139,15 +141,15 @@ srpm:
 
 .PHONY: rpm
 rpm: srpm
-	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm;
+	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm --with unwind;
 
 .PHONY: rpm-nemea
 rpm-nemea: srpm
-	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm --with nemea;
+	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm --with nemea --with unwind;
 
 .PHONY: rpm-ndp
 rpm-ndp: srpm
-	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm --with ndp;
+	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm --with ndp --with unwind;
 else
 endif
 

@@ -124,8 +124,8 @@ const char *basic_tmplt_v6[] = {
 
 IPFIXExporter::IPFIXExporter()
 {
-   records = 0;
-   dropped = 0;
+   flows_seen = 0;
+   flows_dropped = 0;
    templates = NULL;
    templatesDataSize = 0;
    basic_ifc_num = -1;
@@ -281,13 +281,13 @@ bool IPFIXExporter::fill_template(Flow &flow, template_t *tmplt)
 
 int IPFIXExporter::export_flow(Flow &flow)
 {
-   records++;
+   flows_seen++;
    template_t *tmplt = get_template(flow);
    if (!fill_template(flow, tmplt)) {
       flush();
 
       if (!fill_template(flow, tmplt)) {
-         dropped++;
+         flows_dropped++;
          return 1;
       }
    }

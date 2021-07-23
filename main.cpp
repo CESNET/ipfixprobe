@@ -74,6 +74,7 @@
 #include "stats.h"
 #include "conversion.h"
 #include "ring.h"
+#include "stacktrace.h"
 
 #include "httpplugin.h"
 #include "rtspplugin.h"
@@ -466,7 +467,7 @@ void export_thread(FlowExporter *exp, ipx_ring_t *queue, std::promise<OutputStat
          pkts_from_begin = 0;
       }
    }
-   stats.dropped = exp->dropped;
+   stats.dropped = exp->flows_dropped;
    threadOutput->set_value(stats);
 }
 
@@ -498,6 +499,12 @@ inline int error(const string &e)
  */
 void signal_handler(int sig)
 {
+#ifdef HAVE_LIBUNWIND
+   if (sig == SIGSEGV) {
+      st_dump(STDERR_FILENO, sig);
+      abort();
+   }
+#endif
    stop = 1;
 }
 
@@ -656,6 +663,9 @@ int main(int argc, char *argv[])
 
    signal(SIGTERM, signal_handler);
    signal(SIGINT, signal_handler);
+#ifdef HAVE_LIBUNWIND
+   signal(SIGSEGV, signal_handler);
+#endif
    signal(SIGPIPE, SIG_IGN);
 
    signed char opt;
