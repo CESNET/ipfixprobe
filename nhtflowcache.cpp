@@ -145,6 +145,7 @@ void NHTFlowCache::finish()
    for (unsigned int i = 0; i < size; i++) {
       if (!flow_array[i]->is_empty()) {
          plugins_pre_export(flow_array[i]->flow);
+         flow_array[i]->flow.end_reason = FLOW_END_FORCED;
          export_flow(i);
 #ifdef FLOW_CACHE_STATS
          expired++;
@@ -166,6 +167,7 @@ void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int ret, bool source_fl
    if (ret == FLOW_FLUSH_WITH_REINSERT) {
       FlowRecord *flow = flow_array[flow_index];
       flow_array[size + q_index]->flow =  flow->flow;
+      flow_array[size + q_index]->flow.end_reason = FLOW_END_FORCED;
       ipx_ring_push(export_queue, &flow_array[size + q_index]->flow);
       q_index = (q_index + 1) % q_size;
       flow->flow.exts = NULL;
@@ -177,6 +179,7 @@ void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int ret, bool source_fl
          flush(pkt, flow_index, ret, source_flow);
       }
    } else {
+      flow_array[flow_index]->flow.end_reason = FLOW_END_FORCED;
       export_flow(flow_index);
    }
 }
@@ -254,6 +257,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
 
          // Export flow
          plugins_pre_export(flow_array[flow_index]->flow);
+         flow_array[flow_index]->flow.end_reason = FLOW_END_NO_RES;
          export_flow(flow_index);
 
 #ifdef FLOW_CACHE_STATS
@@ -280,6 +284,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
    uint8_t flw_flags = source_flow ? flow->flow.src_tcp_control_bits : flow->flow.dst_tcp_control_bits;
    if ((pkt.tcp_control_bits & 0x02) && (flw_flags & (0x01 | 0x04))) {
       // Flows with FIN or RST TCP flags are exported when new SYN packet arrives
+      flow_array[flow_index]->flow.end_reason = FLOW_END_EOF;
       export_flow(flow_index);
       put_pkt(pkt);
       return 0;
@@ -297,6 +302,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       }
    } else {
       if (pkt.timestamp.tv_sec - flow->flow.time_last.tv_sec >= inactive.tv_sec) {
+         flow_array[flow_index]->flow.end_reason = FLOW_END_INACTIVE;
          plugins_pre_export(flow->flow);
          export_flow(flow_index);
    #ifdef FLOW_CACHE_STATS
@@ -320,6 +326,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
 
       /* Check if flow record is expired. */
       if (pkt.timestamp.tv_sec - flow->flow.time_first.tv_sec >= active.tv_sec) {
+         flow_array[flow_index]->flow.end_reason = FLOW_END_ACTIVE;
          plugins_pre_export(flow->flow);
          export_flow(flow_index);
 #ifdef FLOW_CACHE_STATS
@@ -336,6 +343,7 @@ void NHTFlowCache::export_expired(time_t ts)
 {
    for (unsigned int i = timeout_idx; i < timeout_idx + line_new_index; i++) {
       if (!flow_array[i]->is_empty() && ts - flow_array[i]->flow.time_last.tv_sec >= inactive.tv_sec) {
+         flow_array[i]->flow.end_reason = FLOW_END_INACTIVE;
          plugins_pre_export(flow_array[i]->flow);
          export_flow(i);
 #ifdef FLOW_CACHE_STATS

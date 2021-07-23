@@ -1,14 +1,11 @@
 /**
- * \file unirecexporter.h
- * \brief Flow exporter converting flows to UniRec and sending them to TRAP ifc
- * \author Vaclav Bartos <bartos@cesnet.cz>
+ * \file stacktrace.h
+ * \brief Stack trace functions header file
  * \author Jiri Havranek <havraji6@fit.cvut.cz>
- * \date 2014
- * \date 2015
- * \date 2016
+ * \date 2021
  */
 /*
- * Copyright (C) 2014-2016 CESNET
+ * Copyright (C) 2021 CESNET
  *
  * LICENSE TERMS
  *
@@ -44,54 +41,13 @@
  *
  */
 
-#ifndef UNIREC_EXPORTER_H
-#define UNIREC_EXPORTER_H
+#ifndef STACKTRACE_H
+#define STACKTRACE_H
 
 #include <config.h>
 
-#ifdef WITH_NEMEA
-
-#include <string>
-#include <vector>
-#include <map>
-#include <libtrap/trap.h>
-#include <unirec/unirec.h>
-
-#include "flowcacheplugin.h"
-#include "flowexporter.h"
-#include "packet.h"
-
-using namespace std;
-
-/**
- * \brief Class for exporting flow records.
- */
-class UnirecExporter : public FlowExporter
-{
-public:
-   UnirecExporter(bool send_eof);
-   ~UnirecExporter();
-   int init(const vector<FlowCachePlugin *> &plugins, int ifc_cnt, int basic_ifc_num, uint64_t link, uint8_t dir, bool odid);
-   void close();
-   int export_flow(Flow &flow);
-   int export_packet(Packet &pkt);
-
-private:
-   void fill_basic_flow(Flow &flow, ur_template_t *tmplt_ptr, void *record_ptr);
-   void fill_packet_fields(Packet &pkt, ur_template_t *tmplt_ptr, void *record_ptr);
-   void free_unirec_resources();
-
-   int out_ifc_cnt;           /**< Number of output interfaces. */
-   int basic_ifc_num;         /**< Basic output interface number. */
-   int *ifc_mapping;          /**< Contain extension id (as index) -> output interface number mapping. */
-   ur_template_t **tmplts;    /**< Pointer to unirec templates. */
-   void **records;            /**< Pointer to unirec records. */
-   bool eof;                  /**< Send eof when module exits. */
-   bool send_odid;            /**< Export ODID field instead of LINK_BIT_FIELD. */
-
-   uint64_t link_bit_field;   /**< Link bit field value. */
-   uint8_t dir_bit_field;     /**< Direction bit field value. */
-};
-
+#ifdef HAVE_LIBUNWIND
+void st_dump(int fd, int sig);
 #endif
-#endif
+
+#endif /* STACKTRACE_H */

@@ -6,6 +6,7 @@ This NEMEA module creates biflows from input PCAP file / network interface and e
 ## Requirements
 - To compile this module you will need [libpcap](http://www.tcpdump.org/) development library installed,
   OR netcope-common to support high-speed transfers from [COMBO cards](https://www.liberouter.org/technologies/cards/) (NDP interface).
+- and libunwind-devel package
 
 ## Build & Installation
 
@@ -58,6 +59,7 @@ Install CygWin and the following packages:
 - binutils
 - gcc-core
 - gcc-g++
+- libunwind-devel
 
 Download npcap SDK [https://nmap.org/npcap/dist/npcap-sdk-1.07.zip](https://nmap.org/npcap/dist/npcap-sdk-1.07.zip) and copy content of the `Include` folder to `/usr/include` folder in your cygwin root installation folder (`C:\cygwin64\usr\include` for example). Then copy files of the `Lib` folder to `/lib` folder (or `Lib/x64/` based on your architecture).
 

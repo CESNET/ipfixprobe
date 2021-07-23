@@ -70,8 +70,7 @@ bool str_to_uint64(string str, uint64_t &dst)
    errno = 0;
    trim_str(str);
    unsigned long long value = strtoull(str.c_str(), &check, 0);
-   if (errno == ERANGE || str[0] == '-' || str[0] == '\0' || *check ||
-      value > numeric_limits<uint64_t>::max()) {
+   if (errno == ERANGE || str[0] == '-' || str[0] == '\0' || *check) {
       return false;
    }
 

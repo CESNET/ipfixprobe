@@ -7,6 +7,7 @@ PartOf=ipfixprobe-monitoring.target
 
 [Service]
 Type=simple
+Restart=on-failure
 
 #
 # The name of configuration file is specified in %I. It has to be escaped with systemd-escape!

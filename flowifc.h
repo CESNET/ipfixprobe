@@ -220,6 +220,12 @@ struct Record {
    }
 };
 
+#define FLOW_END_INACTIVE 0x01
+#define FLOW_END_ACTIVE   0x02
+#define FLOW_END_EOF      0x03
+#define FLOW_END_FORCED   0x04
+#define FLOW_END_NO_RES   0x05
+
 /**
  * \brief Flow record struct constaining basic flow record data and extension headers.
  */
@@ -243,6 +249,7 @@ struct Flow : public Record {
 
    uint8_t src_mac[6];
    uint8_t dst_mac[6];
+   uint8_t end_reason;
 };
 
 #endif
