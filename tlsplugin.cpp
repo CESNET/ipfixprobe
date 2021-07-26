@@ -280,7 +280,7 @@ void TLSPlugin::get_tls_server_name(payload_data &data, RecordExtTLS *rec)
       uint16_t sni_len = ntohs(sni->length);
 
       offset += sizeof(tls_ext_sni);
-      if (data.data + offset + ntohs(sni->length) > list_end) {
+      if (data.data + offset + sni_len > list_end) {
          break;
       }
       if (rec->sni[0] != 0) {
@@ -288,10 +288,14 @@ void TLSPlugin::get_tls_server_name(payload_data &data, RecordExtTLS *rec)
          rec->next = tmp_rec;
          rec       = tmp_rec;
       }
+      if (sni_len + (size_t) 1 > sizeof(rec->sni)) {
+         sni_len = sizeof(rec->sni) - 1;
+      }
       memcpy(rec->sni, data.data + offset, sni_len);
       rec->sni[sni_len] = 0;
       data.sni_parsed++;
       parsed_sni++;
+      offset += ntohs(sni->length);
    }
 }
 
