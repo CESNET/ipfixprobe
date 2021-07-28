@@ -182,6 +182,7 @@ void IPFIXExporter::shutdown()
    packetDataBuffer = NULL;
 }
 
+static_assert(EXTENSION_CNT <= 64, "Extension count is supported up to 64 extensions for now.");
 uint64_t IPFIXExporter::get_template_id(Record &flow)
 {
    RecordExt *ext = flow.exts;
