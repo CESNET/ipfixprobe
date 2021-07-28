@@ -201,8 +201,13 @@ public:
    void shutdown();
 private:
    /* Templates */
+   enum TmpltMapIdx {
+      TMPLT_IDX_V4 = 0,
+      TMPLT_IDX_V6 = 1,
+      TMPLT_MAP_IDX_CNT
+   };
    const char **templateFields[EXTENSION_CNT];
-   std::map<uint64_t, template_t *> tmpltMap[3];
+   std::map<uint64_t, template_t *> tmpltMap[TMPLT_MAP_IDX_CNT];
    template_t *templates; /**< Templates in use by plugin */
 	uint16_t templatesDataSize; /**< Total data size stored in templates */
    int basic_ifc_num;

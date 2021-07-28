@@ -101,7 +101,7 @@ using namespace std;
 trap_module_info_t *module_info = NULL;
 #endif
 
-int stop = 0;
+volatile sig_atomic_t stop = 0;
 int terminate_export = 0;
 int terminate_storage = 0;
 int terminate_input = 0;

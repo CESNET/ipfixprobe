@@ -55,8 +55,6 @@
 
 using namespace std;
 
-extern int stop;
-
 #ifdef FLOW_CACHE_SIZE
 const uint32_t DEFAULT_FLOW_CACHE_SIZE = FLOW_CACHE_SIZE;
 #else
@@ -77,7 +75,7 @@ const double DEFAULT_INACTIVE_TIMEOUT = 30.0;
 const double DEFAULT_ACTIVE_TIMEOUT = 300.0;
 
 /*
- * \brief Count number of bits in 32 bit integer
+ * \brief Count number of '1' bits in 32 bit integer
  * \param [in] num Number to count ones in
  * \return Number of ones counted
  */
