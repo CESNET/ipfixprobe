@@ -1,3 +1,18 @@
+2021-07-28 (Jiri Havranek): changed signal stop variable
+2021-07-28 (Jiri Havranek): ipfix: enum constants are used when getting template
+2021-07-28 (Jiri Havranek): ipfix: added static checks for max extension count
+2021-07-28 (Jiri Havranek): tlsplugin: fixed out of bounds write to an array
+2021-07-28 (Jiri Havranek): improved code doc
+2021-07-28 (xsiska12): ipfixprobe: increased version, updated ChangeLog, released RPM package
+2021-07-28 (xsiska12): ipfixprobe: increased version, updated ChangeLog, released RPM package
+2021-07-28 (Tomas Cejka): http: updated HTTP IPFIX element identifiers
+2021-07-28 (Tomas Cejka): ghactions: codeql: install dependencies for build
+2021-07-28 (Tomas Cejka): ghactions: add codeql template
+2021-07-28 (Tomas Cejka): ghactions: limit coverity scan to coverity branch and PR to master
+2021-07-28 (Tomas Cejka): ghactions: add coverage flags for codecov build
+2021-07-28 (Tomas Cejka): ghactions: add codecov
+2021-07-28 (Tomas Cejka): ghactions: add coverity
+
 2021-07-23 (Jiri Havranek): improved class variables naming
 2021-07-21 (Jiri Havranek): rpm: packages are compiled with libunwind
 2021-07-15 (Jiri Havranek): configure: added missing HAVE_LIBUNWIND macro define
