@@ -217,12 +217,12 @@ std::vector<const char *> IPFIXExporter::get_template_fields(uint64_t tmpltId)
 
 template_t *IPFIXExporter::get_template(Flow &flow)
 {
-   int ipTmpltIdx = flow.ip_version == 6 ? 1 : 0;
+   int ipTmpltIdx = flow.ip_version == 6 ? TMPLT_IDX_V6 : TMPLT_IDX_V4;
    uint64_t tmpltIdx = get_template_id(flow);
    if (tmpltMap[ipTmpltIdx].find(tmpltIdx) == tmpltMap[ipTmpltIdx].end()) {
       std::vector<const char *> fields = get_template_fields(tmpltIdx);
-      tmpltMap[0][tmpltIdx] = create_template(basic_tmplt_v4, fields.data());
-      tmpltMap[1][tmpltIdx] = create_template(basic_tmplt_v6, fields.data());
+      tmpltMap[TMPLT_IDX_V4][tmpltIdx] = create_template(basic_tmplt_v4, fields.data());
+      tmpltMap[TMPLT_IDX_V6][tmpltIdx] = create_template(basic_tmplt_v6, fields.data());
    }
 
    return tmpltMap[ipTmpltIdx][tmpltIdx];
