@@ -55,8 +55,6 @@
 
 using namespace std;
 
-extern int stop;
-
 #ifdef FLOW_CACHE_SIZE
 const uint32_t DEFAULT_FLOW_CACHE_SIZE = FLOW_CACHE_SIZE;
 #else
