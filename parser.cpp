@@ -588,6 +588,9 @@ inline uint16_t process_pppoe(const u_char *data_ptr, uint16_t data_len, Packet 
 
 void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uint16_t len, uint16_t caplen)
 {
+   if (opt->pkts->cnt >= opt->pkts->size) {
+      return;
+   }
    Packet *pkt = &opt->pkts->pkts[opt->pkts->cnt];
    uint16_t data_offset = 0;
 
