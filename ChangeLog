@@ -1,3 +1,6 @@
+2021-08-18 ipfixprobe-3.2.1
+	* bugfix parser overflows due bug in old version of libpcap
+
 2021-07-28 ipfixprobe-3.2.0
 	* improved code doc
 	* tlsplugin: fixed out of bounds write to an array

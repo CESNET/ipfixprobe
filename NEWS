@@ -1,3 +1,7 @@
+2021-08-17 (Karel Hynek): Merge pull request #43 from CESNET/parser-segfault
+2021-08-17 (Jiri Havranek): fixed segfault in parser caused by pcap_dispatch() ignoring max packet count
+2021-07-28 (Karel Hynek): Merge pull request #42 from CESNET/new_version
+
 2021-07-28 (Jiri Havranek): changed signal stop variable
 2021-07-28 (Jiri Havranek): ipfix: enum constants are used when getting template
 2021-07-28 (Jiri Havranek): ipfix: added static checks for max extension count
