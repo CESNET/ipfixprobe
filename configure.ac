@@ -4,7 +4,7 @@
 AC_PREREQ([2.69])
 AC_INIT([ipfixprobe], [3.2.0], [nemea@cesnet.cz])
 
-AC_CONFIG_SRCDIR([ipfixprobe.h])
+AC_CONFIG_SRCDIR([main.cpp])
 AC_CONFIG_HEADERS([config.h])
 
 RELEASE=1
@@ -172,8 +172,6 @@ RPM_REQUIRES+=" libtrap"
 RPM_BUILDREQ+=" libtrap-devel unirec"
 fi
 
-AM_CONDITIONAL(COMPILE_FLOWMETER,  test x${libpcap} = xyes || test x${libwpcap} = xyes || test x${libnfb} = xyes)
-
 AM_CONDITIONAL(MAKE_RPMS, test x$RPMBUILD != x)
 
 AM_CONDITIONAL(MAKE_DEB, test x$DEBUILD != x)
@@ -203,7 +201,7 @@ AM_CONDITIONAL([HAVE_SYSTEMD], [test "x$with_systemdsystemunitdir" != "xno"])
 AC_CONFIG_FILES([Makefile
                  ipfixprobe.spec
                  ipfixprobe.bash
-                 nfbCInterface/Makefile
+                 input/nfbCInterface/Makefile
                  init/Makefile
                  tests/Makefile])
 

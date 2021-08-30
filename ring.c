@@ -1,5 +1,5 @@
 /**
- * \file src/core/ring.c
+ * \file ring.c
  * \author Lukas Hutak <lukas.hutak@cesnet.cz>
  * \brief Ring buffer for messages (source file)
  * \date 2018
@@ -45,8 +45,7 @@
 #include <pthread.h>
 #include <time.h>
 
-#include "ring.h"
-
+#include <ipfixprobe/ring.h>
 
 // START TODO: move into header files
 #include <stdalign.h>
@@ -468,4 +467,10 @@ IPX_API uint32_t
 ipx_ring_cnt(ipx_ring_t *ring)
 {
    return ring->writer.write_idx - ring->reader.read_idx;
+}
+
+IPX_API uint32_t
+ipx_ring_size(ipx_ring_t *ring)
+{
+   return ring->reader.size;
 }

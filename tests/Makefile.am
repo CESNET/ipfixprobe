@@ -1,63 +1,63 @@
-TESTS=test_http_plugin.sh \
-	test_rtsp_plugin.sh \
-	test_tls_plugin.sh \
-	test_dns_plugin.sh \
-	test_passivedns_plugin.sh \
-	test_dnssd_plugin.sh \
-	test_sip_plugin.sh \
-	test_smtp_plugin.sh \
-	test_ntp_plugin.sh \
-	test_pstats_plugin.sh \
-	test_ovpn_plugin.sh \
-	test_ssdp_plugin.sh \
-	test_idpcontent_plugin.sh \
-	test_netbios_plugin.sh \
-	test_basic_plugin.sh \
-	test_basicplus_plugin.sh \
-	test_phists_plugin.sh \
-    test_bstats_plugin.sh \
-	test_wg_plugin.sh
+TESTS=test_http.sh \
+	test_rtsp.sh \
+	test_tls.sh \
+	test_dns.sh \
+	test_passivedns.sh \
+	test_dnssd.sh \
+	test_sip.sh \
+	test_smtp.sh \
+	test_ntp.sh \
+	test_pstats.sh \
+	test_ovpn.sh \
+	test_ssdp.sh \
+	test_idpcontent.sh \
+	test_netbios.sh \
+	test_basic.sh \
+	test_basicplus.sh \
+	test_phists.sh \
+	test_bstats.sh \
+	test_wg.sh
 
-EXTRA_DIST=test_plugin.sh \
-	test_http_plugin.sh \
-	test_rtsp_plugin.sh \
-	test_tls_plugin.sh \
-	test_dns_plugin.sh \
-	test_passivedns_plugin.sh \
-	test_dnssd_plugin.sh \
-	test_sip_plugin.sh \
-	test_smtp_plugin.sh \
-	test_ntp_plugin.sh \
-	test_pstats_plugin.sh \
-	test_ovpn_plugin.sh \
-	test_ssdp_plugin.sh \
-	test_netbios_plugin.sh \
-	test_basic_plugin.sh \
-	test_basicplus_plugin.sh \
-	test_idpcontent_plugin.sh \
-	test_plugin.sh \
-    test_bstats_plugin.sh \
-	test_phists_plugin.sh \
-	test_wg_plugin.sh \
-	test_reference/basic \
-	test_reference/basicplus \
-	test_reference/pstats \
-	test_reference/ssdp \
-	test_reference/dns \
-	test_reference/dnssd \
-	test_reference/http \
-	test_reference/rtsp \
-	test_reference/tls \
-	test_reference/ntp \
-	test_reference/sip \
-	test_reference/smtp \
-	test_reference/passivedns \
-	test_reference/ovpn \
-	test_reference/idpcontent \
-	test_reference/netbios \
-    test_reference/bstats \
-	test_reference/phists \
-	test_reference/wg
+EXTRA_DIST=test.sh \
+	test_http.sh \
+	test_rtsp.sh \
+	test_tls.sh \
+	test_dns.sh \
+	test_passivedns.sh \
+	test_dnssd.sh \
+	test_sip.sh \
+	test_smtp.sh \
+	test_ntp.sh \
+	test_pstats.sh \
+	test_ovpn.sh \
+	test_ssdp.sh \
+	test_netbios.sh \
+	test_basic.sh \
+	test_basicplus.sh \
+	test_idpcontent.sh \
+	test.sh \
+	test_bstats.sh \
+	test_phists.sh \
+	test_wg.sh \
+	reference/basic \
+	reference/basicplus \
+	reference/pstats \
+	reference/ssdp \
+	reference/dns \
+	reference/dnssd \
+	reference/http \
+	reference/rtsp \
+	reference/tls \
+	reference/ntp \
+	reference/sip \
+	reference/smtp \
+	reference/passivedns \
+	reference/ovpn \
+	reference/idpcontent \
+	reference/netbios \
+	reference/bstats \
+	reference/phists \
+	reference/wg
 
 clean-local:
-	rm -rf test_output
+	rm -rf output

@@ -1,7 +1,7 @@
-if HAVE_NDP
-SUBDIRS=nfbCInterface
-else
 SUBDIRS=
+
+if HAVE_NDP
+SUBDIRS+=input/nfbCInterface
 endif
 
 SUBDIRS+=. tests init
@@ -9,119 +9,144 @@ bin_PROGRAMS=ipfixprobe
 
 DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)"
 
+ipfixprobe_LDFLAGS=-lpthread -ldl
 if HAVE_NDP
-ipfixprobe_LDFLAGS=-lpthread -lnuma -lnfb -lndpRI -L${srcdir}/nfbCInterface/
-else
-ipfixprobe_LDFLAGS=-lpthread
+ipfixprobe_LDFLAGS+=-lnuma -lnfb -lndpRI -L$(srcdir)/input/nfbCInterface/
 endif
 
-ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I./nfbCInterface/include/
+ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/ -I$(srcdir)/input/nfbCInterface/include/
+ipfixprobe_CFLAGS=-I$(srcdir)/include/
 
+ipfixprobe_input_src=\
+		input/pcap.cpp \
+		input/pcap.hpp \
+		input/ndp.cpp \
+		input/ndp.hpp \
+		input/parser.cpp \
+		input/parser.hpp \
+		input/headers.hpp
 
-ipfixprobe_src=main.cpp \
-		ipfixprobe.h \
+ipfixprobe_storage_src=\
+		storage/cache.cpp \
+		storage/cache.hpp \
+		storage/xxhash.c \
+		storage/xxhash.h
+
+ipfixprobe_output_src=\
+		output/ipfix.cpp \
+		output/ipfix.hpp \
+		output/ipfix-basiclist.cpp
+
+ipfixprobe_process_src=\
+		process/http.cpp \
+		process/http.hpp \
+		process/rtsp.cpp \
+		process/rtsp.hpp \
+		process/sip.cpp \
+		process/sip.hpp \
+		process/tls.cpp \
+		process/tls.hpp \
+		process/smtp.cpp \
+		process/smtp.hpp \
+		process/dns-utils.hpp \
+		process/dns.cpp \
+		process/dns.hpp \
+		process/passivedns.cpp \
+		process/passivedns.hpp \
+		process/ntp.cpp \
+		process/ntp.hpp \
+		process/idpcontent.hpp \
+		process/idpcontent.cpp \
+		process/netbios.hpp \
+		process/netbios.cpp \
+		process/bstats.hpp \
+		process/bstats.cpp \
+		process/phists.cpp \
+		process/phists.hpp \
+		process/pstats.hpp \
+		process/pstats.cpp \
+		process/ovpn.hpp \
+		process/ovpn.cpp \
+		process/ssdp.hpp \
+		process/ssdp.cpp \
+		process/dnssd.hpp \
+		process/dnssd.cpp \
+		process/basicplus.hpp \
+		process/basicplus.cpp \
+		process/wg.hpp \
+		process/wg.cpp \
+		process/stats.cpp \
+		process/stats.hpp \
+		process/md5.hpp \
+		process/md5.cpp
+
+ipfixprobe_headers_src=\
+		include/ipfixprobe/plugin.hpp \
+		include/ipfixprobe/input.hpp \
+		include/ipfixprobe/storage.hpp \
+		include/ipfixprobe/output.hpp \
+		include/ipfixprobe/process.hpp \
+		include/ipfixprobe/options.hpp \
+		include/ipfixprobe/utils.hpp \
+		include/ipfixprobe/ipfix-basiclist.hpp \
+		include/ipfixprobe/flowifc.hpp \
+		include/ipfixprobe/ipaddr.hpp \
+		include/ipfixprobe/packet.hpp \
+		include/ipfixprobe/ring.h \
+		include/ipfixprobe/byte-utils.hpp \
+		include/ipfixprobe/ipfix-elements.hpp
+
+ipfixprobe_src=\
+		$(ipfixprobe_input_src) \
+		$(ipfixprobe_storage_src) \
+		$(ipfixprobe_output_src) \
+		$(ipfixprobe_process_src) \
+		$(ipfixprobe_headers_src) \
+		pluginmgr.cpp \
+		pluginmgr.hpp \
 		stacktrace.cpp \
-		stacktrace.h \
-		packet.h \
-		packetreceiver.h \
-		flowexporter.h \
-		flowifc.h \
-		flowcache.h \
-		pcapreader.cpp \
-		pcapreader.h \
-		ndp.cpp \
-		ndp.h \
-		parser.cpp \
-		parser.h \
-		headers.h \
-		nhtflowcache.cpp \
-		nhtflowcache.h \
-		stats.cpp \
-		stats.h \
+		stacktrace.hpp \
+		options.cpp \
+		utils.cpp \
 		ring.c \
-		ring.h \
-		flowcacheplugin.h \
-		httpplugin.cpp \
-		httpplugin.h \
-		rtspplugin.cpp \
-		rtspplugin.h \
-		sipplugin.cpp \
-		sipplugin.h \
-		tlsplugin.cpp \
-		tlsplugin.h \
-		smtpplugin.cpp \
-		smtpplugin.h \
-		dnsplugin.cpp \
-		dnsplugin.h \
-		passivednsplugin.cpp \
-		passivednsplugin.h \
-		ntpplugin.cpp \
-		ntpplugin.h \
-		ipaddr.h \
-		ipfixexporter.cpp \
-		ipfix-elements.h \
-		ipfixexporter.h \
-		xxhash.c \
-		xxhash.h \
-		dns.h \
-		conversion.h \
-		conversion.cpp \
-		pstatsplugin.h \
-		pstatsplugin.cpp \
-		ovpnplugin.h \
-		ovpnplugin.cpp \
-		byte-utils.h \
-		ssdpplugin.h \
-		ssdpplugin.cpp \
-		dnssdplugin.h \
-		dnssdplugin.cpp \
-		md5.h \
-		md5.cpp \
-		idpcontentplugin.h \
-		idpcontentplugin.cpp \
-		netbiosplugin.h \
-		netbiosplugin.cpp \
-		bstatsplugin.h \
-		bstatsplugin.cpp \
-		phistsplugin.cpp \
-		phistsplugin.h \
-		ipfix-basiclist.cpp \
-		ipfix-basiclist.h \
-		basicplusplugin.h \
-		basicplusplugin.cpp \
-		wgplugin.h \
-		wgplugin.cpp
-
+		workers.cpp \
+		workers.hpp \
+		ipfixprobe.hpp \
+		ipfixprobe.cpp \
+		main.cpp
 
 if WITH_NEMEA
-ipfixprobe_SOURCES=$(ipfixprobe_src) \
+ipfixprobe_src+=\
 			fields.c \
-			fields.h \
-			unirecexporter.h \
-			unirecexporter.cpp
-else
-ipfixprobe_SOURCES=$(ipfixprobe_src)
+			fields.h
+
+ipfixprobe_output_src+=\
+			output/unirec.hpp \
+			output/unirec.cpp
 endif
+
+
+ipfixprobe_SOURCES=$(ipfixprobe_src)
 
 pkgdocdir=${docdir}/ipfixprobe
 pkgdoc_DATA=README.md
 EXTRA_DIST=README.md \
-	traffic-samples/README.md \
-	traffic-samples/mixed-sample.pcap \
-	traffic-samples/dns-sample.pcap \
-	traffic-samples/dnssd-sample.pcap \
-	traffic-samples/http-sample.pcap \
-	traffic-samples/rtsp-sample.pcap \
-	traffic-samples/tls-sample.pcap \
-	traffic-samples/ntp-sample.pcap \
-	traffic-samples/sip-sample.pcap \
-	traffic-samples/ssdp-sample.pcap \
-	traffic-samples/netbios-sample.pcap \
-	traffic-samples/smtp-sample.pcap \
-	traffic-samples/ovpn-sample.pcap \
-	traffic-samples/idpcontent-sample.pcap \
-	traffic-samples/bstats-sample.pcap \
-	traffic-samples/wg-sample.pcap
+	pcaps/README.md \
+	pcaps/mixed.pcap \
+	pcaps/dns.pcap \
+	pcaps/dnssd.pcap \
+	pcaps/http.pcap \
+	pcaps/rtsp.pcap \
+	pcaps/tls.pcap \
+	pcaps/ntp.pcap \
+	pcaps/sip.pcap \
+	pcaps/ssdp.pcap \
+	pcaps/netbios.pcap \
+	pcaps/smtp.pcap \
+	pcaps/ovpn.pcap \
+	pcaps/idpcontent.pcap \
+	pcaps/bstats.pcap \
+	pcaps/wg.pcap
 
 bashcompl_DATA=ipfixprobe.bash
 
