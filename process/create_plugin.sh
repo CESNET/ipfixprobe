@@ -12,7 +12,7 @@ PLUGIN_UPPER="$(tr '[:lower:]' '[:upper:]' <<<"$PLUGIN")"
 # Usage: print_basic_info <FILE-EXTENSION>
 print_basic_info() {
    echo "/**
- * \\file ${PLUGIN}plugin.${1}
+ * \\file ${PLUGIN}.${1}
  * \\brief Plugin for parsing ${PLUGIN} traffic.
  * \\author ${AUTHOR}
  * \\date $(date +%Y)
@@ -72,15 +72,23 @@ print_hpp_code() {
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+#define ${PLUGIN_UPPER}_UNIREC_TEMPLATE \"\" /* TODO: unirec template */
+
+UR_FIELDS (
+   /* TODO: unirec fields definition */
+)
 
 /**
  * \\brief Flow record extension header for storing parsed ${PLUGIN_UPPER} packets.
  */
 struct RecordExt${PLUGIN_UPPER} : RecordExt {
+   static int REGISTERED_ID;
 
-   RecordExt${PLUGIN_UPPER}() : RecordExt(${PLUGIN})
+   RecordExt${PLUGIN_UPPER}() : RecordExt(REGISTERED_ID)
    {
    }
 
@@ -88,11 +96,25 @@ struct RecordExt${PLUGIN_UPPER} : RecordExt {
    virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
    }
+
+   const char *get_unirec_tmplt() const
+   {
+      return ${PLUGIN_UPPER}_UNIREC_TEMPLATE;
+   }
 #endif
 
    virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       return 0;
+   }
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_template[] = {
+         IPFIX_${PLUGIN_UPPER}_TEMPLATE(IPFIX_FIELD_NAMES)
+         NULL
+      };
+      return ipfix_template;
    }
 };
 
@@ -106,11 +128,9 @@ public:
    ~${PLUGIN_UPPER}Plugin();
    void init(const char *params);
    void close();
-   OptionsParser *get_parser() const { return new OptionsParser("${PLUGIN}", "Parse ${PLUGIN_UPPER} traffic"); }
-   std::string get_name() const { return "${PLUGIN}"; }
-   int get_ext_id() { return ${PLUGIN}; }
-   const char **get_ipfix_string();
-   std::string get_unirec_field_string();
+   OptionsParser *get_parser() const { return new OptionsParser(\"${PLUGIN}\", \"Parse ${PLUGIN_UPPER} traffic\"); }
+   std::string get_name() const { return \"${PLUGIN}\"; }
+   RecordExt *get_ext() const { return new RecordExt${PLUGIN_UPPER}(); }
    FlowCachePlugin *copy();
 
    int pre_create(Packet &pkt);
@@ -118,7 +138,6 @@ public:
    int pre_update(Flow &rec, Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
    void pre_export(Flow &rec);
-   void finish();
 };
 
 }
@@ -130,7 +149,6 @@ print_cpp_code() {
    echo "#include <iostream>
 
 #include \"${PLUGIN}plugin.hpp\"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
 
@@ -138,13 +156,8 @@ __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord(\"${PLUGIN}\", [](){return new ${PLUGIN_UPPER}Plugin();});
    register_plugin(&rec);
+   RecordExt${PLUGIN_UPPER}::REGISTERED_ID = register_extension();
 }
-
-#define ${PLUGIN_UPPER}_UNIREC_TEMPLATE \"\" /* TODO: unirec template */
-
-UR_FIELDS (
-   /* TODO: unirec fields definition */
-)
 
 ${PLUGIN_UPPER}Plugin::${PLUGIN_UPPER}Plugin()
 {
@@ -191,28 +204,6 @@ void ${PLUGIN_UPPER}Plugin::pre_export(Flow &rec)
 {
 }
 
-void ${PLUGIN_UPPER}Plugin::finish()
-{
-   if (print_stats) {
-      //sd::cout << \"${PLUGIN_UPPER} plugin stats:\" << std::endl;
-   }
-}
-
-const char *ipfix_${PLUGIN}_template[] = {
-   IPFIX_${PLUGIN_UPPER}_TEMPLATE(IPFIX_FIELD_NAMES)
-   NULL
-};
-
-const char **${PLUGIN_UPPER}Plugin::get_ipfix_string()
-{
-   return ipfix_${PLUGIN}_template;
-}
-
-std::string ${PLUGIN_UPPER}Plugin::get_unirec_field_string()
-{
-   return ${PLUGIN_UPPER}_UNIREC_TEMPLATE;
-}
-
 }
 "
 }
@@ -223,11 +214,12 @@ print_todo() {
    echo "TODO:"
    echo "1) Add '${PLUGIN}.hpp' and '${PLUGIN}.cpp' files to ipfixprobe_process_src variable in Makefile.am"
    echo "2) Update README.md"
-   echo "3.1) Add unirec fields to the UR_FIELDS and ${PLUGIN_UPPER}_UNIREC_TEMPLATE macro in ${PLUGIN}.cpp"
+   echo "3.1) Add unirec fields to the UR_FIELDS and ${PLUGIN_UPPER}_UNIREC_TEMPLATE macro in ${PLUGIN}.hpp"
    echo "3.2) Add IPFIX template macro 'IPFIX_${PLUGIN_UPPER}_TEMPLATE' to ipfixprobe/ipfix-elements.hpp"
    echo "3.3) Define IPFIX fields"
    echo "3.4) Write function 'fill_ipfix' in ${PLUGIN}.hpp to fill fields to IPFIX message"
-   echo "4) Do the final work in ${PLUGIN}.cpp and ${PLUGIN}.hpp files - implement pre_create, post_create, pre_update, post_update, pre_export and fill_unirec functions (also read and understand when these functions are called, info in ipfixprobe/output.hpp file)"
+   echo "3.5) Write function 'fill_unirec' in ${PLUGIN}.hpp to fill fields to UNIREC message"
+   echo "4) Do the final work in ${PLUGIN}.cpp and ${PLUGIN}.hpp files - implement pre_create, post_create, pre_update, post_update and pre_export functions (also read and understand when these functions are called, info in ipfixprobe/process.hpp file)"
    echo "5) Be happy with your new awesome ${PLUGIN} plugin!"
    echo
    echo "Optional work:"
