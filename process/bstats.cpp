@@ -44,29 +44,18 @@
 #include <iostream>
 
 #include "bstats.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtBSTATS::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("bstats", [](){return new BSTATSPlugin();});
    register_plugin(&rec);
+   RecordExtBSTATS::REGISTERED_ID = register_extension();
 }
 
-#define BSTATS_UNIREC_TEMPLATE "SBI_BRST_PACKETS,SBI_BRST_BYTES,SBI_BRST_TIME_START,SBI_BRST_TIME_STOP,\
-                                DBI_BRST_PACKETS,DBI_BRST_BYTES,DBI_BRST_TIME_START,DBI_BRST_TIME_STOP"
-
-UR_FIELDS(
-   uint32* SBI_BRST_BYTES,
-   uint32* SBI_BRST_PACKETS,
-   time* SBI_BRST_TIME_START,
-   time* SBI_BRST_TIME_STOP,
-   uint32* DBI_BRST_PACKETS,
-   uint32* DBI_BRST_BYTES,
-   time* DBI_BRST_TIME_START,
-   time* DBI_BRST_TIME_STOP
-)
 const struct timeval BSTATSPlugin::min_packet_in_burst =
 {MAXIMAL_INTERPKT_TIME / 1000, (MAXIMAL_INTERPKT_TIME % 1000) * 1000};
 
@@ -163,14 +152,14 @@ int BSTATSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtBSTATS *bstats_record = new RecordExtBSTATS();
 
-   rec.addExtension(bstats_record);
+   rec.add_extension(bstats_record);
    update_record(bstats_record, pkt);
    return 0;
 }
 
 int BSTATSPlugin::pre_update(Flow &rec, Packet &pkt)
 {
-   RecordExtBSTATS *bstats_record = static_cast<RecordExtBSTATS *>(rec.getExtension(bstats));
+   RecordExtBSTATS *bstats_record = static_cast<RecordExtBSTATS *>(rec.get_extension(RecordExtBSTATS::REGISTERED_ID));
 
    update_record(bstats_record, pkt);
    return 0;
@@ -183,28 +172,13 @@ int BSTATSPlugin::post_update(Flow &rec, const Packet &pkt)
 
 void BSTATSPlugin::pre_export(Flow &rec)
 {
-   RecordExtBSTATS *bstats_record = static_cast<RecordExtBSTATS *>(rec.getExtension(bstats));
+   RecordExtBSTATS *bstats_record = static_cast<RecordExtBSTATS *>(rec.get_extension(RecordExtBSTATS::REGISTERED_ID));
 
    for (int direction = 0; direction < 2; direction++){
       if (bstats_record->BCOUNT < BSTATS_MAXELENCOUNT && isLastRecordBurst(bstats_record, direction)){
          bstats_record->BCOUNT++;
       }
    }
-}
-
-const char *ipfix_bstats_template[] = {
-   IPFIX_BSTATS_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **BSTATSPlugin::get_ipfix_tmplt()
-{
-   return ipfix_bstats_template;
-}
-
-std::string BSTATSPlugin::get_unirec_tmplt()
-{
-   return BSTATS_UNIREC_TEMPLATE;
 }
 
 }

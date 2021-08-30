@@ -48,22 +48,17 @@
 #endif
 
 #include "netbios.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtNETBIOS::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("netbios", [](){return new NETBIOSPlugin();});
    register_plugin(&rec);
+   RecordExtNETBIOS::REGISTERED_ID = register_extension();
 }
-
-#define NETBIOS_UNIREC_TEMPLATE "NB_NAME,NB_SUFFIX"
-
-UR_FIELDS (
-    string NB_NAME,
-    uint8 NB_SUFFIX
-)
 
 NETBIOSPlugin::NETBIOSPlugin() : total_netbios_packets(0)
 {
@@ -107,7 +102,7 @@ int NETBIOSPlugin::add_netbios_ext(Flow &rec, const Packet &pkt) {
     RecordExtNETBIOS *ext = new RecordExtNETBIOS();
     if (parse_nbns(ext, pkt)) {
         total_netbios_packets++;
-        rec.addExtension(ext);
+        rec.add_extension(ext);
     } else {
         delete ext;
     }
@@ -166,19 +161,6 @@ void NETBIOSPlugin::finish(bool print_stats) {
         std::cout << "NETBIOS plugin stats:" << std::endl;
         std::cout << "   Parsed NBNS packets in total: " << total_netbios_packets << std::endl;
     }
-}
-
-const char *ipfix_netbios_template[] = {
-    IPFIX_NETBIOS_TEMPLATE(IPFIX_FIELD_NAMES)
-    nullptr
-};
-
-const char **NETBIOSPlugin::get_ipfix_tmplt() {
-    return ipfix_netbios_template;
-}
-
-std::string NETBIOSPlugin::get_unirec_tmplt() {
-    return NETBIOS_UNIREC_TEMPLATE;
 }
 
 }

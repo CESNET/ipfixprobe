@@ -59,12 +59,22 @@
 
 #include <ipfixprobe/byte-utils.hpp>
 #include <ipfixprobe/ipfix-basiclist.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
 
 #ifndef PSTATS_MAXELEMCOUNT
 # define PSTATS_MAXELEMCOUNT 30
 #endif
+
+#define PSTATS_UNIREC_TEMPLATE "PPI_PKT_LENGTHS,PPI_PKT_TIMES,PPI_PKT_FLAGS,PPI_PKT_DIRECTIONS"
+
+UR_FIELDS (
+   uint16* PPI_PKT_LENGTHS,
+   time* PPI_PKT_TIMES,
+   uint8* PPI_PKT_FLAGS,
+   int8* PPI_PKT_DIRECTIONS
+)
 
 class PSTATSOptParser : public OptionsParser
 {
@@ -85,6 +95,8 @@ public:
  * \brief Flow record extension header for storing parsed PSTATS packets.
  */
 struct RecordExtPSTATS : RecordExt {
+   static int REGISTERED_ID;
+
    uint16_t       pkt_sizes[PSTATS_MAXELEMCOUNT];
    uint8_t        pkt_tcp_flgs[PSTATS_MAXELEMCOUNT];
    struct timeval pkt_timestamps[PSTATS_MAXELEMCOUNT];
@@ -105,13 +117,13 @@ struct RecordExtPSTATS : RecordExt {
    static const uint32_t CesnetPem = 8057;
 
 
-   RecordExtPSTATS() : RecordExt(pstats)
+   RecordExtPSTATS() : RecordExt(REGISTERED_ID)
    {
       pkt_count = 0;
    }
 
    #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_array_allocate(tmplt, record, F_PPI_PKT_TIMES, pkt_count);
       ur_array_allocate(tmplt, record, F_PPI_PKT_LENGTHS, pkt_count);
@@ -127,9 +139,13 @@ struct RecordExtPSTATS : RecordExt {
       }
    }
 
+   const char *get_unirec_tmplt() const
+   {
+      return PSTATS_UNIREC_TEMPLATE;
+   }
    #endif // ifdef WITH_NEMEA
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       int32_t bufferPtr;
       IpfixBasicList basiclist;
@@ -154,7 +170,16 @@ struct RecordExtPSTATS : RecordExt {
       bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, pkt_dirs, pkt_count,(uint16_t) PktDir);
 
       return bufferPtr;
-   } // fillIPFIX
+   } // fill_ipfix
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_tmplt[] = {
+         IPFIX_PSTATS_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+      return ipfix_tmplt;
+   }
 };
 
 /**
@@ -169,9 +194,7 @@ public:
    void close();
    OptionsParser *get_parser() const { return new PSTATSOptParser(); }
    std::string get_name() const { return "pstats"; }
-   int get_ext_id() const { return pstats; }
-   const char **get_ipfix_tmplt();
-   std::string get_unirec_tmplt();
+   RecordExt *get_ext() const { return new RecordExtPSTATS(); }
    ProcessPlugin *copy();
    int post_create(Flow &rec, const Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);

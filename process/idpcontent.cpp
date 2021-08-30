@@ -44,22 +44,17 @@
 #include <iostream>
 
 #include "idpcontent.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtIDPCONTENT::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("idpcontent", [](){return new IDPCONTENTPlugin();});
    register_plugin(&rec);
+   RecordExtIDPCONTENT::REGISTERED_ID = register_extension();
 }
-
-#define IDPCONTENT_UNIREC_TEMPLATE "IDP_CONTENT,IDP_CONTENT_REV"
-
-UR_FIELDS(
-   bytes IDP_CONTENT,
-   bytes IDP_CONTENT_REV
-)
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
@@ -103,7 +98,7 @@ int IDPCONTENTPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtIDPCONTENT *idpcontent_data = new RecordExtIDPCONTENT();
    memset(idpcontent_data->pkt_export_flg, 0, 2 * sizeof(uint8_t));
-   rec.addExtension(idpcontent_data);
+   rec.add_extension(idpcontent_data);
 
    update_record(idpcontent_data, pkt);
    return 0;
@@ -111,24 +106,9 @@ int IDPCONTENTPlugin::post_create(Flow &rec, const Packet &pkt)
 
 int IDPCONTENTPlugin::post_update(Flow &rec, const Packet &pkt)
 {
-   RecordExtIDPCONTENT *idpcontent_data = static_cast<RecordExtIDPCONTENT *>(rec.getExtension(idpcontent));
+   RecordExtIDPCONTENT *idpcontent_data = static_cast<RecordExtIDPCONTENT *>(rec.get_extension(RecordExtIDPCONTENT::REGISTERED_ID));
    update_record(idpcontent_data, pkt);
    return 0;
-}
-
-const char *ipfix_idpcontent_template[] = {
-   IPFIX_IDPCONTENT_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **IDPCONTENTPlugin::get_ipfix_tmplt()
-{
-   return ipfix_idpcontent_template;
-}
-
-std::string IDPCONTENTPlugin::get_unirec_tmplt()
-{
-   return IDPCONTENT_UNIREC_TEMPLATE;
 }
 
 }

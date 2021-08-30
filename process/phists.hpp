@@ -55,10 +55,20 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/ipfix-basiclist.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
 
 #define HISTOGRAM_SIZE 8
+
+#define PHISTS_UNIREC_TEMPLATE "S_PHISTS_SIZES,S_PHISTS_IPT,D_PHISTS_SIZES,D_PHISTS_IPT"
+
+UR_FIELDS(
+   uint32* S_PHISTS_SIZES,
+   uint32* S_PHISTS_IPT,
+   uint32* D_PHISTS_SIZES,
+   uint32* D_PHISTS_IPT
+)
 
 class PHISTSOptParser : public OptionsParser
 {
@@ -77,6 +87,8 @@ public:
  * \brief Flow record extension header for storing parsed PHISTS packets.
  */
 struct RecordExtPHISTS : RecordExt {
+   static int REGISTERED_ID;
+
    typedef enum eHdrFieldID {
       SPhistsSizes = 1060,
       SPhistsIpt   = 1061,
@@ -88,7 +100,7 @@ struct RecordExtPHISTS : RecordExt {
    uint32_t ipt_hist[2][HISTOGRAM_SIZE];
    uint32_t last_ts[2];
 
-   RecordExtPHISTS() : RecordExt(phists)
+   RecordExtPHISTS() : RecordExt(REGISTERED_ID)
    {
       // inicializing histograms with zeros
       for (int i = 0; i < 2; i++) {
@@ -99,7 +111,7 @@ struct RecordExtPHISTS : RecordExt {
    }
 
    #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_array_allocate(tmplt, record, F_S_PHISTS_SIZES, HISTOGRAM_SIZE);
       ur_array_allocate(tmplt, record, F_S_PHISTS_IPT, HISTOGRAM_SIZE);
@@ -112,9 +124,14 @@ struct RecordExtPHISTS : RecordExt {
          ur_array_set(tmplt, record, F_D_PHISTS_IPT, i, ipt_hist[1][i]);
       }
    }
+
+   const char *get_unirec_tmplt() const
+   {
+      return PHISTS_UNIREC_TEMPLATE;
+   }
    #endif // ifdef WITH_NEMEA
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       int32_t bufferPtr;
       IpfixBasicList basiclist;
@@ -135,7 +152,17 @@ struct RecordExtPHISTS : RecordExt {
       bufferPtr += basiclist.FillBuffer(buffer + bufferPtr, ipt_hist[1], HISTOGRAM_SIZE, (uint32_t) DPhistsIpt);
 
       return bufferPtr;
-   } // fillIPFIX
+   } // fill_ipfix
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_tmplt[] = {
+         IPFIX_PHISTS_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+
+      return ipfix_tmplt;
+   }
 };
 
 /**
@@ -150,9 +177,7 @@ public:
    void close();
    OptionsParser *get_parser() const { return new PHISTSOptParser(); }
    std::string get_name() const { return "phists"; }
-   int get_ext_id() const { return phists; }
-   const char **get_ipfix_tmplt();
-   std::string get_unirec_tmplt();
+   RecordExt *get_ext() const { return new RecordExtPHISTS(); }
    ProcessPlugin *copy();
 
    int post_create(Flow &rec, const Packet &pkt);

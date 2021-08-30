@@ -51,14 +51,16 @@
 #endif
 
 #include "ntp.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtNTP::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("ntp", [](){return new NTPPlugin();});
    register_plugin(&rec);
+   RecordExtNTP::REGISTERED_ID = register_extension();
 }
 
 //#define DEBUG_NTP
@@ -69,25 +71,6 @@ __attribute__((constructor)) static void register_this_plugin()
 #else
 #define DEBUG_MSG(format, ...)
 #endif
-
-#define NTP_UNIREC_TEMPLATE  "NTP_LEAP,NTP_VERSION,NTP_MODE,NTP_STRATUM,NTP_POLL,NTP_PRECISION,NTP_DELAY,NTP_DISPERSION,NTP_REF_ID,NTP_REF,NTP_ORIG,NTP_RECV,NTP_SENT"
-
-UR_FIELDS (
-   uint8 NTP_LEAP,
-   uint8 NTP_VERSION
-   uint8 NTP_MODE,
-   uint8 NTP_STRATUM,
-   uint8 NTP_POLL,
-   uint8 NTP_PRECISION,
-   uint32 NTP_DELAY,
-   uint32 NTP_DISPERSION,
-   string NTP_REF_ID,
-   string NTP_REF,
-   string NTP_ORIG,
-   string NTP_RECV,
-   string NTP_SENT
-)
-
 
 NTPPlugin::NTPPlugin() : requests(0), responses(0), total(0)
 {
@@ -141,25 +124,6 @@ void NTPPlugin::finish(bool print_stats)
 }
 
 /**
- *\brief Get unirec template string from plugin.
- *\return Unirec template string.
- */
-std::string NTPPlugin::get_unirec_tmplt()
-{
-   return NTP_UNIREC_TEMPLATE;
-}
-
-const char *ntp_ipfix_string[] = {
-   IPFIX_NTP_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **NTPPlugin::get_ipfix_tmplt()
-{
-   return ntp_ipfix_string;
-}
-
-/**
  *\brief Add new extension NTP header into Flow.
  *\param [in] packet.
  *\param [out] rec Destination Flow.
@@ -170,7 +134,7 @@ void NTPPlugin::add_ext_ntp(Flow &rec, const Packet &pkt)
    if (!parse_ntp(pkt, ntp_data_ext)) {
       delete ntp_data_ext; /*Don't add new extension packet.*/
    } else {
-      rec.addExtension(ntp_data_ext); /*Add extension to  packet.*/
+      rec.add_extension(ntp_data_ext); /*Add extension to  packet.*/
    }
 }
 

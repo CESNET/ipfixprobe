@@ -57,8 +57,22 @@
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+#define HTTP_UNIREC_TEMPLATE  "HTTP_REQUEST_METHOD,HTTP_REQUEST_HOST,HTTP_REQUEST_URL,HTTP_REQUEST_AGENT,HTTP_REQUEST_REFERER,HTTP_RESPONSE_STATUS_CODE,HTTP_RESPONSE_CONTENT_TYPE"
+
+UR_FIELDS (
+   string HTTP_REQUEST_METHOD,
+   string HTTP_REQUEST_HOST,
+   string HTTP_REQUEST_URL,
+   string HTTP_REQUEST_AGENT,
+   string HTTP_REQUEST_REFERER,
+
+   uint16 HTTP_RESPONSE_STATUS_CODE,
+   string HTTP_RESPONSE_CONTENT_TYPE
+)
 
 void copy_str(char *dst, ssize_t size, const char *begin, const char *end);
 
@@ -66,6 +80,8 @@ void copy_str(char *dst, ssize_t size, const char *begin, const char *end);
  * \brief Flow record extension header for storing HTTP requests.
  */
 struct RecordExtHTTP : RecordExt {
+   static int REGISTERED_ID;
+
    bool req;
    bool resp;
 
@@ -78,10 +94,11 @@ struct RecordExtHTTP : RecordExt {
    uint16_t code;
    char content_type[32];
 
+
    /**
     * \brief Constructor.
     */
-   RecordExtHTTP() : RecordExt(http)
+   RecordExtHTTP() : RecordExt(REGISTERED_ID)
    {
       req = false;
       resp = false;
@@ -95,7 +112,7 @@ struct RecordExtHTTP : RecordExt {
    }
 
 #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_set_string(tmplt, record, F_HTTP_REQUEST_METHOD, method);
       ur_set_string(tmplt, record, F_HTTP_REQUEST_HOST, host);
@@ -105,9 +122,14 @@ struct RecordExtHTTP : RecordExt {
       ur_set_string(tmplt, record, F_HTTP_RESPONSE_CONTENT_TYPE, content_type);
       ur_set(tmplt, record, F_HTTP_RESPONSE_STATUS_CODE, code);
    }
+
+   const char *get_unirec_tmplt() const
+   {
+      return HTTP_UNIREC_TEMPLATE;
+   }
 #endif
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       int length, total_length = 0;
 
@@ -164,6 +186,15 @@ struct RecordExtHTTP : RecordExt {
 
       return total_length;
    }
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_template[] = {
+         IPFIX_HTTP_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+      return ipfix_template;
+   }
 };
 
 /**
@@ -176,11 +207,9 @@ public:
    ~HTTPPlugin();
    void init(const char *params);
    void close();
+   RecordExt *get_ext() const { return new RecordExtHTTP(); }
    OptionsParser *get_parser() const { return new OptionsParser("http", "Parse HTTP traffic"); }
    std::string get_name() const { return "http"; }
-   int get_ext_id() const { return http; }
-   std::string get_unirec_tmplt();
-   const char **get_ipfix_tmplt();
    ProcessPlugin *copy();
 
    int post_create(Flow &rec, const Packet &pkt);

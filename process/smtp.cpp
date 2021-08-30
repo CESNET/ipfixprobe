@@ -46,31 +46,17 @@
 #include <ctype.h>
 
 #include "smtp.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtSMTP::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("smtp", [](){return new SMTPPlugin();});
    register_plugin(&rec);
+   RecordExtSMTP::REGISTERED_ID = register_extension();
 }
-
-#define SMTP_UNIREC_TEMPLATE "SMTP_2XX_STAT_CODE_COUNT,SMTP_3XX_STAT_CODE_COUNT,SMTP_4XX_STAT_CODE_COUNT,SMTP_5XX_STAT_CODE_COUNT,SMTP_COMMAND_FLAGS,SMTP_MAIL_CMD_COUNT,SMTP_RCPT_CMD_COUNT,SMTP_STAT_CODE_FLAGS,SMTP_DOMAIN,SMTP_FIRST_RECIPIENT,SMTP_FIRST_SENDER"
-
-UR_FIELDS (
-   uint32 SMTP_2XX_STAT_CODE_COUNT,
-   uint32 SMTP_3XX_STAT_CODE_COUNT,
-   uint32 SMTP_4XX_STAT_CODE_COUNT,
-   uint32 SMTP_5XX_STAT_CODE_COUNT,
-   uint32 SMTP_COMMAND_FLAGS,
-   uint32 SMTP_MAIL_CMD_COUNT,
-   uint32 SMTP_RCPT_CMD_COUNT,
-   uint32 SMTP_STAT_CODE_FLAGS,
-   string SMTP_DOMAIN,
-   string SMTP_FIRST_SENDER,
-   string SMTP_FIRST_RECIPIENT
-)
 
 SMTPPlugin::SMTPPlugin() : ext_ptr(nullptr), total(0), replies_cnt(0), commands_cnt(0)
 {
@@ -94,16 +80,6 @@ ProcessPlugin *SMTPPlugin::copy()
    return new SMTPPlugin(*this);
 }
 
-const char *ipfix_smtp_template[] = {
-   IPFIX_SMTP_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **SMTPPlugin::get_ipfix_tmplt()
-{
-   return ipfix_smtp_template;
-}
-
 int SMTPPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.src_port == 25 || pkt.dst_port == 25) {
@@ -116,7 +92,7 @@ int SMTPPlugin::post_create(Flow &rec, const Packet &pkt)
 int SMTPPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    if (pkt.src_port == 25 || pkt.dst_port == 25) {
-      RecordExt *ext = rec.getExtension(smtp);
+      RecordExt *ext = rec.get_extension(RecordExtSMTP::REGISTERED_ID);
       if (ext == nullptr) {
          create_smtp_record(rec, pkt);
          return 0;
@@ -410,7 +386,7 @@ void SMTPPlugin::create_smtp_record(Flow &rec, const Packet &pkt)
    }
 
    if (update_smtp_record(ext_ptr, pkt)) {
-      rec.addExtension(ext_ptr);
+      rec.add_extension(ext_ptr);
       ext_ptr = nullptr;
    }
 }
@@ -435,11 +411,6 @@ void SMTPPlugin::finish(bool print_stats)
       std::cout << "   Parsed SMTP replies: " << replies_cnt << std::endl;
       std::cout << "   Parsed SMTP commands: " << commands_cnt << std::endl;
    }
-}
-
-std::string SMTPPlugin::get_unirec_tmplt()
-{
-   return SMTP_UNIREC_TEMPLATE;
 }
 
 }

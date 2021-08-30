@@ -59,15 +59,17 @@
 #include <errno.h>
 
 #include "passivedns.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/utils.hpp>
 
 namespace ipxp {
+
+int RecordExtPassiveDNS::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("passivedns", [](){return new PassiveDNSPlugin();});
    register_plugin(&rec);
+   RecordExtPassiveDNS::REGISTERED_ID = register_extension();
 }
 
 //#define DEBUG_PASSIVEDNS
@@ -97,16 +99,6 @@ __attribute__((constructor)) static void register_this_plugin()
  * \brief Get offset from 2 byte pointer.
  */
 #define GET_OFFSET(half1, half2) ((((uint8_t)(half1) & 0x3F) << 8) | (uint8_t)(half2))
-
-#define DNS_UNIREC_TEMPLATE "DNS_ID,DNS_ATYPE,DNS_NAME,DNS_RR_TTL,DNS_IP"
-
-UR_FIELDS (
-   uint16 DNS_ID,
-   uint16 DNS_ATYPE,
-   string DNS_NAME,
-   uint32 DNS_RR_TTL,
-   ipaddr DNS_IP
-)
 
 PassiveDNSPlugin::PassiveDNSPlugin() : total(0), parsed_a(0), parsed_aaaa(0), parsed_ptr(0)
 {
@@ -157,21 +149,6 @@ void PassiveDNSPlugin::finish(bool print_stats)
       std::cout << "   Parsed AAAA records: " << parsed_aaaa << std::endl;
       std::cout << "   Parsed PTR records: " << parsed_ptr << std::endl;
    }
-}
-
-std::string PassiveDNSPlugin::get_unirec_tmplt()
-{
-   return DNS_UNIREC_TEMPLATE;
-}
-
-const char *passivedns_ipfix_string[] = {
-   IPFIX_PASSIVEDNS_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **PassiveDNSPlugin::get_ipfix_tmplt()
-{
-   return passivedns_ipfix_string;
 }
 
 /**
@@ -375,7 +352,7 @@ RecordExtPassiveDNS *PassiveDNSPlugin::parse_dns(const char *data, unsigned int 
             if (list == nullptr) {
                list = rec;
             } else {
-               list->addExtension(rec);
+               list->add_extension(rec);
             }
          } else if (type == DNS_TYPE_PTR) {
             RecordExtPassiveDNS *rec = new RecordExtPassiveDNS();
@@ -401,7 +378,7 @@ RecordExtPassiveDNS *PassiveDNSPlugin::parse_dns(const char *data, unsigned int 
                if (list == nullptr) {
                   list = rec;
                } else {
-                  list->addExtension(rec);
+                  list->add_extension(rec);
                }
             }
          }
@@ -529,7 +506,7 @@ int PassiveDNSPlugin::add_ext_dns(const char *data, unsigned int payload_len, bo
 {
    RecordExt *tmp = parse_dns(data, payload_len, tcp);
    if (tmp != nullptr) {
-      rec.addExtension(tmp);
+      rec.add_extension(tmp);
    }
 
    return FLOW_FLUSH;

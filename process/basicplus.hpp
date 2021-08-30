@@ -54,13 +54,33 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/byte-utils.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+#define BASICPLUS_UNIREC_TEMPLATE \
+   "IP_TTL,IP_TTL_REV,IP_FLG,IP_FLG_REV,TCP_WIN,TCP_WIN_REV,TCP_OPT,TCP_OPT_REV,TCP_MSS,TCP_MSS_REV,TCP_SYN_SIZE"
+
+UR_FIELDS (
+   uint8 IP_TTL,
+   uint8 IP_TTL_REV,
+   uint8 IP_FLG,
+   uint8 IP_FLG_REV,
+   uint16 TCP_WIN,
+   uint16 TCP_WIN_REV,
+   uint64 TCP_OPT,
+   uint64 TCP_OPT_REV,
+   uint32 TCP_MSS,
+   uint32 TCP_MSS_REV,
+   uint16 TCP_SYN_SIZE
+)
 
 /**
  * \brief Flow record extension header for storing parsed BASICPLUS packets.
  */
 struct RecordExtBASICPLUS : RecordExt {
+   static int REGISTERED_ID;
+
    uint8_t  ip_ttl[2];
    uint8_t  ip_flg[2];
    uint16_t tcp_win[2];
@@ -70,7 +90,7 @@ struct RecordExtBASICPLUS : RecordExt {
 
    bool     dst_filled;
 
-   RecordExtBASICPLUS() : RecordExt(basicplus)
+   RecordExtBASICPLUS() : RecordExt(REGISTERED_ID)
    {
       ip_ttl[0]    = 0;
       ip_ttl[1]    = 0;
@@ -88,7 +108,7 @@ struct RecordExtBASICPLUS : RecordExt {
    }
 
    #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_set(tmplt, record, F_IP_TTL, ip_ttl[0]);
       ur_set(tmplt, record, F_IP_TTL_REV, ip_ttl[1]);
@@ -103,9 +123,13 @@ struct RecordExtBASICPLUS : RecordExt {
       ur_set(tmplt, record, F_TCP_SYN_SIZE, tcp_syn_size);
    }
 
+   const char *get_unirec_tmplt() const
+   {
+      return BASICPLUS_UNIREC_TEMPLATE;
+   }
    #endif // ifdef WITH_NEMEA
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       if (size < 34) {
          return -1;
@@ -125,6 +149,15 @@ struct RecordExtBASICPLUS : RecordExt {
 
       return 34;
    }
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_tmplt[] = {
+         IPFIX_BASICPLUS_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+      return ipfix_tmplt;
+   }
 };
 
 /**
@@ -139,9 +172,7 @@ public:
    void close();
    OptionsParser *get_parser() const { return new OptionsParser("basicplus", "Extend basic fields with TTL, TCP window, options, MSS and SYN size"); }
    std::string get_name() const { return "basicplus"; }
-   int get_ext_id() const { return basicplus; }
-   const char **get_ipfix_tmplt();
-   std::string get_unirec_tmplt();
+   RecordExt *get_ext() const { return new RecordExtBASICPLUS(); }
    ProcessPlugin *copy();
 
    int post_create(Flow &rec, const Packet &pkt);

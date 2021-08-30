@@ -36,6 +36,7 @@
  * if advised of the possibility of such damage.
 */
 
+#include <config.h>
 #include <vector>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +49,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <endian.h>
-#include <config.h>
+#include <memory>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -206,20 +207,24 @@ void IPFIXExporter::init(const char *params, Plugins &plugins)
 {
    init(params);
 
-   for (int i = 0; i < EXTENSION_CNT; i++) {
-      templateFields[i] = nullptr;
+   extension_cnt = get_extension_cnt();
+   extensions = new RecordExt*[extension_cnt];
+   for (int i = 0; i < extension_cnt; i++) {
+      extensions[i] = nullptr;
    }
    for (auto &it : plugins) {
       std::string name = it.first;
       ProcessPlugin *plugin = it.second;
-      int ext_type_id = plugin->get_ext_id();
-      if (ext_type_id > 64) {
-         throw PluginError("detected plugin ID >64");
-      } else if (ext_type_id >= EXTENSION_CNT) {
-         throw PluginError("detected plugin ID larger than number of extensions");
-      } else if (ext_type_id >= 0) {
-         templateFields[ext_type_id] = plugin->get_ipfix_tmplt();
+      RecordExt *ext = plugin->get_ext();
+      if (ext == nullptr) {
+         continue;
       }
+      if (ext->m_ext_id > 64) {
+         throw PluginError("detected plugin ID >64");
+      } else if (ext->m_ext_id >= extension_cnt) {
+         throw PluginError("detected plugin ID larger than number of extensions");
+      }
+      delete ext;
    }
 }
 
@@ -246,74 +251,83 @@ void IPFIXExporter::close()
       free(packetDataBuffer);
       packetDataBuffer = nullptr;
    }
+   if (extensions != nullptr) {
+      delete [] extensions;
+      extensions = nullptr;
+   }
 }
 
-static_assert(EXTENSION_CNT <= 64, "Extension count is supported up to 64 extensions for now.");
 uint64_t IPFIXExporter::get_template_id(const Record &flow)
 {
-   RecordExt *ext = flow.exts;
+   RecordExt *ext = flow.m_exts;
    uint64_t tmpltIdx = 0;
    while (ext != nullptr) {
-      tmpltIdx |= ((uint64_t) 1 << ext->extType);
-      ext = ext->next;
+      tmpltIdx |= ((uint64_t) 1 << ext->m_ext_id);
+      ext = ext->m_next;
    }
 
    return tmpltIdx;
-}
-
-std::vector<const char *> IPFIXExporter::get_template_fields(uint64_t tmpltId)
-{
-   std::vector<const char *> fields;
-   uint64_t mask = 1;
-   int i = 0;
-   while (mask <= tmpltId) {
-      if (tmpltId & mask) {
-         const char **field = templateFields[i];
-         if (field == nullptr) {
-            throw PluginError("missing template fields for extension with ID " + std::to_string(i));
-         }
-         while (*field != nullptr) {
-            fields.push_back(*field);
-            field++;
-         }
-      }
-      mask <<= 1;
-      i++;
-   }
-   fields.push_back(nullptr);
-   return fields;
 }
 
 template_t *IPFIXExporter::get_template(const Flow &flow)
 {
    int ipTmpltIdx = flow.ip_version == 6 ? TMPLT_IDX_V6 : TMPLT_IDX_V4;
    uint64_t tmpltIdx = get_template_id(flow);
+
    if (tmpltMap[ipTmpltIdx].find(tmpltIdx) == tmpltMap[ipTmpltIdx].end()) {
-      std::vector<const char *> fields = get_template_fields(tmpltIdx);
-      tmpltMap[TMPLT_IDX_V4][tmpltIdx] = create_template(basic_tmplt_v4, fields.data());
-      tmpltMap[TMPLT_IDX_V6][tmpltIdx] = create_template(basic_tmplt_v6, fields.data());
+      std::vector<const char *> all_fields;
+
+      RecordExt *ext = flow.m_exts;
+      while (ext != nullptr) {
+         if (ext->m_ext_id >= extension_cnt || ext->m_ext_id >= 64) {
+            throw PluginError("encountered invalid extension id");
+         }
+         extensions[ext->m_ext_id] = ext;
+         ext = ext->m_next;
+      }
+      for (int i = 0; i < extension_cnt; i++) {
+         if (extensions[i] == nullptr) {
+            continue;
+         }
+         const char **fields = extensions[i]->get_ipfix_tmplt();
+         extensions[i] = nullptr;
+         if (fields == nullptr) {
+            throw PluginError("missing template fields for extension with ID " + std::to_string(i));
+         }
+         while (*fields != nullptr) {
+            all_fields.push_back(*fields);
+            fields++;
+         }
+      }
+      all_fields.push_back(nullptr);
+
+      tmpltMap[TMPLT_IDX_V4][tmpltIdx] = create_template(basic_tmplt_v4, all_fields.data());
+      tmpltMap[TMPLT_IDX_V6][tmpltIdx] = create_template(basic_tmplt_v6, all_fields.data());
    }
 
    return tmpltMap[ipTmpltIdx][tmpltIdx];
 }
 
-int fill_extensions(RecordExt *ext, uint8_t *buffer, int size)
+int IPFIXExporter::fill_extensions(RecordExt *ext, uint8_t *buffer, int size)
 {
-   RecordExt *extensions[EXTENSION_CNT] = {0};
    int length = 0;
    int extCnt = 0;
    while (ext != nullptr) {
-      extensions[ext->extType] = ext;
+      extensions[ext->m_ext_id] = ext;
       extCnt++;
-      ext = ext->next;
+      ext = ext->m_next;
    }
    // TODO: export multiple extension header of same type
-   for (unsigned i = 0; i < EXTENSION_CNT; i++) {
+   for (int i = 0; i < extension_cnt; i++) {
       if (extensions[i] == nullptr) {
          continue;
       }
-      int length_ext = extensions[i]->fillIPFIX(buffer + length, size - length);
+      int length_ext = extensions[i]->fill_ipfix(buffer + length, size - length);
+      extensions[i] = nullptr;
       if (length_ext < 0) {
+         for (int j = i; j < extension_cnt; j++) {
+            extensions[j] = nullptr;
+         }
          return -1;
       }
       length += length_ext;
@@ -323,7 +337,7 @@ int fill_extensions(RecordExt *ext, uint8_t *buffer, int size)
 
 bool IPFIXExporter::fill_template(const Flow &flow, template_t *tmplt)
 {
-   RecordExt *ext = flow.exts;
+   RecordExt *ext = flow.m_exts;
    int length = 0;
 
    if (basic_ifc_num >= 0 && ext == nullptr) {

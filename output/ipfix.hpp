@@ -242,7 +242,8 @@ private:
       TMPLT_IDX_V6 = 1,
       TMPLT_MAP_IDX_CNT
    };
-   const char **templateFields[EXTENSION_CNT];
+   RecordExt **extensions;
+   int extension_cnt;
    std::map<uint64_t, template_t *> tmpltMap[TMPLT_MAP_IDX_CNT];
    template_t *templates; /**< Templates in use by plugin */
 	uint16_t templatesDataSize; /**< Total data size stored in templates */
@@ -287,9 +288,9 @@ private:
    int connect_to_collector();
    int reconnect();
    int fill_basic_flow(const Flow &flow, template_t *tmplt);
+   int fill_extensions(RecordExt *ext, uint8_t *buffer, int size);
 
    uint64_t get_template_id(const Record &flow);
-   std::vector<const char *> get_template_fields(uint64_t tmpltId);
    template_t *get_template(const Flow &flow);
    bool fill_template(const Flow &flow, template_t *tmplt);
    void flush();

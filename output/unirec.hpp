@@ -188,6 +188,7 @@ private:
    void free_unirec_resources();
 
    int m_basic_idx;         /**< Basic output interface number. */
+   size_t m_ext_cnt;        /**< Size of ifc map. */
    int *m_ifc_map;          /**< Contain extension id (as index) -> output interface number mapping. */
    UnirecOptParser::IfcPluginMap m_group_map; /**< Plugin groups mapping to interface number. */
 

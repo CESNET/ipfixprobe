@@ -44,9 +44,10 @@
 #include <iostream>
 
 #include "ssdp.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtSSDP::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
@@ -62,16 +63,6 @@ __attribute__((constructor)) static void register_this_plugin()
 #else
 #define SSDP_DEBUG_MSG(format, ...)
 #endif
-
-#define SSDP_UNIREC_TEMPLATE "SSDP_LOCATION_PORT,SSDP_NT,SSDP_SERVER,SSDP_ST,SSDP_USER_AGENT"
-
-UR_FIELDS (
-   uint16 SSDP_LOCATION_PORT,
-   string SSDP_NT,
-   string SSDP_SERVER,
-   string SSDP_ST,
-   string SSDP_USER_AGENT
-)
 
 enum header_types {
    LOCATION,
@@ -116,7 +107,7 @@ int SSDPPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.dst_port == 1900) {
       record = new RecordExtSSDP();
-      rec.addExtension(record);
+      rec.add_extension(record);
       record = nullptr;
 
       parse_ssdp_message(rec, pkt);
@@ -287,7 +278,7 @@ void SSDPPlugin::parse_ssdp_message(Flow &rec, const Packet &pkt)
    header_parser_conf parse_conf = {
       headers,
       rec.ip_version,
-      dynamic_cast<RecordExtSSDP *>(rec.getExtension(ssdp))
+      dynamic_cast<RecordExtSSDP *>(rec.get_extension(RecordExtSSDP::REGISTERED_ID))
    };
    char *data = (char *) pkt.payload;
 
@@ -308,21 +299,6 @@ void SSDPPlugin::parse_ssdp_message(Flow &rec, const Packet &pkt)
       parse_headers(data, parse_conf);
    }
    SSDP_DEBUG_MSG("\n");
-}
-
-const char *ipfix_ssdp_template[] = {
-   IPFIX_SSDP_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **SSDPPlugin::get_ipfix_tmplt()
-{
-   return ipfix_ssdp_template;
-}
-
-std::string SSDPPlugin::get_unirec_tmplt()
-{
-   return SSDP_UNIREC_TEMPLATE;
 }
 
 }

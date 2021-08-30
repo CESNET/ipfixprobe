@@ -66,48 +66,23 @@
 
 namespace ipxp {
 
-struct template_t;
-
 #define BASIC_PLUGIN_NAME "basic"
 
-/**
- * \brief Extension header type enum.
- */
-enum extTypeEnum {
-   http = 0,
-   rtsp,
-   tls,
-   dns,
-   sip,
-   ntp,
-   smtp,
-   passivedns,
-   pstats,
-   idpcontent,
-   ovpn,
-   ssdp,
-   dnssd,
-   netbios,
-   basicplus,
-   bstats,
-   phists,
-   wg,
-   /* Add extension header identifiers for your plugins here */
-   EXTENSION_CNT
-};
+int register_extension();
+int get_extension_cnt();
 
 /**
  * \brief Flow record extension base struct.
  */
 struct RecordExt {
-   RecordExt *next; /**< Pointer to next extension */
-   extTypeEnum extType; /**< Type of extension. */
+   RecordExt *m_next; /**< Pointer to next extension */
+   int m_ext_id; /**< Identifier of extension. */
 
    /**
     * \brief Constructor.
-    * \param [in] type Type of extension.
+    * \param [in] id ID of extension.
     */
-   RecordExt(extTypeEnum type) : next(nullptr), extType(type)
+   RecordExt(int id) : m_next(nullptr), m_ext_id(id)
    {
    }
 
@@ -117,27 +92,19 @@ struct RecordExt {
     * \param [in] tmplt Unirec template.
     * \param [out] record Pointer to the unirec record.
     */
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
    }
-#endif
 
    /**
-    * \brief Add extension at the end of linked list.
-    * \param [in] ext Extension to add.
+    * \brief Get unirec template string from plugin.
+    * \return Unirec template string.
     */
-   void addExtension(RecordExt *ext)
+   virtual const char *get_unirec_tmplt() const
    {
-      if (next == nullptr) {
-         next = ext;
-      } else {
-         RecordExt *tmp = next;
-         while (tmp->next != nullptr) {
-            tmp = tmp->next;
-         }
-         tmp->next = ext;
-      }
+      return "";
    }
+#endif
 
    /**
     * \brief Fill IPFIX record with stored extension data.
@@ -145,9 +112,35 @@ struct RecordExt {
     * \param [in] size IPFIX template record buffer size.
     * \return Number of bytes written to buffer or -1 if data cannot be written.
     */
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       return 0;
+   }
+
+   /**
+    * \brief Register new unirec fields.
+    * \return Return unirec fields spec.
+    */
+   virtual const char **get_ipfix_tmplt() const
+   {
+      return nullptr;
+   }
+
+   /**
+    * \brief Add extension at the end of linked list.
+    * \param [in] ext Extension to add.
+    */
+   void add_extension(RecordExt *ext)
+   {
+      if (m_next == nullptr) {
+         m_next = ext;
+      } else {
+         RecordExt *tmp = m_next;
+         while (tmp->m_next != nullptr) {
+            tmp = tmp->m_next;
+         }
+         tmp->m_next = ext;
+      }
    }
 
    /**
@@ -155,45 +148,45 @@ struct RecordExt {
     */
    virtual ~RecordExt()
    {
-      if (next != nullptr) {
-         delete next;
+      if (m_next != nullptr) {
+         delete m_next;
       }
    }
 };
 
 struct Record {
-   RecordExt *exts; /**< Extension headers. */
+   RecordExt *m_exts; /**< Extension headers. */
 
    /**
     * \brief Add new extension header.
     * \param [in] ext Pointer to the extension header.
     */
-   void addExtension(RecordExt* ext)
+   void add_extension(RecordExt* ext)
    {
-      if (exts == nullptr) {
-         exts = ext;
+      if (m_exts == nullptr) {
+         m_exts = ext;
       } else {
-         RecordExt *ext_ptr = exts;
-         while (ext_ptr->next != nullptr) {
-            ext_ptr = ext_ptr->next;
+         RecordExt *ext_ptr = m_exts;
+         while (ext_ptr->m_next != nullptr) {
+            ext_ptr = ext_ptr->m_next;
          }
-         ext_ptr->next = ext;
+         ext_ptr->m_next = ext;
       }
    }
 
    /**
     * \brief Get given extension.
-    * \param [in] extType Type of extension.
+    * \param [in] id Type of extension.
     * \return Pointer to the requested extension or nullptr if extension is not present.
     */
-   RecordExt *getExtension(extTypeEnum extType)
+   RecordExt *get_extension(int id)
    {
-      RecordExt *ext_ptr = exts;
+      RecordExt *ext_ptr = m_exts;
       while (ext_ptr != nullptr) {
-         if (ext_ptr->extType == extType) {
+         if (ext_ptr->m_ext_id == id) {
             return ext_ptr;
          }
-         ext_ptr = ext_ptr->next;
+         ext_ptr = ext_ptr->m_next;
       }
       return nullptr;
    }
@@ -201,18 +194,18 @@ struct Record {
    /**
     * \brief Remove extension headers.
     */
-   void removeExtensions()
+   void remove_extensions()
    {
-      if (exts != nullptr) {
-         delete exts;
-         exts = nullptr;
+      if (m_exts != nullptr) {
+         delete m_exts;
+         m_exts = nullptr;
       }
    }
 
    /**
     * \brief Constructor.
     */
-   Record() : exts(nullptr)
+   Record() : m_exts(nullptr)
    {
    }
 
@@ -221,7 +214,7 @@ struct Record {
     */
    virtual ~Record()
    {
-      removeExtensions();
+      remove_extensions();
    }
 };
 

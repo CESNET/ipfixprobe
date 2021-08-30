@@ -48,6 +48,7 @@
 namespace ipxp {
 
 static PluginRecord *ipxp_plugins = nullptr;
+static int ipxp_ext_cnt = 0;
 
 void register_plugin(PluginRecord *rec)
 {
@@ -56,6 +57,16 @@ void register_plugin(PluginRecord *rec)
       tmp = &(*tmp)->m_next;
    }
    *tmp = rec;
+}
+
+int register_extension()
+{
+   return ipxp_ext_cnt++;
+}
+
+int get_extension_cnt()
+{
+   return ipxp_ext_cnt;
 }
 
 PluginManager::PluginManager() : m_last_rec(nullptr)

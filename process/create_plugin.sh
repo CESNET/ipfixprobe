@@ -85,12 +85,12 @@ struct RecordExt${PLUGIN_UPPER} : RecordExt {
    }
 
 #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
    }
 #endif
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       return 0;
    }
@@ -226,7 +226,7 @@ print_todo() {
    echo "3.1) Add unirec fields to the UR_FIELDS and ${PLUGIN_UPPER}_UNIREC_TEMPLATE macro in ${PLUGIN}.cpp"
    echo "3.2) Add IPFIX template macro 'IPFIX_${PLUGIN_UPPER}_TEMPLATE' to ipfixprobe/ipfix-elements.hpp"
    echo "3.3) Define IPFIX fields"
-   echo "3.4) Write function 'fillIPFIX' in ${PLUGIN}.hpp to fill fields to IPFIX message"
+   echo "3.4) Write function 'fill_ipfix' in ${PLUGIN}.hpp to fill fields to IPFIX message"
    echo "4) Do the final work in ${PLUGIN}.cpp and ${PLUGIN}.hpp files - implement pre_create, post_create, pre_update, post_update, pre_export and fill_unirec functions (also read and understand when these functions are called, info in ipfixprobe/output.hpp file)"
    echo "5) Be happy with your new awesome ${PLUGIN} plugin!"
    echo

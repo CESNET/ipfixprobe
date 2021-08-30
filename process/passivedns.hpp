@@ -55,14 +55,26 @@
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 #include "dns-utils.hpp"
 
 namespace ipxp {
+
+#define DNS_UNIREC_TEMPLATE "DNS_ID,DNS_ATYPE,DNS_NAME,DNS_RR_TTL,DNS_IP"
+
+UR_FIELDS (
+   uint16 DNS_ID,
+   uint16 DNS_ATYPE,
+   string DNS_NAME,
+   uint32 DNS_RR_TTL,
+   ipaddr DNS_IP
+)
 
 /**
  * \brief Flow record extension header for storing parsed DNS packets.
  */
 struct RecordExtPassiveDNS : RecordExt {
+   static int REGISTERED_ID;
    uint16_t atype;
    uint16_t id;
    uint8_t ip_version;
@@ -73,7 +85,7 @@ struct RecordExtPassiveDNS : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtPassiveDNS() : RecordExt(passivedns)
+   RecordExtPassiveDNS() : RecordExt(REGISTERED_ID)
    {
       id = 0;
       atype = 0;
@@ -83,7 +95,7 @@ struct RecordExtPassiveDNS : RecordExt {
    }
 
 #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_set(tmplt, record, F_DNS_ID, id);
       ur_set(tmplt, record, F_DNS_ATYPE, atype);
@@ -95,9 +107,14 @@ struct RecordExtPassiveDNS : RecordExt {
          ur_set(tmplt, record, F_DNS_IP, ip_from_16_bytes_be((char *) ip.v6));
       }
    }
+
+   const char *get_unirec_tmplt() const
+   {
+      return DNS_UNIREC_TEMPLATE;
+   }
 #endif
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       int length;
       int rdata_len = (ip_version == 4 ? 4 : 16);
@@ -121,6 +138,16 @@ struct RecordExtPassiveDNS : RecordExt {
 
       return length + rdata_len + 10;
    }
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_tmplt[] = {
+         IPFIX_PASSIVEDNS_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+
+      return ipfix_tmplt;
+   }
 };
 
 /**
@@ -135,9 +162,7 @@ public:
    void close();
    OptionsParser *get_parser() const { return new OptionsParser("passivedns", "Parse A, AAAA and PTR records from DNS traffic"); }
    std::string get_name() const { return "passivedns"; }
-   int get_ext_id() const { return passivedns; }
-   std::string get_unirec_tmplt();
-   const char **get_ipfix_tmplt();
+   RecordExt *get_ext() const { return new RecordExtPassiveDNS(); }
    ProcessPlugin *copy();
    int post_create(Flow &rec, const Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);

@@ -53,14 +53,16 @@
 #endif
 
 #include "dns.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtDNS::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("dns", [](){return new DNSPlugin();});
    register_plugin(&rec);
+   RecordExtDNS::REGISTERED_ID = register_extension();
 }
 
 //#define DEBUG_DNS
@@ -90,23 +92,6 @@ __attribute__((constructor)) static void register_this_plugin()
  * \brief Get offset from 2 byte pointer.
  */
 #define GET_OFFSET(half1, half2) ((((uint8_t)(half1) & 0x3F) << 8) | (uint8_t)(half2))
-
-#define DNS_UNIREC_TEMPLATE "DNS_ID,DNS_ANSWERS,DNS_RCODE,DNS_NAME,DNS_QTYPE,DNS_CLASS,DNS_RR_TTL,DNS_RLENGTH,DNS_RDATA,DNS_PSIZE,DNS_DO"
-
-UR_FIELDS (
-   uint16 DNS_ID,
-   uint16 DNS_ANSWERS,
-   uint8  DNS_RCODE,
-   string DNS_NAME,
-   uint16 DNS_QTYPE,
-   uint16 DNS_CLASS,
-   uint32 DNS_RR_TTL,
-   uint16 DNS_RLENGTH,
-   bytes DNS_RDATA,
-
-   uint16 DNS_PSIZE,
-   uint8  DNS_DO
-)
 
 DNSPlugin::DNSPlugin() : queries(0), responses(0), total(0)
 {
@@ -142,7 +127,7 @@ int DNSPlugin::post_create(Flow &rec, const Packet &pkt)
 int DNSPlugin::post_update(Flow &rec, const Packet &pkt)
 {
    if (pkt.dst_port == 53 || pkt.src_port == 53) {
-      RecordExt *ext = rec.getExtension(dns);
+      RecordExt *ext = rec.get_extension(RecordExtDNS::REGISTERED_ID);
       if (ext == nullptr) {
          return add_ext_dns(pkt.payload, pkt.payload_length, pkt.ip_proto == IPPROTO_TCP, rec);
       } else {
@@ -162,21 +147,6 @@ void DNSPlugin::finish(bool print_stats)
       std::cout << "   Parsed dns responses: " << responses << std::endl;
       std::cout << "   Total dns packets processed: " << total << std::endl;
    }
-}
-
-std::string DNSPlugin::get_unirec_tmplt()
-{
-   return DNS_UNIREC_TEMPLATE;
-}
-
-const char *dns_ipfix_string[] = {
-   IPFIX_DNS_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **DNSPlugin::get_ipfix_tmplt()
-{
-   return dns_ipfix_string;
 }
 
 /**
@@ -715,7 +685,7 @@ int DNSPlugin::add_ext_dns(const char *data, unsigned int payload_len, bool tcp,
       delete ext;
       return 0;
    } else {
-      rec.addExtension(ext);
+      rec.add_extension(ext);
    }
    return FLOW_FLUSH;
 }

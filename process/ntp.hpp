@@ -56,8 +56,27 @@
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+#define NTP_UNIREC_TEMPLATE  "NTP_LEAP,NTP_VERSION,NTP_MODE,NTP_STRATUM,NTP_POLL,NTP_PRECISION,NTP_DELAY,NTP_DISPERSION,NTP_REF_ID,NTP_REF,NTP_ORIG,NTP_RECV,NTP_SENT"
+
+UR_FIELDS (
+   uint8 NTP_LEAP,
+   uint8 NTP_VERSION
+   uint8 NTP_MODE,
+   uint8 NTP_STRATUM,
+   uint8 NTP_POLL,
+   uint8 NTP_PRECISION,
+   uint32 NTP_DELAY,
+   uint32 NTP_DISPERSION,
+   string NTP_REF_ID,
+   string NTP_REF,
+   string NTP_ORIG,
+   string NTP_RECV,
+   string NTP_SENT
+)
 
 #define NTP_FIELD_IP 16
 #define NTP_FIELD_LEN64 30
@@ -76,6 +95,8 @@ const char OTHER[] = "OTHER"; /*OTHER Value of NTP reference ID*/
  *\brief Flow record extension header for storing NTP fields.
  */
 struct RecordExtNTP : RecordExt {
+   static int REGISTERED_ID;
+
    uint8_t leap;
    uint8_t version;
    uint8_t mode;
@@ -93,7 +114,7 @@ struct RecordExtNTP : RecordExt {
    /**
          *\brief Constructor.
    */
-   RecordExtNTP() : RecordExt(ntp)
+   RecordExtNTP() : RecordExt(REGISTERED_ID)
    {
       leap = 9;
       version = 9;
@@ -111,7 +132,7 @@ struct RecordExtNTP : RecordExt {
    }
 
 #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_set(tmplt, record, F_NTP_LEAP, leap);
       ur_set(tmplt, record, F_NTP_VERSION, version);
@@ -127,9 +148,14 @@ struct RecordExtNTP : RecordExt {
       ur_set_string(tmplt, record, F_NTP_RECV, receive);
       ur_set_string(tmplt, record, F_NTP_SENT, sent);
    }
+
+   const char *get_unirec_tmplt() const
+   {
+      return NTP_UNIREC_TEMPLATE;
+   }
 #endif
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       int length, total_length = 14;
 
@@ -187,6 +213,16 @@ struct RecordExtNTP : RecordExt {
 
       return total_length;
    }
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_tmplt[] = {
+         IPFIX_NTP_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+
+      return ipfix_tmplt;
+   }
 };
 
 /**
@@ -201,9 +237,7 @@ public:
    void close();
    OptionsParser *get_parser() const { return new OptionsParser("ntp", "Parse NTP traffic"); }
    std::string get_name() const { return "ntp"; }
-   int get_ext_id() const { return ntp; }
-   std::string get_unirec_tmplt();
-   const char **get_ipfix_tmplt();
+   RecordExt *get_ext() const { return new RecordExtNTP(); }
    ProcessPlugin *copy();
 
    int post_create(Flow &rec, const Packet &pkt);

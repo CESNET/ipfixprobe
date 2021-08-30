@@ -74,7 +74,7 @@ FlowRecord::~FlowRecord()
 
 void FlowRecord::erase()
 {
-   m_flow.removeExtensions();
+   m_flow.remove_extensions();
    m_hash = 0;
 
    memset(&m_flow.time_first, 0, sizeof(m_flow.time_first));
@@ -94,7 +94,7 @@ void FlowRecord::erase()
 }
 void FlowRecord::reuse()
 {
-   m_flow.removeExtensions();
+   m_flow.remove_extensions();
    m_flow.time_first = m_flow.time_last;
    m_flow.src_pkt_total_cnt = 0;
    m_flow.dst_pkt_total_cnt = 0;
@@ -285,7 +285,7 @@ void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int ret, bool source_fl
       m_flow_table[m_cache_size + m_qidx]->m_flow.end_reason = FLOW_END_FORCED;
       ipx_ring_push(m_export_queue, &m_flow_table[m_cache_size + m_qidx]->m_flow);
       m_qidx = (m_qidx + 1) % m_qsize;
-      flow->m_flow.exts = nullptr;
+      flow->m_flow.m_exts = nullptr;
 
       flow->reuse(); // Clean counters, set time first to last
       flow->update(pkt, source_flow); // Set new counters from packet

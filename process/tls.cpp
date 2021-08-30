@@ -50,15 +50,17 @@
 #include <stdio.h>
 
 #include "tls.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 #include "md5.hpp"
 
 namespace ipxp {
+
+int RecordExtTLS::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("tls", [](){return new TLSPlugin();});
    register_plugin(&rec);
+   RecordExtTLS::REGISTERED_ID = register_extension();
 }
 
 //#define DEBUG_TLS
@@ -76,13 +78,6 @@ __attribute__((constructor)) static void register_this_plugin()
 #else
 # define DEBUG_CODE(code)
 #endif
-
-#define TLS_UNIREC_TEMPLATE "TLS_SNI,TLS_JA3"
-
-UR_FIELDS(
-   string TLS_SNI,
-   bytes TLS_JA3
-)
 
 TLSPlugin::TLSPlugin() : ext_ptr(nullptr), parsed_sni(0), flow_flush(false)
 {
@@ -118,7 +113,7 @@ int TLSPlugin::post_create(Flow &rec, const Packet &pkt)
 
 int TLSPlugin::pre_update(Flow &rec, Packet &pkt)
 {
-   RecordExt *ext = rec.getExtension(tls);
+   RecordExt *ext = rec.get_extension(RecordExtTLS::REGISTERED_ID);
 
    if (ext != nullptr) {
       return 0;
@@ -284,8 +279,8 @@ void TLSPlugin::get_tls_server_name(payload_data &data, RecordExtTLS *rec)
       }
       if (rec->sni[0] != 0) {
          RecordExtTLS *tmp_rec = new RecordExtTLS();
-         rec->next = tmp_rec;
-         rec       = tmp_rec;
+         rec->m_next = tmp_rec;
+         rec         = tmp_rec;
       }
       if (sni_len + (size_t) 1 > sizeof(rec->sni)) {
          sni_len = sizeof(rec->sni) - 1;
@@ -356,7 +351,7 @@ void TLSPlugin::add_tls_record(Flow &rec, const Packet &pkt)
    }
 
    if (parse_tls(pkt.payload, pkt.payload_length, ext_ptr)) {
-      rec.addExtension(ext_ptr);
+      rec.add_extension(ext_ptr);
       ext_ptr = nullptr;
    }
 }
@@ -367,21 +362,6 @@ void TLSPlugin::finish(bool print_stats)
       std::cout << "TLS plugin stats:" << std::endl;
       std::cout << "   Parsed SNI: " << parsed_sni << std::endl;
    }
-}
-
-const char *ipfix_tls_template[] = {
-   IPFIX_TLS_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **TLSPlugin::get_ipfix_tmplt()
-{
-   return ipfix_tls_template;
-}
-
-std::string TLSPlugin::get_unirec_tmplt()
-{
-   return TLS_UNIREC_TEMPLATE;
 }
 
 }

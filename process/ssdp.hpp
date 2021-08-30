@@ -54,6 +54,7 @@
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
 
@@ -61,10 +62,22 @@ namespace ipxp {
 #define SSDP_SERVER_LEN 255
 #define SSDP_USER_AGENT_LEN 255
 
+#define SSDP_UNIREC_TEMPLATE "SSDP_LOCATION_PORT,SSDP_NT,SSDP_SERVER,SSDP_ST,SSDP_USER_AGENT"
+
+UR_FIELDS (
+   uint16 SSDP_LOCATION_PORT,
+   string SSDP_NT,
+   string SSDP_SERVER,
+   string SSDP_ST,
+   string SSDP_USER_AGENT
+)
+
 /**
  * \brief Flow record extension header for storing parsed SSDP packets.
  */
 struct RecordExtSSDP : RecordExt {
+   static int REGISTERED_ID;
+
    uint16_t port;
    char nt[SSDP_URN_LEN];
    char st[SSDP_URN_LEN];
@@ -74,7 +87,7 @@ struct RecordExtSSDP : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtSSDP() : RecordExt(ssdp)
+   RecordExtSSDP() : RecordExt(REGISTERED_ID)
    {
       port = 0;
       nt[0] = 0;
@@ -84,7 +97,7 @@ struct RecordExtSSDP : RecordExt {
    }
 
 #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_set(tmplt, record, F_SSDP_LOCATION_PORT, port);
       ur_set_string(tmplt, record, F_SSDP_NT, nt);
@@ -92,9 +105,14 @@ struct RecordExtSSDP : RecordExt {
       ur_set_string(tmplt, record, F_SSDP_ST, st);
       ur_set_string(tmplt, record, F_SSDP_USER_AGENT, user_agent);
    }
+
+   const char *get_unirec_tmplt() const
+   {
+      return SSDP_UNIREC_TEMPLATE;
+   }
 #endif
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       int length = 2;
 
@@ -139,6 +157,16 @@ struct RecordExtSSDP : RecordExt {
 
       return length;
    }
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_tmplt[] = {
+         IPFIX_SSDP_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+
+      return ipfix_tmplt;
+   }
 };
 
 /**
@@ -153,10 +181,9 @@ public:
    void close();
    OptionsParser *get_parser() const { return new OptionsParser("ssdp", "Parse SSDP traffic"); }
    std::string get_name() const { return "ssdp"; }
-   int get_ext_id() const { return ssdp; }
-   const char **get_ipfix_tmplt();
-   std::string get_unirec_tmplt();
+   RecordExt *get_ext() const { return new RecordExtSSDP(); }
    ProcessPlugin *copy();
+
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    void finish(bool print_stats);

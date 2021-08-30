@@ -59,9 +59,17 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/options.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 #include "dns-utils.hpp"
 
 namespace ipxp {
+
+#define DNSSD_UNIREC_TEMPLATE "DNSSD_QUERIES,DNSSD_RESPONSES"
+
+UR_FIELDS (
+   string DNSSD_QUERIES
+   string DNSSD_RESPONSES
+)
 
 class DNSSDOptParser : public OptionsParser
 {
@@ -105,13 +113,15 @@ struct DnsSdRr {
  * \brief Flow record extension header for storing parsed DNSSD packets.
  */
 struct RecordExtDNSSD : RecordExt {
+   static int REGISTERED_ID;
+
    std::list<std::string> queries;
    std::list<DnsSdRr> responses;
 
    /**
     * \brief Constructor.
     */
-   RecordExtDNSSD() : RecordExt(dnssd)
+   RecordExtDNSSD() : RecordExt(REGISTERED_ID)
    {
    }
 
@@ -186,14 +196,19 @@ struct RecordExtDNSSD : RecordExt {
    }
 
 #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_set_string(tmplt, record, F_DNSSD_QUERIES, queries_to_string(std::string::npos).c_str());
       ur_set_string(tmplt, record, F_DNSSD_RESPONSES, responses_to_string(std::string::npos).c_str());
    }
+
+   const char *get_unirec_tmplt() const
+   {
+      return DNSSD_UNIREC_TEMPLATE;
+   }
 #endif
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       std::string queries = queries_to_string(510);
       std::string responses = responses_to_string(510);
@@ -228,6 +243,16 @@ struct RecordExtDNSSD : RecordExt {
 
       return length;
    }
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_tmplt[] = {
+         IPFIX_DNSSD_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+
+      return ipfix_tmplt;
+   }
 };
 
 /**
@@ -242,9 +267,7 @@ public:
    void close();
    OptionsParser *get_parser() const { return new DNSSDOptParser(); }
    std::string get_name() const { return "dnssd"; }
-   int get_ext_id() const { return dnssd; }
-   const char **get_ipfix_tmplt();
-   std::string get_unirec_tmplt();
+   RecordExt *get_ext() const { return new RecordExtDNSSD(); }
    ProcessPlugin *copy();
 
    int post_create(Flow &rec, const Packet &pkt);

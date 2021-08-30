@@ -55,14 +55,16 @@
 #include <errno.h>
 
 #include "dnssd.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtDNSSD::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("dnssd", [](){return new DNSSDPlugin();});
    register_plugin(&rec);
+   RecordExtDNSSD::REGISTERED_ID = register_extension();
 }
 
 // #define DEBUG_DNSSD
@@ -92,13 +94,6 @@ __attribute__((constructor)) static void register_this_plugin()
  * \brief Get offset from 2 byte pointer.
  */
 #define GET_OFFSET(half1, half2) ((((uint8_t)(half1) & 0x3F) << 8) | (uint8_t)(half2))
-
-#define DNSSD_UNIREC_TEMPLATE "DNSSD_QUERIES,DNSSD_RESPONSES"
-
-UR_FIELDS (
-   string DNSSD_QUERIES
-   string DNSSD_RESPONSES
-)
 
 DNSSDPlugin::DNSSDPlugin() : txt_all_records(false), queries(0), responses(0), total(0)
 {
@@ -144,7 +139,7 @@ int DNSSDPlugin::post_create(Flow &rec, const Packet &pkt)
 int DNSSDPlugin::post_update(Flow &rec, const Packet &pkt)
 {
    if (pkt.dst_port == 5353 || pkt.src_port == 5353) {
-      RecordExt *ext = rec.getExtension(dnssd);
+      RecordExt *ext = rec.get_extension(RecordExtDNSSD::REGISTERED_ID);
 
       if (ext == nullptr) {
          return add_ext_dnssd(pkt.payload, pkt.payload_length, pkt.ip_proto == IPPROTO_TCP, rec);
@@ -166,21 +161,6 @@ void DNSSDPlugin::finish(bool print_stats)
       std::cout << "   Parsed dns responses: " << responses << std::endl;
       std::cout << "   Total dns packets processed: " << total << std::endl;
    }
-}
-
-std::string DNSSDPlugin::get_unirec_tmplt()
-{
-   return DNSSD_UNIREC_TEMPLATE;
-}
-
-const char *ipfix_dnssd_template[] = {
-   IPFIX_DNSSD_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **DNSSDPlugin::get_ipfix_tmplt()
-{
-   return ipfix_dnssd_template;
 }
 
 /**
@@ -720,7 +700,7 @@ int DNSSDPlugin::add_ext_dnssd(const char *data, unsigned int payload_len, bool 
 
       return 0;
    } else {
-      rec.addExtension(ext);
+      rec.add_extension(ext);
    }
    return 0;
 }

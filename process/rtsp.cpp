@@ -50,14 +50,16 @@
 #endif
 
 #include "rtsp.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtRTSP::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("rtsp", [](){return new RTSPPlugin();});
    register_plugin(&rec);
+   RecordExtRTSP::REGISTERED_ID = register_extension();
 }
 
 //#define DEBUG_RTSP
@@ -76,19 +78,8 @@ __attribute__((constructor)) static void register_this_plugin()
 #define DEBUG_CODE(code)
 #endif
 
-#define RTSP_UNIREC_TEMPLATE "RTSP_REQUEST_METHOD,RTSP_REQUEST_AGENT,RTSP_REQUEST_URI,RTSP_RESPONSE_STATUS_CODE,RTSP_RESPONSE_SERVER,RTSP_RESPONSE_CONTENT_TYPE"
 #define RTSP_LINE_DELIMITER   '\n'
 #define RTSP_KEYVAL_DELIMITER ':'
-
-UR_FIELDS (
-   string RTSP_REQUEST_METHOD,
-   string RTSP_REQUEST_AGENT,
-   string RTSP_REQUEST_URI,
-
-   uint16 RTSP_RESPONSE_STATUS_CODE,
-   string RTSP_RESPONSE_SERVER,
-   string RTSP_RESPONSE_CONTENT_TYPE
-)
 
 RTSPPlugin::RTSPPlugin() : recPrealloc(nullptr), flow_flush(false),
    requests(0), responses(0), total(0)
@@ -132,7 +123,7 @@ int RTSPPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    RecordExt *ext = nullptr;
    if (is_request(pkt.payload, pkt.payload_length)) {
-      ext = rec.getExtension(rtsp);
+      ext = rec.get_extension(RecordExtRTSP::REGISTERED_ID);
       if (ext == nullptr) { /* Check if header is present in flow. */
          add_ext_rtsp_request(pkt.payload, pkt.payload_length, rec);
          return 0;
@@ -144,7 +135,7 @@ int RTSPPlugin::pre_update(Flow &rec, Packet &pkt)
          return FLOW_FLUSH_WITH_REINSERT;
       }
    } else if (is_response(pkt.payload, pkt.payload_length)) {
-      ext = rec.getExtension(rtsp);
+      ext = rec.get_extension(RecordExtRTSP::REGISTERED_ID);
       if (ext == nullptr) { /* Check if header is present in flow. */
          add_ext_rtsp_response(pkt.payload, pkt.payload_length, rec);
          return 0;
@@ -168,21 +159,6 @@ void RTSPPlugin::finish(bool print_stats)
       std::cout << "   Parsed rtsp responses: " << responses << std::endl;
       std::cout << "   Total rtsp packets processed: " << total << std::endl;
    }
-}
-
-std::string RTSPPlugin::get_unirec_tmplt()
-{
-   return RTSP_UNIREC_TEMPLATE;
-}
-
-const char *ipfix_rtsp_template[] = {
-   IPFIX_RTSP_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **RTSPPlugin::get_ipfix_tmplt()
-{
-   return ipfix_rtsp_template;
 }
 
 bool RTSPPlugin::is_request(const char *data, int payload_len)
@@ -487,7 +463,7 @@ void RTSPPlugin::add_ext_rtsp_request(const char *data, int payload_len, Flow &f
    }
 
    if (parse_rtsp_request(data, payload_len, recPrealloc)) {
-      flow.addExtension(recPrealloc);
+      flow.add_extension(recPrealloc);
       recPrealloc = nullptr;
    }
 }
@@ -505,7 +481,7 @@ void RTSPPlugin::add_ext_rtsp_response(const char *data, int payload_len, Flow &
    }
 
    if (parse_rtsp_response(data, payload_len, recPrealloc)) {
-      flow.addExtension(recPrealloc);
+      flow.add_extension(recPrealloc);
       recPrealloc = nullptr;
    }
 }

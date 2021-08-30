@@ -51,14 +51,16 @@
 #endif
 
 #include "http.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtHTTP::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("http", [](){return new HTTPPlugin();});
    register_plugin(&rec);
+   RecordExtHTTP::REGISTERED_ID = register_extension();
 }
 
 //#define DEBUG_HTTP
@@ -77,20 +79,8 @@ __attribute__((constructor)) static void register_this_plugin()
 #define DEBUG_CODE(code)
 #endif
 
-#define HTTP_UNIREC_TEMPLATE  "HTTP_REQUEST_METHOD,HTTP_REQUEST_HOST,HTTP_REQUEST_URL,HTTP_REQUEST_AGENT,HTTP_REQUEST_REFERER,HTTP_RESPONSE_STATUS_CODE,HTTP_RESPONSE_CONTENT_TYPE"
 #define HTTP_LINE_DELIMITER   "\r\n"
 #define HTTP_KEYVAL_DELIMITER ':'
-
-UR_FIELDS (
-   string HTTP_REQUEST_METHOD,
-   string HTTP_REQUEST_HOST,
-   string HTTP_REQUEST_URL,
-   string HTTP_REQUEST_AGENT,
-   string HTTP_REQUEST_REFERER,
-
-   uint16 HTTP_RESPONSE_STATUS_CODE,
-   string HTTP_RESPONSE_CONTENT_TYPE
-)
 
 HTTPPlugin::HTTPPlugin() : recPrealloc(nullptr), flow_flush(false), requests(0), responses(0), total(0)
 {
@@ -133,7 +123,7 @@ int HTTPPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    RecordExt *ext = nullptr;
    if (is_request(pkt.payload, pkt.payload_length)) {
-      ext = rec.getExtension(http);
+      ext = rec.get_extension(RecordExtHTTP::REGISTERED_ID);
       if (ext == nullptr) { /* Check if header is present in flow. */
          add_ext_http_request(pkt.payload, pkt.payload_length, rec);
          return 0;
@@ -145,7 +135,7 @@ int HTTPPlugin::pre_update(Flow &rec, Packet &pkt)
          return FLOW_FLUSH_WITH_REINSERT;
       }
    } else if (is_response(pkt.payload, pkt.payload_length)) {
-      ext = rec.getExtension(http);
+      ext = rec.get_extension(RecordExtHTTP::REGISTERED_ID);
       if (ext == nullptr) { /* Check if header is present in flow. */
          add_ext_http_response(pkt.payload, pkt.payload_length, rec);
          return 0;
@@ -169,21 +159,6 @@ void HTTPPlugin::finish(bool print_stats)
       std::cout << "   Parsed http responses: " << responses << std::endl;
       std::cout << "   Total http packets processed: " << total << std::endl;
    }
-}
-
-std::string HTTPPlugin::get_unirec_tmplt()
-{
-   return HTTP_UNIREC_TEMPLATE;
-}
-
-const char *ipfix_http_template[] = {
-   IPFIX_HTTP_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **HTTPPlugin::get_ipfix_tmplt()
-{
-   return ipfix_http_template;
 }
 
 /**
@@ -524,7 +499,7 @@ void HTTPPlugin::add_ext_http_request(const char *data, int payload_len, Flow &f
    }
 
    if (parse_http_request(data, payload_len, recPrealloc)) {
-      flow.addExtension(recPrealloc);
+      flow.add_extension(recPrealloc);
       recPrealloc = nullptr;
    }
 }
@@ -542,7 +517,7 @@ void HTTPPlugin::add_ext_http_response(const char *data, int payload_len, Flow &
    }
 
    if (parse_http_response(data, payload_len, recPrealloc)) {
-      flow.addExtension(recPrealloc);
+      flow.add_extension(recPrealloc);
       recPrealloc = nullptr;
    }
 }

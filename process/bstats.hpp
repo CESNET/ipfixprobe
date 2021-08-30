@@ -56,6 +56,7 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/ipfix-basiclist.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
 
@@ -67,6 +68,20 @@ namespace ipxp {
                                       // maximal time between consecutive in-burst packets
 #define BSTATS_SOURCE            0
 #define BSTATS_DEST              1
+
+#define BSTATS_UNIREC_TEMPLATE "SBI_BRST_PACKETS,SBI_BRST_BYTES,SBI_BRST_TIME_START,SBI_BRST_TIME_STOP,\
+                                DBI_BRST_PACKETS,DBI_BRST_BYTES,DBI_BRST_TIME_START,DBI_BRST_TIME_STOP"
+
+UR_FIELDS(
+   uint32* SBI_BRST_BYTES,
+   uint32* SBI_BRST_PACKETS,
+   time* SBI_BRST_TIME_START,
+   time* SBI_BRST_TIME_STOP,
+   uint32* DBI_BRST_PACKETS,
+   uint32* DBI_BRST_BYTES,
+   time* DBI_BRST_TIME_START,
+   time* DBI_BRST_TIME_STOP
+)
 
 /**
  * \brief Flow record extension header for storing parsed BSTATS packets.
@@ -83,6 +98,7 @@ struct RecordExtBSTATS : RecordExt {
       DStop  = 1057
    } eHdrFieldID;
 
+   static int REGISTERED_ID;
 
    uint16_t       burst_count[2];
    uint8_t        burst_empty[2];
@@ -92,7 +108,7 @@ struct RecordExtBSTATS : RecordExt {
    struct timeval brst_start[2][BSTATS_MAXELENCOUNT];
    struct timeval brst_end[2][BSTATS_MAXELENCOUNT];
 
-   RecordExtBSTATS() : RecordExt(bstats)
+   RecordExtBSTATS() : RecordExt(REGISTERED_ID)
    {
       memset(burst_count, 0, 2 * sizeof(uint16_t));
       memset(burst_empty, 0, 2 * sizeof(uint8_t));
@@ -101,7 +117,7 @@ struct RecordExtBSTATS : RecordExt {
    }
 
    #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_time_t ts_start, ts_stop;
 
@@ -133,9 +149,13 @@ struct RecordExtBSTATS : RecordExt {
       }
    }
 
+   const char *get_unirec_tmplt() const
+   {
+      return BSTATS_UNIREC_TEMPLATE;
+   }
    #endif // ifdef WITH_NEMEA
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       int32_t bufferPtr;
       IpfixBasicList basiclist;
@@ -173,6 +193,15 @@ struct RecordExtBSTATS : RecordExt {
 
       return bufferPtr;
    }
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_tmplt[] = {
+         IPFIX_BSTATS_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+      return ipfix_tmplt;
+   }
 };
 
 /**
@@ -187,9 +216,7 @@ public:
    void close();
    OptionsParser *get_parser() const { return new OptionsParser("bstats", "Compute packet bursts stats"); }
    std::string get_name() const { return "bstats"; }
-   int get_ext_id() const { return bstats; }
-   const char **get_ipfix_tmplt();
-   std::string get_unirec_tmplt();
+   RecordExt *get_ext() const { return new RecordExtBSTATS(); }
    ProcessPlugin *copy();
 
    int pre_create(Packet &pkt);

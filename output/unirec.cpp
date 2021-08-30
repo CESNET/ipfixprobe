@@ -183,11 +183,12 @@ void UnirecExporter::init(const char *params)
    dir_bit_field = parser.m_dir;
    m_group_map = parser.m_ifc_map;
    m_ifc_cnt = init_trap(parser.m_ifc, parser.m_verbose);
+   m_ext_cnt = get_extension_cnt();
 
    try {
       m_tmplts = new ur_template_t*[m_ifc_cnt];
       m_records = new void*[m_ifc_cnt];
-      m_ifc_map = new int[EXTENSION_CNT];
+      m_ifc_map = new int[m_ext_cnt];
    } catch (std::bad_alloc &e) {
       throw PluginError("not enough memory");
    }
@@ -195,7 +196,7 @@ void UnirecExporter::init(const char *params)
       m_tmplts[i] = nullptr;
       m_records[i] = nullptr;
    }
-   for (size_t i = 0; i < EXTENSION_CNT; i++) {
+   for (size_t i = 0; i < m_ext_cnt; i++) {
       m_ifc_map[i] = -1;
    }
 }
@@ -269,8 +270,10 @@ void UnirecExporter::init(const char *params, Plugins &plugins)
       // Create output template string and extension->ifc map
       std::string tmplt_str = basic_tmplt;
       for (auto &p : plugin_group) {
-         tmplt_str += std::string(",") + p->get_unirec_tmplt();
-         int ext_id = p->get_ext_id();
+         RecordExt *ext = p->get_ext();
+         tmplt_str += std::string(",") + ext->get_unirec_tmplt();
+         int ext_id = ext->m_ext_id;
+         delete ext;
          if (ext_id < 0) {
             continue;
          }
@@ -340,7 +343,7 @@ void UnirecExporter::free_unirec_resources()
 
 int UnirecExporter::export_flow(const Flow &flow)
 {
-   RecordExt *ext = flow.exts;
+   RecordExt *ext = flow.m_exts;
    ur_template_t *tmplt_ptr = nullptr;
    void *record_ptr = nullptr;
 
@@ -356,7 +359,10 @@ int UnirecExporter::export_flow(const Flow &flow)
    m_flows_seen++;
    uint64_t tmplt_dbits = 0; // templates dirty bits
    while (ext != nullptr) {
-      int ifc_num = m_ifc_map[ext->extType];
+      if (ext->m_ext_id >= static_cast<int>(m_ext_cnt)) {
+         throw PluginError("encountered invalid extension id");
+      }
+      int ifc_num = m_ifc_map[ext->m_ext_id];
       if (ifc_num >= 0) {
          tmplt_ptr = m_tmplts[ifc_num];
          record_ptr = m_records[ifc_num];
@@ -368,11 +374,11 @@ int UnirecExporter::export_flow(const Flow &flow)
          }
 
          fill_basic_flow(flow, tmplt_ptr, record_ptr);
-         ext->fillUnirec(tmplt_ptr, record_ptr); /* Add each extension header into unirec record. */
+         ext->fill_unirec(tmplt_ptr, record_ptr); /* Add each extension header into unirec record. */
 
          trap_send(ifc_num, record_ptr, ur_rec_fixlen_size(tmplt_ptr) + ur_rec_varlen_size(tmplt_ptr, record_ptr));
       }
-      ext = ext->next;
+      ext = ext->m_next;
    }
 
    return 0;

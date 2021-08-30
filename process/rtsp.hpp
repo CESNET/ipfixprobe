@@ -55,14 +55,27 @@
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 #include "http.hpp"
 
 namespace ipxp {
+
+#define RTSP_UNIREC_TEMPLATE "RTSP_REQUEST_METHOD,RTSP_REQUEST_AGENT,RTSP_REQUEST_URI,RTSP_RESPONSE_STATUS_CODE,RTSP_RESPONSE_SERVER,RTSP_RESPONSE_CONTENT_TYPE"
+UR_FIELDS (
+   string RTSP_REQUEST_METHOD,
+   string RTSP_REQUEST_AGENT,
+   string RTSP_REQUEST_URI,
+
+   uint16 RTSP_RESPONSE_STATUS_CODE,
+   string RTSP_RESPONSE_SERVER,
+   string RTSP_RESPONSE_CONTENT_TYPE
+)
 
 /**
  * \brief Flow record extension header for storing RTSP requests.
  */
 struct RecordExtRTSP : RecordExt {
+   static int REGISTERED_ID;
    bool req;
    bool resp;
 
@@ -78,7 +91,7 @@ struct RecordExtRTSP : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtRTSP() : RecordExt(rtsp)
+   RecordExtRTSP() : RecordExt(REGISTERED_ID)
    {
       req = false;
       resp = false;
@@ -93,7 +106,7 @@ struct RecordExtRTSP : RecordExt {
    }
 
 #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_set_string(tmplt, record, F_RTSP_REQUEST_METHOD, method);
       ur_set_string(tmplt, record, F_RTSP_REQUEST_AGENT, user_agent);
@@ -103,9 +116,14 @@ struct RecordExtRTSP : RecordExt {
       ur_set_string(tmplt, record, F_RTSP_RESPONSE_SERVER, server);
       ur_set_string(tmplt, record, F_RTSP_RESPONSE_CONTENT_TYPE, content_type);
    }
+
+   const char *get_unirec_tmplt() const
+   {
+      return RTSP_UNIREC_TEMPLATE;
+   }
 #endif
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       int length, total_length = 0;
 
@@ -160,6 +178,15 @@ struct RecordExtRTSP : RecordExt {
 
       return total_length;
    }
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_template[] = {
+         IPFIX_RTSP_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+      return ipfix_template;
+   }
 };
 
 /**
@@ -173,10 +200,8 @@ public:
    void init(const char *params);
    void close();
    OptionsParser *get_parser() const { return new OptionsParser("rtsp", "Parse RTSP traffic"); }
-   std::string get_name() const { return "rtps"; }
-   int get_ext_id() const { return rtsp; }
-   std::string get_unirec_tmplt();
-   const char **get_ipfix_tmplt();
+   std::string get_name() const { return "rtsp"; }
+   RecordExt *get_ext() const { return new RecordExtRTSP(); }
    ProcessPlugin *copy();
 
    int post_create(Flow &rec, const Packet &pkt);

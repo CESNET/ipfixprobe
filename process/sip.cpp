@@ -50,29 +50,17 @@
 #endif
 
 #include "sip.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtSIP::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("sip", [](){return new SIPPlugin();});
    register_plugin(&rec);
+   RecordExtSIP::REGISTERED_ID = register_extension();
 }
-
-#define SIP_UNIREC_TEMPLATE  "SIP_MSG_TYPE,SIP_STATUS_CODE,SIP_CSEQ,SIP_CALLING_PARTY,SIP_CALLED_PARTY,SIP_CALL_ID,SIP_USER_AGENT,SIP_REQUEST_URI,SIP_VIA"
-
-UR_FIELDS (
-   uint16 SIP_MSG_TYPE,
-   uint16 SIP_STATUS_CODE,
-   string SIP_CSEQ,
-   string SIP_CALLING_PARTY,
-   string SIP_CALLED_PARTY,
-   string SIP_CALL_ID,
-   string SIP_USER_AGENT,
-   string SIP_REQUEST_URI,
-   string SIP_VIA
-)
 
 SIPPlugin::SIPPlugin() : requests(0), responses(0), total(0), flow_flush(false)
 {
@@ -107,7 +95,7 @@ int SIPPlugin::post_create(Flow &rec, const Packet &pkt)
 
    RecordExtSIP *sip_data = new RecordExtSIP();
    sip_data->msg_type = msg_type;
-   rec.addExtension(sip_data);
+   rec.add_extension(sip_data);
    parser_process_sip(pkt, sip_data);
 
    return 0;
@@ -133,21 +121,6 @@ void SIPPlugin::finish(bool print_stats)
       std::cout << "   Parsed sip responses: " << responses << std::endl;
       std::cout << "   Total sip packets processed: " << total << std::endl;
    }
-}
-
-std::string SIPPlugin::get_unirec_tmplt()
-{
-   return SIP_UNIREC_TEMPLATE;
-}
-
-const char *sip_ipfix_string[] = {
-   IPFIX_SIP_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **SIPPlugin::get_ipfix_tmplt()
-{
-   return sip_ipfix_string;
 }
 
 uint16_t SIPPlugin::parse_msg_type(const Packet &pkt)

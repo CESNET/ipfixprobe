@@ -50,18 +50,17 @@
 #include <math.h>
 
 #include "phists.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
-#include <ipfixprobe/ipfix-basiclist.hpp>
 
 namespace ipxp {
+
+int RecordExtPHISTS::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("phists", [](){return new PHISTSPlugin();});
    register_plugin(&rec);
+   RecordExtPHISTS::REGISTERED_ID = register_extension();
 }
-
-#define PHISTS_UNIREC_TEMPLATE "S_PHISTS_SIZES,S_PHISTS_IPT,D_PHISTS_SIZES,D_PHISTS_IPT"
 
 #define PHISTS_INCLUDE_ZEROS_OPT "includezeros"
 
@@ -70,14 +69,6 @@ __attribute__((constructor)) static void register_this_plugin()
 #else
 #define DEBUG_MSG(format, ...)
 #endif
-
-
-UR_FIELDS(
-   uint32* S_PHISTS_SIZES,
-   uint32* S_PHISTS_IPT,
-   uint32* D_PHISTS_SIZES,
-   uint32* D_PHISTS_IPT
-)
 
 const uint32_t PHISTSPlugin::log2_lookup32[32] = { 0,  9,  1,  10, 13, 21, 2,  29,
                                                    11, 14, 16, 18, 22, 25, 3,  30,
@@ -167,7 +158,7 @@ int PHISTSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtPHISTS *phists_data = new RecordExtPHISTS();
 
-   rec.addExtension(phists_data);
+   rec.add_extension(phists_data);
 
    update_record(phists_data, pkt);
    return 0;
@@ -175,25 +166,10 @@ int PHISTSPlugin::post_create(Flow &rec, const Packet &pkt)
 
 int PHISTSPlugin::post_update(Flow &rec, const Packet &pkt)
 {
-   RecordExtPHISTS *phists_data = (RecordExtPHISTS *) rec.getExtension(phists);
+   RecordExtPHISTS *phists_data = (RecordExtPHISTS *) rec.get_extension(RecordExtPHISTS::REGISTERED_ID);
 
    update_record(phists_data, pkt);
    return 0;
-}
-
-const char *ipfix_phists_template[] = {
-   IPFIX_PHISTS_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **PHISTSPlugin::get_ipfix_tmplt()
-{
-   return ipfix_phists_template;
-}
-
-std::string PHISTSPlugin::get_unirec_tmplt()
-{
-   return PHISTS_UNIREC_TEMPLATE;
 }
 
 }

@@ -45,23 +45,17 @@
 #include <cstring>
 
 #include "wg.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtWG::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("wg", [](){return new WGPlugin();});
    register_plugin(&rec);
+   RecordExtWG::REGISTERED_ID = register_extension();
 }
-
-#define WG_UNIREC_TEMPLATE "WG_CONF_LEVEL,WG_SRC_PEER,WG_DST_PEER"
-
-UR_FIELDS (
-   uint8 WG_CONF_LEVEL,
-   uint32 WG_SRC_PEER,
-   uint32 WG_DST_PEER
-)
 
 WGPlugin::WGPlugin() : preallocated_record(nullptr), flow_flush(false), total(0), identified(0)
 {
@@ -100,7 +94,7 @@ int WGPlugin::post_create(Flow &rec, const Packet &pkt)
 
 int WGPlugin::pre_update(Flow &rec, Packet &pkt)
 {
-   RecordExtWG *vpn_data = (RecordExtWG *) rec.getExtension(wg);
+   RecordExtWG *vpn_data = (RecordExtWG *) rec.get_extension(RecordExtWG::REGISTERED_ID);
    if (vpn_data != nullptr) {
       parse_wg(pkt.payload, pkt.payload_length, pkt.source_pkt, vpn_data);
 
@@ -124,21 +118,6 @@ void WGPlugin::finish(bool print_stats)
       std::cout << "   Identified WG packets: " << identified << std::endl;
       std::cout << "   Total packets processed: " << total << std::endl;
    }
-}
-
-const char *ipfix_wg_template[] = {
-   IPFIX_WG_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **WGPlugin::get_ipfix_tmplt()
-{
-   return ipfix_wg_template;
-}
-
-std::string WGPlugin::get_unirec_tmplt()
-{
-   return WG_UNIREC_TEMPLATE;
 }
 
 bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_pkt, RecordExtWG *ext)
@@ -232,7 +211,7 @@ int WGPlugin::add_ext_wg(const char *data, unsigned int payload_len, bool source
       return 0;
    }
 
-   rec.addExtension(preallocated_record);
+   rec.add_extension(preallocated_record);
    preallocated_record = nullptr;
    return 0;
 }

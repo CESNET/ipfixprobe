@@ -54,6 +54,7 @@
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
 
@@ -99,10 +100,28 @@ namespace ipxp {
 #define SC_SPAM            0x40000000 // indicates that answer contains SPAM keyword
 #define SC_UNKNOWN         0x80000000
 
+#define SMTP_UNIREC_TEMPLATE "SMTP_2XX_STAT_CODE_COUNT,SMTP_3XX_STAT_CODE_COUNT,SMTP_4XX_STAT_CODE_COUNT,SMTP_5XX_STAT_CODE_COUNT,SMTP_COMMAND_FLAGS,SMTP_MAIL_CMD_COUNT,SMTP_RCPT_CMD_COUNT,SMTP_STAT_CODE_FLAGS,SMTP_DOMAIN,SMTP_FIRST_RECIPIENT,SMTP_FIRST_SENDER"
+
+UR_FIELDS (
+   uint32 SMTP_2XX_STAT_CODE_COUNT,
+   uint32 SMTP_3XX_STAT_CODE_COUNT,
+   uint32 SMTP_4XX_STAT_CODE_COUNT,
+   uint32 SMTP_5XX_STAT_CODE_COUNT,
+   uint32 SMTP_COMMAND_FLAGS,
+   uint32 SMTP_MAIL_CMD_COUNT,
+   uint32 SMTP_RCPT_CMD_COUNT,
+   uint32 SMTP_STAT_CODE_FLAGS,
+   string SMTP_DOMAIN,
+   string SMTP_FIRST_SENDER,
+   string SMTP_FIRST_RECIPIENT
+)
+
 /**
  * \brief Flow record extension header for storing parsed SMTP packets.
  */
 struct RecordExtSMTP : RecordExt {
+   static int REGISTERED_ID;
+
    uint32_t code_2xx_cnt;
    uint32_t code_3xx_cnt;
    uint32_t code_4xx_cnt;
@@ -119,7 +138,7 @@ struct RecordExtSMTP : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtSMTP() : RecordExt(smtp)
+   RecordExtSMTP() : RecordExt(REGISTERED_ID)
    {
       code_2xx_cnt = 0;
       code_3xx_cnt = 0;
@@ -136,7 +155,7 @@ struct RecordExtSMTP : RecordExt {
    }
 
 #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_set(tmplt, record, F_SMTP_2XX_STAT_CODE_COUNT, code_2xx_cnt);
       ur_set(tmplt, record, F_SMTP_3XX_STAT_CODE_COUNT, code_3xx_cnt);
@@ -150,9 +169,14 @@ struct RecordExtSMTP : RecordExt {
       ur_set_string(tmplt, record, F_SMTP_FIRST_SENDER, first_sender);
       ur_set_string(tmplt, record, F_SMTP_FIRST_RECIPIENT, first_recipient);
    }
+
+   const char *get_unirec_tmplt() const
+   {
+      return SMTP_UNIREC_TEMPLATE;
+   }
 #endif
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       int domain_len = strlen(domain);
       int sender_len = strlen(first_sender);
@@ -188,6 +212,15 @@ struct RecordExtSMTP : RecordExt {
 
       return length;
    }
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_template[] = {
+         IPFIX_SMTP_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+      return ipfix_template;
+   }
 };
 
 /**
@@ -202,9 +235,7 @@ public:
    void close();
    OptionsParser *get_parser() const { return new OptionsParser("smtp", "Parse SMTP traffic"); }
    std::string get_name() const { return "smtp"; }
-   int get_ext_id() const { return smtp; }
-   std::string get_unirec_tmplt();
-   const char **get_ipfix_tmplt();
+   RecordExt *get_ext() const { return new RecordExtSMTP(); }
    ProcessPlugin *copy();
 
    int post_create(Flow &rec, const Packet &pkt);

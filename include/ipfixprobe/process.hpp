@@ -72,42 +72,12 @@ namespace ipxp {
  */
 class ProcessPlugin : public Plugin
 {
-private:
-   size_t m_ext_id;
-
 public:
    ProcessPlugin() {}
    virtual ~ProcessPlugin() {}
    virtual ProcessPlugin *copy() = 0;
 
-   virtual int get_ext_id() const
-   {
-      return -1;
-   }
-
-   /**
-    * \brief Get unirec template string from plugin.
-    * \return Unirec template string.
-    */
-   virtual std::string get_unirec_tmplt()
-   {
-      return "";
-   }
-
-   /**
-    * \brief Register new unirec fields.
-    * \return Return unirec fields spec.
-    */
-   virtual std::string get_ipfix_fields() const
-   {
-      return "";
-   }
-
-   /**
-    * \brief Get IPFIX template string from plugin.
-    * \return IPFIX template string.
-    */
-   virtual const char **get_ipfix_tmplt()
+   virtual RecordExt *get_ext() const
    {
       return nullptr;
    }

@@ -56,6 +56,7 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/packet.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
 
@@ -331,6 +332,20 @@ namespace ipxp {
 #define MAGIC_BITS_NEG  0x81010100L
 #endif
 
+#define SIP_UNIREC_TEMPLATE  "SIP_MSG_TYPE,SIP_STATUS_CODE,SIP_CSEQ,SIP_CALLING_PARTY,SIP_CALLED_PARTY,SIP_CALL_ID,SIP_USER_AGENT,SIP_REQUEST_URI,SIP_VIA"
+
+UR_FIELDS (
+   uint16 SIP_MSG_TYPE,
+   uint16 SIP_STATUS_CODE,
+   string SIP_CSEQ,
+   string SIP_CALLING_PARTY,
+   string SIP_CALLED_PARTY,
+   string SIP_CALL_ID,
+   string SIP_USER_AGENT,
+   string SIP_REQUEST_URI,
+   string SIP_VIA
+)
+
 struct parser_strtok_t {
    parser_strtok_t()
    {
@@ -347,6 +362,8 @@ struct parser_strtok_t {
 };
 
 struct RecordExtSIP : RecordExt {
+   static int REGISTERED_ID;
+
    uint16_t msg_type;                  /* SIP message code (register, invite) < 100 or SIP response status > 100 */
    uint16_t status_code;
    char call_id[SIP_FIELD_LEN];	      /* Call id. For sevice SIP traffic call id = 0 */
@@ -357,7 +374,7 @@ struct RecordExtSIP : RecordExt {
    char cseq[SIP_FIELD_LEN];           /* CSeq field of SIP packet */
    char request_uri[SIP_FIELD_LEN];    /* Request-URI of SIP request */
 
-   RecordExtSIP() : RecordExt(sip)
+   RecordExtSIP() : RecordExt(REGISTERED_ID)
    {
       msg_type = 0;
       status_code = 0;
@@ -371,7 +388,7 @@ struct RecordExtSIP : RecordExt {
    }
 
 #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_set(tmplt, record, F_SIP_MSG_TYPE, msg_type);
       ur_set(tmplt, record, F_SIP_STATUS_CODE, status_code);
@@ -383,9 +400,14 @@ struct RecordExtSIP : RecordExt {
       ur_set_string(tmplt, record, F_SIP_REQUEST_URI, request_uri);
       ur_set_string(tmplt, record, F_SIP_VIA, via);
    }
+
+   const char *get_unirec_tmplt() const
+   {
+      return SIP_UNIREC_TEMPLATE;
+   }
 #endif
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       int length, total_length = 4;
 
@@ -450,6 +472,16 @@ struct RecordExtSIP : RecordExt {
 
       return total_length;
    }
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_tmplt[] = {
+         IPFIX_SIP_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+
+      return ipfix_tmplt;
+   }
 };
 
 class SIPPlugin : public ProcessPlugin {
@@ -460,9 +492,7 @@ public:
    void close();
    OptionsParser *get_parser() const { return new OptionsParser("sip", "Parse SIP traffic"); }
    std::string get_name() const { return "sip"; }
-   int get_ext_id() const { return sip; }
-   std::string get_unirec_tmplt();
-   const char **get_ipfix_tmplt();
+   RecordExt *get_ext() const { return new RecordExtSIP(); }
    ProcessPlugin *copy();
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);

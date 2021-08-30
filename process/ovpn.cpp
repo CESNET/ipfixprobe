@@ -46,21 +46,17 @@
 #include <cstring>
 
 #include "ovpn.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtOVPN::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("ovpn", [](){return new OVPNPlugin();});
    register_plugin(&rec);
+   RecordExtOVPN::REGISTERED_ID = register_extension();
 }
-
-#define OVPN_UNIREC_TEMPLATE "OVPN_CONF_LEVEL"
-
-UR_FIELDS (
-   uint8 OVPN_CONF_LEVEL
-)
 
 OVPNPlugin::OVPNPlugin()
 {
@@ -192,7 +188,7 @@ void OVPNPlugin::update_record(RecordExtOVPN* vpn_data, const Packet &pkt)
 int OVPNPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtOVPN *vpn_data = new RecordExtOVPN();
-   rec.addExtension(vpn_data);
+   rec.add_extension(vpn_data);
 
    update_record(vpn_data, pkt);
    return 0;
@@ -200,35 +196,20 @@ int OVPNPlugin::post_create(Flow &rec, const Packet &pkt)
 
 int OVPNPlugin::pre_update(Flow &rec, Packet &pkt)
 {
-   RecordExtOVPN *vpn_data = (RecordExtOVPN *) rec.getExtension(ovpn);
+   RecordExtOVPN *vpn_data = (RecordExtOVPN *) rec.get_extension(RecordExtOVPN::REGISTERED_ID);
    update_record(vpn_data, pkt);
    return 0;
 }
 
 void OVPNPlugin::pre_export(Flow &rec)
 {
-   RecordExtOVPN *vpn_data = (RecordExtOVPN *) rec.getExtension(ovpn);
+   RecordExtOVPN *vpn_data = (RecordExtOVPN *) rec.get_extension(RecordExtOVPN::REGISTERED_ID);
    if (vpn_data->pkt_cnt > min_pckt_treshold && vpn_data->status == status_data) {
       vpn_data->possible_vpn = 100;
    } else if (vpn_data->pkt_cnt > min_pckt_treshold && ((double) vpn_data->data_pkt_cnt / (double) vpn_data->pkt_cnt) >= data_pckt_treshold) {
       vpn_data->possible_vpn = (uint8_t) ((vpn_data->data_pkt_cnt / (double) vpn_data->pkt_cnt) * 80);
    }
    return;
-}
-
-const char *ipfix_ovpn_template[] = {
-   IPFIX_OVPN_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **OVPNPlugin::get_ipfix_tmplt()
-{
-   return ipfix_ovpn_template;
-}
-
-std::string OVPNPlugin::get_unirec_tmplt()
-{
-   return OVPN_UNIREC_TEMPLATE;
 }
 
 bool OVPNPlugin::compare_ip(ipaddr_t ip_1, ipaddr_t ip_2, uint8_t ip_version)

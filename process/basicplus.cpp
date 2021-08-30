@@ -44,32 +44,17 @@
 #include <iostream>
 
 #include "basicplus.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtBASICPLUS::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("basicplus", [](){return new BASICPLUSPlugin();});
    register_plugin(&rec);
+   RecordExtBASICPLUS::REGISTERED_ID = register_extension();
 }
-
-#define BASICPLUS_UNIREC_TEMPLATE \
-   "IP_TTL,IP_TTL_REV,IP_FLG,IP_FLG_REV,TCP_WIN,TCP_WIN_REV,TCP_OPT,TCP_OPT_REV,TCP_MSS,TCP_MSS_REV,TCP_SYN_SIZE"
-
-UR_FIELDS (
-   uint8 IP_TTL,
-   uint8 IP_TTL_REV,
-   uint8 IP_FLG,
-   uint8 IP_FLG_REV,
-   uint16 TCP_WIN,
-   uint16 TCP_WIN_REV,
-   uint64 TCP_OPT,
-   uint64 TCP_OPT_REV,
-   uint32 TCP_MSS,
-   uint32 TCP_MSS_REV,
-   uint16 TCP_SYN_SIZE
-)
 
 BASICPLUSPlugin::BASICPLUSPlugin()
 {
@@ -97,7 +82,7 @@ int BASICPLUSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtBASICPLUS *p = new RecordExtBASICPLUS();
 
-   rec.addExtension(p);
+   rec.add_extension(p);
 
    p->ip_ttl[0]  = pkt.ip_ttl;
    p->ip_flg[0]  = pkt.ip_flags;
@@ -113,7 +98,7 @@ int BASICPLUSPlugin::post_create(Flow &rec, const Packet &pkt)
 
 int BASICPLUSPlugin::pre_update(Flow &rec, Packet &pkt)
 {
-   RecordExtBASICPLUS *p = (RecordExtBASICPLUS *) rec.getExtension(basicplus);
+   RecordExtBASICPLUS *p = (RecordExtBASICPLUS *) rec.get_extension(RecordExtBASICPLUS::REGISTERED_ID);
    uint8_t dir = pkt.source_pkt ? 0 : 1;
 
    if (p->ip_ttl[dir] < pkt.ip_ttl) {
@@ -128,21 +113,6 @@ int BASICPLUSPlugin::pre_update(Flow &rec, Packet &pkt)
       p->dst_filled = true;
    }
    return 0;
-}
-
-const char *ipfix_basicplus_template[] = {
-   IPFIX_BASICPLUS_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **BASICPLUSPlugin::get_ipfix_tmplt()
-{
-   return ipfix_basicplus_template;
-}
-
-std::string BASICPLUSPlugin::get_unirec_tmplt()
-{
-   return BASICPLUS_UNIREC_TEMPLATE;
 }
 
 }

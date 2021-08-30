@@ -50,14 +50,16 @@
 #include <cctype>
 
 #include "pstats.hpp"
-#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+int RecordExtPSTATS::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("pstats", [](){return new PSTATSPlugin();});
    register_plugin(&rec);
+   RecordExtPSTATS::REGISTERED_ID = register_extension();
 }
 
 //#define DEBUG_PSTATS
@@ -68,15 +70,6 @@ __attribute__((constructor)) static void register_this_plugin()
 #else
 #define DEBUG_MSG(format, ...)
 #endif
-
-#define PSTATS_UNIREC_TEMPLATE "PPI_PKT_LENGTHS,PPI_PKT_TIMES,PPI_PKT_FLAGS,PPI_PKT_DIRECTIONS"
-
-UR_FIELDS (
-   uint16* PPI_PKT_LENGTHS,
-   time* PPI_PKT_TIMES,
-   uint8* PPI_PKT_FLAGS,
-   int8* PPI_PKT_DIRECTIONS
-)
 
 PSTATSPlugin::PSTATSPlugin() : use_zeros(false), skip_dup_pkts(false)
 {
@@ -171,7 +164,7 @@ void PSTATSPlugin::update_record(RecordExtPSTATS *pstats_data, const Packet &pkt
 int PSTATSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtPSTATS *pstats_data = new RecordExtPSTATS();
-   rec.addExtension(pstats_data);
+   rec.add_extension(pstats_data);
 
    update_record(pstats_data, pkt);
    return 0;
@@ -179,24 +172,9 @@ int PSTATSPlugin::post_create(Flow &rec, const Packet &pkt)
 
 int PSTATSPlugin::post_update(Flow &rec, const Packet &pkt)
 {
-   RecordExtPSTATS *pstats_data = (RecordExtPSTATS *) rec.getExtension(pstats);
+   RecordExtPSTATS *pstats_data = (RecordExtPSTATS *) rec.get_extension(RecordExtPSTATS::REGISTERED_ID);
    update_record(pstats_data, pkt);
    return 0;
-}
-
-const char *ipfix_pstats_template[] = {
-   IPFIX_PSTATS_TEMPLATE(IPFIX_FIELD_NAMES)
-   nullptr
-};
-
-const char **PSTATSPlugin::get_ipfix_tmplt()
-{
-   return ipfix_pstats_template;
-}
-
-std::string PSTATSPlugin::get_unirec_tmplt()
-{
-   return PSTATS_UNIREC_TEMPLATE;
 }
 
 }

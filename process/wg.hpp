@@ -53,6 +53,7 @@
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
 
@@ -72,15 +73,25 @@ namespace ipxp {
 #define WG_PACKETLEN_COOKIE_REPLY        64
 #define WG_PACKETLEN_MIN_TRANSPORT_DATA  32
 
+#define WG_UNIREC_TEMPLATE "WG_CONF_LEVEL,WG_SRC_PEER,WG_DST_PEER"
+
+UR_FIELDS (
+   uint8 WG_CONF_LEVEL,
+   uint32 WG_SRC_PEER,
+   uint32 WG_DST_PEER
+)
+
 /**
  * \brief Flow record extension header for storing parsed WG packets.
  */
 struct RecordExtWG : RecordExt {
+   static int REGISTERED_ID;
+
    uint8_t possible_wg;
    uint32_t src_peer;
    uint32_t dst_peer;
 
-   RecordExtWG() : RecordExt(wg)
+   RecordExtWG() : RecordExt(REGISTERED_ID)
    {
       possible_wg = 0;
       src_peer = 0;
@@ -88,15 +99,20 @@ struct RecordExtWG : RecordExt {
    }
 
 #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_set(tmplt, record, F_WG_CONF_LEVEL, possible_wg);
       ur_set(tmplt, record, F_WG_SRC_PEER, src_peer);
       ur_set(tmplt, record, F_WG_DST_PEER, dst_peer);
    }
+
+   const char *get_unirec_tmplt() const
+   {
+      return WG_UNIREC_TEMPLATE;
+   }
 #endif
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       int requiredLen = 0;
 
@@ -117,6 +133,16 @@ struct RecordExtWG : RecordExt {
 
       return requiredLen;
    }
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_tmplt[] = {
+         IPFIX_WG_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+
+      return ipfix_tmplt;
+   }
 };
 
 /**
@@ -131,9 +157,7 @@ public:
    void close();
    OptionsParser *get_parser() const { return new OptionsParser("wg", "Parse WireGuard traffic"); }
    std::string get_name() const { return "wg"; }
-   int get_ext_id() const { return wg; }
-   const char **get_ipfix_tmplt();
-   std::string get_unirec_tmplt();
+   RecordExt *get_ext() const { return new RecordExtWG(); }
    ProcessPlugin *copy();
 
    int post_create(Flow &rec, const Packet &pkt);

@@ -55,13 +55,23 @@
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+#define TLS_UNIREC_TEMPLATE "TLS_SNI,TLS_JA3"
+
+UR_FIELDS(
+   string TLS_SNI,
+   bytes TLS_JA3
+)
 
 /**
  * \brief Flow record extension header for storing parsed HTTPS packets.
  */
 struct RecordExtTLS : RecordExt {
+   static int REGISTERED_ID;
+
    char sni[255];
    char ja3_hash[33];
    uint8_t ja3_hash_bin[16];
@@ -70,20 +80,25 @@ struct RecordExtTLS : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtTLS() : RecordExt(tls)
+   RecordExtTLS() : RecordExt(REGISTERED_ID)
    {
       sni[0] = 0;
       ja3_hash[0] = 0;
    }
 #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_set_string(tmplt, record, F_TLS_SNI, sni);
       ur_set_var(tmplt, record, F_TLS_JA3, ja3_hash_bin, 16);
    }
+
+   const char *get_unirec_tmplt() const
+   {
+      return TLS_UNIREC_TEMPLATE;
+   }
 #endif
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       int len = strlen(sni);
       int pos = 0;
@@ -101,6 +116,16 @@ struct RecordExtTLS : RecordExt {
       pos += 16;
 
       return pos;
+   }
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_template[] = {
+         IPFIX_TLS_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+
+      return ipfix_template;
    }
 };
 
@@ -166,9 +191,7 @@ public:
    void close();
    OptionsParser *get_parser() const { return new OptionsParser("tls", "Parse SNI from TLS traffic"); }
    std::string get_name() const { return "tls"; }
-   int get_ext_id() const { return tls; }
-   std::string get_unirec_tmplt();
-   const char **get_ipfix_tmplt();
+   RecordExtTLS *get_ext() const { return new RecordExtTLS(); }
    ProcessPlugin *copy();
 
    int post_create(Flow &rec, const Packet &pkt);

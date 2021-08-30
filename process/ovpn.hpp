@@ -54,14 +54,23 @@
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
 
 namespace ipxp {
+
+#define OVPN_UNIREC_TEMPLATE "OVPN_CONF_LEVEL"
+
+UR_FIELDS (
+   uint8 OVPN_CONF_LEVEL
+)
 
 /**
  * \brief Flow record extension header for storing parsed VPNDETECTOR packets.
  */
 struct RecordExtOVPN : RecordExt
 {
+   static int REGISTERED_ID;
+
    uint8_t possible_vpn;
    uint32_t pkt_cnt;
    uint32_t data_pkt_cnt;
@@ -69,7 +78,7 @@ struct RecordExtOVPN : RecordExt
    uint32_t status;
    ipaddr_t client_ip;
 
-   RecordExtOVPN() : RecordExt(ovpn)
+   RecordExtOVPN() : RecordExt(REGISTERED_ID)
    {
       possible_vpn = 0;
       pkt_cnt = 0;
@@ -79,19 +88,34 @@ struct RecordExtOVPN : RecordExt
    }
 
 #ifdef WITH_NEMEA
-   virtual void fillUnirec(ur_template_t *tmplt, void *record)
+   virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_set(tmplt, record, F_OVPN_CONF_LEVEL, possible_vpn);
    }
+
+   const char *get_unirec_tmplt() const
+   {
+      return OVPN_UNIREC_TEMPLATE;
+   }
 #endif
 
-   virtual int fillIPFIX(uint8_t *buffer, int size)
+   virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       if (size < 1) {
          return -1;
       }
       buffer[0] = (uint8_t) possible_vpn;
       return 1;
+   }
+
+   const char **get_ipfix_tmplt() const
+   {
+      static const char *ipfix_tmplt[] = {
+         IPFIX_OVPN_TEMPLATE(IPFIX_FIELD_NAMES)
+         nullptr
+      };
+
+      return ipfix_tmplt;
    }
 };
 
@@ -107,10 +131,9 @@ public:
    void close();
    OptionsParser *get_parser() const { return new OptionsParser("ovpn", "OpenVPN detector plugin"); }
    std::string get_name() const { return "ovpn"; }
-   int get_ext_id() const { return ovpn; }
-   const char **get_ipfix_tmplt();
-   std::string get_unirec_tmplt();
+   RecordExt *get_ext() const { return new RecordExtOVPN(); }
    ProcessPlugin *copy();
+
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    void update_record(RecordExtOVPN* vpn_data, const Packet &pkt);
