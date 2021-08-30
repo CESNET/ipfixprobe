@@ -99,36 +99,19 @@ us.
 
 ## Parameters
 ### Module specific parameters
-- `-p STRING`        Activate specified parsing plugins. Output interface (NEMEA only) for each plugin correspond the order which you specify items in -i and -p param. For example: '-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: http,rtsp,tls,dns,sip,ntp,smtp,basic,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus
-  - Some plugins have features activated with additional parameters. Format: plugin_name[:plugin_param=value[:...]][,...] If plugin does not support parameters, any parameters given will be ignored. Supported plugin parameters are listed bellow with output data.
-- `-c NUMBER`        Quit after `NUMBER` of packets on each input are captured.
-- `-I STRING`        Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can specify channel after interface delimited by : (/dev/nfb0:1) default channel is 0.
-- `-r STRING`        Pcap file to read. `-` to read from stdin.
-- `-n`               Don't send NULL record on exit (for NEMEA output).
-- `-l NUMBER`        Snapshot length when reading packets. Set value between `120`-`65535`.
-- `-t NUM:NUM`       Active and inactive timeout in seconds. Format: DOUBLE:DOUBLE. Value default means use default value 300.0:30.0.
-- `-s STRING`        Size of flow cache. Parameter is used as an exponent to the power of two. Valid numbers are in range 4-30. default is 17 (131072 records).
-- `-S NUMBER`        Print flow cache statistics. `NUMBER` specifies interval between prints.
-- `-P`               Print pcap statistics every 5 seconds. The statistics do not behave the same way on all platforms.
-- `-L NUMBER`        Link bit field value.
-- `-D NUMBER`        Direction bit field value.
-- `-F STRING`        String containing filter expression to filter traffic. See man pcap-filter.
-- `-O`               Send ODID field instead of LINK_BIT_FIELD.
-- `-q NUMBER`        Input queue size (default 64).
-- `-Q NUMBER`        Output queue size (default 16536).
-- `-e NUMBER`        Export max N flows per second.
-- `-m NUMBER`        Max size of IPFIX data packet payload to send.
-- `-x STRING`        Export to IPFIX collector. Format: HOST:PORT or [HOST]:PORT.
-- `-u`               Use UDP when exporting to IPFIX collector.
-- `-V`               Print version.
-- `-v`               Increase verbosity of the output, it can be duplicated like -vv / -vvv.
-
-### Common TRAP parameters
-- `-h [trap,1]`      Print help message for this module / for libtrap specific parameters.
-- `-i IFC_SPEC`      Specification of interface types and their parameters.
-- `-v`               Be verbose.
-- `-vv`              Be more verbose.
-- `-vvv`             Be even more verbose.
+-- `-i ARGS`       Activate input plugin
+-- `-s ARGS`       Activate storage plugin
+-- `-o ARGS`       Activate output plugin
+-- `-p ARGS`       Activate processing plugin
+-- `-q SIZE`       Size of queue between input and storage plugins
+-- `-b SIZE`       Size of input queue packet block
+-- `-Q SIZE`       Size of queue between storage and output plugins
+-- `-f NUM`        Export max flows per second
+-- `-c SIZE`       Quit after number of packets are processed on each interface
+-- `-P FILE`       Create pid file
+-- `-d`            Run as a standalone process
+-- `-h [PLUGIN]`   Print help text. Supported help for input, storage, output and process plugins
+-- `-V`            Show version and exit
 
 ## Algorithm
 Stores packets from input PCAP file / network interface in flow cache to create flows. After whole PCAP file is processed, flows from flow cache are exported to output interface.
