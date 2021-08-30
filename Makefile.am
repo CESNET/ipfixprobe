@@ -39,6 +39,8 @@ ipfixprobe_storage_src=\
 ipfixprobe_output_src=\
 		output/ipfix.cpp \
 		output/ipfix.hpp \
+		output/text.cpp \
+		output/text.hpp \
 		output/ipfix-basiclist.cpp
 
 ipfixprobe_process_src=\
