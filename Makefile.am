@@ -18,6 +18,8 @@ ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/ -I$(src
 ipfixprobe_CFLAGS=-I$(srcdir)/include/
 
 ipfixprobe_input_src=\
+		input/benchmark.cpp \
+		input/benchmark.hpp \
 		input/pcap.cpp \
 		input/pcap.hpp \
 		input/ndp.cpp \
