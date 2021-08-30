@@ -96,7 +96,6 @@ public:
    uint32_t m_oqueue;
    uint32_t m_fps;
    uint32_t m_max_pkts;
-   unsigned m_verbose;
    bool m_help;
    std::string m_help_str;
    bool m_version;
@@ -104,7 +103,7 @@ public:
    IpfixprobeOptParser() : OptionsParser("ipfixprobe", "flow exporter supporting various custom IPFIX elements"),
                            m_pid(""), m_daemon(false),
                            m_iqueue(DEFAULT_IQUEUE_SIZE), m_iqueue_block(DEFAULT_IQUEUE_SIZE), m_oqueue(DEFAULT_OQUEUE_SIZE), m_fps(DEFAULT_FPS),
-                           m_max_pkts(0), m_verbose(0), m_help(false), m_help_str(""), m_version(false)
+                           m_max_pkts(0), m_help(false), m_help_str(""), m_version(false)
    {
       m_delim = ' ';
 
@@ -166,10 +165,6 @@ public:
           m_daemon = true;
           return true;
       }, OptionFlags::NoArgument);
-      register_option("-v", "--verbose", "", "Increase verbosity", [this](const char *arg) {
-          m_verbose++;
-          return true;
-      }, OptionFlags::NoArgument);
       register_option("-h", "--help", "PLUGIN", "Print help text. Supported help for input, storage, output and process plugins", [this](const char *arg) {
           m_help = true;
           m_help_str = arg ? arg : "";
@@ -189,7 +184,6 @@ struct ipxp_conf_t {
    uint32_t worker_cnt;
    uint32_t fps;
    uint32_t max_pkts;
-   uint32_t verbose;
 
    PluginManager mgr;
    struct Plugins {
@@ -217,7 +211,7 @@ struct ipxp_conf_t {
 
    ipxp_conf_t() : iqueue_size(DEFAULT_IQUEUE_SIZE), iqueue_block(DEFAULT_IQUEUE_BLOCK),
                    oqueue_size(DEFAULT_OQUEUE_SIZE),
-                   worker_cnt(0), fps(0), max_pkts(0), verbose(0),
+                   worker_cnt(0), fps(0), max_pkts(0),
                    blocks_cnt(0), pkts_cnt(0), pkt_data_cnt(0), blocks(nullptr), pkts(nullptr), pkt_data(nullptr)
    {
    }
