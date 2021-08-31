@@ -14,7 +14,7 @@ if HAVE_NDP
 ipfixprobe_LDFLAGS+=-lnuma -lnfb -lndpRI -L$(srcdir)/input/nfbCInterface/
 endif
 
-ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/ -I$(srcdir)/input/nfbCInterface/include/
+ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/ -I$(srcdir)/input/nfbCInterface/include/ -Wl,--export-dynamic
 ipfixprobe_CFLAGS=-I$(srcdir)/include/
 
 ipfixprobe_input_src=\

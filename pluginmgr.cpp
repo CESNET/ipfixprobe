@@ -76,6 +76,8 @@ PluginManager::PluginManager() : m_last_rec(nullptr)
 
 PluginManager::~PluginManager()
 {
+   // Remove (external) getters before unloading .so libs
+   m_getters.clear();
    unload();
 }
 
@@ -88,23 +90,10 @@ void PluginManager::register_plugin(const std::string &name, PluginGetter g)
    m_getters[name] = g;
 }
 
-void PluginManager::register_plugin(const std::string &name, void *(*g)())
-{
-   auto it = m_getters_c.find(name);
-   if (it != m_getters_c.end()) {
-      throw PluginManagerError("plugin already registered");
-   }
-   m_getters_c[name] = g;
-}
-
 Plugin *PluginManager::get(const std::string &name)
 {
    auto it = m_getters.find(name);
    if (it == m_getters.end()) {
-      auto itc = m_getters_c.find(name);
-      if (itc != m_getters_c.end()) {
-         return static_cast<Plugin *>(m_getters_c[name]());
-      }
       return load(name);
    }
    return m_getters[name]();
@@ -116,10 +105,6 @@ std::vector<Plugin *> PluginManager::get() const
    for (auto &it : m_getters) {
       plugins.push_back((it.second)());
    }
-   for (auto &it : m_getters_c) {
-      plugins.push_back(static_cast<Plugin *>(it.second()));
-   }
-
    return plugins;
 }
 
@@ -135,9 +120,27 @@ Plugin *PluginManager::load(const std::string &name)
       return nullptr;
    }
 
-   register_loaded_plugins();
+   PluginRecord *rec = m_last_rec;
+   if (rec == nullptr) {
+      rec = ipxp_plugins;
+   } else {
+      rec = rec->m_next;
+   }
+   if (rec) {
+      this->register_plugin(rec->m_name, rec->m_getter);
+      if (rec->m_name != name) {
+         this->register_plugin(name, rec->m_getter);
+      }
+      m_last_rec = rec;
+      rec = rec->m_next;
+   }
+   if (m_last_rec && m_last_rec->m_next) {
+      dlclose(handle);
+      throw PluginManagerError("encountered shared library file with more than 1 plugin");
+   }
+
    m_loaded_so.push_back({handle, name});
-   return static_cast<Plugin *> (m_getters_c[name]());
+   return static_cast<Plugin *> (m_getters[name]());
 }
 
 void PluginManager::unload()

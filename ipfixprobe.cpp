@@ -200,6 +200,7 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
 
    // Process
    for (auto &it : parser.m_process) {
+      ProcessPlugin *process_plugin;
       std::string process_params;
       std::string process_name;
       process_plugin_argline(it, process_name, process_params);
@@ -212,13 +213,12 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       if (process_name == BASIC_PLUGIN_NAME) {
          continue;
       }
-
-      ProcessPlugin *process_plugin = dynamic_cast<ProcessPlugin *>(conf.mgr.get(process_name));
-      if (process_plugin == nullptr) {
-         throw IPXPError("invalid processing plugin " + process_name);
-      }
-
       try {
+         process_plugin = dynamic_cast<ProcessPlugin *>(conf.mgr.get(process_name));
+         if (process_plugin == nullptr) {
+            throw IPXPError("invalid processing plugin " + process_name);
+         }
+
          process_plugin->init(process_params.c_str());
          process_plugins->push_back(std::make_pair(process_name, process_plugin));
       } catch (PluginError &e) {
@@ -227,6 +227,8 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       } catch (PluginExit &e) {
          delete process_plugin;
          return true;
+      } catch (PluginManagerError &e) {
+         throw IPXPError(output_name + std::string(": ") + e.what());
       }
    }
 
@@ -235,14 +237,14 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
    if (output_queue == nullptr) {
       throw IPXPError("unable to initialize ring buffer");
    }
-
-   OutputPlugin *output_plugin = dynamic_cast<OutputPlugin *>(conf.mgr.get(output_name));
-   if (output_plugin == nullptr) {
-      ipx_ring_destroy(output_queue);
-      throw IPXPError("invalid output plugin " + output_name);
-   }
-
+   OutputPlugin *output_plugin;
    try {
+      output_plugin = dynamic_cast<OutputPlugin *>(conf.mgr.get(output_name));
+      if (output_plugin == nullptr) {
+         ipx_ring_destroy(output_queue);
+         throw IPXPError("invalid output plugin " + output_name);
+      }
+
       output_plugin->init(output_params.c_str(), *process_plugins);
       conf.active.output.push_back(output_plugin);
       conf.active.all.push_back(output_plugin);
@@ -254,6 +256,8 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       ipx_ring_destroy(output_queue);
       delete output_plugin;
       return true;
+   } catch (PluginManagerError &e) {
+      throw IPXPError(output_name + std::string(": ") + e.what());
    }
 
    {
@@ -271,15 +275,17 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
    // Input
    size_t pipeline_idx = 0;
    for (auto &it : parser.m_input) {
+      InputPlugin *input_plugin;
+      StoragePlugin *storage_plugin;
       std::string input_params;
       std::string input_name;
       process_plugin_argline(it, input_name, input_params);
 
-      InputPlugin *input_plugin = dynamic_cast<InputPlugin *>(conf.mgr.get(input_name));
-      if (input_plugin == nullptr) {
-         throw IPXPError("invalid input plugin " + input_name);
-      }
       try {
+         input_plugin = dynamic_cast<InputPlugin *>(conf.mgr.get(input_name));
+         if (input_plugin == nullptr) {
+            throw IPXPError("invalid input plugin " + input_name);
+         }
          input_plugin->init(input_params.c_str());
          conf.active.input.push_back(input_plugin);
          conf.active.all.push_back(input_plugin);
@@ -289,13 +295,15 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       } catch (PluginExit &e) {
          delete input_plugin;
          return true;
+      } catch (PluginManagerError &e) {
+         throw IPXPError(output_name + std::string(": ") + e.what());
       }
 
-      StoragePlugin *storage_plugin = dynamic_cast<StoragePlugin *>(conf.mgr.get(storage_name));
-      if (storage_plugin == nullptr) {
-         throw IPXPError("invalid storage plugin " + storage_name);
-      }
       try {
+         storage_plugin = dynamic_cast<StoragePlugin *>(conf.mgr.get(storage_name));
+         if (storage_plugin == nullptr) {
+            throw IPXPError("invalid storage plugin " + storage_name);
+         }
          storage_plugin->set_queue(output_queue);
          storage_plugin->init(storage_params.c_str());
          conf.active.storage.push_back(storage_plugin);
@@ -306,6 +314,8 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       } catch (PluginExit &e) {
          delete storage_plugin;
          return true;
+      } catch (PluginManagerError &e) {
+         throw IPXPError(output_name + std::string(": ") + e.what());
       }
 
       std::vector<ProcessPlugin *> storage_plugins;

@@ -68,7 +68,6 @@ public:
    PluginManager();
    ~PluginManager();
    void register_plugin(const std::string &name, PluginGetter g);
-   void register_plugin(const std::string &name, void *(*g)());
    Plugin *get(const std::string &name);
    std::vector<Plugin *> get() const;
    Plugin *load(const std::string &name);
@@ -80,7 +79,6 @@ private:
    };
 
    std::map<std::string, PluginGetter> m_getters;
-   std::map<std::string, void *(*)()> m_getters_c;
    std::vector<LoadedPlugin> m_loaded_so;
    PluginRecord *m_last_rec;
 
