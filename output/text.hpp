@@ -69,7 +69,7 @@ public:
       register_option("f", "file", "PATH", "Print output to file",
          [this](const char *arg){m_file = arg; m_to_file = true; return true;}, OptionFlags::RequiredArgument);
       register_option("m", "mac", "", "Ignore mac addresses",
-         [this](const char *arg){m_ignore_mac = false; return true;}, OptionFlags::NoArgument);
+         [this](const char *arg){m_ignore_mac = true; return true;}, OptionFlags::NoArgument);
    }
 };
 

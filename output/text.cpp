@@ -156,7 +156,7 @@ void TextExporter::print_basic_flow(const Flow &flow)
       rb = "]";
    }
 
-   if (m_ignore_mac) {
+   if (!m_ignore_mac) {
       *m_out << src_mac << "->" << dst_mac << " ";
    }
    *m_out <<
