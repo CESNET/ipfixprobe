@@ -113,7 +113,7 @@ Plugin *PluginManager::load(const std::string &name)
    dlerror();
    void *handle = dlopen(name.c_str(), RTLD_LAZY);
    if (handle == nullptr) {
-      return nullptr;
+      throw PluginManagerError(dlerror());
    }
    if (m_last_rec == nullptr || m_last_rec->m_next == nullptr) {
       dlclose(handle);
