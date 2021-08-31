@@ -122,18 +122,18 @@ void PSTATSPlugin::update_record(RecordExtPSTATS *pstats_data, const Packet &pkt
       bool ack_susp = (pkt.tcp_ack <= pstats_data->tcp_ack[dir] && !seq_overflowed(pkt.tcp_ack, pstats_data->tcp_ack[dir])) ||
                       (pkt.tcp_ack > pstats_data->tcp_ack[dir] && seq_overflowed(pkt.tcp_ack, pstats_data->tcp_ack[dir]));
       if (seq_susp && ack_susp &&
-            pkt.payload_length == pstats_data->tcp_len[dir] &&
-            pkt.tcp_control_bits == pstats_data->tcp_flg[dir] &&
+            pkt.payload_len == pstats_data->tcp_len[dir] &&
+            pkt.tcp_flags == pstats_data->tcp_flg[dir] &&
             pstats_data->pkt_count != 0) {
          return;
       }
    }
    pstats_data->tcp_seq[dir] = pkt.tcp_seq;
    pstats_data->tcp_ack[dir] = pkt.tcp_ack;
-   pstats_data->tcp_len[dir] = pkt.payload_length;
-   pstats_data->tcp_flg[dir] = pkt.tcp_control_bits;
+   pstats_data->tcp_len[dir] = pkt.payload_len;
+   pstats_data->tcp_flg[dir] = pkt.tcp_flags;
 
-   if (pkt.payload_length == 0 && use_zeros == false) {
+   if (pkt.payload_len == 0 && use_zeros == false) {
       return;
    }
 
@@ -144,10 +144,10 @@ void PSTATSPlugin::update_record(RecordExtPSTATS *pstats_data, const Packet &pkt
    dir = pkt.source_pkt ? 1 : -1;
    if (pstats_data->pkt_count < PSTATS_MAXELEMCOUNT) {
       uint16_t pkt_cnt = pstats_data->pkt_count;
-      pstats_data->pkt_sizes[pkt_cnt] = pkt.payload_length_orig;
-      pstats_data->pkt_tcp_flgs[pkt_cnt] = pkt.tcp_control_bits;
+      pstats_data->pkt_sizes[pkt_cnt] = pkt.payload_len_wire;
+      pstats_data->pkt_tcp_flgs[pkt_cnt] = pkt.tcp_flags;
 
-      pstats_data->pkt_timestamps[pkt_cnt] = pkt.timestamp;
+      pstats_data->pkt_timestamps[pkt_cnt] = pkt.ts;
 
       DEBUG_MSG("PSTATS processed packet %d: Size: %d Timestamp: %ld.%ld\n", pkt_cnt,
             pstats_data->pkt_sizes[pkt_cnt],

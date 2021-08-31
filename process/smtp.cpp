@@ -394,10 +394,11 @@ void SMTPPlugin::create_smtp_record(Flow &rec, const Packet &pkt)
 bool SMTPPlugin::update_smtp_record(RecordExtSMTP *ext, const Packet &pkt)
 {
    total++;
+   const char *payload = reinterpret_cast<const char *>(pkt.payload);
    if (pkt.src_port == 25) {
-      return parse_smtp_response(pkt.payload, pkt.payload_length, ext);
+      return parse_smtp_response(payload, pkt.payload_len, ext);
    } else if (pkt.dst_port == 25) {
-      return parse_smtp_command(pkt.payload, pkt.payload_length, ext);
+      return parse_smtp_command(payload, pkt.payload_len, ext);
    }
 
    return false;

@@ -130,7 +130,7 @@ ProcessPlugin *DNSSDPlugin::copy()
 int DNSSDPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.dst_port == 5353 || pkt.src_port == 5353) {
-      return add_ext_dnssd(pkt.payload, pkt.payload_length, pkt.ip_proto == IPPROTO_TCP, rec);
+      return add_ext_dnssd(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.ip_proto == IPPROTO_TCP, rec);
    }
 
    return 0;
@@ -142,9 +142,9 @@ int DNSSDPlugin::post_update(Flow &rec, const Packet &pkt)
       RecordExt *ext = rec.get_extension(RecordExtDNSSD::REGISTERED_ID);
 
       if (ext == nullptr) {
-         return add_ext_dnssd(pkt.payload, pkt.payload_length, pkt.ip_proto == IPPROTO_TCP, rec);
+         return add_ext_dnssd(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.ip_proto == IPPROTO_TCP, rec);
       } else {
-         parse_dns(pkt.payload, pkt.payload_length, pkt.ip_proto == IPPROTO_TCP,
+         parse_dns(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.ip_proto == IPPROTO_TCP,
                    dynamic_cast<RecordExtDNSSD *>(ext));
       }
       return 0;

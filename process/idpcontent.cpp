@@ -86,8 +86,8 @@ void IDPCONTENTPlugin::update_record(RecordExtIDPCONTENT *idpcontent_data, const
    uint8_t paket_direction = (uint8_t) (!pkt.source_pkt);
 
    // Check zero-packets and be sure, that the exported content is from both directions
-   if (idpcontent_data->pkt_export_flg[paket_direction] != 1 && pkt.payload_length > 0) {
-      idpcontent_data->idps[paket_direction].size = MIN(IDPCONTENT_SIZE, pkt.payload_length);
+   if (idpcontent_data->pkt_export_flg[paket_direction] != 1 && pkt.payload_len > 0) {
+      idpcontent_data->idps[paket_direction].size = MIN(IDPCONTENT_SIZE, pkt.payload_len);
       memcpy(idpcontent_data->idps[paket_direction].data, pkt.payload,
         idpcontent_data->idps[paket_direction].size);
       idpcontent_data->pkt_export_flg[paket_direction] = 1;

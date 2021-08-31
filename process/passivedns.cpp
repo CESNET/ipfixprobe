@@ -125,7 +125,7 @@ ProcessPlugin *PassiveDNSPlugin::copy()
 int PassiveDNSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.src_port == 53) {
-      return add_ext_dns(pkt.payload, pkt.payload_length, pkt.ip_proto == IPPROTO_TCP, rec);
+      return add_ext_dns(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.ip_proto == IPPROTO_TCP, rec);
    }
 
    return 0;
@@ -134,7 +134,7 @@ int PassiveDNSPlugin::post_create(Flow &rec, const Packet &pkt)
 int PassiveDNSPlugin::post_update(Flow &rec, const Packet &pkt)
 {
    if (pkt.src_port == 53) {
-      return add_ext_dns(pkt.payload, pkt.payload_length, pkt.ip_proto == IPPROTO_TCP, rec);
+      return add_ext_dns(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.ip_proto == IPPROTO_TCP, rec);
    }
 
    return 0;

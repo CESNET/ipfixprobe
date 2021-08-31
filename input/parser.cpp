@@ -226,8 +226,8 @@ inline uint16_t parse_ipv4_hdr(const u_char *data_ptr, uint16_t data_len, Packet
    pkt->ip_version = 4;
    pkt->ip_proto = ip->protocol;
    pkt->ip_tos = ip->tos;
-   pkt->ip_length = ntohs(ip->tot_len);
-   pkt->ip_payload_length = pkt->ip_length - (ip->ihl << 2);
+   pkt->ip_len = ntohs(ip->tot_len);
+   pkt->ip_payload_len = pkt->ip_len - (ip->ihl << 2);
    pkt->ip_ttl = ip->ttl;
    pkt->ip_flags = (ntohs(ip->frag_off) & 0xE000) >> 13;
    pkt->src_ip.v4 = ip->saddr;
@@ -289,7 +289,7 @@ uint16_t skip_ipv6_ext_hdrs(const u_char *data_ptr, uint16_t data_len, Packet *p
       pkt->ip_proto = next_hdr;
    }
 
-   pkt->ip_payload_length -= hdrs_len;
+   pkt->ip_payload_len -= hdrs_len;
    return hdrs_len;
 }
 
@@ -313,8 +313,8 @@ inline uint16_t parse_ipv6_hdr(const u_char *data_ptr, uint16_t data_len, Packet
    pkt->ip_proto = ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt;
    pkt->ip_ttl = ip6->ip6_ctlun.ip6_un1.ip6_un1_hlim;
    pkt->ip_flags = 0;
-   pkt->ip_payload_length = ntohs(ip6->ip6_ctlun.ip6_un1.ip6_un1_plen);
-   pkt->ip_length = pkt->ip_payload_length + 40;
+   pkt->ip_payload_len = ntohs(ip6->ip6_ctlun.ip6_un1.ip6_un1_plen);
+   pkt->ip_len = pkt->ip_payload_len + 40;
    memcpy(pkt->src_ip.v6, (const char *) &ip6->ip6_src, 16);
    memcpy(pkt->dst_ip.v6, (const char *) &ip6->ip6_dst, 16);
 
@@ -356,7 +356,7 @@ inline uint16_t parse_tcp_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
    pkt->field_indicator |= (PCKT_TCP | PCKT_PAYLOAD);
    pkt->src_port = ntohs(tcp->source);
    pkt->dst_port = ntohs(tcp->dest);
-   pkt->tcp_control_bits = (uint8_t) *(data_ptr + 13) & 0xFF;
+   pkt->tcp_flags = (uint8_t) *(data_ptr + 13) & 0xFF;
    pkt->tcp_window = ntohs(tcp->window);
 
    DEBUG_MSG("TCP header:\n");
@@ -601,8 +601,8 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
    DEBUG_MSG("Time:\t\t\t%s.%06lu\n",     timestamp, ts.tv_usec);
    DEBUG_MSG("Packet length:\t\tcaplen=%uB len=%uB\n\n", caplen, len);
 
-   pkt->wirelen = len;
-   pkt->timestamp = ts;
+   pkt->packet_len_wire = len;
+   pkt->ts = ts;
    pkt->field_indicator = 0;
    pkt->src_port = 0;
    pkt->dst_port = 0;
@@ -610,8 +610,8 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
    pkt->ip_ttl = 0;
    pkt->ip_flags = 0;
    pkt->ip_version = 0;
-   pkt->ip_payload_length = 0;
-   pkt->tcp_control_bits = 0;
+   pkt->ip_payload_len = 0;
+   pkt->tcp_flags = 0;
    pkt->tcp_window = 0;
    pkt->tcp_options = 0;
    pkt->tcp_mss = 0;
@@ -662,33 +662,34 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
       return;
    }
 
-   uint32_t pkt_len = caplen;
-   if (pkt_len > MAXPCKTSIZE) {
-      pkt_len = MAXPCKTSIZE;
+   uint16_t pkt_len = caplen;
+   if ((int) pkt_len > pkt->buffer_size - 1) {
+      pkt_len = pkt->buffer_size - 1;
       DEBUG_MSG("Packet size too long, truncating to %u\n", pkt_len);
    }
+   pkt->packet = pkt->buffer;
    memcpy(pkt->packet, data, pkt_len);
    pkt->packet[pkt_len] = 0;
-   pkt->total_length = pkt_len;
+   pkt->packet_len = pkt_len;
 
    if (l4_hdr_offset != l3_hdr_offset) {
-      if (l4_hdr_offset + pkt->ip_payload_length < 64) {
+      if (l4_hdr_offset + pkt->ip_payload_len < 64) {
          // Packet contains 0x00 padding bytes, do not include them in payload
-         pkt_len = l4_hdr_offset + pkt->ip_payload_length;
+         pkt_len = l4_hdr_offset + pkt->ip_payload_len;
       }
-      pkt->payload_length_orig = pkt->ip_payload_length - (data_offset - l4_hdr_offset);
+      pkt->payload_len_wire = pkt->ip_payload_len - (data_offset - l4_hdr_offset);
    } else {
-      pkt->payload_length_orig = pkt_len - data_offset;
+      pkt->payload_len_wire = pkt_len - data_offset;
    }
 
-   pkt->payload_length = pkt->payload_length_orig;
-   if (pkt->payload_length + data_offset > pkt_len) {
+   pkt->payload_len = pkt->payload_len_wire;
+   if (pkt->payload_len + data_offset > pkt_len) {
       // Set correct size when payload length is bigger than captured payload length
-      pkt->payload_length = pkt_len - data_offset;
+      pkt->payload_len = pkt_len - data_offset;
    }
    pkt->payload = pkt->packet + data_offset;
 
-   DEBUG_MSG("Payload length:\t%u\n", pkt->payload_length);
+   DEBUG_MSG("Payload length:\t%u\n", pkt->payload_len);
    DEBUG_MSG("Packet parser exits: packet parsed\n");
    opt->packet_valid = true;
    opt->pblock->cnt++;

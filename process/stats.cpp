@@ -128,14 +128,14 @@ void StatsPlugin::check_timestamp(const Packet &pkt)
 {
    if (m_init_ts) {
       m_init_ts = false;
-      m_last_ts = pkt.timestamp;
+      m_last_ts = pkt.ts;
       return;
    }
 
    struct timeval tmp;
    timeradd(&m_last_ts, &m_interval, &tmp);
 
-   if (timercmp(&pkt.timestamp, &tmp, >)) {
+   if (timercmp(&pkt.ts, &tmp, >)) {
       print_line(m_last_ts);
       timeradd(&m_last_ts, &m_interval, &m_last_ts);
       m_packets = 0;

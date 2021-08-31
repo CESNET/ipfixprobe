@@ -77,16 +77,16 @@ namespace ipxp {
 
 /**
  * Convert FIELD to its "attributes", i.e. BYTES(FIELD) used in the source code produces
- *    0, 1, 8, &flow.octet_total_length
+ *    0, 1, 8, &flow.bytes
  * when it is substituted by C-preprocessor.
  */
 #define FIELD(EN, ID, LEN, SRC) EN, ID, LEN, SRC
 
 /* The list of known IPFIX elements: */
-#define BYTES(F)                      F(0,        1,    8,   &flow.src_octet_total_length)
-#define BYTES_REV(F)                  F(29305,    1,    8,   &flow.dst_octet_total_length)
-#define PACKETS(F)                    F(0,        2,    8,   (temp = (uint64_t) flow.src_pkt_total_cnt, &temp))
-#define PACKETS_REV(F)                F(29305,    2,    8,   (temp = (uint64_t) flow.dst_pkt_total_cnt, &temp))
+#define BYTES(F)                      F(0,        1,    8,   &flow.src_bytes)
+#define BYTES_REV(F)                  F(29305,    1,    8,   &flow.dst_bytes)
+#define PACKETS(F)                    F(0,        2,    8,   (temp = (uint64_t) flow.src_packets, &temp))
+#define PACKETS_REV(F)                F(29305,    2,    8,   (temp = (uint64_t) flow.dst_packets, &temp))
 #define FLOW_START_USEC(F)            F(0,      154,    8,   (temp = MK_NTP_TS(flow.time_first), &temp))
 #define FLOW_END_USEC(F)              F(0,      155,    8,   (temp = MK_NTP_TS(flow.time_last), &temp))
 #define OBSERVATION_MSEC(F)           F(0,      323,    8,   nullptr)
@@ -115,8 +115,8 @@ namespace ipxp {
 #define L3_FLAGS_REV(F)               F(29305,  197,    1,   nullptr)
 
 #define L4_PROTO(F)                   F(0,        4,    1,   &flow.ip_proto)
-#define L4_TCP_FLAGS(F)               F(0,        6,    1,   &flow.src_tcp_control_bits)
-#define L4_TCP_FLAGS_REV(F)           F(29305,    6,    1,   &flow.dst_tcp_control_bits)
+#define L4_TCP_FLAGS(F)               F(0,        6,    1,   &flow.src_tcp_flags)
+#define L4_TCP_FLAGS_REV(F)           F(29305,    6,    1,   &flow.dst_tcp_flags)
 #define L4_PORT_SRC(F)                F(0,        7,    2,   &flow.src_port)
 #define L4_PORT_DST(F)                F(0,       11,    2,   &flow.dst_port)
 #define L4_ICMP_TYPE_CODE(F)          F(0,       32,    2,   nullptr)

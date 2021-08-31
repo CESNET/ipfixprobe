@@ -95,6 +95,7 @@ public:
    uint32_t m_iqueue_block;
    uint32_t m_oqueue;
    uint32_t m_fps;
+   uint32_t m_pkt_bufsize;
    uint32_t m_max_pkts;
    bool m_help;
    std::string m_help_str;
@@ -103,7 +104,7 @@ public:
    IpfixprobeOptParser() : OptionsParser("ipfixprobe", "flow exporter supporting various custom IPFIX elements"),
                            m_pid(""), m_daemon(false),
                            m_iqueue(DEFAULT_IQUEUE_SIZE), m_iqueue_block(DEFAULT_IQUEUE_SIZE), m_oqueue(DEFAULT_OQUEUE_SIZE), m_fps(DEFAULT_FPS),
-                           m_max_pkts(0), m_help(false), m_help_str(""), m_version(false)
+                           m_pkt_bufsize(1600), m_max_pkts(0), m_help(false), m_help_str(""), m_version(false)
    {
       m_delim = ' ';
 
@@ -145,6 +146,12 @@ public:
                                   std::invalid_argument &e) { return false; }
                           return true;
                       }, OptionFlags::RequiredArgument);
+      register_option("-B", "--pbuf", "SIZE", "Size of packet buffer",
+                      [this](const char *arg) {
+                          try { m_pkt_bufsize = str2num<decltype(m_pkt_bufsize)>(arg); } catch (std::invalid_argument &e) { return false; }
+                          return true;
+                      },
+                      OptionFlags::RequiredArgument);
       register_option("-f", "--fps", "NUM", "Export max flows per second",
                       [this](const char *arg) {
                           try { m_fps = str2num<decltype(m_fps)>(arg); } catch (std::invalid_argument &e) { return false; }
@@ -201,18 +208,19 @@ struct ipxp_conf_t {
    std::vector<std::future<StorageStats>> storage_fut;
    std::vector<std::future<OutputStats>> output_fut;
 
+   size_t pkt_bufsize;
    size_t blocks_cnt;
    size_t pkts_cnt;
    size_t pkt_data_cnt;
 
    PacketBlock *blocks;
    Packet *pkts;
-   char *pkt_data;
+   uint8_t *pkt_data;
 
    ipxp_conf_t() : iqueue_size(DEFAULT_IQUEUE_SIZE), iqueue_block(DEFAULT_IQUEUE_BLOCK),
                    oqueue_size(DEFAULT_OQUEUE_SIZE),
                    worker_cnt(0), fps(0), max_pkts(0),
-                   blocks_cnt(0), pkts_cnt(0), pkt_data_cnt(0), blocks(nullptr), pkts(nullptr), pkt_data(nullptr)
+                   pkt_bufsize(1600), blocks_cnt(0), pkts_cnt(0), pkt_data_cnt(0), blocks(nullptr), pkts(nullptr), pkt_data(nullptr)
    {
    }
 

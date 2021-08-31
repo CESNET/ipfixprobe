@@ -55,8 +55,6 @@
 
 namespace ipxp {
 
-#define MAXPCKTSIZE 1600
-
 #define PCKT_PAYLOAD 1
 #define PCKT_TCP 2
 #define PCKT_UDP 4
@@ -66,15 +64,15 @@ namespace ipxp {
  * \brief Structure for storing parsed packets up to transport layer.
  */
 struct Packet : public Record {
-   struct timeval timestamp;
-   uint16_t   field_indicator;
+   struct timeval ts;
+   uint16_t    field_indicator;
 
    uint8_t     dst_mac[6];
    uint8_t     src_mac[6];
    uint16_t    ethertype;
 
-   uint16_t    ip_length; /**< Length of IP header + its payload */
-   uint16_t    ip_payload_length; /**< Length of IP payload */
+   uint16_t    ip_len; /**< Length of IP header + its payload */
+   uint16_t    ip_payload_len; /**< Length of IP payload */
    uint8_t     ip_version;
    uint8_t     ip_ttl;
    uint8_t     ip_proto;
@@ -85,25 +83,37 @@ struct Packet : public Record {
 
    uint16_t    src_port;
    uint16_t    dst_port;
-   uint8_t     tcp_control_bits;
+   uint8_t     tcp_flags;
    uint16_t    tcp_window;
    uint64_t    tcp_options;
    uint32_t    tcp_mss;
    uint32_t    tcp_seq;
    uint32_t    tcp_ack;
 
-   uint16_t    total_length; /**< Length of bytes in `packet` variable. */
-   char        *packet; /**< Array containing whole packet. */
-   uint16_t    payload_length; /**< Captured payload length. payload_length <= payload_length_orig */
-   uint16_t    payload_length_orig; /**< Original payload length computed from headers. */
-   char        *payload; /**< Pointer to packet payload section. */
-   bool        source_pkt;
-   uint16_t    wirelen; /**< Packet size on wire */
+   uint8_t     *packet; /**< Pointer to begin of packet, if available */
+   uint16_t    packet_len; /**< Length of packet buffer, packet_len <= packet_len_wire */
+   uint16_t    packet_len_wire; /**< Original packet length on wire */
+
+   uint8_t     *payload; /**< Pointer to begin of payload, if available */
+   uint16_t    payload_len; /**< Length of payload buffer, payload_len <= payload_len_wire */
+   uint16_t    payload_len_wire; /**< Original payload length computed from headers */
+
+   uint8_t     *custom; /**< Pointer to begin of custom data, if available */
+   uint16_t    custom_len; /**< Length of custom data buffer */
+
+   uint8_t     *buffer; /**< Buffer for packet, payload and custom data */
+   uint16_t    buffer_size; /**< Size of buffer */
+
+   bool        source_pkt; /**< Direction of packet from flow point of view */
 
    /**
     * \brief Constructor.
     */
-   Packet() : total_length(0), packet(nullptr), payload_length(0), payload(NULL)
+   Packet()
+   : packet(nullptr), packet_len(0), packet_len_wire(0),
+      payload(nullptr), payload_len(0), payload_len_wire(0),
+      custom(nullptr), custom_len(0),
+      buffer(nullptr), buffer_size(0)
    {
    }
 };

@@ -110,10 +110,11 @@ ProcessPlugin *HTTPPlugin::copy()
 
 int HTTPPlugin::post_create(Flow &rec, const Packet &pkt)
 {
-   if (is_request(pkt.payload, pkt.payload_length)) {
-      add_ext_http_request(pkt.payload, pkt.payload_length, rec);
-   } else if (is_response(pkt.payload, pkt.payload_length)) {
-      add_ext_http_response(pkt.payload, pkt.payload_length, rec);
+   const char *payload = reinterpret_cast<const char *>(pkt.payload);
+   if (is_request(payload, pkt.payload_len)) {
+      add_ext_http_request(payload, pkt.payload_len, rec);
+   } else if (is_response(payload, pkt.payload_len)) {
+      add_ext_http_response(payload, pkt.payload_len, rec);
    }
 
    return 0;
@@ -122,26 +123,27 @@ int HTTPPlugin::post_create(Flow &rec, const Packet &pkt)
 int HTTPPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    RecordExt *ext = nullptr;
-   if (is_request(pkt.payload, pkt.payload_length)) {
+   const char *payload = reinterpret_cast<const char *>(pkt.payload);
+   if (is_request(payload, pkt.payload_len)) {
       ext = rec.get_extension(RecordExtHTTP::REGISTERED_ID);
       if (ext == nullptr) { /* Check if header is present in flow. */
-         add_ext_http_request(pkt.payload, pkt.payload_length, rec);
+         add_ext_http_request(payload, pkt.payload_len, rec);
          return 0;
       }
 
-      parse_http_request(pkt.payload, pkt.payload_length, dynamic_cast<RecordExtHTTP *>(ext));
+      parse_http_request(payload, pkt.payload_len, dynamic_cast<RecordExtHTTP *>(ext));
       if (flow_flush) {
          flow_flush = false;
          return FLOW_FLUSH_WITH_REINSERT;
       }
-   } else if (is_response(pkt.payload, pkt.payload_length)) {
+   } else if (is_response(payload, pkt.payload_len)) {
       ext = rec.get_extension(RecordExtHTTP::REGISTERED_ID);
       if (ext == nullptr) { /* Check if header is present in flow. */
-         add_ext_http_response(pkt.payload, pkt.payload_length, rec);
+         add_ext_http_response(payload, pkt.payload_len, rec);
          return 0;
       }
 
-      parse_http_response(pkt.payload, pkt.payload_length, dynamic_cast<RecordExtHTTP *>(ext));
+      parse_http_response(payload, pkt.payload_len, dynamic_cast<RecordExtHTTP *>(ext));
       if (flow_flush) {
          flow_flush = false;
          return FLOW_FLUSH_WITH_REINSERT;

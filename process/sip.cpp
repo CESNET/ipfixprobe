@@ -133,7 +133,7 @@ uint16_t SIPPlugin::parse_msg_type(const Packet &pkt)
    uint32_t check;
 
    /* Is there any payload to process? */
-   if (pkt.payload_length < SIP_MIN_MSG_LEN) {
+   if (pkt.payload_len < SIP_MIN_MSG_LEN) {
       return SIP_MSG_TYPE_INVALID;
    }
 
@@ -462,7 +462,7 @@ int SIPPlugin::parser_process_sip(const Packet &pkt, RecordExtSIP *sip_data)
 
    /* Skip the packet headers: */
    payload = (unsigned char *)pkt.payload;
-   caplen = pkt.payload_length;
+   caplen = pkt.payload_len;
 
    /* Grab the first line of the payload: */
    line = parser_strtok(payload, caplen, '\n', &line_len, &line_parser);

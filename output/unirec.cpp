@@ -417,12 +417,12 @@ void UnirecExporter::fill_basic_flow(const Flow &flow, ur_template_t *tmplt_ptr,
    ur_set(tmplt_ptr, record_ptr, F_PROTOCOL, flow.ip_proto);
    ur_set(tmplt_ptr, record_ptr, F_SRC_PORT, flow.src_port);
    ur_set(tmplt_ptr, record_ptr, F_DST_PORT, flow.dst_port);
-   ur_set(tmplt_ptr, record_ptr, F_PACKETS, flow.src_pkt_total_cnt);
-   ur_set(tmplt_ptr, record_ptr, F_BYTES, flow.src_octet_total_length);
-   ur_set(tmplt_ptr, record_ptr, F_TCP_FLAGS, flow.src_tcp_control_bits);
-   ur_set(tmplt_ptr, record_ptr, F_PACKETS_REV, flow.dst_pkt_total_cnt);
-   ur_set(tmplt_ptr, record_ptr, F_BYTES_REV, flow.dst_octet_total_length);
-   ur_set(tmplt_ptr, record_ptr, F_TCP_FLAGS_REV, flow.dst_tcp_control_bits);
+   ur_set(tmplt_ptr, record_ptr, F_PACKETS, flow.src_packets);
+   ur_set(tmplt_ptr, record_ptr, F_BYTES, flow.src_bytes);
+   ur_set(tmplt_ptr, record_ptr, F_TCP_FLAGS, flow.src_tcp_flags);
+   ur_set(tmplt_ptr, record_ptr, F_PACKETS_REV, flow.dst_packets);
+   ur_set(tmplt_ptr, record_ptr, F_BYTES_REV, flow.dst_bytes);
+   ur_set(tmplt_ptr, record_ptr, F_TCP_FLAGS_REV, flow.dst_tcp_flags);
 
    ur_set(tmplt_ptr, record_ptr, F_DST_MAC, mac_from_bytes(const_cast<uint8_t*>(flow.dst_mac)));
    ur_set(tmplt_ptr, record_ptr, F_SRC_MAC, mac_from_bytes(const_cast<uint8_t*>(flow.src_mac)));

@@ -118,7 +118,7 @@ ProcessPlugin *DNSPlugin::copy()
 int DNSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.dst_port == 53 || pkt.src_port == 53) {
-      return add_ext_dns(pkt.payload, pkt.payload_length, pkt.ip_proto == IPPROTO_TCP, rec);
+      return add_ext_dns(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.ip_proto == IPPROTO_TCP, rec);
    }
 
    return 0;
@@ -129,9 +129,9 @@ int DNSPlugin::post_update(Flow &rec, const Packet &pkt)
    if (pkt.dst_port == 53 || pkt.src_port == 53) {
       RecordExt *ext = rec.get_extension(RecordExtDNS::REGISTERED_ID);
       if (ext == nullptr) {
-         return add_ext_dns(pkt.payload, pkt.payload_length, pkt.ip_proto == IPPROTO_TCP, rec);
+         return add_ext_dns(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.ip_proto == IPPROTO_TCP, rec);
       } else {
-         parse_dns(pkt.payload, pkt.payload_length, pkt.ip_proto == IPPROTO_TCP, dynamic_cast<RecordExtDNS *>(ext));
+         parse_dns(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.ip_proto == IPPROTO_TCP, dynamic_cast<RecordExtDNS *>(ext));
       }
       return FLOW_FLUSH;
    }

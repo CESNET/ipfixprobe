@@ -86,14 +86,14 @@ void OVPNPlugin::update_record(RecordExtOVPN* vpn_data, const Packet &pkt)
    uint8_t opcodeindex = 0;
    switch (static_cast<e_ip_proto_nbr>(pkt.ip_proto)) {
       case udp:
-         if (pkt.payload_length == 0) {
+         if (pkt.payload_len == 0) {
             return;
          }
          opcodeindex = c_udp_opcode_index;
          opcode = (pkt.payload[opcodeindex] >> 3);
          break;
       case tcp:
-         if (pkt.payload_length < c_tcp_opcode_index) {
+         if (pkt.payload_len < c_tcp_opcode_index) {
             return;
          }
          opcodeindex = c_tcp_opcode_index;
@@ -224,9 +224,9 @@ bool OVPNPlugin::compare_ip(ipaddr_t ip_1, ipaddr_t ip_2, uint8_t ip_version)
 
 bool OVPNPlugin::check_ssl_client_hello(const Packet &pkt, uint8_t opcodeindex)
 {
-   if (pkt.payload_length > opcodeindex + 19 && pkt.payload[opcodeindex + 14] == 0x16 && pkt.payload[opcodeindex + 19] == 0x01) {
+   if (pkt.payload_len > opcodeindex + 19 && pkt.payload[opcodeindex + 14] == 0x16 && pkt.payload[opcodeindex + 19] == 0x01) {
       return 1;
-   } else if (pkt.payload_length > opcodeindex + 47 && pkt.payload[opcodeindex + 42] == 0x16 && pkt.payload[opcodeindex + 47] == 0x01) {
+   } else if (pkt.payload_len > opcodeindex + 47 && pkt.payload[opcodeindex + 42] == 0x16 && pkt.payload[opcodeindex + 47] == 0x01) {
       return 1;
    }
    return 0;
@@ -234,9 +234,9 @@ bool OVPNPlugin::check_ssl_client_hello(const Packet &pkt, uint8_t opcodeindex)
 
 bool OVPNPlugin::check_ssl_server_hello(const Packet &pkt, uint8_t opcodeindex)
 {
-   if (pkt.payload_length > opcodeindex + 31 && pkt.payload[opcodeindex + 26] == 0x16 && pkt.payload[opcodeindex + 31] == 0x02) {
+   if (pkt.payload_len > opcodeindex + 31 && pkt.payload[opcodeindex + 26] == 0x16 && pkt.payload[opcodeindex + 31] == 0x02) {
       return 1;
-   } else if (pkt.payload_length > opcodeindex + 59 && pkt.payload[opcodeindex + 54] == 0x16 && pkt.payload[opcodeindex + 59] == 0x02) {
+   } else if (pkt.payload_len > opcodeindex + 59 && pkt.payload[opcodeindex + 54] == 0x16 && pkt.payload[opcodeindex + 59] == 0x02) {
       return 1;
    }
    return 0;

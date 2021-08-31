@@ -155,7 +155,7 @@ bool NTPPlugin::parse_ntp(const Packet &pkt, RecordExtNTP *ntp_data_ext)
    std::string str;
    payload = (unsigned char *) pkt.payload;
 
-   if (pkt.payload_length == 0) {
+   if (pkt.payload_len == 0) {
       DEBUG_MSG("Parser quits:\tpayload length = 0\n");
       return false; /*Don't add extension to  paket.*/
    }

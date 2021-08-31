@@ -110,10 +110,11 @@ ProcessPlugin *RTSPPlugin::copy()
 
 int RTSPPlugin::post_create(Flow &rec, const Packet &pkt)
 {
-   if (is_request(pkt.payload, pkt.payload_length)) {
-      add_ext_rtsp_request(pkt.payload, pkt.payload_length, rec);
-   } else if (is_response(pkt.payload, pkt.payload_length)) {
-      add_ext_rtsp_response(pkt.payload, pkt.payload_length, rec);
+   const char *payload = reinterpret_cast<const char *>(pkt.payload);
+   if (is_request(payload, pkt.payload_len)) {
+      add_ext_rtsp_request(payload, pkt.payload_len, rec);
+   } else if (is_response(payload, pkt.payload_len)) {
+      add_ext_rtsp_response(payload, pkt.payload_len, rec);
    }
 
    return 0;
@@ -122,26 +123,27 @@ int RTSPPlugin::post_create(Flow &rec, const Packet &pkt)
 int RTSPPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    RecordExt *ext = nullptr;
-   if (is_request(pkt.payload, pkt.payload_length)) {
+   const char *payload = reinterpret_cast<const char *>(pkt.payload);
+   if (is_request(payload, pkt.payload_len)) {
       ext = rec.get_extension(RecordExtRTSP::REGISTERED_ID);
       if (ext == nullptr) { /* Check if header is present in flow. */
-         add_ext_rtsp_request(pkt.payload, pkt.payload_length, rec);
+         add_ext_rtsp_request(payload, pkt.payload_len, rec);
          return 0;
       }
 
-      parse_rtsp_request(pkt.payload, pkt.payload_length, dynamic_cast<RecordExtRTSP *>(ext));
+      parse_rtsp_request(payload, pkt.payload_len, dynamic_cast<RecordExtRTSP *>(ext));
       if (flow_flush) {
          flow_flush = false;
          return FLOW_FLUSH_WITH_REINSERT;
       }
-   } else if (is_response(pkt.payload, pkt.payload_length)) {
+   } else if (is_response(payload, pkt.payload_len)) {
       ext = rec.get_extension(RecordExtRTSP::REGISTERED_ID);
       if (ext == nullptr) { /* Check if header is present in flow. */
-         add_ext_rtsp_response(pkt.payload, pkt.payload_length, rec);
+         add_ext_rtsp_response(payload, pkt.payload_len, rec);
          return 0;
       }
 
-      parse_rtsp_response(pkt.payload, pkt.payload_length, dynamic_cast<RecordExtRTSP *>(ext));
+      parse_rtsp_response(payload, pkt.payload_len, dynamic_cast<RecordExtRTSP *>(ext));
       if (flow_flush) {
          flow_flush = false;
          return FLOW_FLUSH_WITH_REINSERT;
@@ -199,7 +201,9 @@ static uint32_t s_requests = 0, s_responses = 0;
 bool RTSPPlugin::parse_rtsp_request(const char *data, int payload_len, RecordExtRTSP *rec)
 {
    char buffer[64];
-   const char *begin, *end, *keyval_delimiter;
+   const char *begin;
+   const char *end;
+   const char *keyval_delimiter;
 
    total++;
 
@@ -317,7 +321,9 @@ bool RTSPPlugin::parse_rtsp_request(const char *data, int payload_len, RecordExt
 bool RTSPPlugin::parse_rtsp_response(const char *data, int payload_len, RecordExtRTSP *rec)
 {
    char buffer[64];
-   const char *begin, *end, *keyval_delimiter;
+   const char *begin;
+   const char *end;
+   const char *keyval_delimiter;
    int code;
 
    total++;

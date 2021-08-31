@@ -166,11 +166,11 @@ void TextExporter::print_basic_flow(const Flow &flow)
       "->" <<
       lb << dst_ip << rb << ":" << flow.dst_port <<
       " " <<
-      flow.src_pkt_total_cnt << "->" << flow.dst_pkt_total_cnt <<
+      flow.src_packets << "->" << flow.dst_packets <<
       " " <<
-      flow.src_octet_total_length << "->" << flow.dst_octet_total_length <<
+      flow.src_bytes << "->" << flow.dst_bytes <<
       " " <<
-      static_cast<unsigned>(flow.src_tcp_control_bits) << "->" << static_cast<unsigned>(flow.dst_tcp_control_bits) <<
+      static_cast<unsigned>(flow.src_tcp_flags) << "->" << static_cast<unsigned>(flow.dst_tcp_flags) <<
       " " <<
       time_begin << "->" << time_end;
 

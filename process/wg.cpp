@@ -86,7 +86,7 @@ ProcessPlugin *WGPlugin::copy()
 int WGPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.ip_proto == IPPROTO_UDP) {
-      add_ext_wg(pkt.payload, pkt.payload_length, pkt.source_pkt, rec);
+      add_ext_wg(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.source_pkt, rec);
    }
 
    return 0;
@@ -96,7 +96,7 @@ int WGPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    RecordExtWG *vpn_data = (RecordExtWG *) rec.get_extension(RecordExtWG::REGISTERED_ID);
    if (vpn_data != nullptr) {
-      parse_wg(pkt.payload, pkt.payload_length, pkt.source_pkt, vpn_data);
+      parse_wg(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.source_pkt, vpn_data);
 
       if (flow_flush) {
          flow_flush = false;

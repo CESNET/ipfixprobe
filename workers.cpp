@@ -175,8 +175,8 @@ void output_thread(OutputPlugin *exp, ipx_ring_t *queue, std::promise<OutputStat
       }
 
       stats.biflows++;
-      stats.bytes += flow->src_octet_total_length + flow->dst_octet_total_length;
-      stats.packets += flow->src_pkt_total_cnt + flow->dst_pkt_total_cnt;
+      stats.bytes += flow->src_bytes + flow->dst_bytes;
+      stats.packets += flow->src_packets + flow->dst_packets;
       try {
          exp->export_flow(*flow);
       } catch (PluginError &e) {

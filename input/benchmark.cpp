@@ -146,10 +146,10 @@ void Benchmark::generatePacket(Packet *pkt)
 {
    std::uniform_int_distribution<uint32_t> distrib;
 
-   pkt->timestamp = m_currentTs;
+   pkt->ts = m_currentTs;
    pkt->field_indicator = 0;
-   pkt->total_length = std::uniform_int_distribution<uint16_t>(m_packetSizeFrom, m_packetSizeTo)(m_rndGen);
-   pkt->wirelen = pkt->total_length;
+   pkt->packet_len = std::uniform_int_distribution<uint16_t>(m_packetSizeFrom, m_packetSizeTo)(m_rndGen);
+   pkt->packet_len_wire = pkt->packet_len;
    if (distrib(m_rndGen) & 1) {
       pkt->ethertype = 0x0800;
       pkt->ip_version = 4;
@@ -168,24 +168,25 @@ void Benchmark::generatePacket(Packet *pkt)
    pkt->dst_port = distrib(m_rndGen);
    if (distrib(m_rndGen) & 1) {
       pkt->ip_proto = 6;
-      pkt->tcp_control_bits = 0x18; // PSH ACK
-      pkt->ip_payload_length = BENCHMARK_L4_SIZE_TCP;
+      pkt->tcp_flags = 0x18; // PSH ACK
+      pkt->ip_payload_len = BENCHMARK_L4_SIZE_TCP;
       pkt->field_indicator |= PCKT_TCP;
    } else {
       pkt->ip_proto = 17;
-      pkt->tcp_control_bits = 0;
-      pkt->ip_payload_length = BENCHMARK_L4_SIZE_UDP;
+      pkt->tcp_flags = 0;
+      pkt->ip_payload_len = BENCHMARK_L4_SIZE_UDP;
       pkt->field_indicator |= PCKT_UDP;
    }
-   int tmp = pkt->ip_payload_length + BENCHMARK_L2_SIZE + BENCHMARK_L3_SIZE;
+   int tmp = pkt->ip_payload_len + BENCHMARK_L2_SIZE + BENCHMARK_L3_SIZE;
 
-   pkt->payload_length = std::uniform_int_distribution<uint16_t>(m_packetSizeFrom - tmp, m_packetSizeTo - tmp)(m_rndGen);
-   pkt->ip_payload_length += pkt->payload_length;
-   pkt->ip_length = pkt->ip_payload_length + BENCHMARK_L3_SIZE;
-   pkt->total_length = pkt->ip_length + BENCHMARK_L2_SIZE;
+   pkt->payload_len = std::uniform_int_distribution<uint16_t>(m_packetSizeFrom - tmp, m_packetSizeTo - tmp)(m_rndGen);
+   pkt->ip_payload_len += pkt->payload_len;
+   pkt->ip_len = pkt->ip_payload_len + BENCHMARK_L3_SIZE;
+   pkt->packet_len = pkt->ip_len + BENCHMARK_L2_SIZE;
 
-   pkt->payload = pkt->packet + (pkt->total_length - pkt->payload_length);
-   if (pkt->payload_length) {
+   pkt->packet = pkt->buffer;
+   pkt->payload = pkt->packet + (pkt->packet_len - pkt->payload_len);
+   if (pkt->payload_len) {
       pkt->field_indicator |= PCKT_PAYLOAD;
    }
 
@@ -195,20 +196,21 @@ void Benchmark::generatePacket(Packet *pkt)
 
 void Benchmark::generatePacketFlow1(Packet *pkt)
 {
-   int tmp = m_pkt.total_length - m_pkt.payload_length; // Non payload size
+   int tmp = m_pkt.packet_len - m_pkt.payload_len; // Non payload size
    int newPayloadLength = std::uniform_int_distribution<uint16_t>(m_packetSizeFrom - tmp, m_packetSizeTo - tmp)(m_rndGen);
-   int diff = newPayloadLength - m_pkt.payload_length;
+   int diff = newPayloadLength - m_pkt.payload_len;
 
-   m_pkt.payload_length += diff;
-   m_pkt.ip_payload_length += diff;
-   m_pkt.ip_length += diff;
-   m_pkt.total_length += diff;
+   m_pkt.payload_len += diff;
+   m_pkt.ip_payload_len += diff;
+   m_pkt.ip_len += diff;
+   m_pkt.packet_len += diff;
 
-   m_pkt.timestamp = m_currentTs;
+   m_pkt.ts = m_currentTs;
    swapEndpoints(&m_pkt);
 
+   m_pkt.buffer = pkt->buffer;
    m_pkt.packet = pkt->packet;
-   m_pkt.payload = m_pkt.packet + (pkt->total_length - pkt->payload_length);
+   m_pkt.payload = m_pkt.packet + (pkt->packet_len - pkt->payload_len);
    *pkt = m_pkt;
 }
 

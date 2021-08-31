@@ -89,8 +89,8 @@ int BASICPLUSPlugin::post_create(Flow &rec, const Packet &pkt)
    p->tcp_mss[0] = pkt.tcp_mss;
    p->tcp_opt[0] = pkt.tcp_options;
    p->tcp_win[0] = pkt.tcp_window;
-   if (pkt.tcp_control_bits == 0x02) { // check syn packet
-      p->tcp_syn_size = pkt.ip_length;
+   if (pkt.tcp_flags == 0x02) { // check syn packet
+      p->tcp_syn_size = pkt.ip_len;
    }
 
    return 0;

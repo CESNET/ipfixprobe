@@ -111,9 +111,9 @@ int NETBIOSPlugin::add_netbios_ext(Flow &rec, const Packet &pkt) {
 }
 
 bool NETBIOSPlugin::parse_nbns(RecordExtNETBIOS *rec, const Packet &pkt) {
-    char *payload = pkt.payload;
+    const char *payload = reinterpret_cast<const char *>(pkt.payload);
 
-    int qry_cnt = get_query_count(payload, pkt.payload_length);
+    int qry_cnt = get_query_count(payload, pkt.payload_len);
     payload += sizeof(struct dns_hdr);
     if (qry_cnt < 1) {
         return false;
@@ -122,7 +122,7 @@ bool NETBIOSPlugin::parse_nbns(RecordExtNETBIOS *rec, const Packet &pkt) {
     return store_first_query(payload, rec);
 }
 
-int NETBIOSPlugin::get_query_count(char *payload, uint16_t payload_length) {
+int NETBIOSPlugin::get_query_count(const char *payload, uint16_t payload_length) {
     if (payload_length < sizeof(struct dns_hdr)) {
         return -1;
     }
@@ -131,7 +131,7 @@ int NETBIOSPlugin::get_query_count(char *payload, uint16_t payload_length) {
     return ntohs(hdr->question_rec_cnt);
 }
 
-bool NETBIOSPlugin::store_first_query(char *payload, RecordExtNETBIOS *rec) {
+bool NETBIOSPlugin::store_first_query(const char *payload, RecordExtNETBIOS *rec) {
     uint8_t nb_name_length = *payload++;
     if (nb_name_length != 32) {
         return false;
@@ -148,11 +148,11 @@ bool NETBIOSPlugin::store_first_query(char *payload, RecordExtNETBIOS *rec) {
     return true;
 }
 
-char NETBIOSPlugin::compress_nbns_name_char(char *uncompressed) {
+char NETBIOSPlugin::compress_nbns_name_char(const char *uncompressed) {
     return (((uncompressed[0] - 'A') << 4) | (uncompressed[1] - 'A'));
 }
 
-uint8_t NETBIOSPlugin::get_nbns_suffix(char *uncompressed) {
+uint8_t NETBIOSPlugin::get_nbns_suffix(const char *uncompressed) {
     return compress_nbns_name_char(uncompressed);
 }
 

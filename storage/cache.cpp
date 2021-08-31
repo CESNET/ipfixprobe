@@ -85,23 +85,23 @@ void FlowRecord::erase()
    memset(&m_flow.dst_ip, 0, sizeof(m_flow.dst_ip));
    m_flow.src_port = 0;
    m_flow.dst_port = 0;
-   m_flow.src_pkt_total_cnt = 0;
-   m_flow.dst_pkt_total_cnt = 0;
-   m_flow.src_octet_total_length = 0;
-   m_flow.dst_octet_total_length = 0;
-   m_flow.src_tcp_control_bits = 0;
-   m_flow.dst_tcp_control_bits = 0;
+   m_flow.src_packets = 0;
+   m_flow.dst_packets = 0;
+   m_flow.src_bytes = 0;
+   m_flow.dst_bytes = 0;
+   m_flow.src_tcp_flags = 0;
+   m_flow.dst_tcp_flags = 0;
 }
 void FlowRecord::reuse()
 {
    m_flow.remove_extensions();
    m_flow.time_first = m_flow.time_last;
-   m_flow.src_pkt_total_cnt = 0;
-   m_flow.dst_pkt_total_cnt = 0;
-   m_flow.src_octet_total_length = 0;
-   m_flow.dst_octet_total_length = 0;
-   m_flow.src_tcp_control_bits = 0;
-   m_flow.dst_tcp_control_bits = 0;
+   m_flow.src_packets = 0;
+   m_flow.dst_packets = 0;
+   m_flow.src_bytes = 0;
+   m_flow.dst_bytes = 0;
+   m_flow.src_tcp_flags = 0;
+   m_flow.dst_tcp_flags = 0;
 }
 
 inline __attribute__((always_inline)) bool FlowRecord::is_empty() const
@@ -116,12 +116,12 @@ inline __attribute__((always_inline)) bool FlowRecord::belongs(uint64_t hash) co
 
 void FlowRecord::create(const Packet &pkt, uint64_t hash)
 {
-   m_flow.src_pkt_total_cnt = 1;
+   m_flow.src_packets = 1;
 
    m_hash = hash;
 
-   m_flow.time_first = pkt.timestamp;
-   m_flow.time_last = pkt.timestamp;
+   m_flow.time_first = pkt.ts;
+   m_flow.time_last = pkt.ts;
 
    memcpy(m_flow.src_mac, pkt.src_mac, 6);
    memcpy(m_flow.dst_mac, pkt.dst_mac, 6);
@@ -131,19 +131,19 @@ void FlowRecord::create(const Packet &pkt, uint64_t hash)
       m_flow.ip_proto = pkt.ip_proto;
       m_flow.src_ip.v4 = pkt.src_ip.v4;
       m_flow.dst_ip.v4 = pkt.dst_ip.v4;
-      m_flow.src_octet_total_length = pkt.ip_length;
+      m_flow.src_bytes = pkt.ip_len;
    } else if (pkt.ip_version == 6) {
       m_flow.ip_version = pkt.ip_version;
       m_flow.ip_proto = pkt.ip_proto;
       memcpy(m_flow.src_ip.v6, pkt.src_ip.v6, 16);
       memcpy(m_flow.dst_ip.v6, pkt.dst_ip.v6, 16);
-      m_flow.src_octet_total_length = pkt.ip_length;
+      m_flow.src_bytes = pkt.ip_len;
    }
 
    if (pkt.field_indicator & PCKT_TCP) {
       m_flow.src_port = pkt.src_port;
       m_flow.dst_port = pkt.dst_port;
-      m_flow.src_tcp_control_bits = pkt.tcp_control_bits;
+      m_flow.src_tcp_flags = pkt.tcp_flags;
    } else if (pkt.field_indicator & PCKT_UDP) {
       m_flow.src_port = pkt.src_port;
       m_flow.dst_port = pkt.dst_port;
@@ -155,20 +155,20 @@ void FlowRecord::create(const Packet &pkt, uint64_t hash)
 
 void FlowRecord::update(const Packet &pkt, bool src)
 {
-   m_flow.time_last = pkt.timestamp;
+   m_flow.time_last = pkt.ts;
    if (src) {
-      m_flow.src_pkt_total_cnt++;
-      m_flow.src_octet_total_length += pkt.ip_length;
+      m_flow.src_packets++;
+      m_flow.src_bytes += pkt.ip_len;
 
       if (pkt.field_indicator & PCKT_TCP) {
-         m_flow.src_tcp_control_bits |= pkt.tcp_control_bits;
+         m_flow.src_tcp_flags |= pkt.tcp_flags;
       }
    } else {
-      m_flow.dst_pkt_total_cnt++;
-      m_flow.dst_octet_total_length += pkt.ip_length;
+      m_flow.dst_packets++;
+      m_flow.dst_bytes += pkt.ip_len;
 
       if (pkt.field_indicator & PCKT_TCP) {
-         m_flow.dst_tcp_control_bits |= pkt.tcp_control_bits;
+         m_flow.dst_tcp_flags |= pkt.tcp_flags;
       }
    }
 }
@@ -396,8 +396,8 @@ int NHTFlowCache::put_pkt(Packet &pkt)
    pkt.source_pkt = source_flow;
    flow = m_flow_table[flow_index];
 
-   uint8_t flw_flags = source_flow ? flow->m_flow.src_tcp_control_bits : flow->m_flow.dst_tcp_control_bits;
-   if ((pkt.tcp_control_bits & 0x02) && (flw_flags & (0x01 | 0x04))) {
+   uint8_t flw_flags = source_flow ? flow->m_flow.src_tcp_flags : flow->m_flow.dst_tcp_flags;
+   if ((pkt.tcp_flags & 0x02) && (flw_flags & (0x01 | 0x04))) {
       // Flows with FIN or RST TCP flags are exported when new SYN packet arrives
       m_flow_table[flow_index]->m_flow.end_reason = FLOW_END_EOF;
       export_flow(flow_index);
@@ -416,7 +416,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
 #endif /* FLOW_CACHE_STATS */
       }
    } else {
-      if (pkt.timestamp.tv_sec - flow->m_flow.time_last.tv_sec >= m_inactive) {
+      if (pkt.ts.tv_sec - flow->m_flow.time_last.tv_sec >= m_inactive) {
          m_flow_table[flow_index]->m_flow.end_reason = FLOW_END_INACTIVE;
          plugins_pre_export(flow->m_flow);
          export_flow(flow_index);
@@ -440,7 +440,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       }
 
       /* Check if flow record is expired. */
-      if (pkt.timestamp.tv_sec - flow->m_flow.time_first.tv_sec >= m_active) {
+      if (pkt.ts.tv_sec - flow->m_flow.time_first.tv_sec >= m_active) {
          m_flow_table[flow_index]->m_flow.end_reason = FLOW_END_ACTIVE;
          plugins_pre_export(flow->m_flow);
          export_flow(flow_index);
@@ -450,7 +450,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       }
    }
 
-   export_expired(pkt.timestamp.tv_sec);
+   export_expired(pkt.ts.tv_sec);
    return 0;
 }
 

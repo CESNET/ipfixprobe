@@ -80,7 +80,7 @@ public:
    bool m_list;
 
    PcapOptParser() : OptionsParser("pcap", "Input plugin for reading packets from a pcap file or a network interface"),
-      m_file(""), m_ifc(""), m_filter(""), m_snaplen(MAXPCKTSIZE), m_id(0), m_list(false)
+      m_file(""), m_ifc(""), m_filter(""), m_snaplen(-1), m_id(0), m_list(false)
    {
       register_option("f", "file", "PATH", "Path to a pcap file", [this](const char *arg){m_file = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("i", "ifc", "IFC", "Network interface name", [this](const char *arg){m_ifc = arg; return true;}, OptionFlags::RequiredArgument);

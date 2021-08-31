@@ -124,6 +124,7 @@ int main(int argc, char *argv[])
    conf.iqueue_size = parser.m_iqueue;
    conf.oqueue_size = parser.m_oqueue;
    conf.fps = parser.m_fps;
+   conf.pkt_bufsize = parser.m_pkt_bufsize;
    conf.max_pkts = parser.m_max_pkts;
 
    try {

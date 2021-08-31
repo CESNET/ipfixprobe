@@ -143,12 +143,12 @@ uint64_t PHISTSPlugin::calculate_ipt(RecordExtPHISTS *phists_data, const struct 
 
 void PHISTSPlugin::update_record(RecordExtPHISTS *phists_data, const Packet &pkt)
 {
-   if(pkt.payload_length_orig == 0 && use_zeros == true){
+   if(pkt.payload_len_wire == 0 && use_zeros == true){
       return;
    }
    uint8_t direction = (uint8_t) !pkt.source_pkt;
-   update_hist(phists_data, (uint32_t) pkt.payload_length_orig, phists_data->size_hist[direction]);
-   int32_t ipt_diff = (uint32_t) calculate_ipt(phists_data, pkt.timestamp, direction);
+   update_hist(phists_data, (uint32_t) pkt.payload_len_wire, phists_data->size_hist[direction]);
+   int32_t ipt_diff = (uint32_t) calculate_ipt(phists_data, pkt.ts, direction);
    if (ipt_diff != -1) {
       update_hist(phists_data, (uint32_t) ipt_diff, phists_data->ipt_hist[direction]);
    }

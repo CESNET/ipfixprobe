@@ -141,10 +141,10 @@ private:
 
     int add_netbios_ext(Flow &rec, const Packet &pkt);
     bool parse_nbns(RecordExtNETBIOS *rec, const Packet &pkt);
-    int get_query_count(char *payload, uint16_t payload_length);
-    bool store_first_query(char *payload, RecordExtNETBIOS *rec);
-    char compress_nbns_name_char(char *uncompressed);
-    uint8_t get_nbns_suffix(char *uncompressed);
+    int get_query_count(const char *payload, uint16_t payload_length);
+    bool store_first_query(const char *payload, RecordExtNETBIOS *rec);
+    char compress_nbns_name_char(const char *uncompressed);
+    uint8_t get_nbns_suffix(const char *uncompressed);
 };
 
 }

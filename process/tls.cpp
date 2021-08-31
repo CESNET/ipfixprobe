@@ -350,7 +350,7 @@ void TLSPlugin::add_tls_record(Flow &rec, const Packet &pkt)
       ext_ptr = new RecordExtTLS();
    }
 
-   if (parse_tls(pkt.payload, pkt.payload_length, ext_ptr)) {
+   if (parse_tls(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, ext_ptr)) {
       rec.add_extension(ext_ptr);
       ext_ptr = nullptr;
    }

@@ -147,17 +147,18 @@ void init_packets(ipxp_conf_t &conf)
 {
    conf.blocks_cnt = (conf.iqueue_size + 1) * conf.worker_cnt;
    conf.pkts_cnt = conf.blocks_cnt * conf.iqueue_block;
-   conf.pkt_data_cnt = conf.pkts_cnt * (MAXPCKTSIZE + 1);
+   conf.pkt_data_cnt = conf.pkts_cnt * conf.pkt_bufsize;
    conf.blocks = new PacketBlock[conf.blocks_cnt];
    conf.pkts = new Packet[conf.pkts_cnt];
-   conf.pkt_data = new char[conf.pkt_data_cnt];
+   conf.pkt_data = new uint8_t[conf.pkt_data_cnt];
 
    for (unsigned i = 0; i < conf.blocks_cnt; i++) {
       conf.blocks[i].pkts = conf.pkts + i * conf.iqueue_block;
       conf.blocks[i].cnt = 0;
       conf.blocks[i].size = conf.iqueue_block;
       for (unsigned j = 0; j < conf.iqueue_block; j++) {
-         conf.blocks[i].pkts[j].packet = static_cast<char *>(conf.pkt_data + (MAXPCKTSIZE + 1) * (j + i * conf.iqueue_block));
+         conf.blocks[i].pkts[j].buffer = static_cast<uint8_t *>(conf.pkt_data + conf.pkt_bufsize * (j + i * conf.iqueue_block));
+         conf.blocks[i].pkts[j].buffer_size = conf.pkt_bufsize;
       }
    }
 }
