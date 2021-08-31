@@ -394,7 +394,7 @@ void UnirecExporter::fill_basic_flow(const Flow &flow, ur_template_t *tmplt_ptr,
 {
    ur_time_t tmp_time;
 
-   if (flow.ip_version == 4) {
+   if (flow.ip_version == IP::v4) {
       ur_set(tmplt_ptr, record_ptr, F_SRC_IP, ip_from_4_bytes_be((char *) &flow.src_ip.v4));
       ur_set(tmplt_ptr, record_ptr, F_DST_IP, ip_from_4_bytes_be((char *) &flow.dst_ip.v4));
    } else {

@@ -146,10 +146,10 @@ void TextExporter::print_basic_flow(const Flow &flow)
    p = const_cast<uint8_t *>(flow.dst_mac);
    snprintf(dst_mac, sizeof(dst_mac), "%02x:%02x:%02x:%02x:%02x:%02x", p[0], p[1], p[2], p[3], p[4], p[5]);
 
-   if (flow.ip_version == 4) {
+   if (flow.ip_version == IP::v4) {
       inet_ntop(AF_INET, (const void *) &flow.src_ip.v4, src_ip, INET6_ADDRSTRLEN);
       inet_ntop(AF_INET, (const void *) &flow.dst_ip.v4, dst_ip, INET6_ADDRSTRLEN);
-   } else if (flow.ip_version == 6) {
+   } else if (flow.ip_version == IP::v6) {
       inet_ntop(AF_INET6, (const void *) &flow.src_ip.v6, src_ip, INET6_ADDRSTRLEN);
       inet_ntop(AF_INET6, (const void *) &flow.dst_ip.v6, dst_ip, INET6_ADDRSTRLEN);
       lb = "[";

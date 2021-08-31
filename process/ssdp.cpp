@@ -145,7 +145,7 @@ uint16_t SSDPPlugin::parse_loc_port(char *data, uint8_t ip_version)
    uint16_t port;
    char *end_ptr = nullptr;
 
-   if (ip_version == 6) {
+   if (ip_version == IP::v6) {
       data = strchr(data, ']');
    } else {
       data = strchr(data, '.');

@@ -46,6 +46,11 @@
 
 namespace ipxp {
 
+enum IP : uint8_t {
+   v4 = 4,
+   v6 = 6
+};
+
 /**
  * \brief Store IPv4 or IPv6 address.
  */

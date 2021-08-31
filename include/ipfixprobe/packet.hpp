@@ -55,17 +55,11 @@
 
 namespace ipxp {
 
-#define PCKT_PAYLOAD 1
-#define PCKT_TCP 2
-#define PCKT_UDP 4
-#define PCKT_ICMP 8
-
 /**
- * \brief Structure for storing parsed packets up to transport layer.
+ * \brief Structure for storing parsed packet fields
  */
 struct Packet : public Record {
    struct timeval ts;
-   uint16_t    field_indicator;
 
    uint8_t     dst_mac[6];
    uint8_t     src_mac[6];
@@ -91,15 +85,15 @@ struct Packet : public Record {
    uint32_t    tcp_ack;
 
    uint8_t     *packet; /**< Pointer to begin of packet, if available */
-   uint16_t    packet_len; /**< Length of packet buffer, packet_len <= packet_len_wire */
+   uint16_t    packet_len; /**< Length of data in packet buffer, packet_len <= packet_len_wire */
    uint16_t    packet_len_wire; /**< Original packet length on wire */
 
    uint8_t     *payload; /**< Pointer to begin of payload, if available */
-   uint16_t    payload_len; /**< Length of payload buffer, payload_len <= payload_len_wire */
+   uint16_t    payload_len; /**< Length of data in payload buffer, payload_len <= payload_len_wire */
    uint16_t    payload_len_wire; /**< Original payload length computed from headers */
 
    uint8_t     *custom; /**< Pointer to begin of custom data, if available */
-   uint16_t    custom_len; /**< Length of custom data buffer */
+   uint16_t    custom_len; /**< Length of data in custom buffer */
 
    uint8_t     *buffer; /**< Buffer for packet, payload and custom data */
    uint16_t    buffer_size; /**< Size of buffer */

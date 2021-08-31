@@ -341,12 +341,12 @@ RecordExtPassiveDNS *PassiveDNSPlugin::parse_dns(const char *data, unsigned int 
                // IPv4
                rec->ip.v4 = *(uint32_t *) data;
                parsed_a++;
-               rec->ip_version = 4;
+               rec->ip_version = IP::v4;
             } else {
                // IPv6
                memcpy(rec->ip.v6, data, 16);
                parsed_aaaa++;
-               rec->ip_version = 6;
+               rec->ip_version = IP::v6;
             }
 
             if (list == nullptr) {
@@ -442,7 +442,7 @@ bool PassiveDNSPlugin::process_ptr_record(std::string name, RecordExtPassiveDNS 
    if (type_pos + type_str.length() == name.length()) {
       // IPv4
       name.erase(type_pos);
-      rec->ip_version = 4;
+      rec->ip_version = IP::v4;
       ip = (uint8_t *) &rec->ip.v4;
 
       while (end != std::string::npos) {
@@ -467,7 +467,7 @@ bool PassiveDNSPlugin::process_ptr_record(std::string name, RecordExtPassiveDNS 
       if (type_pos + type_str.length() == name.length()) {
          // IPv6
          name.erase(type_pos);
-         rec->ip_version = 6;
+         rec->ip_version = IP::v6;
          ip = (uint8_t *) &rec->ip.v6;
 
          uint8_t nums[32];

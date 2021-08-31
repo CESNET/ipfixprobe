@@ -147,17 +147,16 @@ void Benchmark::generatePacket(Packet *pkt)
    std::uniform_int_distribution<uint32_t> distrib;
 
    pkt->ts = m_currentTs;
-   pkt->field_indicator = 0;
    pkt->packet_len = std::uniform_int_distribution<uint16_t>(m_packetSizeFrom, m_packetSizeTo)(m_rndGen);
    pkt->packet_len_wire = pkt->packet_len;
    if (distrib(m_rndGen) & 1) {
       pkt->ethertype = 0x0800;
-      pkt->ip_version = 4;
+      pkt->ip_version = IP::v4;
       pkt->src_ip.v4 = distrib(m_rndGen);
       pkt->dst_ip.v4 = distrib(m_rndGen);
    } else {
       pkt->ethertype = 0x86DD;
-      pkt->ip_version = 6;
+      pkt->ip_version = IP::v6;
       for (int i = 0; i < 4; i++) {
          reinterpret_cast<uint32_t *>(pkt->src_ip.v6)[i] = distrib(m_rndGen);
          reinterpret_cast<uint32_t *>(pkt->dst_ip.v6)[i] = distrib(m_rndGen);
@@ -167,15 +166,13 @@ void Benchmark::generatePacket(Packet *pkt)
    pkt->src_port = distrib(m_rndGen);
    pkt->dst_port = distrib(m_rndGen);
    if (distrib(m_rndGen) & 1) {
-      pkt->ip_proto = 6;
+      pkt->ip_proto = IPPROTO_TCP;
       pkt->tcp_flags = 0x18; // PSH ACK
       pkt->ip_payload_len = BENCHMARK_L4_SIZE_TCP;
-      pkt->field_indicator |= PCKT_TCP;
    } else {
-      pkt->ip_proto = 17;
+      pkt->ip_proto = IPPROTO_UDP;
       pkt->tcp_flags = 0;
       pkt->ip_payload_len = BENCHMARK_L4_SIZE_UDP;
-      pkt->field_indicator |= PCKT_UDP;
    }
    int tmp = pkt->ip_payload_len + BENCHMARK_L2_SIZE + BENCHMARK_L3_SIZE;
 
@@ -186,9 +183,6 @@ void Benchmark::generatePacket(Packet *pkt)
 
    pkt->packet = pkt->buffer;
    pkt->payload = pkt->packet + (pkt->packet_len - pkt->payload_len);
-   if (pkt->payload_len) {
-      pkt->field_indicator |= PCKT_PAYLOAD;
-   }
 
    static_assert(BENCHMARK_L2_SIZE + BENCHMARK_L3_SIZE +
       max(BENCHMARK_L4_SIZE_TCP, BENCHMARK_L4_SIZE_UDP) <= BENCHMARK_MIN_PACKET_SIZE);

@@ -271,7 +271,7 @@ uint64_t IPFIXExporter::get_template_id(const Record &flow)
 
 template_t *IPFIXExporter::get_template(const Flow &flow)
 {
-   int ipTmpltIdx = flow.ip_version == 6 ? TMPLT_IDX_V6 : TMPLT_IDX_V4;
+   int ipTmpltIdx = flow.ip_version == IP::v6 ? TMPLT_IDX_V6 : TMPLT_IDX_V4;
    uint64_t tmpltIdx = get_template_id(flow);
 
    if (tmpltMap[ipTmpltIdx].find(tmpltIdx) == tmpltMap[ipTmpltIdx].end()) {
@@ -1034,7 +1034,7 @@ int IPFIXExporter::fill_basic_flow(const Flow &flow, template_t *tmplt)
 
    buffer = tmplt->buffer + tmplt->bufferSize;
    p = buffer;
-   if (flow.ip_version == 4) {
+   if (flow.ip_version == IP::v4) {
       if (tmplt->bufferSize + GENERATE_FIELDS_SUMLEN(BASIC_TMPLT_V4) > tmpltMaxBufferSize) {
          return -1;
       }

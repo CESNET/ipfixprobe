@@ -125,7 +125,7 @@ void SIPPlugin::finish(bool print_stats)
 
 uint16_t SIPPlugin::parse_msg_type(const Packet &pkt)
 {
-   if (!(pkt.field_indicator & PCKT_PAYLOAD)) {
+   if (pkt.payload_len == 0) {
       return SIP_MSG_TYPE_INVALID;
    }
 

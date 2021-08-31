@@ -223,7 +223,7 @@ inline uint16_t parse_ipv4_hdr(const u_char *data_ptr, uint16_t data_len, Packet
       throw "Parser detected malformed packet";
    }
 
-   pkt->ip_version = 4;
+   pkt->ip_version = IP::v4;
    pkt->ip_proto = ip->protocol;
    pkt->ip_tos = ip->tos;
    pkt->ip_len = ntohs(ip->tot_len);
@@ -308,7 +308,7 @@ inline uint16_t parse_ipv6_hdr(const u_char *data_ptr, uint16_t data_len, Packet
       throw "Parser detected malformed packet";
    }
 
-   pkt->ip_version = 6;
+   pkt->ip_version = IP::v6;
    pkt->ip_tos = (ntohl(ip6->ip6_ctlun.ip6_un1.ip6_un1_flow) & 0x0ff00000) >> 20;
    pkt->ip_proto = ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt;
    pkt->ip_ttl = ip6->ip6_ctlun.ip6_un1.ip6_un1_hlim;
@@ -353,7 +353,6 @@ inline uint16_t parse_tcp_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
       throw "Parser detected malformed packet";
    }
 
-   pkt->field_indicator |= (PCKT_TCP | PCKT_PAYLOAD);
    pkt->src_port = ntohs(tcp->source);
    pkt->dst_port = ntohs(tcp->dest);
    pkt->tcp_flags = (uint8_t) *(data_ptr + 13) & 0xFF;
@@ -424,7 +423,6 @@ inline uint16_t parse_udp_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
       throw "Parser detected malformed packet";
    }
 
-   pkt->field_indicator |= (PCKT_UDP | PCKT_PAYLOAD);
    pkt->src_port = ntohs(udp->source);
    pkt->dst_port = ntohs(udp->dest);
 
@@ -451,7 +449,6 @@ inline uint16_t parse_icmp_hdr(const u_char *data_ptr, uint16_t data_len, Packet
       throw "Parser detected malformed packet";
    }
    pkt->dst_port = icmp->type * 256 + icmp->code;
-   pkt->field_indicator |= PCKT_ICMP;
 
    DEBUG_MSG("ICMP header:\n");
    DEBUG_MSG("\tType:\t\t%u\n",     icmp->type);
@@ -476,7 +473,6 @@ inline uint16_t parse_icmpv6_hdr(const u_char *data_ptr, uint16_t data_len, Pack
       throw "Parser detected malformed packet";
    }
    pkt->dst_port = icmp6->icmp6_type * 256 + icmp6->icmp6_code;
-   pkt->field_indicator |= PCKT_ICMP;
 
    DEBUG_MSG("ICMPv6 header:\n");
    DEBUG_MSG("\tType:\t\t%u\n",     icmp6->icmp6_type);
@@ -529,9 +525,9 @@ uint16_t process_mpls(const u_char *data_ptr, uint16_t data_len, Packet *pkt)
    uint16_t length = process_mpls_stack(data_ptr, data_len);
    uint8_t next_hdr = (*(data_ptr + length) & 0xF0) >> 4;
 
-   if (next_hdr == 4) {
+   if (next_hdr == IP::v4) {
       length += parse_ipv4_hdr(data_ptr + length, data_len - length, pkt);
-   } else if (next_hdr == 6) {
+   } else if (next_hdr == IP::v6) {
       length += parse_ipv6_hdr(data_ptr + length, data_len - length, pkt);
    } else if (next_hdr == 0) {
       /* Process EoMPLS */
@@ -603,7 +599,6 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
 
    pkt->packet_len_wire = len;
    pkt->ts = ts;
-   pkt->field_indicator = 0;
    pkt->src_port = 0;
    pkt->dst_port = 0;
    pkt->ip_proto = 0;

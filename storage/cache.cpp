@@ -126,13 +126,13 @@ void FlowRecord::create(const Packet &pkt, uint64_t hash)
    memcpy(m_flow.src_mac, pkt.src_mac, 6);
    memcpy(m_flow.dst_mac, pkt.dst_mac, 6);
 
-   if (pkt.ip_version == 4) {
+   if (pkt.ip_version == IP::v4) {
       m_flow.ip_version = pkt.ip_version;
       m_flow.ip_proto = pkt.ip_proto;
       m_flow.src_ip.v4 = pkt.src_ip.v4;
       m_flow.dst_ip.v4 = pkt.dst_ip.v4;
       m_flow.src_bytes = pkt.ip_len;
-   } else if (pkt.ip_version == 6) {
+   } else if (pkt.ip_version == IP::v6) {
       m_flow.ip_version = pkt.ip_version;
       m_flow.ip_proto = pkt.ip_proto;
       memcpy(m_flow.src_ip.v6, pkt.src_ip.v6, 16);
@@ -140,14 +140,15 @@ void FlowRecord::create(const Packet &pkt, uint64_t hash)
       m_flow.src_bytes = pkt.ip_len;
    }
 
-   if (pkt.field_indicator & PCKT_TCP) {
+   if (pkt.ip_proto == IPPROTO_TCP) {
       m_flow.src_port = pkt.src_port;
       m_flow.dst_port = pkt.dst_port;
       m_flow.src_tcp_flags = pkt.tcp_flags;
-   } else if (pkt.field_indicator & PCKT_UDP) {
+   } else if (pkt.ip_proto == IPPROTO_UDP) {
       m_flow.src_port = pkt.src_port;
       m_flow.dst_port = pkt.dst_port;
-   } else if (pkt.field_indicator & PCKT_ICMP) {
+   } else if (pkt.ip_proto == IPPROTO_ICMP ||
+      pkt.ip_proto == IPPROTO_ICMPV6) {
       m_flow.src_port = pkt.src_port;
       m_flow.dst_port = pkt.dst_port;
    }
@@ -160,14 +161,14 @@ void FlowRecord::update(const Packet &pkt, bool src)
       m_flow.src_packets++;
       m_flow.src_bytes += pkt.ip_len;
 
-      if (pkt.field_indicator & PCKT_TCP) {
+      if (pkt.ip_proto == IPPROTO_TCP) {
          m_flow.src_tcp_flags |= pkt.tcp_flags;
       }
    } else {
       m_flow.dst_packets++;
       m_flow.dst_bytes += pkt.ip_len;
 
-      if (pkt.field_indicator & PCKT_TCP) {
+      if (pkt.ip_proto == IPPROTO_TCP) {
          m_flow.dst_tcp_flags |= pkt.tcp_flags;
       }
    }
@@ -472,19 +473,19 @@ void NHTFlowCache::export_expired(time_t ts)
 
 bool NHTFlowCache::create_hash_key(Packet &pkt)
 {
-   if (pkt.ip_version == 4) {
+   if (pkt.ip_version == IP::v4) {
       struct flow_key_v4_t *key_v4 = reinterpret_cast<struct flow_key_v4_t *>(m_key);
       struct flow_key_v4_t *key_v4_inv = reinterpret_cast<struct flow_key_v4_t *>(m_key_inv);
 
       key_v4->proto = pkt.ip_proto;
-      key_v4->ip_version = 4;
+      key_v4->ip_version = IP::v4;
       key_v4->src_port = pkt.src_port;
       key_v4->dst_port = pkt.dst_port;
       key_v4->src_ip = pkt.src_ip.v4;
       key_v4->dst_ip = pkt.dst_ip.v4;
 
       key_v4_inv->proto = pkt.ip_proto;
-      key_v4_inv->ip_version = 4;
+      key_v4_inv->ip_version = IP::v4;
       key_v4_inv->src_port = pkt.dst_port;
       key_v4_inv->dst_port = pkt.src_port;
       key_v4_inv->src_ip = pkt.dst_ip.v4;
@@ -492,19 +493,19 @@ bool NHTFlowCache::create_hash_key(Packet &pkt)
 
       m_keylen = sizeof(flow_key_v4_t);
       return true;
-   } else if (pkt.ip_version == 6) {
+   } else if (pkt.ip_version == IP::v6) {
       struct flow_key_v6_t *key_v6 = reinterpret_cast<struct flow_key_v6_t *>(m_key);
       struct flow_key_v6_t *key_v6_inv = reinterpret_cast<struct flow_key_v6_t *>(m_key_inv);
 
       key_v6->proto = pkt.ip_proto;
-      key_v6->ip_version = 6;
+      key_v6->ip_version = IP::v6;
       key_v6->src_port = pkt.src_port;
       key_v6->dst_port = pkt.dst_port;
       memcpy(key_v6->src_ip, pkt.src_ip.v6, sizeof(pkt.src_ip.v6));
       memcpy(key_v6->dst_ip, pkt.dst_ip.v6, sizeof(pkt.dst_ip.v6));
 
       key_v6_inv->proto = pkt.ip_proto;
-      key_v6_inv->ip_version = 6;
+      key_v6_inv->ip_version = IP::v6;
       key_v6_inv->src_port = pkt.dst_port;
       key_v6_inv->dst_port = pkt.src_port;
       memcpy(key_v6_inv->src_ip, pkt.dst_ip.v6, sizeof(pkt.dst_ip.v6));

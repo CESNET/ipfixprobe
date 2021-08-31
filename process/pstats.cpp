@@ -114,7 +114,7 @@ void PSTATSPlugin::update_record(RecordExtPSTATS *pstats_data, const Packet &pkt
     * 1 - server -> client
     */
    int8_t dir = pkt.source_pkt ? 0 : 1;
-   if (skip_dup_pkts && pkt.ip_proto == 6) {
+   if (skip_dup_pkts && pkt.ip_proto == IPPROTO_TCP) {
       // Current seq <= previous ack?
       bool seq_susp = (pkt.tcp_seq <= pstats_data->tcp_seq[dir] && !seq_overflowed(pkt.tcp_seq, pstats_data->tcp_seq[dir])) ||
                       (pkt.tcp_seq > pstats_data->tcp_seq[dir] && seq_overflowed(pkt.tcp_seq, pstats_data->tcp_seq[dir]));
