@@ -229,7 +229,7 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
          delete process_plugin;
          return true;
       } catch (PluginManagerError &e) {
-         throw IPXPError(output_name + std::string(": ") + e.what());
+         throw IPXPError(process_name + std::string(": ") + e.what());
       }
    }
 
@@ -297,7 +297,7 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
          delete input_plugin;
          return true;
       } catch (PluginManagerError &e) {
-         throw IPXPError(output_name + std::string(": ") + e.what());
+         throw IPXPError(input_name + std::string(": ") + e.what());
       }
 
       try {
@@ -316,7 +316,7 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
          delete storage_plugin;
          return true;
       } catch (PluginManagerError &e) {
-         throw IPXPError(output_name + std::string(": ") + e.what());
+         throw IPXPError(storage_name + std::string(": ") + e.what());
       }
 
       std::vector<ProcessPlugin *> storage_plugins;
