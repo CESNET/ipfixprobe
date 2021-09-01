@@ -94,7 +94,7 @@ const char OTHER[] = "OTHER"; /*OTHER Value of NTP reference ID*/
 /**
  *\brief Flow record extension header for storing NTP fields.
  */
-struct RecordExtNTP : RecordExt {
+struct RecordExtNTP : public RecordExt {
    static int REGISTERED_ID;
 
    uint8_t leap;

@@ -69,7 +69,7 @@ UR_FIELDS (
 /**
  * \brief Flow record extension header for storing parsed NETBIOS packets.
  */
-struct RecordExtNETBIOS : RecordExt {
+struct RecordExtNETBIOS : public RecordExt {
    static int REGISTERED_ID;
 
    std::string netbios_name;

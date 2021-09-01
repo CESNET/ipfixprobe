@@ -84,7 +84,7 @@ UR_FIELDS (
 /**
  * \brief Flow record extension header for storing parsed WG packets.
  */
-struct RecordExtWG : RecordExt {
+struct RecordExtWG : public RecordExt {
    static int REGISTERED_ID;
 
    uint8_t possible_wg;

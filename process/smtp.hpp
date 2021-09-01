@@ -119,7 +119,7 @@ UR_FIELDS (
 /**
  * \brief Flow record extension header for storing parsed SMTP packets.
  */
-struct RecordExtSMTP : RecordExt {
+struct RecordExtSMTP : public RecordExt {
    static int REGISTERED_ID;
 
    uint32_t code_2xx_cnt;

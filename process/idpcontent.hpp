@@ -81,7 +81,7 @@ struct idpcontentArray {
    uint8_t data[IDPCONTENT_SIZE];
 };
 
-struct RecordExtIDPCONTENT : RecordExt {
+struct RecordExtIDPCONTENT : public RecordExt {
    static int REGISTERED_ID;
 
    uint8_t         pkt_export_flg[EXPORTED_PACKETS];

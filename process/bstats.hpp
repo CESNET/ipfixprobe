@@ -86,7 +86,7 @@ UR_FIELDS(
 /**
  * \brief Flow record extension header for storing parsed BSTATS packets.
  */
-struct RecordExtBSTATS : RecordExt {
+struct RecordExtBSTATS : public RecordExt {
    typedef enum eHdrFieldID {
       SPkts  = 1050,
       SBytes = 1051,

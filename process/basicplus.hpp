@@ -78,7 +78,7 @@ UR_FIELDS (
 /**
  * \brief Flow record extension header for storing parsed BASICPLUS packets.
  */
-struct RecordExtBASICPLUS : RecordExt {
+struct RecordExtBASICPLUS : public RecordExt {
    static int REGISTERED_ID;
 
    uint8_t  ip_ttl[2];

@@ -69,7 +69,7 @@ UR_FIELDS(
 /**
  * \brief Flow record extension header for storing parsed HTTPS packets.
  */
-struct RecordExtTLS : RecordExt {
+struct RecordExtTLS : public RecordExt {
    static int REGISTERED_ID;
 
    char sni[255];

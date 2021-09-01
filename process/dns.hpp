@@ -81,7 +81,7 @@ UR_FIELDS (
 /**
  * \brief Flow record extension header for storing parsed DNS packets.
  */
-struct RecordExtDNS : RecordExt {
+struct RecordExtDNS : public RecordExt {
    static int REGISTERED_ID;
 
    uint16_t id;

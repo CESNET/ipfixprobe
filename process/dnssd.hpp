@@ -112,7 +112,7 @@ struct DnsSdRr {
 /**
  * \brief Flow record extension header for storing parsed DNSSD packets.
  */
-struct RecordExtDNSSD : RecordExt {
+struct RecordExtDNSSD : public RecordExt {
    static int REGISTERED_ID;
 
    std::list<std::string> queries;

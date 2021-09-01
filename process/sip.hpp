@@ -361,7 +361,7 @@ struct parser_strtok_t {
    unsigned int instrlen;
 };
 
-struct RecordExtSIP : RecordExt {
+struct RecordExtSIP : public RecordExt {
    static int REGISTERED_ID;
 
    uint16_t msg_type;                  /* SIP message code (register, invite) < 100 or SIP response status > 100 */

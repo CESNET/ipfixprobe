@@ -79,7 +79,7 @@ void copy_str(char *dst, ssize_t size, const char *begin, const char *end);
 /**
  * \brief Flow record extension header for storing HTTP requests.
  */
-struct RecordExtHTTP : RecordExt {
+struct RecordExtHTTP : public RecordExt {
    static int REGISTERED_ID;
 
    bool req;

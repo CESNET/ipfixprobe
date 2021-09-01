@@ -94,7 +94,7 @@ public:
 /**
  * \brief Flow record extension header for storing parsed PSTATS packets.
  */
-struct RecordExtPSTATS : RecordExt {
+struct RecordExtPSTATS : public RecordExt {
    static int REGISTERED_ID;
 
    uint16_t       pkt_sizes[PSTATS_MAXELEMCOUNT];

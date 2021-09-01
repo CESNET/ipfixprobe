@@ -86,7 +86,7 @@ public:
 /**
  * \brief Flow record extension header for storing parsed PHISTS packets.
  */
-struct RecordExtPHISTS : RecordExt {
+struct RecordExtPHISTS : public RecordExt {
    static int REGISTERED_ID;
 
    typedef enum eHdrFieldID {

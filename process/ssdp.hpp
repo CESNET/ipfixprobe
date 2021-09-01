@@ -75,7 +75,7 @@ UR_FIELDS (
 /**
  * \brief Flow record extension header for storing parsed SSDP packets.
  */
-struct RecordExtSSDP : RecordExt {
+struct RecordExtSSDP : public RecordExt {
    static int REGISTERED_ID;
 
    uint16_t port;

@@ -74,7 +74,7 @@ UR_FIELDS (
 /**
  * \brief Flow record extension header for storing RTSP requests.
  */
-struct RecordExtRTSP : RecordExt {
+struct RecordExtRTSP : public RecordExt {
    static int REGISTERED_ID;
    bool req;
    bool resp;
