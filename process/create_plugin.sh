@@ -83,9 +83,9 @@ UR_FIELDS (
 )
 
 /**
- * \\brief Flow record extension header for storing parsed ${PLUGIN_UPPER} packets.
+ * \\brief Flow record extension header for storing parsed ${PLUGIN_UPPER} data.
  */
-struct RecordExt${PLUGIN_UPPER} : RecordExt {
+struct RecordExt${PLUGIN_UPPER} : public RecordExt {
    static int REGISTERED_ID;
 
    RecordExt${PLUGIN_UPPER}() : RecordExt(REGISTERED_ID)
@@ -148,9 +148,11 @@ public:
 print_cpp_code() {
    echo "#include <iostream>
 
-#include \"${PLUGIN}plugin.hpp\"
+#include \"${PLUGIN}.hpp\"
 
 namespace ipxp {
+
+int RecordExt${PLUGIN_UPPER}::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
@@ -209,17 +211,17 @@ void ${PLUGIN_UPPER}Plugin::pre_export(Flow &rec)
 }
 
 print_todo() {
-   echo "Generated ${PLUGIN}plugin.cpp and ${PLUGIN}plugin.h files"
+   echo "Generated ${PLUGIN}.cpp and ${PLUGIN}.hpp files"
    echo
    echo "TODO:"
    echo "1) Add '${PLUGIN}.hpp' and '${PLUGIN}.cpp' files to ipfixprobe_process_src variable in Makefile.am"
-   echo "2) Update README.md"
+   echo "2) Do the main work in ${PLUGIN}.cpp and ${PLUGIN}.hpp files - implement pre_create, post_create, pre_update, post_update and pre_export functions (also read and understand when these functions are called, info in ipfixprobe/process.hpp file)"
    echo "3.1) Add unirec fields to the UR_FIELDS and ${PLUGIN_UPPER}_UNIREC_TEMPLATE macro in ${PLUGIN}.hpp"
    echo "3.2) Add IPFIX template macro 'IPFIX_${PLUGIN_UPPER}_TEMPLATE' to ipfixprobe/ipfix-elements.hpp"
    echo "3.3) Define IPFIX fields"
    echo "3.4) Write function 'fill_ipfix' in ${PLUGIN}.hpp to fill fields to IPFIX message"
    echo "3.5) Write function 'fill_unirec' in ${PLUGIN}.hpp to fill fields to UNIREC message"
-   echo "4) Do the final work in ${PLUGIN}.cpp and ${PLUGIN}.hpp files - implement pre_create, post_create, pre_update, post_update and pre_export functions (also read and understand when these functions are called, info in ipfixprobe/process.hpp file)"
+   echo "4) Update README.md"
    echo "5) Be happy with your new awesome ${PLUGIN} plugin!"
    echo
    echo "Optional work:"
