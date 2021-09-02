@@ -71,11 +71,6 @@ __attribute__((constructor)) static void register_this_plugin()
    register_plugin(&rec);
 }
 
-void packet_handler(parser_opt_t *opt, struct timeval ts, const u_char *data, size_t len, size_t snaplen)
-{
-   parse_packet(opt, ts, data, len, snaplen);
-}
-
 RawReader::RawReader() : m_sock(-1), m_rd(nullptr), m_buffer(nullptr), m_buffer_size(0),
    m_block_idx(0), m_blocksize(0), m_framesize(0), m_blocknum(0), m_last_ppd(nullptr), m_pbd(nullptr), m_pkts_left(0)
 {
@@ -320,7 +315,7 @@ int RawReader::process_packets(struct tpacket_block_desc *pbd, PacketBlock &pack
       size_t snaplen = ppd->tp_snaplen;
       struct timeval ts = {ppd->tp_sec, ppd->tp_nsec / 1000};
 
-      packet_handler(&opt, ts, data, len, snaplen);
+      parse_packet(&opt, ts, data, len, snaplen);
       ppd = (struct tpacket3_hdr *) ((uint8_t *) ppd + ppd->tp_next_offset);
    }
    m_last_ppd = ppd;
