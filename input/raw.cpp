@@ -149,11 +149,11 @@ void RawReader::open_ifc(const std::string &ifc)
 
    struct ifreq ifr;
    memset(&ifr, 0, sizeof(ifr));
-   if (ifc.size() > IFNAMSIZ) {
+   if (ifc.size() > sizeof(ifr.ifr_name) - 1) {
       ::close(sock);
       throw PluginError("interface name is too long");
    }
-   strncpy(ifr.ifr_name, ifc.c_str(), sizeof(ifr.ifr_name));
+   strncpy(ifr.ifr_name, ifc.c_str(), sizeof(ifr.ifr_name) - 1);
 
    if (ioctl(sock, SIOCGIFINDEX, &ifr) == -1) {
       ::close(sock);
