@@ -133,7 +133,7 @@ bool TLSPlugin::parse_tls(const char *data, int payload_len, RecordExtTLS *rec)
    };
    tls_rec *tls = (tls_rec *) payload.data;
 
-   if (payload_len - sizeof(tls_rec) < 0 || tls->type != TLS_HANDSHAKE ||
+   if (payload_len - sizeof(tls_rec) < 0 || !tls || tls->type != TLS_HANDSHAKE ||
      tls->version.major != 3 || tls->version.minor > 3) {
       return false;
    }
