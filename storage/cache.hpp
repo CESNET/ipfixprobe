@@ -113,10 +113,11 @@ public:
       m_active(DEFAULT_ACTIVE_TIMEOUT), m_inactive(DEFAULT_INACTIVE_TIMEOUT)
    {
       register_option("s", "size", "EXPONENT", "Cache size exponent to the power of two",
-         [this](const char *arg){try {m_cache_size = static_cast<uint32_t>(1) << str2num<decltype(m_line_size)>(arg);
-               if (m_cache_size < 4 || m_cache_size > 30) {
+         [this](const char *arg){try {unsigned exp = str2num<decltype(exp)>(arg);
+               if (exp < 4 || exp > 30) {
                   throw PluginError("Flow cache size must be between 4 and 30");
                }
+               m_cache_size = static_cast<uint32_t>(1) << exp;
             } catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);
       register_option("l", "line", "EXPONENT", "Cache line size exponent to the power of two",
