@@ -116,6 +116,7 @@ InputPlugin::Result Benchmark::get(PacketBlock &packets)
    for (size_t i = 0; i < packets.size; i++) {
       (this->*m_generatePacketFunc)(&(packets.pkts[i]));
       packets.cnt++;
+      packets.bytes += packets.pkts[i].packet_len_wire;
       m_pktCnt++;
    }
    m_processed += packets.size;
@@ -195,15 +196,17 @@ void Benchmark::generatePacketFlow1(Packet *pkt)
    int diff = newPayloadLength - m_pkt.payload_len;
 
    m_pkt.payload_len += diff;
+   m_pkt.payload_len_wire += diff;
    m_pkt.ip_payload_len += diff;
    m_pkt.ip_len += diff;
    m_pkt.packet_len += diff;
+   m_pkt.packet_len_wire += diff;
 
    m_pkt.ts = m_currentTs;
    swapEndpoints(&m_pkt);
 
    m_pkt.buffer = pkt->buffer;
-   m_pkt.packet = pkt->packet;
+   m_pkt.packet = m_pkt.buffer;
    m_pkt.payload = m_pkt.packet + (pkt->packet_len - pkt->payload_len);
    *pkt = m_pkt;
 }
