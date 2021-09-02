@@ -113,7 +113,8 @@ void DNSSDPlugin::init(const char *params)
       throw PluginError(e.what());
    }
 
-   if (parser.m_txt_all) {
+   txt_all_records = parser.m_txt_all;
+   if (!parser.m_config_file.empty()) {
       load_txtconfig(parser.m_config_file.c_str());
    }
 }
