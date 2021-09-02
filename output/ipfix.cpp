@@ -194,7 +194,10 @@ void IPFIXExporter::init(const char *params)
       throw PluginError("not enough memory");
    }
 
-   if (connect_to_collector() == 2) {
+   int ret = connect_to_collector();
+   if (ret == 1) {
+      throw PluginError("unable to connect to remote collector");
+   } else if (connect_to_collector() == 2) {
       lastReconnect = time(nullptr);
    }
 
