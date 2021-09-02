@@ -205,6 +205,24 @@ if [[ -z "$WITH_NDP_TRUE" ]]; then
    RPM_BUILDREQ+=" netcope-common-devel"
 fi
 
+AC_ARG_WITH([flexprobe],
+         AC_HELP_STRING([--with-flexprobe], [Compile with support for flexprobe data processing plugins.]),
+         [
+            if test "$withval" = "yes"; then
+               withflexprobe="yes"
+            else
+               withflexprobe="no"
+            fi
+         ],
+         [withflexprobe="no"]
+)
+
+# if test x${withflexprobe} = xyes; then
+AM_CONDITIONAL(WITH_FLEXPROBE, test x${withflexprobe} = xyes)
+if [[ -z "$WITH_FLEXPROBE_TRUE" ]]; then
+   AC_DEFINE([WITH_FLEXPROBE], [1], [Define to 1 to use flexprobe plugins])
+fi
+# fi
 
 AC_ARG_WITH([pcap],
         AC_HELP_STRING([--with-pcap],[Compile ipfixprobe with pcap plugin for capturing using libpcap library]),
@@ -268,6 +286,34 @@ else
    AM_CONDITIONAL(WITH_LIBUNWIND, false)
 fi
 
+if test x${withndp} = xno; then
+   AC_CHECK_HEADER(pcap.h,
+              AC_CHECK_LIB(pcap, pcap_open_live, [libpcap=yes],
+                           AC_CHECK_LIB(wpcap, pcap_open_live, [libwpcap=yes], AC_MSG_ERROR([libpcap not found. The ipfixprobe flow exporter will not be compiled.]))),
+                           AC_MSG_ERROR([pcap.h not found. The ipfixprobe flow exporter will not be compiled.]))
+
+   AM_CONDITIONAL(HAVE_LIBPCAP, test x${libpcap} = xyes || test x${libwpcap} = xyes)
+   if [[ -z "$HAVE_LIBPCAP_TRUE" ]]; then
+      if test x${libpcap} = xyes; then
+         LIBS="-lpcap $LIBS"
+         RPM_REQUIRES+=" libpcap"
+         RPM_BUILDREQ+=" libpcap-devel"
+      else
+         LIBS="-lwpcap $LIBS"
+         RPM_REQUIRES+=" libwpcap"
+         RPM_BUILDREQ+=" libwpcap-devel"
+      fi
+   fi
+else
+   AM_CONDITIONAL(HAVE_LIBPCAP, false)
+fi
+
+AC_ARG_WITH([flowcachesize],
+       AC_HELP_STRING([--with-flowcachesize=NUMBER],[Set default size of flow cache in number of flow records.]),
+       [
+       CPPFLAGS="$CPPFLAGS -DFLOW_CACHE_SIZE=$withval"
+       ]
+)
 
 AC_ARG_WITH([nemea],
         AC_HELP_STRING([--with-nemea],[Compile with NEMEA framework (nemea.liberouter.org).]),
@@ -352,6 +398,7 @@ AC_CONFIG_FILES([Makefile
                  ipfixprobe.spec
                  ipfixprobe.bash
                  input/nfbCInterface/Makefile
+                 input/Makefile
                  init/Makefile
                  tests/Makefile
                  tests/functional/Makefile
@@ -388,3 +435,4 @@ echo
 echo "Installation...........: make install (as root if needed, with 'su' or 'sudo')"
 echo "  prefix...............: $prefix"
 echo
+

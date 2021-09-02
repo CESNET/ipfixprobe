@@ -115,6 +115,16 @@ ipfixprobe_process_src+=\
 		process/quic.hpp \
 		process/quic.cpp
 endif
+if WITH_FLEXPROBE
+ipfixprobe_process_src+=\
+		process/flexprobe-data.h \
+		process/flexprobe-data-processing.cpp \
+		process/flexprobe-data-processing.h \
+		process/flexprobe-tcp-tracking.cpp \
+		process/flexprobe-tcp-tracking.h \
+		process/flexprobe-encryption-processing.cpp \
+		process/flexprobe-encryption-processing.h
+endif
 
 ipfixprobe_headers_src=\
 		include/ipfixprobe/plugin.hpp \
@@ -140,6 +150,8 @@ ipfixprobe_src=\
 		$(ipfixprobe_headers_src) \
 		pluginmgr.cpp \
 		pluginmgr.hpp \
+		stacktrace.cpp \
+		stacktrace.hpp \
 		options.cpp \
 		utils.cpp \
 		ring.c \
