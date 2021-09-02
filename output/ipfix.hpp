@@ -89,7 +89,7 @@ public:
       register_option("u", "udp", "", "Use UDP protocol", [this](const char *arg){m_udp = true; return true;}, OptionFlags::NoArgument);
       register_option("I", "id", "NUM", "Exporter identification",
          [this](const char *arg){try {m_id = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::NoArgument);
+         OptionFlags::RequiredArgument);
       register_option("d", "dir", "NUM", "Dir bit field value",
          [this](const char *arg){try {m_dir = str2num<decltype(m_dir)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);
