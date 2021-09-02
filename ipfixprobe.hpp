@@ -103,7 +103,7 @@ public:
 
    IpfixprobeOptParser() : OptionsParser("ipfixprobe", "flow exporter supporting various custom IPFIX elements"),
                            m_pid(""), m_daemon(false),
-                           m_iqueue(DEFAULT_IQUEUE_SIZE), m_iqueue_block(DEFAULT_IQUEUE_SIZE), m_oqueue(DEFAULT_OQUEUE_SIZE), m_fps(DEFAULT_FPS),
+                           m_iqueue(DEFAULT_IQUEUE_SIZE), m_iqueue_block(DEFAULT_IQUEUE_BLOCK), m_oqueue(DEFAULT_OQUEUE_SIZE), m_fps(DEFAULT_FPS),
                            m_pkt_bufsize(1600), m_max_pkts(0), m_help(false), m_help_str(""), m_version(false)
    {
       m_delim = ' ';
