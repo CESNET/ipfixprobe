@@ -186,7 +186,7 @@ void Benchmark::generatePacket(Packet *pkt)
    pkt->payload = pkt->packet + (pkt->packet_len - pkt->payload_len);
 
    static_assert(BENCHMARK_L2_SIZE + BENCHMARK_L3_SIZE +
-      max(BENCHMARK_L4_SIZE_TCP, BENCHMARK_L4_SIZE_UDP) <= BENCHMARK_MIN_PACKET_SIZE);
+      max(BENCHMARK_L4_SIZE_TCP, BENCHMARK_L4_SIZE_UDP) <= BENCHMARK_MIN_PACKET_SIZE, "minimal packet size is too low");
 }
 
 void Benchmark::generatePacketFlow1(Packet *pkt)

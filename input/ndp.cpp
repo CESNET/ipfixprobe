@@ -53,7 +53,7 @@ namespace ipxp {
 
 __attribute__((constructor)) static void register_this_plugin()
 {
-   static PluginRecord rec = PluginRecord("ndp", [](){return new NdpReader();});
+   static PluginRecord rec = PluginRecord("ndp", [](){return new NdpPacketReader();});
    register_plugin(&rec);
 }
 
@@ -84,10 +84,10 @@ void NdpPacketReader::init(const char *params)
       throw PluginError(e.what());
    }
 
-   if (parser.m_ifc.empty()) {
-      throw PluginError("specify interface");
+   if (parser.m_dev.empty()) {
+      throw PluginError("specify device path");
    }
-   init_ifc(parser.m_ifc());
+   init_ifc(parser.m_dev);
    // TODO: id
 }
 
@@ -96,14 +96,14 @@ void NdpPacketReader::close()
    ndpReader.close();
 }
 
-void NdpPacketReader::init_ifc(const std::string &interface)
+void NdpPacketReader::init_ifc(const std::string &dev)
 {
-   if (ndpReader.init_interface(interface) != 0) {
+   if (ndpReader.init_interface(dev) != 0) {
       throw PluginError(ndpReader.error_msg);
    }
 }
 
-int NdpPacketReader::get(PacketBlock &packets)
+InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
 {
    parser_opt_t opt = {&packets, false, false, 0};
    struct ndp_packet *ndp_packet;

@@ -60,7 +60,7 @@ public:
    std::string m_dev;
    uint64_t m_id;
 
-   NdpOptParser() : OptionsParser("ndp", "Input plugin for reading packets from a ndp interface"), m_dev(""), m_id(0)
+   NdpOptParser() : OptionsParser("ndp", "Input plugin for reading packets from a ndp device"), m_dev(""), m_id(0)
    {
       register_option("d", "dev", "PATH", "Path to a device file", [this](const char *arg){m_dev = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("I", "id", "NUM", "Link identifier number",
@@ -84,7 +84,7 @@ public:
 private:
    NdpReader ndpReader;
 
-   void init_ifc(const std::string &interface);
+   void init_ifc(const std::string &dev);
 };
 
 void packet_ndp_handler(Packet *pkt, const struct ndp_packet *ndp_packet, const struct ndp_header *ndp_header);

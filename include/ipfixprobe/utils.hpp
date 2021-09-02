@@ -41,7 +41,7 @@ T str2num(std::string str)
    T val;
    size_t pos;
 
-   static_assert(std::is_arithmetic<T>());
+   static_assert(std::is_arithmetic<T>(), "conversion function is for arithmetic types only");
 
    if (std::is_integral<T>()) {
       if (std::is_signed<T>()) {
