@@ -72,17 +72,26 @@ AC_TYPE_UINT8_T
 
 AX_C_BIGENDIAN_CROSS
 
+AM_CONDITIONAL(OS_CYGWIN, test x${host_os} = xcygwin)
 
 AC_ARG_WITH([raw],
         AC_HELP_STRING([--without-raw],[Compile ipfixprobe with raw plugin for capturing using raw sockets]),
         [
       if test "$withval" = "yes"; then
+         if [[ -z "$OS_CYGWIN_TRUE" ]]; then
+            AC_MSG_ERROR(["raw plugin is not supported on cygwin"])
+         fi
          withraw="yes"
       else
          withraw="no"
       fi
         ], [withraw="yes"]
 )
+
+if [[ -z "$OS_CYGWIN_TRUE" ]] && test "$withraw" = "yes"; then
+   AC_MSG_WARN(["raw plugin is not supported on cygwin"])
+   withraw="no"
+fi
 
 AM_CONDITIONAL(WITH_RAW,  test x${withraw} = xyes)
 if [[ -z "$WITH_RAW_TRUE" ]]; then

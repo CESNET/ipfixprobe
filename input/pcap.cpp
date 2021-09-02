@@ -72,10 +72,10 @@ void packet_handler(u_char *arg, const struct pcap_pkthdr *h, const u_char *data
    // used for both tv_sec and tv_usec and has 32 bit even on 64 bit platform.
    // Cygwin uses 64 bit tv_sec and tv_usec, thus a little reinterpretation of bytes needs to be used.
    struct pcap_pkthdr new_h;
-   new_h.ts.tv_sec = *static_cast<uint32_t *>(h);
-   new_h.ts.tv_usec = *(static_cast<uint32_t *>(h) + 1);
-   new_h.caplen = *(static_cast<uint32_t *>(h) + 2);
-   new_h.len = *(static_cast<uint32_t *>(h) + 3);
+   new_h.ts.tv_sec = *reinterpret_cast<const uint32_t *>(h);
+   new_h.ts.tv_usec = *(reinterpret_cast<const uint32_t *>(h) + 1);
+   new_h.caplen = *(reinterpret_cast<const uint32_t *>(h) + 2);
+   new_h.len = *(reinterpret_cast<const uint32_t *>(h) + 3);
    parse_packet((parser_opt_t *) arg, new_h.ts, data, new_h.len, new_h.caplen);
 #else
    parse_packet((parser_opt_t *) arg, h->ts, data, h->len, h->caplen);
