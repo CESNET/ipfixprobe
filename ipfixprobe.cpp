@@ -201,7 +201,7 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
 
    // Process
    for (auto &it : parser.m_process) {
-      ProcessPlugin *process_plugin;
+      ProcessPlugin *process_plugin = nullptr;
       std::string process_params;
       std::string process_name;
       process_plugin_argline(it, process_name, process_params);
@@ -238,7 +238,7 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
    if (output_queue == nullptr) {
       throw IPXPError("unable to initialize ring buffer");
    }
-   OutputPlugin *output_plugin;
+   OutputPlugin *output_plugin = nullptr;
    try {
       output_plugin = dynamic_cast<OutputPlugin *>(conf.mgr.get(output_name));
       if (output_plugin == nullptr) {
@@ -276,8 +276,8 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
    // Input
    size_t pipeline_idx = 0;
    for (auto &it : parser.m_input) {
-      InputPlugin *input_plugin;
-      StoragePlugin *storage_plugin;
+      InputPlugin *input_plugin = nullptr;
+      StoragePlugin *storage_plugin = nullptr;
       std::string input_params;
       std::string input_name;
       process_plugin_argline(it, input_name, input_params);
