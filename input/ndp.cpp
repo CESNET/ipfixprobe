@@ -42,9 +42,6 @@
  *
  */
 
-#include <config.h>
-#ifdef HAVE_NDP
-
 #include <cstdio>
 #include <cstring>
 #include <iostream>
@@ -136,4 +133,3 @@ int NdpPacketReader::get(PacketBlock &packets)
 }
 
 }
-#endif /* HAVE_NDP */

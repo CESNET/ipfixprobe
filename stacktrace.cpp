@@ -42,8 +42,6 @@
  */
 
 #include <config.h>
-
-#ifdef HAVE_LIBUNWIND
 #include <unistd.h>
 #include <string.h>
 #include <sys/syscall.h>
@@ -209,5 +207,3 @@ void st_dump(int fd, int sig)
 }
 
 }
-
-#endif

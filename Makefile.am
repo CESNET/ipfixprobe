@@ -1,6 +1,6 @@
 SUBDIRS=
 
-if HAVE_NDP
+if WITH_NDP
 SUBDIRS+=input/nfbCInterface
 endif
 
@@ -10,25 +10,35 @@ bin_PROGRAMS=ipfixprobe
 DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)"
 
 ipfixprobe_LDFLAGS=-lpthread -ldl
-if HAVE_NDP
-ipfixprobe_LDFLAGS+=-lnuma -lnfb -lndpRI -L$(srcdir)/input/nfbCInterface/
-endif
-
-ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/ -I$(srcdir)/input/nfbCInterface/include/ -Wl,--export-dynamic
 ipfixprobe_CFLAGS=-I$(srcdir)/include/
+ipfixprobe_CXXFLAGS=-std=gnu++11 -Wl,--export-dynamic -Wno-write-strings -I$(srcdir)/include/
 
 ipfixprobe_input_src=\
-		input/raw.cpp \
-		input/raw.hpp \
-		input/pcap.cpp \
-		input/pcap.hpp \
-		input/ndp.cpp \
-		input/ndp.hpp \
 		input/benchmark.cpp \
 		input/benchmark.hpp \
 		input/parser.cpp \
 		input/parser.hpp \
 		input/headers.hpp
+
+if WITH_NDP
+ipfixprobe_LDFLAGS+=-lnuma -lndpRI -L$(srcdir)/input/nfbCInterface/
+ipfixprobe_CXXFLAGS+=-I$(srcdir)/input/nfbCInterface/include/
+ipfixprobe_input_src+=\
+		input/ndp.cpp \
+		input/ndp.hpp
+endif
+
+if WITH_RAW
+ipfixprobe_input_src+=\
+		input/raw.cpp \
+		input/raw.hpp
+endif
+
+if WITH_PCAP
+ipfixprobe_input_src+=\
+		input/pcap.cpp \
+		input/pcap.hpp
+endif
 
 ipfixprobe_storage_src=\
 		storage/cache.cpp \
@@ -42,6 +52,14 @@ ipfixprobe_output_src=\
 		output/text.cpp \
 		output/text.hpp \
 		output/ipfix-basiclist.cpp
+
+if WITH_NEMEA
+ipfixprobe_output_src+=\
+			output/unirec.hpp \
+			output/unirec.cpp \
+			fields.c \
+			fields.h
+endif
 
 ipfixprobe_process_src=\
 		process/http.cpp \
@@ -110,8 +128,6 @@ ipfixprobe_src=\
 		$(ipfixprobe_headers_src) \
 		pluginmgr.cpp \
 		pluginmgr.hpp \
-		stacktrace.cpp \
-		stacktrace.hpp \
 		options.cpp \
 		utils.cpp \
 		ring.c \
@@ -120,17 +136,11 @@ ipfixprobe_src=\
 		ipfixprobe.hpp \
 		ipfixprobe.cpp \
 		main.cpp
-
-if WITH_NEMEA
+if WITH_LIBUNWIND
 ipfixprobe_src+=\
-			fields.c \
-			fields.h
-
-ipfixprobe_output_src+=\
-			output/unirec.hpp \
-			output/unirec.cpp
+		stacktrace.cpp \
+		stacktrace.hpp
 endif
-
 
 ipfixprobe_SOURCES=$(ipfixprobe_src)
 
@@ -172,11 +182,11 @@ srpm:
 
 .PHONY: rpm
 rpm: srpm
-	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm --with unwind;
+	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm --with pcap --with unwind;
 
 .PHONY: rpm-nemea
 rpm-nemea: srpm
-	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm --with nemea --with unwind;
+	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm --with nemea --with pcap --with unwind;
 
 .PHONY: rpm-ndp
 rpm-ndp: srpm

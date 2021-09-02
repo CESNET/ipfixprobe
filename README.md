@@ -99,19 +99,20 @@ us.
 
 ## Parameters
 ### Module specific parameters
--- `-i ARGS`       Activate input plugin
--- `-s ARGS`       Activate storage plugin
--- `-o ARGS`       Activate output plugin
--- `-p ARGS`       Activate processing plugin
--- `-q SIZE`       Size of queue between input and storage plugins
--- `-b SIZE`       Size of input queue packet block
--- `-Q SIZE`       Size of queue between storage and output plugins
--- `-f NUM`        Export max flows per second
--- `-c SIZE`       Quit after number of packets are processed on each interface
--- `-P FILE`       Create pid file
--- `-d`            Run as a standalone process
--- `-h [PLUGIN]`   Print help text. Supported help for input, storage, output and process plugins
--- `-V`            Show version and exit
+- `-i ARGS`       Activate input plugin
+- `-s ARGS`       Activate storage plugin
+- `-o ARGS`       Activate output plugin
+- `-p ARGS`       Activate processing plugin
+- `-q SIZE`       Size of queue between input and storage plugins
+- `-b SIZE`       Size of input queue packet block
+- `-Q SIZE`       Size of queue between storage and output plugins
+- `-B SIZE`       Size of packet buffer
+- `-f NUM`        Export max flows per second
+- `-c SIZE`       Quit after number of packets are processed on each interface
+- `-P FILE`       Create pid file
+- `-d`            Run as a standalone process
+- `-h [PLUGIN]`   Print help text. Supported help for input, storage, output and process plugins
+- `-V`            Show version and exit
 
 ## Algorithm
 Stores packets from input PCAP file / network interface in flow cache to create flows. After whole PCAP file is processed, flows from flow cache are exported to output interface.

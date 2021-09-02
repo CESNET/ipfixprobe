@@ -24,6 +24,17 @@ T const& max(const T &a, const T &b) {
   return a > b ? a : b;
 }
 
+/*
+ * \brief Count number of '1' bits
+ * \param [in] num Number to count ones in
+ * \return Number of ones counted
+ */
+template<typename T>
+static constexpr unsigned bitcount(T num)
+{
+   return num == 0 ? 0 : (bitcount<T>(num >> 1) + (num & 1));
+}
+
 template <typename T>
 T str2num(std::string str)
 {

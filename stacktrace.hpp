@@ -44,13 +44,9 @@
 #ifndef IPXP_STACKTRACE_HPP
 #define IPXP_STACKTRACE_HPP
 
-#include <config.h>
-
 namespace ipxp {
 
-#ifdef HAVE_LIBUNWIND
 void st_dump(int fd, int sig);
-#endif
 
 }
 #endif /* IPXP_STACKTRACE_HPP */

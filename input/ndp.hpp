@@ -45,9 +45,6 @@
 #ifndef IPXP_INPUT_NDP_HPP
 #define IPXP_INPUT_NDP_HPP
 
-#include <config.h>
-#ifdef HAVE_NDP
-
 #include <ndpreader.hpp>
 
 #include <ipfixprobe/input.hpp>
@@ -93,5 +90,4 @@ private:
 void packet_ndp_handler(Packet *pkt, const struct ndp_packet *ndp_packet, const struct ndp_header *ndp_header);
 
 }
-#endif /* HAVE_NDP */
 #endif /* IPXP_INPUT_NDP_HPP */

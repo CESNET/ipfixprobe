@@ -41,13 +41,11 @@
  *
  */
 
-#include <config.h>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <iomanip>
 
-#ifndef HAVE_NDP
 #include <pcap/pcap.h>
 
 #include "pcap.hpp"
@@ -287,4 +285,3 @@ InputPlugin::Result PcapReader::get(PacketBlock &packets)
  }
 
 }
-#endif /* HAVE_NDP */

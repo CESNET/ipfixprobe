@@ -54,7 +54,9 @@
 #include <signal.h>
 
 #include "ipfixprobe.hpp"
+#ifdef WITH_LIBUNWIND
 #include "stacktrace.hpp"
+#endif
 
 namespace ipxp {
 
@@ -74,7 +76,7 @@ const uint32_t DEFAULT_FPS = 0; // unlimited
  */
 void signal_handler(int sig)
 {
-#ifdef HAVE_LIBUNWIND
+#ifdef WITH_LIBUNWIND
    if (sig == SIGSEGV) {
       st_dump(STDERR_FILENO, sig);
       abort();
@@ -87,7 +89,7 @@ void register_handlers()
 {
    signal(SIGTERM, signal_handler);
    signal(SIGINT, signal_handler);
-#ifdef HAVE_LIBUNWIND
+#ifdef WITH_LIBUNWIND
    signal(SIGSEGV, signal_handler);
 #endif
 #ifdef WITH_NEMEA

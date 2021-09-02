@@ -210,7 +210,10 @@ void NHTFlowCache::init(const char *params)
    }
 
    if (m_line_size > m_cache_size) {
-      throw PluginError("flow cache line size must be greater or equal than cache size");
+      throw PluginError("flow cache line size must be greater or equal to cache size");
+   }
+   if (m_cache_size == 0) {
+      throw PluginError("flow cache won't properly work with 0 records");
    }
 
    try {

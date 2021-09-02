@@ -78,38 +78,26 @@ struct __attribute__((packed)) flow_key_v6_t {
 #define INACTIVE_CHECK_PERIOD_1 5 // Inactive timeout of flows will be checked every X seconds when packets are continuously arriving
 #define INACTIVE_CHECK_PERIOD_2 1 // Inactive timeout of flows will be checked every X seconds when packet read timeout occured or read is nonblocking
 
-#ifdef FLOW_CACHE_SIZE
-const uint32_t DEFAULT_FLOW_CACHE_SIZE = FLOW_CACHE_SIZE;
+#ifdef IPXP_FLOW_CACHE_SIZE
+static const uint32_t DEFAULT_FLOW_CACHE_SIZE = IPXP_FLOW_CACHE_SIZE;
 #else
-#ifdef HAVE_NDP
-const uint32_t DEFAULT_FLOW_CACHE_SIZE = 524288;
+static const uint32_t DEFAULT_FLOW_CACHE_SIZE = 17; // 131072 records total
+#endif /* IPXP_FLOW_CACHE_SIZE */
+
+#ifdef IPXP_FLOW_LINE_SIZE
+static const uint32_t DEFAULT_FLOW_LINE_SIZE = IPXP_FLOW_LINE_SIZE;
 #else
-const uint32_t DEFAULT_FLOW_CACHE_SIZE = 131072;
-#endif /* HAVE_NDP */
-#endif /* FLOW_CACHE_SIZE */
+static const uint32_t DEFAULT_FLOW_LINE_SIZE = 4; // 16 records per line
+#endif /* IPXP_FLOW_LINE_SIZE */
 
-#ifdef HAVE_NDP
-const unsigned int DEFAULT_FLOW_LINE_SIZE = 4;
-#else
-const unsigned int DEFAULT_FLOW_LINE_SIZE = 16;
-#endif /* HAVE_NDP */
+static const uint32_t DEFAULT_INACTIVE_TIMEOUT = 30;
+static const uint32_t DEFAULT_ACTIVE_TIMEOUT = 300;
 
-const uint32_t DEFAULT_INACTIVE_TIMEOUT = 30;
-const uint32_t DEFAULT_ACTIVE_TIMEOUT = 300;
+static_assert(std::is_unsigned<decltype(DEFAULT_FLOW_CACHE_SIZE)>(), "Static checks of default cache sizes won't properly work without unsigned type.");
+static_assert(bitcount<decltype(DEFAULT_FLOW_CACHE_SIZE)>(-1) > DEFAULT_FLOW_CACHE_SIZE, "Flow cache size is too big to fit in variable!");
+static_assert(bitcount<decltype(DEFAULT_FLOW_LINE_SIZE)>(-1) > DEFAULT_FLOW_LINE_SIZE, "Flow cache line size is too big to fit in variable!");
 
-/*
- * \brief Count number of '1' bits in 32 bit integer
- * \param [in] num Number to count ones in
- * \return Number of ones counted
- */
-static constexpr int bitcount32(uint32_t num)
-{
-   return num == 0 ? 0 : (bitcount32(num >> 1) + (num & 1));
-}
-
-static_assert(bitcount32(DEFAULT_FLOW_CACHE_SIZE) == 1, "Flow cache size must be power of two number!");
-static_assert(bitcount32(DEFAULT_FLOW_LINE_SIZE) == 1, "Flow cache line size must be power of two number!");
-static_assert(DEFAULT_FLOW_LINE_SIZE >= 2, "Flow cache line size must be at least 2!");
+static_assert(DEFAULT_FLOW_LINE_SIZE >= 1, "Flow cache line size must be at least 1!");
 static_assert(DEFAULT_FLOW_CACHE_SIZE >= DEFAULT_FLOW_LINE_SIZE, "Flow cache size must be at least cache line size!");
 
 class CacheOptParser : public OptionsParser
@@ -121,7 +109,7 @@ public:
    uint32_t m_inactive;
 
    CacheOptParser() : OptionsParser("cache", "Storage plugin implemented as a hash table"),
-      m_cache_size(DEFAULT_FLOW_CACHE_SIZE), m_line_size(DEFAULT_FLOW_LINE_SIZE),
+      m_cache_size(1 << DEFAULT_FLOW_CACHE_SIZE), m_line_size(1 << DEFAULT_FLOW_LINE_SIZE),
       m_active(DEFAULT_ACTIVE_TIMEOUT), m_inactive(DEFAULT_INACTIVE_TIMEOUT)
    {
       register_option("s", "size", "EXPONENT", "Cache size exponent to the power of two",
@@ -134,7 +122,7 @@ public:
       register_option("l", "line", "EXPONENT", "Cache line size exponent to the power of two",
          [this](const char *arg){try {m_line_size = static_cast<uint32_t>(1) << str2num<decltype(m_line_size)>(arg);
                if (m_line_size < 1) {
-                  throw PluginError("Flow cache line size at least 1");
+                  throw PluginError("Flow cache line size must be at least 1");
                }
             } catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);

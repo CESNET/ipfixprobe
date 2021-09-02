@@ -44,9 +44,6 @@
 #ifndef IPXP_INPUT_PCAP_HPP
 #define IPXP_INPUT_PCAP_HPP
 
-#include <config.h>
-
-#ifndef HAVE_NDP
 #include <pcap/pcap.h>
 
 #include <ipfixprobe/input.hpp>
@@ -128,5 +125,4 @@ private:
 void packet_handler(u_char *arg, const struct pcap_pkthdr *h, const u_char *data);
 
 }
-#endif /* HAVE_NDP */
 #endif /* IPXP_INPUT_PCAP_HPP */
