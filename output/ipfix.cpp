@@ -133,6 +133,7 @@ const char *basic_tmplt_v6[] = {
 
 IPFIXExporter::IPFIXExporter()
 {
+   extensions = nullptr;
    templates = nullptr;
    templatesDataSize = 0;
    basic_ifc_num = -1;
