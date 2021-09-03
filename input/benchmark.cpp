@@ -61,7 +61,7 @@ __attribute__((constructor)) static void register_this_plugin()
 
 Benchmark::Benchmark()
    : m_generatePacketFunc(nullptr), m_flowMode(BenchmarkMode::FLOW_1), m_maxDuration(BENCHMARK_DEFAULT_DURATION), m_maxPktCnt(BENCHMARK_DEFAULT_PKT_CNT),
-     m_packetSizeFrom(BENCHMARK_DEFAULT_SIZE_FROM), m_packetSizeTo(BENCHMARK_DEFAULT_SIZE_TO)
+     m_packetSizeFrom(BENCHMARK_DEFAULT_SIZE_FROM), m_packetSizeTo(BENCHMARK_DEFAULT_SIZE_TO), m_pktCnt(0)
 {
 }
 
@@ -113,14 +113,18 @@ InputPlugin::Result Benchmark::get(PacketBlock &packets)
    }
 
    packets.cnt = 0;
+   packets.bytes = 0;
    for (size_t i = 0; i < packets.size; i++) {
       (this->*m_generatePacketFunc)(&(packets.pkts[i]));
       packets.cnt++;
       packets.bytes += packets.pkts[i].packet_len_wire;
       m_pktCnt++;
+      if (m_maxPktCnt && m_pktCnt >= m_maxPktCnt) {
+         break;
+      }
    }
-   m_processed += packets.size;
-   m_parsed += packets.size;
+   m_processed += packets.cnt;
+   m_parsed += packets.cnt;
    return res;
 }
 
