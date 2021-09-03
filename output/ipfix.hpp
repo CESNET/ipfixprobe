@@ -77,7 +77,7 @@ public:
    bool m_verbose;
 
    IpfixOptParser() : OptionsParser("ipfix", "Output plugin for ipfix export"),
-      m_host("127.0.0.1"), m_port(4739), m_mtu(1500), m_udp(true), m_id(DEFAULT_EXPORTER_ID), m_verbose(false)
+      m_host("127.0.0.1"), m_port(4739), m_mtu(1500), m_udp(false), m_id(DEFAULT_EXPORTER_ID), m_verbose(false)
    {
       register_option("h", "host", "ADDR", "Remote collector address", [this](const char *arg){m_host = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("p", "port", "PORT", "Remote collector port",
