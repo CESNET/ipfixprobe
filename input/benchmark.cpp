@@ -98,8 +98,13 @@ void Benchmark::init(const char *params)
       throw PluginError("minimal packet size is 64 bytes");
    }
 
-   std::random_device rd;
-   m_rndGen = std::mt19937(rd());
+   if (parser.m_seed.empty()) {
+      std::random_device rd;
+      m_rndGen = std::mt19937(rd());
+   } else {
+      std::seed_seq seed (parser.m_seed.begin(),parser.m_seed.end());
+      m_rndGen = std::mt19937(seed);
+   }
    gettimeofday(&m_firstTs, nullptr);
 }
 

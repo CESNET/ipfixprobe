@@ -74,15 +74,17 @@ class BenchmarkOptParser : public OptionsParser
 {
 public:
    std::string m_mode;
+   std::string m_seed;
    uint64_t m_duration;
    uint64_t m_pkt_cnt;
    uint16_t m_pkt_size;
    uint64_t m_link;
 
    BenchmarkOptParser() : OptionsParser("benchmark", "Input plugin for various benchmarking purposes"),
-      m_mode("1f"), m_duration(0), m_pkt_cnt(0), m_pkt_size(BENCHMARK_DEFAULT_SIZE_FROM), m_link(0)
+      m_mode("1f"), m_seed(""), m_duration(0), m_pkt_cnt(0), m_pkt_size(BENCHMARK_DEFAULT_SIZE_FROM), m_link(0)
    {
       register_option("m", "mode", "STR", "Benchmark mode 1f (1x N-packet flow) or nf (Nx 1-packet flow)", [this](const char *arg){m_mode = arg; return true;}, OptionFlags::RequiredArgument);
+      register_option("S", "seed", "STR", "String seed for random generator", [this](const char *arg){m_seed = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("d", "duration", "TIME", "Duration in seconds",
          [this](const char *arg){try {m_duration = str2num<decltype(m_duration)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);
