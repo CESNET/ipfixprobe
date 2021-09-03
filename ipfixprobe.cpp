@@ -142,6 +142,7 @@ void print_help(ipxp_conf_t &conf, const std::string &arg)
       OptionsParser *parser = p->get_parser();
       parser->usage(std::cout);
       delete parser;
+      delete p;
    }
 }
 
