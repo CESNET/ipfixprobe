@@ -83,7 +83,7 @@ void Benchmark::init(const char *params)
       generatePacket(&m_pkt);
       m_flowMode = BenchmarkMode::FLOW_1;
       m_generatePacketFunc = &Benchmark::generatePacketFlow1;
-   } else if (parser.m_mode == "1n") {
+   } else if (parser.m_mode == "nf") {
       m_flowMode = BenchmarkMode::FLOW_N;
       m_generatePacketFunc = &Benchmark::generatePacketFlowN;
    } else {
