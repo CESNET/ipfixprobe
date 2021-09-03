@@ -94,6 +94,9 @@ void Benchmark::init(const char *params)
    m_maxPktCnt = parser.m_pkt_cnt;
    m_packetSizeFrom = parser.m_pkt_size;
    m_packetSizeTo = parser.m_pkt_size;
+   if (m_packetSizeFrom < 64) {
+      throw PluginError("minimal packet size is 64 bytes");
+   }
 
    std::random_device rd;
    m_rndGen = std::mt19937(rd());
