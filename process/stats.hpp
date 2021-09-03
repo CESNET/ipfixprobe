@@ -62,10 +62,8 @@ public:
    uint32_t m_interval;
    std::string m_out;
 
-   StatsOptParser() : OptionsParser(), m_interval(STATS_PRINT_INTERVAL), m_out("stdout")
+   StatsOptParser() : OptionsParser("stats", "Print storage plugin statistics"), m_interval(STATS_PRINT_INTERVAL), m_out("stdout")
    {
-      m_name = "stats";
-      m_info = "Print storage plugin statistics";
       register_option("i", "interval", "SECS", "Print interval in seconds",
          [this](const char *arg){try {m_interval = str2num<decltype(m_interval)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);

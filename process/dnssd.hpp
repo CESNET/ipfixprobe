@@ -77,10 +77,8 @@ public:
    bool m_txt_all;
    std::string m_config_file;
 
-   DNSSDOptParser() : OptionsParser(), m_txt_all(false), m_config_file("")
+   DNSSDOptParser() : OptionsParser("dnssd", "Processing plugin for parsing DNS service discovery packets"), m_txt_all(false), m_config_file("")
    {
-      m_name = "dnssd";
-      m_info = "Processing plugin for parsing DNS service discovery packets";
       register_option("t", "txt", "FILE", "Activates processing of all txt records. Allow to specify whitelist txt records file (file line format: service.domain,txt_key1,txt_key2,...)",
          [this](const char *arg){
             m_txt_all = true;

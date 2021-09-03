@@ -75,10 +75,8 @@ class PHISTSOptParser : public OptionsParser
 public:
    bool m_include_zeroes;
 
-   PHISTSOptParser() : OptionsParser(), m_include_zeroes(false)
+   PHISTSOptParser() : OptionsParser("phists", "Processing plugin for packet histograms"), m_include_zeroes(false)
    {
-      m_name = "phists";
-      m_info = "Processing plugin for packet histograms";
       register_option("i", "includezeroes", "", "Include zero payload packets", [this](const char *arg){m_include_zeroes = true; return true;}, OptionFlags::NoArgument);
    }
 };

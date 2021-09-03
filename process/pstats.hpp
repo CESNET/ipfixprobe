@@ -82,10 +82,8 @@ public:
    bool m_include_zeroes;
    bool m_skipdup;
 
-   PSTATSOptParser() : OptionsParser(), m_include_zeroes(false), m_skipdup(false)
+   PSTATSOptParser() : OptionsParser("pstats", "Processing plugin for packet stats"), m_include_zeroes(false), m_skipdup(false)
    {
-      m_name = "pstats";
-      m_info = "Processing plugin for packet stats";
       register_option("i", "includezeroes", "", "Include zero payload packets", [this](const char *arg){m_include_zeroes = true; return true;}, OptionFlags::NoArgument);
       register_option("s", "skipdup", "", "Skip duplicated TCP packets", [this](const char *arg){m_skipdup = true; return true;}, OptionFlags::NoArgument);
    }
