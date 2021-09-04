@@ -60,8 +60,8 @@ __attribute__((constructor)) static void register_this_plugin()
 void packet_ndp_handler(parser_opt_t *opt, const struct ndp_packet *ndp_packet, const struct ndp_header *ndp_header)
 {
    struct timeval ts;
-   ts.tv_sec = ndp_header->timestamp_sec;
-   ts.tv_usec = ndp_header->timestamp_nsec / 1000;
+   ts.tv_sec = le32toh(ndp_header->timestamp_sec);
+   ts.tv_usec = le32toh(ndp_header->timestamp_nsec) / 1000;
 
    parse_packet(opt, ts, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
 }

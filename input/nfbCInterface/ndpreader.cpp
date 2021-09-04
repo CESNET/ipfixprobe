@@ -132,17 +132,14 @@ int NdpReader::get_pkt(struct ndp_packet **ndp_packet_out, struct ndp_header **n
          return 0;
       }
    }
-   struct ndp_packet *ndp_packet;
-   struct ndp_header *ndp_header;
-   ndp_packet = (ndp_packet_buffer + ndp_packet_buffer_processed);
-   ndp_header = (struct ndp_header *) ndp_packet->header;
-   ndp_header->timestamp_nsec = le32toh(ndp_header->timestamp_nsec);
-   ndp_header->timestamp_sec  = le32toh(ndp_header->timestamp_sec);
+
+   struct ndp_packet *ndp_packet = (ndp_packet_buffer + ndp_packet_buffer_processed);
+   *ndp_packet_out = ndp_packet;
+   *ndp_header_out = (struct ndp_header *) ndp_packet->header;
+
    processed_packets++;
    ndp_packet_buffer_processed++;
 
-   *ndp_packet_out = ndp_packet;
-   *ndp_header_out = ndp_header;
    return 1;
 }
 
