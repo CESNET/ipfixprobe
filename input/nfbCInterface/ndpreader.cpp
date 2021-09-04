@@ -122,11 +122,6 @@ bool NdpReader::retrieve_ndp_packets()
 
 int NdpReader::get_pkt(struct ndp_packet **ndp_packet_out, struct ndp_header **ndp_header_out)
 {
-   if (!dev_handle || !rx_handle) {
-      error_msg = "No live capture or file opened.";
-      return -3;
-   }
-
    if (ndp_packet_buffer_processed >= ndp_packet_buffer_packets) {
       if (!retrieve_ndp_packets()) {
          return 0;
