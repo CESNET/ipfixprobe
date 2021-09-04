@@ -89,6 +89,10 @@ void NdpReader::close()
       nfb_close(dev_handle);
       dev_handle = nullptr;
    }
+   if (ndp_packet_buffer) {
+      delete [] ndp_packet_buffer;
+      ndp_packet_buffer = nullptr;
+   }
 }
 
 void NdpReader::print_stats()
