@@ -136,7 +136,7 @@ public:
                       }, OptionFlags::RequiredArgument);
       register_option("-b", "--iqueueb", "SIZE", "Size of input queue packet block",
                       [this](const char *arg) {
-                          try { m_iqueue_block = str2num<decltype(m_iqueue)>(arg); } catch (
+                          try { m_iqueue_block = str2num<decltype(m_iqueue_block)>(arg); } catch (
                                   std::invalid_argument &e) { return false; }
                           return true;
                       }, OptionFlags::RequiredArgument);

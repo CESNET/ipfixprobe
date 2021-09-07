@@ -222,7 +222,7 @@ AC_ARG_WITH([flowcachesize],
 )
 
 AC_ARG_WITH([flowlinesize],
-       AC_HELP_STRING([--with-flowlineesize=EXPONENT],[Set default size of flow line, accept exponent to the power of 2 number]),
+       AC_HELP_STRING([--with-flowlinesize=EXPONENT],[Set default size of flow line, accept exponent to the power of 2 number]),
        [
        CPPFLAGS="$CPPFLAGS -DIPXP_FLOW_LINE_SIZE=$withval"
        ]
