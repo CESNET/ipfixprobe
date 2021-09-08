@@ -279,10 +279,12 @@ int RawReader::read_packets(PacketBlock &packets)
 
    if (m_pkts_left) {
       read_cnt = process_packets(m_pbd, packets);
-      if (packets.cnt == packets.size || m_pkts_left) {
+      if (!m_pkts_left) {
+         return_block();
+      }
+      if (packets.cnt == packets.size) {
          return read_cnt;
       }
-      return_block();
    }
    if (!get_block()) {
       return 0;
