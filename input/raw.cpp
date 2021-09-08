@@ -65,6 +65,10 @@
 
 namespace ipxp {
 
+#ifndef TPACKET3_HDRLEN
+#error "raw plugin is supported with TPACKET3 only"
+#endif
+
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("raw", [](){return new RawReader();});
