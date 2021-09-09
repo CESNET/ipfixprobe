@@ -75,8 +75,6 @@ struct __attribute__((packed)) flow_key_v6_t {
 };
 
 #define MAX_KEY_LENGTH (max<size_t>(sizeof(flow_key_v4_t), sizeof(flow_key_v6_t)))
-#define INACTIVE_CHECK_PERIOD_1 5 // Inactive timeout of flows will be checked every X seconds when packets are continuously arriving
-#define INACTIVE_CHECK_PERIOD_2 1 // Inactive timeout of flows will be checked every X seconds when packet read timeout occured or read is nonblocking
 
 #ifdef IPXP_FLOW_CACHE_SIZE
 static const uint32_t DEFAULT_FLOW_CACHE_SIZE = IPXP_FLOW_CACHE_SIZE;
