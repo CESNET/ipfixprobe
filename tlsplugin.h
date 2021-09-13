@@ -138,6 +138,7 @@ struct __attribute__ ((packed)) tls_rec {
 };
 
 #define TLS_HANDSHAKE_CLIENT_HELLO 1
+#define TLS_HANDSHAKE_SERVER_HELLO 2
 struct __attribute__ ((packed)) tls_handshake {
    uint8_t type;
    uint8_t length1; // length field is 3 bytes long...
