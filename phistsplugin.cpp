@@ -140,7 +140,7 @@ uint64_t PHISTSPlugin::calculate_ipt(RecordExtPHISTS *phists_data, const struct 
 
 void PHISTSPlugin::update_record(RecordExtPHISTS *phists_data, const Packet &pkt)
 {
-   if(pkt.payload_length_orig == 0 && use_zeros == true){
+   if(pkt.payload_length_orig == 0 && use_zeros == false){
       return;
    }
    uint8_t direction = (uint8_t) !pkt.source_pkt;
