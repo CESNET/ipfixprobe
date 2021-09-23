@@ -67,6 +67,25 @@ AC_TYPE_UINT8_T
 
 AX_C_BIGENDIAN_CROSS
 
+
+### openssl
+AC_ARG_ENABLE([legacy-ssl],
+       AC_HELP_STRING([--enable-legacy-ssl],[Compile ipfixprobe on centos7.]),
+       [
+       if test "$withval" = "yes"; then
+          LIBS="-l:libcrypto.so.1.1 $LIBS"
+          CXXFLAGS="-I/usr/include/openssl11/ $CXXFLAGS"
+          RPM_BUILDREQ+=" openssl11-devel"
+          RPM_REQUIRES+=" openssl11"
+       fi
+         ], [
+          RPM_REQUIRES+=" openssl"
+          RPM_BUILDREQ+=" openssl-devel"
+         ]
+)
+### openssl
+
+
 AC_ARG_WITH([ndp],
         AC_HELP_STRING([--with-ndp],[Compile ipfixprobe with ndp library.]),
         [
@@ -77,6 +96,9 @@ AC_ARG_WITH([ndp],
       fi
         ], [withndp="no"]
 )
+
+
+
 
 if test x${withndp} = xyes; then
         AC_CHECK_HEADER(nfb/nfb.h, AC_CHECK_LIB(nfb, nfb_open, [libnfb=yes],
@@ -238,4 +260,3 @@ echo
 echo "Installation...........: make install (as root if needed, with 'su' or 'sudo')"
 echo "  prefix...............: $prefix"
 echo
-

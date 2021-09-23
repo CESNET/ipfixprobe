@@ -87,6 +87,7 @@ enum extTypeEnum {
    bstats,
    phists,
    wg,
+   quic,
    /* Add extension header identifiers for your plugins here */
    EXTENSION_CNT
 };

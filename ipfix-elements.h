@@ -246,6 +246,8 @@
 #define WG_SRC_PEER(F)                F(8057,    862,   4,   NULL)
 #define WG_DST_PEER(F)                F(8057,    863,   4,   NULL)
 
+#define QUIC_SNI(F)                   F(8057,    890,  -1,   Null)
+
 /**
  * IPFIX Templates - list of elements
  *
@@ -443,6 +445,9 @@
   F(WG_SRC_PEER) \
   F(WG_DST_PEER)
 
+#define IPFIX_QUIC_TEMPLATE(F) \
+  F(QUIC_SNI) 
+
 /**
  * List of all known templated.
  *
@@ -469,7 +474,8 @@
    IPFIX_BASICPLUS_TEMPLATE(F) \
    IPFIX_BSTATS_TEMPLATE(F) \
    IPFIX_PHISTS_TEMPLATE(F) \
-   IPFIX_WG_TEMPLATE(F)
+   IPFIX_WG_TEMPLATE(F) \
+   IPFIX_QUIC_TEMPLATE(F)
 
 
 
