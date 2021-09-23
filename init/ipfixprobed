@@ -11,6 +11,7 @@ if [ -e "$CONFFILE" ]; then
          input="$input -i ${INPUT[ifc]}"
       done
    fi
+   CACHE_SIZE_PARAM=""
    if [ ! -z ${CACHE_SIZE+x} ]; then
       CACHE_SIZE_PARAM="size=${CACHE_SIZE}"
    fi
@@ -22,7 +23,11 @@ if [ -e "$CONFFILE" ]; then
          process="$process -p ${PROCESS[ifc]}"
       done
    fi
-   output="-o ipfix;${UDP+udp};host=${HOST:-127.0.0.1};port=${PORT:-4739};id=${LINK:-0};dir=${DIR:-0}"
+   UDP_PARAM=""
+   if [[ $UDP == "yes" ]]; then
+        UDP_PARAM="udp";
+   fi
+   output="-o ipfix;host=${HOST:-127.0.0.1};port=${PORT:-4739};id=${LINK:-0};dir=${DIR:-0};${UDP_PARAM}"
 
    exec /usr/bin/ipfixprobe $input $storage $process $output
 else
