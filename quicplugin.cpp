@@ -732,7 +732,7 @@ bool QUICPlugin::quic_decrypt_payload()
 
    /* Input is --> "header || ciphertext (buffer) || auth tag (16 bytes)" */
 
-   if (payload_len - 16 <= 0){
+   if (payload_len <= 16){
       DEBUG_MSG("Payload decryption error, ciphertext too short");
       return false;
    }
