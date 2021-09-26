@@ -810,14 +810,18 @@ bool QUICPlugin::quic_check_initial(uint8_t packet0)
    }
 }
 
-void QUICPlugin::quic_parse_data(const Packet &pkt)
+bool QUICPlugin::quic_parse_data(const Packet &pkt)
 {
    uint8_t *tmp_pointer = (uint8_t *) pkt.payload;
+   const uint8_t *payload_end = (uint8_t *) pkt.payload + pkt.payload_length;
    header = (uint8_t *) tmp_pointer; // set header pointer
 
    quic_h1 = (quic_header1 *) tmp_pointer; // read first byte, version and dcid length
 
    tmp_pointer += sizeof(quic_header1); // move after first struct
+   if (tmp_pointer > payload_end) {
+      return false;
+   }
 
    if (quic_h1->dcid_len != 0){
       dcid = tmp_pointer;  // set dcid if dcid length is not 0
@@ -827,6 +831,9 @@ void QUICPlugin::quic_parse_data(const Packet &pkt)
    quic_h2 = (quic_header2 *) tmp_pointer; // read scid length
 
    tmp_pointer += sizeof(quic_header2); // move after scid length
+   if (tmp_pointer > payload_end) {
+      return false;
+   }
 
    if (quic_h2->scid_len != 0){ // set scid if scid length is not 0
       scid = tmp_pointer;
@@ -837,6 +844,9 @@ void QUICPlugin::quic_parse_data(const Packet &pkt)
    quic_h3 = (quic_header3 *) tmp_pointer; // read overall length this length consists of packet number length and payload length
 
    tmp_pointer += sizeof(quic_header3);
+   if (tmp_pointer > payload_end) {
+      return false;
+   }
    tmp_pointer += quic_h3->token_len;
 
 
@@ -877,7 +887,9 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
 
 
    // header data extraction can extract data for both sides (client and server side), the differece is that server side header contains SCID length and so SCID.
-   quic_parse_data(pkt);
+   if (!quic_parse_data(pkt)) {
+      return false;
+   }
    // DONT check direction, CRYPTO frame is always contained in Client Hello packet,
    // but let choose side ("client in" / "server in") for future expansion
    if (!quic_create_initial_secrets("client in")){
