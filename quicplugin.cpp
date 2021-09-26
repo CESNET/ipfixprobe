@@ -871,7 +871,7 @@ void QUICPlugin::quic_clean()
 bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
 {
    // check if packet contains LONG HEADER and is of type INITIAL
-   if (!quic_check_initial(pkt.payload[0])){
+   if (pkt.ip_proto != 17 || !quic_check_initial(pkt.payload[0])){
       DEBUG_MSG("Packet is not Initial or does not contains LONG HEADER");
       return false;
    }
@@ -917,7 +917,6 @@ int QUICPlugin::post_create(Flow &rec, const Packet &pkt)
     * rec.addExtension(quic_ptr);
     * process_quic(quic_ptr,pkt);
     * return 0;*/
-
 
    if (quic_ptr == nullptr){
       quic_ptr = new RecordExtQUIC();
