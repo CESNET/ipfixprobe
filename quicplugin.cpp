@@ -797,17 +797,8 @@ bool QUICPlugin::quic_decrypt_payload()
 
 bool QUICPlugin::quic_check_initial(uint8_t packet0)
 {
-   // check if packet has LONG HEADER form.
-   if ((packet0 & 0x80) == 0x80){
-      // check if packet is type INITIAL.
-      if ((packet0 & 0x30) == 0x00){
-         return true;
-      } else {
-         return false;
-      }
-   } else {
-      return false;
-   }
+   // check if packet has LONG HEADER form (& 0x80 == 0x80) and is type INITIAL (& 0x30 == 0x00).
+   return (packet0 & 0xB0) == 0x80;
 }
 
 bool QUICPlugin::quic_parse_data(const Packet &pkt)
