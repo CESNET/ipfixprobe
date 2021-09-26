@@ -857,8 +857,11 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
    }
 
    payload_len = htons(quic_h4->length) ^ 0x4000; // set payload length, again, payload length is with payload_len + pkn_len , this will be adjusted later.
-
    header_len = pkt.payload_length - payload_len; // set header_length, will be adjusted later
+
+   if (payload_len > pkt.payload_length) {
+      return false;
+   }
    return true;
 } // QUICPlugin::quic_parse_data
 
