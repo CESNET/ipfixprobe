@@ -142,6 +142,7 @@ QUICPlugin::~QUICPlugin()
       delete quic_ptr;
     }
    quic_ptr = nullptr;
+   quic_clean();
 }
 
 FlowCachePlugin *QUICPlugin::copy()
@@ -850,15 +851,20 @@ void QUICPlugin::quic_parse_data(const Packet &pkt)
 
    sample = tmp_pointer; // set sample pointer
 
+   if (tmp_pointer > payload_end) {
+      return false;
+   }
 
    payload_len = htons(quic_h4->length) ^ 0x4000; // set payload length, again, payload length is with payload_len + pkn_len , this will be adjusted later.
 
    header_len = pkt.payload_length - payload_len; // set header_length, will be adjusted later
+   return true;
 } // QUICPlugin::quic_parse_data
 
 void QUICPlugin::quic_clean()
 {
    free(decrypted_payload);
+   decrypted_payload = nullptr;
 }
 
 bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
@@ -884,6 +890,7 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
    }
    if (!quic_decrypt_payload()){
       DEBUG_MSG("Error, payload decryption failed (client side)");
+      quic_clean();
       return false;
    }
    if (!parse_tls(quic_data)){
