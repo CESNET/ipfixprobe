@@ -74,10 +74,9 @@
 
 using namespace std;
 
-#define QUIC_UNIREC_TEMPLATE "QUIC_SNI" /* TODO: unirec template */
+#define QUIC_UNIREC_TEMPLATE "QUIC_SNI"
 
 UR_FIELDS(
-   /* TODO: unirec fields definition */
    string QUIC_SNI
 )
 
@@ -949,8 +948,7 @@ void QUICPlugin::add_quic(Flow &rec, const Packet &pkt)
 void QUICPlugin::finish()
 {
    if (print_stats){
-      // DEBUG_MSG("QUIC plugin stats:" );
-      cout << "TLS plugin stats:" << endl;
+      cout << "QUIC plugin stats:" << endl;
       cout << "   Parsed SNI: " << parsed_initial << endl;
    }
 }
