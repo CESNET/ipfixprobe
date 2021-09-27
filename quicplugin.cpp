@@ -207,9 +207,7 @@ void QUICPlugin::get_tls_server_name(my_payload_data &data, RecordExtQUIC *rec)
       }
 
       if (rec->sni[0] != 0){
-         RecordExtQUIC *tmp_rec = new RecordExtQUIC();
-         rec->next = tmp_rec;
-         rec       = tmp_rec;
+         break;
       }
       if (sni_len + (size_t) 1 > sizeof(rec->sni)){
          sni_len = sizeof(rec->sni) - 1;
