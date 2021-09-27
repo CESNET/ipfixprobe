@@ -169,6 +169,7 @@ public:
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
+   void add_quic(Flow &rec, const Packet &pkt);
    void finish();
    const char **get_ipfix_string();
    string get_unirec_field_string();

@@ -916,19 +916,7 @@ int QUICPlugin::pre_create(Packet &pkt)
 
 int QUICPlugin::post_create(Flow &rec, const Packet &pkt)
 {
-   /*RecordExtQUIC * quic_ptr = new RecordExtQUIC();
-    * rec.addExtension(quic_ptr);
-    * process_quic(quic_ptr,pkt);
-    * return 0;*/
-
-   if (quic_ptr == nullptr){
-      quic_ptr = new RecordExtQUIC();
-   }
-
-   if (process_quic(quic_ptr, pkt)){
-      rec.addExtension(quic_ptr);
-      quic_ptr = nullptr;
-   }
+   add_quic(rec, pkt);
    return 0;
 }
 
@@ -939,10 +927,25 @@ int QUICPlugin::pre_update(Flow &rec, Packet &pkt)
 
 int QUICPlugin::post_update(Flow &rec, const Packet &pkt)
 {
-   RecordExtQUIC *quic_ptr = (RecordExtQUIC *) rec.getExtension(quic);
+   RecordExtQUIC *ext = (RecordExtQUIC *) rec.getExtension(quic);
+   if (ext == nullptr) {
+      return 0;
+   }
 
-   process_quic(quic_ptr, pkt);
+   add_quic(rec, pkt);
    return 0;
+}
+
+void QUICPlugin::add_quic(Flow &rec, const Packet &pkt)
+{
+   if (quic_ptr == nullptr) {
+      quic_ptr = new RecordExtQUIC();
+   }
+
+   if (process_quic(quic_ptr, pkt)) {
+      rec.addExtension(quic_ptr);
+      quic_ptr = nullptr;
+   }
 }
 
 void QUICPlugin::finish()
