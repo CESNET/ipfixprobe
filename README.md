@@ -1,12 +1,14 @@
 # ipfixprobe - IPFIX flow exporter - README
 
 ## Description
-This NEMEA module creates biflows from input PCAP file / network interface and exports them to output interface.
+This application creates biflows from packet input and exports them to output interface.
 
 ## Requirements
-- To compile this module you will need [libpcap](http://www.tcpdump.org/) development library installed,
-  OR netcope-common to support high-speed transfers from [COMBO cards](https://www.liberouter.org/technologies/cards/) (NDP interface).
-- and libunwind-devel package
+- kernel version at least 3.19 when using raw sockets input plugin enabled by default (disable with `--without-raw` parameter for `./configure`)
+- [libpcap](http://www.tcpdump.org/) when compiling with pcap plugin (`--with-pcap` parameter)
+- netcope-common [COMBO cards](https://www.liberouter.org/technologies/cards/) when compiling with ndp plugin (`--with-ndp` parameter)
+- libunwind-devel when compiling with stack unwind on crash feature (`--with-unwind` parameter)
+- [nemea](http://github.com/CESNET/Nemea-Framework) when compiling with unirec output plugin (`--with-nemea` parameter)
 
 ## Build & Installation
 
@@ -26,8 +28,11 @@ Check `./configure --help` for more details and settings.
 ### RPM packages
 
 RPM package can be created in the following versions using `--with` parameter of `rpmbuild`:
-- `--with ndp` enables RPM with netcope-common, i.e., NDP communication interface; this disables libpcap input.
-- `--with nemea` enables RPM with NEMEA interface (output)
+- `--with pcap` enables RPM with pcap input plugin
+- `--with ndp` enables RPM with netcope-common, i.e., ndp input plugin
+- `--with nemea` enables RPM with unirec output plugin
+- `--without raw` disables RPM with default raw socket input plugin
+- `--with unwind` enables RPM with stack unwinding feature
 
 These parameters affect required dependencies of the RPM and build process.
 
@@ -76,18 +81,17 @@ Build project using commands in previous sections. Tested on cygwin version 2.90
 ## Input / Output of the flow exporter
 
 Input and output interfaces are dependent on the configuration (by `configure`).
-The default setting uses libpcap and the output is in IPFIX format only.
+The default setting uses raw sockets input plugin and the output is in IPFIX format only.
 
 When the project is configured with `./configure --with-nemea`, the flow
 exporter supports NEMEA output via TRAP IFC besides the default IPFIX output.
 For more information about NEMEA, visit
 [https://nemea.liberouter.org](https://nemea.liberouter.org).
 
-By default, the flow exporter uses libpcap, which allows for receiving packets
+The flow exporter supports compilation with libpcap (`./configure --with-pcap`), which allows for receiving packets
 from PCAP file or network interface card.
 
-When the project is configured with `./configure --with-ndp`, the flow exporter
-does not link libpcap. Contrary, it is prepared for high-speed packet transfer
+When the project is configured with `./configure --with-ndp`, it is prepared for high-speed packet transfer
 from special HW acceleration FPGA cards.  For more information about the cards,
 visit [COMBO cards](https://www.liberouter.org/technologies/cards/) or contact
 us.
@@ -114,10 +118,6 @@ us.
 - `-h [PLUGIN]`   Print help text. Supported help for input, storage, output and process plugins
 - `-V`            Show version and exit
 
-## Algorithm
-Stores packets from input PCAP file / network interface in flow cache to create flows. After whole PCAP file is processed, flows from flow cache are exported to output interface.
-When capturing from network interface, flows are continuously send to output interfaces until N (or unlimited number of packets if the -c option is not specified) packets are captured and exported.
-
 ## Extension
 `ipfixprobe` can be extended by new plugins for exporting various new information from flow.
 There are already some existing plugins that export e.g. `DNS`, `HTTP`, `SIP`, `NTP`, `PassiveDNS`.
@@ -125,9 +125,6 @@ There are already some existing plugins that export e.g. `DNS`, `HTTP`, `SIP`, `
 ## Adding new plugin
 To create new plugin use [create_plugin.sh](create_plugin.sh) script. This interactive script will generate .cpp and .h
 file template and will also print `TODO` guide what needs to be done.
-
-## Exporting packets
-It is possible to export single packet with additional information using plugins (`ARP`).
 
 ## Possible issues
 ### Flows are not send to output interface when reading small pcap file (NEMEA output)
