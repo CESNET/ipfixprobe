@@ -59,7 +59,7 @@ __attribute__((constructor)) static void register_this_plugin()
 
 StatsPlugin::StatsPlugin() :
    m_packets(0), m_new_flows(0), m_cache_hits(0), m_flows_in_cache(0), m_init_ts(true),
-   m_interval({STATS_PRINT_INTERVAL, 0}), m_out(&std::cout)
+   m_interval({STATS_PRINT_INTERVAL, 0}), m_last_ts({0}), m_out(&std::cout)
 {
 }
 

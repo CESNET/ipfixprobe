@@ -152,16 +152,16 @@ uint16_t SSDPPlugin::parse_loc_port(char *data, uint8_t ip_version)
    }
    data = strchr(data, ':');
 
-   if (data) {
-      data++;
+   if (data == nullptr) {
+      return 0;
    }
+   data++;
 
    port = strtol(data, &end_ptr, 0);
    if (data != end_ptr) {
       return port;
-   } else {
-      return 0;
    }
+   return 0;
 }
 
 /**
@@ -278,7 +278,7 @@ void SSDPPlugin::parse_ssdp_message(Flow &rec, const Packet &pkt)
    header_parser_conf parse_conf = {
       headers,
       rec.ip_version,
-      dynamic_cast<RecordExtSSDP *>(rec.get_extension(RecordExtSSDP::REGISTERED_ID))
+      static_cast<RecordExtSSDP *>(rec.get_extension(RecordExtSSDP::REGISTERED_ID))
    };
    char *data = (char *) pkt.payload;
 

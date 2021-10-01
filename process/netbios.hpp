@@ -75,7 +75,7 @@ struct RecordExtNETBIOS : public RecordExt {
    std::string netbios_name;
    char netbios_suffix;
 
-   RecordExtNETBIOS() : RecordExt(REGISTERED_ID)
+   RecordExtNETBIOS() : RecordExt(REGISTERED_ID), netbios_suffix(0)
    {
    }
 

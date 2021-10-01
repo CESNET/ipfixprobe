@@ -103,11 +103,18 @@ struct Packet : public Record {
    /**
     * \brief Constructor.
     */
-   Packet()
-   : packet(nullptr), packet_len(0), packet_len_wire(0),
+   Packet() :
+      ts({0}),
+      dst_mac(), src_mac(), ethertype(0),
+      ip_len(0), ip_payload_len(0), ip_version(0), ip_ttl(0),
+      ip_proto(0), ip_tos(0), ip_flags(0), src_ip({0}), dst_ip({0}),
+      src_port(0), dst_port(0), tcp_flags(0), tcp_window(0),
+      tcp_options(0), tcp_mss(0), tcp_seq(0), tcp_ack(0),
+      packet(nullptr), packet_len(0), packet_len_wire(0),
       payload(nullptr), payload_len(0), payload_len_wire(0),
       custom(nullptr), custom_len(0),
-      buffer(nullptr), buffer_size(0)
+      buffer(nullptr), buffer_size(0),
+      source_pkt(true)
    {
    }
 };
@@ -117,6 +124,11 @@ struct PacketBlock {
    size_t cnt;
    size_t bytes;
    size_t size;
+
+   PacketBlock() :
+      pkts(nullptr), cnt(0), bytes(0), size(0)
+   {
+   }
 };
 
 }

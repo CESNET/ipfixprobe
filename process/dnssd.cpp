@@ -95,7 +95,7 @@ __attribute__((constructor)) static void register_this_plugin()
  */
 #define GET_OFFSET(half1, half2) ((((uint8_t)(half1) & 0x3F) << 8) | (uint8_t)(half2))
 
-DNSSDPlugin::DNSSDPlugin() : txt_all_records(false), queries(0), responses(0), total(0)
+DNSSDPlugin::DNSSDPlugin() : txt_all_records(false), queries(0), responses(0), total(0), data_begin(nullptr), data_len(0)
 {
 }
 
@@ -146,7 +146,7 @@ int DNSSDPlugin::post_update(Flow &rec, const Packet &pkt)
          return add_ext_dnssd(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.ip_proto == IPPROTO_TCP, rec);
       } else {
          parse_dns(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.ip_proto == IPPROTO_TCP,
-                   dynamic_cast<RecordExtDNSSD *>(ext));
+                   static_cast<RecordExtDNSSD *>(ext));
       }
       return 0;
    }

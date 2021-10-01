@@ -97,7 +97,7 @@ int SMTPPlugin::pre_update(Flow &rec, Packet &pkt)
          create_smtp_record(rec, pkt);
          return 0;
       }
-      update_smtp_record(dynamic_cast<RecordExtSMTP *>(ext), pkt);
+      update_smtp_record(static_cast<RecordExtSMTP *>(ext), pkt);
    }
 
    return 0;
@@ -305,7 +305,7 @@ bool SMTPPlugin::parse_smtp_command(const char *data, int payload_len, RecordExt
    buffer[len] = 0;
 
    if (!strcmp(buffer, "HELO") || !strcmp(buffer, "EHLO")) {
-      if (rec->domain[0] == 0) {
+      if (rec->domain[0] == 0 && end != nullptr) {
          begin = end;
          end = strchr(begin, '\r');
          if (end != nullptr && begin != NULL) {
@@ -326,7 +326,7 @@ bool SMTPPlugin::parse_smtp_command(const char *data, int payload_len, RecordExt
       }
    } else if (!strcmp(buffer, "RCPT")) {
       rec->mail_rcpt_cnt++;
-      if (rec->first_recipient[0] == 0) {
+      if (rec->first_recipient[0] == 0 && end != nullptr) {
          begin = strchr(end + 1, ':');
          end = strchr(end, '\r');
          if (end != nullptr && begin != NULL) {
@@ -343,7 +343,7 @@ bool SMTPPlugin::parse_smtp_command(const char *data, int payload_len, RecordExt
       rec->command_flags |= SMTP_CMD_RCPT;
    } else if (!strcmp(buffer, "MAIL")) {
       rec->mail_cmd_cnt++;
-      if (rec->first_sender[0] == 0) {
+      if (rec->first_sender[0] == 0 && end != nullptr) {
          begin = strchr(end + 1, ':');
          end = strchr(end, '\r');
          if (end != nullptr && begin != NULL) {

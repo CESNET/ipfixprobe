@@ -200,7 +200,7 @@ public:
 
 private:
    void add_tls_record(Flow &rec, const Packet &pkt);
-   bool parse_tls(const char *data, int payload_len, RecordExtTLS *rec);
+   bool parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *rec);
    void get_ja3_cipher_suites(std::stringstream &ja3, payload_data &data);
    std::string get_ja3_ecpliptic_curves(payload_data &data);
    std::string get_ja3_ec_point_formats(payload_data &data);

@@ -198,8 +198,8 @@ private:
 
    bool m_eof;                  /**< Send eof when module exits. */
    bool m_odid;            /**< Export ODID field instead of LINK_BIT_FIELD. */
-   uint64_t link_bit_field;   /**< Link bit field value. */
-   uint8_t dir_bit_field;     /**< Direction bit field value. */
+   uint64_t m_link_bit_field;   /**< Link bit field value. */
+   uint8_t m_dir_bit_field;     /**< Direction bit field value. */
 };
 
 }

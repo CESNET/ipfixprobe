@@ -131,7 +131,7 @@ int RTSPPlugin::pre_update(Flow &rec, Packet &pkt)
          return 0;
       }
 
-      parse_rtsp_request(payload, pkt.payload_len, dynamic_cast<RecordExtRTSP *>(ext));
+      parse_rtsp_request(payload, pkt.payload_len, static_cast<RecordExtRTSP *>(ext));
       if (flow_flush) {
          flow_flush = false;
          return FLOW_FLUSH_WITH_REINSERT;
@@ -143,7 +143,7 @@ int RTSPPlugin::pre_update(Flow &rec, Packet &pkt)
          return 0;
       }
 
-      parse_rtsp_response(payload, pkt.payload_len, dynamic_cast<RecordExtRTSP *>(ext));
+      parse_rtsp_response(payload, pkt.payload_len, static_cast<RecordExtRTSP *>(ext));
       if (flow_flush) {
          flow_flush = false;
          return FLOW_FLUSH_WITH_REINSERT;

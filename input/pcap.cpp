@@ -82,7 +82,7 @@ void packet_handler(u_char *arg, const struct pcap_pkthdr *h, const u_char *data
 #endif
 }
 
-PcapReader::PcapReader() : m_handle(nullptr), m_netmask(PCAP_NETMASK_UNKNOWN)
+PcapReader::PcapReader() : m_handle(nullptr), m_snaplen(-1), m_datalink(0), m_live(false), m_netmask(PCAP_NETMASK_UNKNOWN)
 {
 }
 

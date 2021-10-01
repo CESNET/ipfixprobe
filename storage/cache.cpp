@@ -178,7 +178,7 @@ void FlowRecord::update(const Packet &pkt, bool src)
 NHTFlowCache::NHTFlowCache() :
    m_cache_size(0), m_line_size(0), m_line_mask(0), m_line_new_idx(0),
    m_qsize(0), m_qidx(0), m_timeout_idx(0), m_active(0), m_inactive(0),
-   m_keylen(0), m_flow_table(nullptr), m_flow_records(nullptr)
+   m_keylen(0), m_key(), m_key_inv(), m_flow_table(nullptr), m_flow_records(nullptr)
 {
 }
 

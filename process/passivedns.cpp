@@ -100,7 +100,7 @@ __attribute__((constructor)) static void register_this_plugin()
  */
 #define GET_OFFSET(half1, half2) ((((uint8_t)(half1) & 0x3F) << 8) | (uint8_t)(half2))
 
-PassiveDNSPlugin::PassiveDNSPlugin() : total(0), parsed_a(0), parsed_aaaa(0), parsed_ptr(0)
+PassiveDNSPlugin::PassiveDNSPlugin() : total(0), parsed_a(0), parsed_aaaa(0), parsed_ptr(0), data_begin(nullptr), data_len(0)
 {
 }
 
@@ -402,11 +402,18 @@ RecordExtPassiveDNS *PassiveDNSPlugin::parse_dns(const char *data, unsigned int 
  */
 bool PassiveDNSPlugin::str_to_uint4(std::string str, uint8_t &dst)
 {
-   char *check;
+   size_t check;
    errno = 0;
    trim_str(str);
-   unsigned long long value = strtoull(str.c_str(), &check, 16);
-   if (errno == ERANGE || str[0] == '-' || str[0] == '\0' || *check ||
+   unsigned long long value;
+   try {
+      value = std::stoull(str, &check, 16);
+   } catch (std::invalid_argument &e) {
+      return false;
+   } catch (std::out_of_range &e) {
+      return false;
+   }
+   if (errno == ERANGE || str[0] == '-' || check != str.size() ||
       value > 15) {
       return false;
    }
