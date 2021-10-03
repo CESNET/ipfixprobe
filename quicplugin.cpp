@@ -100,11 +100,12 @@ QUICPlugin::QUICPlugin(const options_t &module_options)
    sample = nullptr;
 
    decrypted_payload = nullptr;
-   plaintext_len     = 0;
 
    parsed_initial = 0;
 
    quic_ptr = nullptr;
+
+   buffer_length = 0;
 }
 
 QUICPlugin::QUICPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(
@@ -128,11 +129,12 @@ QUICPlugin::QUICPlugin(const options_t &module_options, vector<plugin_opt> plugi
    sample = nullptr;
 
    decrypted_payload = nullptr;
-   plaintext_len     = 0;
 
    parsed_initial = 0;
 
    quic_ptr = nullptr;
+
+   buffer_length = 0;
 }
 
 QUICPlugin::~QUICPlugin()
@@ -141,8 +143,13 @@ QUICPlugin::~QUICPlugin()
       delete quic_ptr;
     }
    quic_ptr = nullptr;
-   quic_clean();
+   if (decrypted_payload != nullptr)
+   {
+      free(decrypted_payload);
+   }
+   decrypted_payload = nullptr;
 }
+
 
 FlowCachePlugin *QUICPlugin::copy()
 {
@@ -233,14 +240,14 @@ bool QUICPlugin::parse_tls(RecordExtQUIC *rec)
    payload.data += sizeof(tls_rec_lay);
 
    if (payload_len - sizeof(tls_rec_lay) < 0 || tls->type != CRYPTO_FRAME){
-      DEBUG_MSG("Frame inside Initial packet is not of type CRYPTO");
+      DEBUG_MSG("Frame inside Initial packet is not of type CRYPTO\n");
       return false;
    }
 
    tls_handshake *tls_hs = (tls_handshake *) payload.data;
 
    if (payload.data + sizeof(tls_handshake) > payload.end || tls_hs->type != CLIENT_HELLO){
-      DEBUG_MSG("Content of CRYPTO frame is not Client Hello");
+      DEBUG_MSG("Content of CRYPTO frame is not Client Hello\n");
       return false;
    }
 
@@ -248,7 +255,7 @@ bool QUICPlugin::parse_tls(RecordExtQUIC *rec)
 
    if (payload.data + hs_len > payload.end || tls_hs->version.major != 3 ||
      tls_hs->version.minor < 1 || tls_hs->version.minor > 3){
-      DEBUG_MSG("Wrong version");
+      DEBUG_MSG("Wrong version\n");
       return false;
    }
    payload.data += sizeof(tls_handshake);
@@ -307,7 +314,7 @@ bool QUICPlugin::parse_tls(RecordExtQUIC *rec)
 // --------------------------------------------------------------------------------------------------------------------------------
 
 bool QUICPlugin::expand_label(const char *label_prefix, const char *label, const uint8_t *context_hash,
-  uint8_t context_length, uint16_t desired_len, uint8_t *&out, uint8_t &out_len)
+  uint8_t context_length, uint16_t desired_len, uint8_t *out, uint8_t &out_len)
 {
    /* HKDF-Expand-Label(Secret, Label, Context, Length) =
     *      HKDF-Expand(Secret, HkdfLabel, Length)
@@ -321,8 +328,9 @@ bool QUICPlugin::expand_label(const char *label_prefix, const char *label, const
     * } HkdfLabel;
     *
     *
-    * info = (HashLen / 256) || (HashLen % 256) || 0x21 ||
-    *    "TLS 1.3, QUIC client 1-RTT secret" || 0x00*/
+    * https://datatracker.ietf.org/doc/html/rfc8446#section-3.4
+    * "... the actual length precedes the vector's contents in the byte stream ... "
+    * */
 
    const unsigned int label_prefix_length = (unsigned int) strlen(label_prefix);
    const unsigned int label_length        = (unsigned int) strlen(label);
@@ -331,14 +339,19 @@ bool QUICPlugin::expand_label(const char *label_prefix, const char *label, const
    const uint8_t label_vector_length = label_prefix_length + label_length;
    const uint16_t length = htons(desired_len);
 
-   out_len = label_vector_length + sizeof(length) + 2;
-   out     = (uint8_t *) malloc(sizeof(uint8_t) * out_len);
+   out_len = sizeof(length) + sizeof(label_vector_length) + label_vector_length + sizeof(context_length);
 
+
+   // copy length
    memcpy(out, &length, sizeof(length));
-   memcpy(out + sizeof(length), &label_vector_length, sizeof(uint8_t));
-   memcpy(out + sizeof(length) + sizeof(uint8_t), label_prefix, label_prefix_length);
-   memcpy(out + sizeof(length) + sizeof(uint8_t) + label_prefix_length, label, label_length);
-   memcpy(out + sizeof(length) + 1 + label_prefix_length + label_length, &context_length, 1);
+   // copy whole label length as described above
+   memcpy(out + sizeof(length), &label_vector_length, sizeof(label_vector_length));
+   // copy label prefix ("tls13 ")
+   memcpy(out + sizeof(length) + sizeof(label_vector_length), label_prefix, label_prefix_length);
+   // copy actual label
+   memcpy(out + sizeof(length) + sizeof(label_vector_length) + label_prefix_length, label, label_length);
+   // copy context length (should be 0)
+   memcpy(out + sizeof(length) + sizeof(label_vector_length) + label_prefix_length + label_length, &context_length, sizeof(context_length));
 
    return true;
 }
@@ -350,32 +363,32 @@ bool QUICPlugin::quic_derive_n_set(uint8_t *secret, uint8_t *expanded_label, uin
 
    pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
    if (1 != EVP_PKEY_derive_init(pctx)){
-      DEBUG_MSG("Error, context initialization failed %s", *expand_label);
+      DEBUG_MSG("Error, context initialization failed %s\n", (char*)expanded_label);
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    if (1 != EVP_PKEY_CTX_hkdf_mode(pctx, EVP_PKEY_HKDEF_MODE_EXPAND_ONLY)){
-      DEBUG_MSG("Error, mode initialization failed %s", *expand_label);
+      DEBUG_MSG("Error, mode initialization failed %s\n", (char*)expanded_label);
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    if (1 != EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha256())){
-      DEBUG_MSG("Error, message digest initialization failed %s", *expand_label);
+      DEBUG_MSG("Error, message digest initialization failed %s\n", (char*)expanded_label);
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    if (1 != EVP_PKEY_CTX_add1_hkdf_info(pctx, expanded_label, size)){
-      DEBUG_MSG("Error, info initialization failed %s", *expand_label);
+      DEBUG_MSG("Error, info initialization failed %s\n", (char*)expanded_label);
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    if (1 != EVP_PKEY_CTX_set1_hkdf_key(pctx, secret, HASH_SHA2_256_LENGTH)){
-      DEBUG_MSG("Error, key initialization failed %s", *expand_label);
+      DEBUG_MSG("Error, key initialization failed %s\n", (char*)expanded_label);
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    if (1 != EVP_PKEY_derive(pctx, store_data, &output_len)){
-      DEBUG_MSG("Error, HKDF-Expand derivation failed %s", *expand_label);
+      DEBUG_MSG("Error, HKDF-Expand derivation failed %s\n", (char*)expanded_label);
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
@@ -385,13 +398,10 @@ bool QUICPlugin::quic_derive_n_set(uint8_t *secret, uint8_t *expanded_label, uin
 
 bool QUICPlugin::quic_derive_secrets(uint8_t *secret)
 {
-   uint8_t *quic_key;
    uint8_t len_quic_key;
 
-   uint8_t *quic_iv;
    uint8_t len_quic_iv;
 
-   uint8_t *quic_hp;
    uint8_t len_quic_hp;
 
 
@@ -405,17 +415,9 @@ bool QUICPlugin::quic_derive_secrets(uint8_t *secret)
    if (!quic_derive_n_set(secret, quic_key, len_quic_key, AES_128_KEY_LENGTH, initial_secrets.key) ||
      !quic_derive_n_set(secret, quic_iv, len_quic_iv, TLS13_AEAD_NONCE_LENGTH, initial_secrets.iv) ||
      !quic_derive_n_set(secret, quic_hp, len_quic_hp, AES_128_KEY_LENGTH, initial_secrets.hp)){
-      free(quic_key);
-      free(quic_iv);
-      free(quic_hp);
-      DEBUG_MSG("Error, derivation of initial secrets failed");
+      DEBUG_MSG("Error, derivation of initial secrets failed\n");
       return false;
    }
-
-
-   free(quic_key);
-   free(quic_iv);
-   free(quic_hp);
    return true;
 } // QUICPlugin::quic_derive_secrets
 
@@ -513,8 +515,8 @@ bool QUICPlugin::quic_create_initial_secrets(const char *side)
    size_t expd_len = HASH_SHA2_256_LENGTH;
    size_t extr_len = HASH_SHA2_256_LENGTH;
 
-   uint8_t *client_In_Buffer;
-   uint8_t clien_In_Len;
+   //uint8_t *client_In_Buffer;
+   uint8_t client_In_Len;
 
    uint8_t *cid    = nullptr;
    uint8_t cid_len = 0;
@@ -533,78 +535,78 @@ bool QUICPlugin::quic_create_initial_secrets(const char *side)
 
    pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
    if (!EVP_PKEY_derive_init(pctx)){
-      DEBUG_MSG("Error, context initialization failed(Extract)");
+      DEBUG_MSG("Error, context initialization failed(Extract)\n");
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    if (1 != EVP_PKEY_CTX_hkdf_mode(pctx, EVP_PKEY_HKDEF_MODE_EXTRACT_ONLY)){
-      DEBUG_MSG("Error, mode initialization failed(Extract)");
+      DEBUG_MSG("Error, mode initialization failed(Extract)\n");
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    if (1 != EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha256())){
-      DEBUG_MSG("Error, message digest initialization failed(Extract)");
+      DEBUG_MSG("Error, message digest initialization failed(Extract)\n");
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    if (1 != EVP_PKEY_CTX_set1_hkdf_salt(pctx, salt, SALT_LENGTH)){
-      DEBUG_MSG("Error, salt initialization failed(Extract)");
+      DEBUG_MSG("Error, salt initialization failed(Extract)\n");
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    if (1 != EVP_PKEY_CTX_set1_hkdf_key(pctx, cid, cid_len)){
-      DEBUG_MSG("Error, key initialization failed(Extract)");
+      DEBUG_MSG("Error, key initialization failed(Extract)\n");
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    if (1 != EVP_PKEY_derive(pctx, extracted_secret, &extr_len)){
-      DEBUG_MSG("Error, HKDF-Extract derivation failed");
+      DEBUG_MSG("Error, HKDF-Extract derivation failed\n");
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
 
 
    // Expand-Label
-   expand_label("tls13 ", side, NULL, 0, HASH_SHA2_256_LENGTH, client_In_Buffer, clien_In_Len);
+   expand_label("tls13 ", side, NULL, 0, HASH_SHA2_256_LENGTH, client_In_Buffer, client_In_Len);
 
    // HKDF-Expand
    if (!EVP_PKEY_derive_init(pctx)){
-      DEBUG_MSG("Error, context initialization failed(Expand)");
+      DEBUG_MSG("Error, context initialization failed(Expand)\n");
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    if (1 != EVP_PKEY_CTX_hkdf_mode(pctx, EVP_PKEY_HKDEF_MODE_EXPAND_ONLY)){
-      DEBUG_MSG("Error, mode initialization failed(Expand)");
+      DEBUG_MSG("Error, mode initialization failed(Expand)\n");
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    if (1 != EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha256())){
-      DEBUG_MSG("Error, message digest initialization failed(Expand)");
+      DEBUG_MSG("Error, message digest initialization failed(Expand)\n");
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
-   if (1 != EVP_PKEY_CTX_add1_hkdf_info(pctx, client_In_Buffer, clien_In_Len)){
-      DEBUG_MSG("Error, info initialization failed(Expand)");
+   if (1 != EVP_PKEY_CTX_add1_hkdf_info(pctx, client_In_Buffer, client_In_Len)){
+      DEBUG_MSG("Error, info initialization failed(Expand)\n");
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    if (1 != EVP_PKEY_CTX_set1_hkdf_key(pctx, extracted_secret, HASH_SHA2_256_LENGTH)){
-      DEBUG_MSG("Error, key initialization failed(Expand)");
+      DEBUG_MSG("Error, key initialization failed(Expand)\n");
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    if (1 != EVP_PKEY_derive(pctx, expanded_secret, &expd_len)){
-      DEBUG_MSG("Error, HKDF-Expand derivation failed");
+      DEBUG_MSG("Error, HKDF-Expand derivation failed\n");
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
    EVP_PKEY_CTX_free(pctx);
-   free(client_In_Buffer);
+   //free(client_In_Buffer);
 
 
    // Derive other secrets
    if (!quic_derive_secrets(expanded_secret)){
-      DEBUG_MSG("Error, Derivation of initial secrets failed");
+      DEBUG_MSG("Error, Derivation of initial secrets failed\n");
       return false;
    }
 
@@ -627,11 +629,11 @@ bool QUICPlugin::quic_decrypt_header()
    EVP_CIPHER_CTX *ctx;
 
    if (!(ctx = EVP_CIPHER_CTX_new())){
-      DEBUG_MSG("Sample encryption, creating context failed");
+      DEBUG_MSG("Sample encryption, creating context failed\n");
       return false;
    }
    if (!(EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, initial_secrets.hp, NULL))){
-      DEBUG_MSG("Sample encryption, context initialization failed");
+      DEBUG_MSG("Sample encryption, context initialization failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
@@ -642,12 +644,12 @@ bool QUICPlugin::quic_decrypt_header()
 
    EVP_CIPHER_CTX_set_padding(ctx, 0);
    if (!(EVP_EncryptUpdate(ctx, plaintext, &len, sample, SAMPLE_LENGTH))){
-      DEBUG_MSG("Sample encryption, decrypting header failed");
+      DEBUG_MSG("Sample encryption, decrypting header failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
    if (!(EVP_EncryptFinal_ex(ctx, plaintext + len, &len))){
-      DEBUG_MSG("Sample encryption, final header decryption failed");
+      DEBUG_MSG("Sample encryption, final header decryption failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
@@ -730,7 +732,7 @@ bool QUICPlugin::quic_decrypt_payload()
    /* Input is --> "header || ciphertext (buffer) || auth tag (16 bytes)" */
 
    if (payload_len <= 16){
-      DEBUG_MSG("Payload decryption error, ciphertext too short");
+      DEBUG_MSG("Payload decryption error, ciphertext too short\n");
       return false;
    }
 
@@ -745,48 +747,91 @@ bool QUICPlugin::quic_decrypt_payload()
 
    EVP_CIPHER_CTX *ctx;
 
-   // +16 means we have to allocate space for authentication tag
-   decrypted_payload = (uint8_t *) malloc(sizeof(uint8_t) * payload_len + 16);
+   
+   //decrypted_payload = (uint8_t *) malloc(sizeof(uint8_t) * payload_len + 16);
+
+
+   // check if we have enough space for payload decryption
+   if (decrypted_payload == nullptr)
+   {
+      // +16 means we have to allocate space for authentication tag
+      buffer_length = payload_len + 16;
+      decrypted_payload = (uint8_t *) malloc(sizeof(uint8_t) * buffer_length);
+   }
+   else
+   {
+      if (buffer_length >= payload_len + 16)
+      {
+         // do nothing, we have enough space
+      }
+      else
+      {
+         buffer_length = payload_len + 16;
+         // Try to realloc (I think it`s faster than malloc and free) we have to use another pointer(tmp) because if we overwrite decrypted_payload
+         // we lost track of old memory block , so if realloc fails, we cannot free old memory block 
+         uint8_t *tmp = (uint8_t*)realloc(decrypted_payload,sizeof(uint8_t) * buffer_length);
+         // Check if realloc failed, if yes , use malloc (i think it`slower way)
+         if (tmp != NULL)
+         {
+            decrypted_payload = tmp;
+         }
+         else{
+            tmp = (uint8_t*)malloc(sizeof(uint8_t) * buffer_length);
+            free(decrypted_payload);
+            decrypted_payload = tmp;
+         }
+      }
+   }
 
    if (!(ctx = EVP_CIPHER_CTX_new())){
-      DEBUG_MSG("Payload decryption error, creating context failed");
+      DEBUG_MSG("Payload decryption error, creating context failed\n");
       return false;
    }
    if (!EVP_DecryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL)){
-      DEBUG_MSG("Payload decryption error, context initialization failed");
+      DEBUG_MSG("Payload decryption error, context initialization failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, TLS13_AEAD_NONCE_LENGTH, NULL)){
-      DEBUG_MSG("Payload decryption error, setting NONCE length failed");
-      EVP_CIPHER_CTX_free(ctx);
-      return false;
-   }
-   if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, atag)){
-      DEBUG_MSG("Payload decryption error, TAG check failed");
+      DEBUG_MSG("Payload decryption error, setting NONCE length failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
    if (!EVP_DecryptInit_ex(ctx, NULL, NULL, initial_secrets.key, nonce)){
-      DEBUG_MSG("Payload decryption error, setting KEY and NONCE failed");
+      DEBUG_MSG("Payload decryption error, setting KEY and NONCE failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
    if (!EVP_DecryptUpdate(ctx, NULL, &len, header, header_len)){
-      DEBUG_MSG("Payload decryption error, initializing authenticated data failed");
+      DEBUG_MSG("Payload decryption error, initializing authenticated data failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
    if (!EVP_DecryptUpdate(ctx, decrypted_payload, &len, payload, payload_len)){
-      DEBUG_MSG("Payload decryption error, decrypting payload failed");
+      DEBUG_MSG("Payload decryption error, decrypting payload failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
+   if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, atag)){
+      DEBUG_MSG("Payload decryption error, TAG check failed\n");
+      EVP_CIPHER_CTX_free(ctx);
+      return false;
+   }
+   /**
+    * 
+    * IN PROGRESS
+    * 
    if (!EVP_DecryptFinal_ex(ctx, decrypted_payload + len, &len)){
-      DEBUG_MSG("Payload decryption error, final payload decryption failed");
+
+      uint8_t tag[32] = {0};
+      uint8_t taglen = 16;
+      uint8_t ret_val = EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG,taglen, tag);
+      cout << tag << endl;
+      printf("%02x\n",ret_val);
+      DEBUG_MSG("Payload decryption error, final payload decryption failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
-   }
+   }*/
 
    EVP_CIPHER_CTX_free(ctx);
    return true;
@@ -862,17 +907,11 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
    return true;
 } // QUICPlugin::quic_parse_data
 
-void QUICPlugin::quic_clean()
-{
-   free(decrypted_payload);
-   decrypted_payload = nullptr;
-}
-
 bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
 {
    // check if packet contains LONG HEADER and is of type INITIAL
    if (pkt.ip_proto != 17 || !quic_check_initial(pkt.payload[0])){
-      DEBUG_MSG("Packet is not Initial or does not contains LONG HEADER");
+      DEBUG_MSG("Packet is not Initial or does not contains LONG HEADER\n");
       return false;
    }
 
@@ -884,24 +923,22 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
    // DONT check direction, CRYPTO frame is always contained in Client Hello packet,
    // but let choose side ("client in" / "server in") for future expansion
    if (!quic_create_initial_secrets("client in")){
-      DEBUG_MSG("Error, creation of initial secrets failed (client side)");
+      DEBUG_MSG("Error, creation of initial secrets failed (client side)\n");
       return false;
    }
    if (!quic_decrypt_header()){
-      DEBUG_MSG("Error, header decryption failed (client side)");
+      DEBUG_MSG("Error, header decryption failed (client side)\n");
       return false;
    }
    if (!quic_decrypt_payload()){
-      DEBUG_MSG("Error, payload decryption failed (client side)");
-      quic_clean();
+      DEBUG_MSG("Error, payload decryption failed (client side)\n");
       return false;
    }
    if (!parse_tls(quic_data)){
-      DEBUG_MSG("SNI Extraction failed");
-      quic_clean();
+      DEBUG_MSG("SNI Extraction failed\n");
       return false;
    } else {
-      quic_clean();
+      //cout << quic_data->sni << endl;
       return true;
    }
 } // QUICPlugin::process_quic

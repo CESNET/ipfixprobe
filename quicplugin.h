@@ -67,6 +67,13 @@ using namespace std;
 #define CLIENT_HELLO            1
 #define SAMPLE_LENGTH           16
 #define SALT_LENGTH             20
+#define quic_key_hkdf           sizeof("tls13 quic key") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t)
+#define quic_iv_hkdf            sizeof("tls13 quic iv") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t)
+#define quic_hp_hkdf            sizeof("tls13 quic hp") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t)
+#define quic_clientIn_hkdf      sizeof("tls13 client in") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t)
+
+
+
 
 struct my_payload_data {
    uint8_t *data;
@@ -190,12 +197,11 @@ private:
 
    bool     quic_derive_secrets(uint8_t *);
    bool     quic_derive_n_set(uint8_t *, uint8_t *, uint8_t, size_t, uint8_t *);
-   bool     expand_label(const char *, const char *, const uint8_t *, uint8_t, uint16_t, uint8_t *&, uint8_t &);
+   bool     expand_label(const char *, const char *, const uint8_t *, uint8_t, uint16_t, uint8_t *, uint8_t &);
    bool     parse_tls(RecordExtQUIC *);
    void     get_tls_server_name(my_payload_data&, RecordExtQUIC *);
    void     get_ja3_cipher_suites(stringstream&, my_payload_data&);
    bool     is_grease_value(uint16_t);
-   void     quic_clean();
 
 
    uint64_t pntoh64(const void *);
@@ -206,6 +212,13 @@ private:
    quic_header2 *quic_h2;
    quic_header3 *quic_h3;
    quic_header4 *quic_h4;
+
+
+   // buffers for HkdfExpanded Labels, sizes are constant so no need for malloc
+   uint8_t quic_key[quic_key_hkdf];
+   uint8_t quic_iv[quic_iv_hkdf];
+   uint8_t quic_hp[quic_hp_hkdf];
+   uint8_t client_In_Buffer[quic_clientIn_hkdf];
 
 
    // important pointers into QUIC packet, used in decryption process
@@ -224,7 +237,7 @@ private:
 
    // final decrypted payload
    uint8_t *decrypted_payload;
-   int plaintext_len;
+   int buffer_length;
 
    uint8_t nonce[TLS13_AEAD_NONCE_LENGTH] = { 0 };
 
