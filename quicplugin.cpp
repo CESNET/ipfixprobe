@@ -515,16 +515,18 @@ bool QUICPlugin::quic_create_initial_secrets(const char *side)
    size_t expd_len = HASH_SHA2_256_LENGTH;
    size_t extr_len = HASH_SHA2_256_LENGTH;
 
-   //uint8_t *client_In_Buffer;
-   uint8_t client_In_Len;
+   uint8_t *expand_label_buffer = nullptr;
+   uint8_t expand_label_len;
 
    uint8_t *cid    = nullptr;
    uint8_t cid_len = 0;
 
    if (!strcmp(side, "client in")){
+      expand_label_buffer = client_In_Buffer;
       cid     = dcid;
       cid_len = quic_h1->dcid_len;
    } else if (!strcmp(side, "server in")){
+      expand_label_buffer = server_In_Buffer;
       cid     = scid;
       cid_len = quic_h2->scid_len;
    }
@@ -567,7 +569,7 @@ bool QUICPlugin::quic_create_initial_secrets(const char *side)
 
 
    // Expand-Label
-   expand_label("tls13 ", side, NULL, 0, HASH_SHA2_256_LENGTH, client_In_Buffer, client_In_Len);
+   expand_label("tls13 ", side, NULL, 0, HASH_SHA2_256_LENGTH, expand_label_buffer, expand_label_len);
 
    // HKDF-Expand
    if (!EVP_PKEY_derive_init(pctx)){
@@ -585,7 +587,7 @@ bool QUICPlugin::quic_create_initial_secrets(const char *side)
       EVP_PKEY_CTX_free(pctx);
       return false;
    }
-   if (1 != EVP_PKEY_CTX_add1_hkdf_info(pctx, client_In_Buffer, client_In_Len)){
+   if (1 != EVP_PKEY_CTX_add1_hkdf_info(pctx, expand_label_buffer, expand_label_len)){
       DEBUG_MSG("Error, info initialization failed(Expand)\n");
       EVP_PKEY_CTX_free(pctx);
       return false;
@@ -601,7 +603,6 @@ bool QUICPlugin::quic_create_initial_secrets(const char *side)
       return false;
    }
    EVP_PKEY_CTX_free(pctx);
-   //free(client_In_Buffer);
 
 
    // Derive other secrets
@@ -689,7 +690,9 @@ bool QUICPlugin::quic_decrypt_header()
    // after decrypting first byte, we know packet number length, so we can adjust payload start and lengths
    payload     = payload + pkn_len;
    payload_len = payload_len - pkn_len;
-   header_len  = header_len + pkn_len;
+
+   // SET HEADER LENGTH, if header length is set incorrectly AEAD will calculate wrong tag, so decryption will fail
+   header_len  = payload - header;
 
    // set decrypted packet number
    for (unsigned i = 0; i < pkn_len; i++){
@@ -792,7 +795,7 @@ bool QUICPlugin::quic_decrypt_payload()
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
-   if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, TLS13_AEAD_NONCE_LENGTH, NULL)){
+   if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, TLS13_AEAD_NONCE_LENGTH, NULL)){
       DEBUG_MSG("Payload decryption error, setting NONCE length failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
@@ -812,26 +815,16 @@ bool QUICPlugin::quic_decrypt_payload()
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
-   if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, atag)){
+   if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, atag)){
       DEBUG_MSG("Payload decryption error, TAG check failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
-   /**
-    * 
-    * IN PROGRESS
-    * 
    if (!EVP_DecryptFinal_ex(ctx, decrypted_payload + len, &len)){
-
-      uint8_t tag[32] = {0};
-      uint8_t taglen = 16;
-      uint8_t ret_val = EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG,taglen, tag);
-      cout << tag << endl;
-      printf("%02x\n",ret_val);
       DEBUG_MSG("Payload decryption error, final payload decryption failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
-   }*/
+   }
 
    EVP_CIPHER_CTX_free(ctx);
    return true;
@@ -899,7 +892,12 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
    }
 
    payload_len = htons(quic_h4->length) ^ 0x4000; // set payload length, again, payload length is with payload_len + pkn_len , this will be adjusted later.
-   header_len = pkt.payload_length - payload_len; // set header_length, will be adjusted later
+   
+   
+   /* DO NOT SET header length this way , if packet contains more frames , pkt.payload_length is length of whole quic packet (so it contains length of all frames inside packet)
+   *  so then header length is not computed correctly. Instead of this approach calculate header length after decrypting packet number , this will ensure header length is computed correctly
+   */
+   //header_len = pkt.payload_length - payload_len;
 
    if (payload_len > pkt.payload_length) {
       return false;
@@ -920,27 +918,51 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
    if (!quic_parse_data(pkt)) {
       return false;
    }
-   // DONT check direction, CRYPTO frame is always contained in Client Hello packet,
-   // but let choose side ("client in" / "server in") for future expansion
-   if (!quic_create_initial_secrets("client in")){
-      DEBUG_MSG("Error, creation of initial secrets failed (client side)\n");
-      return false;
+
+   // check port a.k.a direction, Server side does not contain ClientHello packets so neither SNI, but implemented for future expansion
+   if(pkt.dst_port == 443)
+   {
+      if (!quic_create_initial_secrets("client in")){
+         DEBUG_MSG("Error, creation of initial secrets failed (client side)\n");
+         return false;
+      }
+      if (!quic_decrypt_header()){
+         DEBUG_MSG("Error, header decryption failed (client side)\n");
+         return false;
+      }
+      if (!quic_decrypt_payload()){
+         DEBUG_MSG("Error, payload decryption failed (client side)\n");
+         return false;
+      }
+      if (!parse_tls(quic_data)){
+         DEBUG_MSG("SNI Extraction failed\n");
+         return false;
+      } else {
+         return true;
+      }
+   }else if (pkt.src_port == 443)
+   {
+      if (!quic_create_initial_secrets("server in")){
+         DEBUG_MSG("Error, creation of initial secrets failed (client side)\n");
+         return false;
+      }
+      if (!quic_decrypt_header()){
+         DEBUG_MSG("Error, header decryption failed (client side)\n");
+         return false;
+      }
+      if (!quic_decrypt_payload()){
+         DEBUG_MSG("Error, payload decryption failed (client side)\n");
+         return false;
+      }
+      if (!parse_tls(quic_data)){
+         DEBUG_MSG("SNI Extraction failed\n");
+         return false;
+      } else {
+         return true;
+      }
    }
-   if (!quic_decrypt_header()){
-      DEBUG_MSG("Error, header decryption failed (client side)\n");
       return false;
-   }
-   if (!quic_decrypt_payload()){
-      DEBUG_MSG("Error, payload decryption failed (client side)\n");
-      return false;
-   }
-   if (!parse_tls(quic_data)){
-      DEBUG_MSG("SNI Extraction failed\n");
-      return false;
-   } else {
-      //cout << quic_data->sni << endl;
-      return true;
-   }
+
 } // QUICPlugin::process_quic
 
 int QUICPlugin::pre_create(Packet &pkt)

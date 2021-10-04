@@ -71,6 +71,7 @@ using namespace std;
 #define quic_iv_hkdf            sizeof("tls13 quic iv") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t)
 #define quic_hp_hkdf            sizeof("tls13 quic hp") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t)
 #define quic_clientIn_hkdf      sizeof("tls13 client in") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t)
+#define quic_serverIn_hkdf      sizeof("tls13 server in") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t)
 
 
 
@@ -219,6 +220,8 @@ private:
    uint8_t quic_iv[quic_iv_hkdf];
    uint8_t quic_hp[quic_hp_hkdf];
    uint8_t client_In_Buffer[quic_clientIn_hkdf];
+   uint8_t server_In_Buffer[quic_serverIn_hkdf];
+
 
 
    // important pointers into QUIC packet, used in decryption process
