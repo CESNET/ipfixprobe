@@ -61,9 +61,6 @@
 namespace ipxp {
 
 volatile sig_atomic_t stop = 0;
-int terminate_export = 0;
-int terminate_storage = 0;
-int terminate_input = 0;
 
 const uint32_t DEFAULT_IQUEUE_SIZE = 64;
 const uint32_t DEFAULT_IQUEUE_BLOCK = 32;
@@ -194,6 +191,9 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
    std::string output_name = "ipfix";
    std::string output_params = "";
 
+   conf.exit_input = conf.exit_input_pr.get_future();
+   conf.exit_storage = conf.exit_storage_pr.get_future();
+   conf.exit_output = conf.exit_output_pr.get_future();
 
    if (parser.m_storage.size()) {
       process_plugin_argline(parser.m_storage[0], storage_name, storage_params);
@@ -268,11 +268,11 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       std::promise<OutputStats> *output_stats = new std::promise<OutputStats>();
       OutputWorker tmp = {
               output_plugin,
-              new std::thread(output_thread, output_plugin, output_queue, output_stats, conf.fps),
+              new std::thread(output_worker, output_plugin, output_queue, output_stats, conf.fps, &conf.exit_output),
               output_stats,
               output_queue
       };
-      conf.exporters.push_back(tmp);
+      conf.outputs.push_back(tmp);
       conf.output_fut.push_back(output_stats->get_future());
    }
 
@@ -344,13 +344,13 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       WorkPipeline tmp = {
               {
                       input_plugin,
-                      new std::thread(input_thread, input_plugin, &conf.blocks[pipeline_idx * (conf.iqueue_size + 1)],
-                                      conf.iqueue_size + 1, conf.max_pkts, input_queue, input_stats),
+                      new std::thread(input_worker, input_plugin, &conf.blocks[pipeline_idx * (conf.iqueue_size + 1)],
+                                      conf.iqueue_size + 1, conf.max_pkts, input_queue, input_stats, &conf.exit_input),
                       input_stats,
               },
               {
                       storage_plugin,
-                      new std::thread(storage_thread, storage_plugin, input_queue, storage_stats),
+                      new std::thread(storage_worker, storage_plugin, input_queue, storage_stats, &conf.exit_storage),
                       storage_stats,
                       storage_plugins
               },
@@ -367,13 +367,15 @@ void finish(ipxp_conf_t &conf)
 {
    bool ok = true;
 
-   terminate_input = 1;
+   // Terminate all inputs
+   conf.exit_input_pr.set_value();
    for (auto &it : conf.pipelines) {
       it.input.thread->join();
       it.input.plugin->close();
    }
 
-   terminate_storage = 1;
+   // Terminate all storages
+   conf.exit_storage_pr.set_value();
    for (auto &it : conf.pipelines) {
       it.storage.thread->join();
       for (auto &itp : it.storage.plugins) {
@@ -381,8 +383,9 @@ void finish(ipxp_conf_t &conf)
       }
    }
 
-   terminate_export = 1;
-   for (auto &it : conf.exporters) {
+   // Terminate all outputs
+   conf.exit_output_pr.set_value();
+   for (auto &it : conf.outputs) {
       it.thread->join();
    }
 

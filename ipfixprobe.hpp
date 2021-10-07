@@ -63,10 +63,6 @@
 
 namespace ipxp {
 
-extern int terminate_export;
-extern int terminate_storage;
-extern int terminate_input;
-
 extern const uint32_t DEFAULT_IQUEUE_SIZE;
 extern const uint32_t DEFAULT_IQUEUE_BLOCK;
 extern const uint32_t DEFAULT_OQUEUE_SIZE;
@@ -202,11 +198,18 @@ struct ipxp_conf_t {
    } active;
 
    std::vector<WorkPipeline> pipelines;
-   std::vector<OutputWorker> exporters;
+   std::vector<OutputWorker> outputs;
 
    std::vector<std::future<InputStats>> input_fut;
    std::vector<std::future<StorageStats>> storage_fut;
    std::vector<std::future<OutputStats>> output_fut;
+
+   std::promise<void> exit_input_pr;
+   std::promise<void> exit_storage_pr;
+   std::promise<void> exit_output_pr;
+   std::shared_future<void> exit_input;
+   std::shared_future<void> exit_storage;
+   std::shared_future<void> exit_output;
 
    size_t pkt_bufsize;
    size_t blocks_cnt;
@@ -226,7 +229,10 @@ struct ipxp_conf_t {
 
    ~ipxp_conf_t()
    {
-      terminate_input = 1;
+      try {
+         exit_input_pr.set_value();
+      } catch (std::future_error &e) {
+      }
       for (auto &it : pipelines) {
          if (it.input.thread->joinable()) {
             it.input.thread->join();
@@ -236,7 +242,10 @@ struct ipxp_conf_t {
          delete it.input.promise;
       }
 
-      terminate_storage = 1;
+      try {
+         exit_storage_pr.set_value();
+      } catch (std::future_error &e) {
+      }
       for (auto &it : pipelines) {
          if (it.storage.thread->joinable()) {
             it.storage.thread->join();
@@ -253,8 +262,11 @@ struct ipxp_conf_t {
          }
       }
 
-      terminate_export = 1;
-      for (auto &it : exporters) {
+      try {
+         exit_output_pr.set_value();
+      } catch (std::future_error &e) {
+      }
+      for (auto &it : outputs) {
          if (it.thread->joinable()) {
             it.thread->join();
          }

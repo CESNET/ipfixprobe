@@ -94,6 +94,14 @@ public:
       m_export_queue = queue;
    }
 
+   /**
+    * \brief Get export queue
+    */
+   const ipx_ring_t *get_queue() const
+   {
+      return m_export_queue;
+   }
+
    virtual void export_expired(time_t ts)
    {
    }

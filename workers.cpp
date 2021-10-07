@@ -51,15 +51,15 @@ namespace ipxp {
 
 #define MICRO_SEC 1000000L
 
-void input_thread(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint64_t pkt_limit, ipx_ring_t *queue,
-                  std::promise<InputStats> *threadOutput)
+void input_worker(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint64_t pkt_limit, ipx_ring_t *queue,
+                  std::promise<InputStats> *output, std::shared_future<void> *terminate)
 {
    struct timespec start;
    struct timespec end;
    size_t i = 0;
    InputPlugin::Result ret;
    InputStats stats = {0, 0, 0, 0, false, ""};
-   while (!terminate_input) {
+   while (terminate->wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
       PacketBlock *block = &pkts[i];
       block->cnt = 0;
       block->bytes = 0;
@@ -107,10 +107,10 @@ void input_thread(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint
    }
    stats.parsed = plugin->m_parsed;
    stats.packets = plugin->m_processed;
-   threadOutput->set_value(stats);
+   output->set_value(stats);
 }
 
-void storage_thread(StoragePlugin *cache, ipx_ring_t *queue, std::promise<StorageStats> *threadOutput)
+void storage_worker(StoragePlugin *cache, ipx_ring_t *queue, std::promise<StorageStats> *output, std::shared_future<void> *terminate)
 {
    StorageStats stats = {false, ""};
    while (1) {
@@ -125,24 +125,29 @@ void storage_thread(StoragePlugin *cache, ipx_ring_t *queue, std::promise<Storag
             stats.msg = e.what();
             break;
          }
-      } else if (terminate_storage && !ipx_ring_cnt(queue)) {
+      } else if (terminate->wait_for(std::chrono::seconds(0)) == std::future_status::ready && !ipx_ring_cnt(queue)) {
          break;
       } else {
          cache->export_expired(time(nullptr));
          usleep(1);
       }
    }
+
    cache->finish();
-   threadOutput->set_value(stats);
+   auto outq = cache->get_queue();
+   while (ipx_ring_cnt(outq)) {
+      usleep(1);
+   }
+   output->set_value(stats);
 }
 
-long timeval_diff(const struct timeval *start, const struct timeval *end)
+static long timeval_diff(const struct timeval *start, const struct timeval *end)
 {
    return (end->tv_sec - start->tv_sec) * MICRO_SEC
           + (end->tv_usec - start->tv_usec);
 }
 
-void output_thread(OutputPlugin *exp, ipx_ring_t *queue, std::promise<OutputStats> *threadOutput, uint32_t fps)
+void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<OutputStats> *output, uint32_t fps, std::shared_future<void> *terminate)
 {
    OutputStats stats = {0, 0, 0, 0, false, ""};
    struct timespec sleep_time = {0};
@@ -168,7 +173,7 @@ void output_thread(OutputPlugin *exp, ipx_ring_t *queue, std::promise<OutputStat
             last_flush = end;
             exp->flush();
          }
-         if (terminate_export && !ipx_ring_cnt(queue)) {
+         if (terminate->wait_for(std::chrono::seconds(0)) == std::future_status::ready && !ipx_ring_cnt(queue)) {
             break;
          }
          continue;
@@ -218,7 +223,7 @@ void output_thread(OutputPlugin *exp, ipx_ring_t *queue, std::promise<OutputStat
       }
    }
    stats.dropped = exp->m_flows_dropped;
-   threadOutput->set_value(stats);
+   output->set_value(stats);
 }
 
 }

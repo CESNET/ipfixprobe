@@ -102,10 +102,10 @@ struct OutputWorker {
    ipx_ring_t *queue;
 };
 
-void input_thread(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint64_t pkt_limit, ipx_ring_t *queue,
-      std::promise<InputStats> *threadOutput);
-void storage_thread(StoragePlugin *cache, ipx_ring_t *queue, std::promise<StorageStats> *threadOutput);
-void output_thread(OutputPlugin *exp, ipx_ring_t *queue, std::promise<OutputStats> *threadOutput, uint32_t fps);
+void input_worker(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint64_t pkt_limit, ipx_ring_t *queue,
+      std::promise<InputStats> *output, std::shared_future<void> *terminate);
+void storage_worker(StoragePlugin *cache, ipx_ring_t *queue, std::promise<StorageStats> *output, std::shared_future<void> *terminate);
+void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<OutputStats> *output, uint32_t fps, std::shared_future<void> *terminate);
 
 }
 

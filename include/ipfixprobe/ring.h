@@ -127,10 +127,10 @@ IPX_API void
 ipx_ring_mw_mode(ipx_ring_t *ring, bool mode);
 
 IPX_API uint32_t
-ipx_ring_cnt(ipx_ring_t *ring);
+ipx_ring_cnt(const ipx_ring_t *ring);
 
 IPX_API uint32_t
-ipx_ring_size(ipx_ring_t *ring);
+ipx_ring_size(const ipx_ring_t *ring);
 
 /**
  * @}
