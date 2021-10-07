@@ -96,6 +96,7 @@ fi
 AM_CONDITIONAL(WITH_RAW,  test x${withraw} = xyes)
 if [[ -z "$WITH_RAW_TRUE" ]]; then
    AC_CHECK_HEADERS([linux/if_packet.h net/ethernet.h net/if.h ifaddrs.h])
+   AC_CHECK_TYPES([struct tpacket3_hdr],[],AC_MSG_ERROR(["TPACKET_V3 required for raw sockets plugin. Upgrade kernel to version 3.19 at least"]), [#include <linux/if_packet.h>])
    AC_DEFINE([WITH_RAW], [1], [Define to 1 if compile with raw plugin])
 fi
 
