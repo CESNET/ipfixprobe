@@ -178,7 +178,7 @@ void FlowRecord::update(const Packet &pkt, bool src)
 NHTFlowCache::NHTFlowCache() :
    m_cache_size(0), m_line_size(0), m_line_mask(0), m_line_new_idx(0),
    m_qsize(0), m_qidx(0), m_timeout_idx(0), m_active(0), m_inactive(0),
-   m_keylen(0), m_key(), m_key_inv(), m_flow_table(nullptr), m_flow_records(nullptr)
+   m_split_biflow(false), m_keylen(0), m_key(), m_key_inv(), m_flow_table(nullptr), m_flow_records(nullptr)
 {
 }
 
@@ -225,6 +225,8 @@ void NHTFlowCache::init(const char *params)
    } catch (std::bad_alloc &e) {
       throw PluginError("not enough memory for flow cache allocation");
    }
+
+   m_split_biflow = parser.m_split_biflow;
 
 #ifdef FLOW_CACHE_STATS
    m_empty = 0;
@@ -329,7 +331,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
    }
 
    /* Find inversed flow. */
-   if (!found) {
+   if (!found && !m_split_biflow) {
       uint64_t hashval_inv = XXH64(m_key_inv, m_keylen, 0);
       uint64_t line_index_inv = hashval_inv & m_line_mask;
       uint64_t next_line_inv = line_index_inv + m_line_size;

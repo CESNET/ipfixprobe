@@ -105,10 +105,11 @@ public:
    uint32_t m_line_size;
    uint32_t m_active;
    uint32_t m_inactive;
+   bool m_split_biflow;
 
    CacheOptParser() : OptionsParser("cache", "Storage plugin implemented as a hash table"),
       m_cache_size(1 << DEFAULT_FLOW_CACHE_SIZE), m_line_size(1 << DEFAULT_FLOW_LINE_SIZE),
-      m_active(DEFAULT_ACTIVE_TIMEOUT), m_inactive(DEFAULT_INACTIVE_TIMEOUT)
+      m_active(DEFAULT_ACTIVE_TIMEOUT), m_inactive(DEFAULT_INACTIVE_TIMEOUT), m_split_biflow(false)
    {
       register_option("s", "size", "EXPONENT", "Cache size exponent to the power of two",
          [this](const char *arg){try {unsigned exp = str2num<decltype(exp)>(arg);
@@ -131,6 +132,8 @@ public:
       register_option("i", "inactive", "TIME", "Inactive timeout in seconds",
          [this](const char *arg){try {m_inactive = str2num<decltype(m_inactive)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);
+      register_option("S", "split", "", "Split biflows into uniflows",
+         [this](const char *arg){ m_split_biflow = true; return true;}, OptionFlags::NoArgument);
    }
 };
 
@@ -186,6 +189,7 @@ private:
 #endif /* FLOW_CACHE_STATS */
    uint32_t m_active;
    uint32_t m_inactive;
+   bool m_split_biflow;
    uint8_t m_keylen;
    char m_key[MAX_KEY_LENGTH];
    char m_key_inv[MAX_KEY_LENGTH];
