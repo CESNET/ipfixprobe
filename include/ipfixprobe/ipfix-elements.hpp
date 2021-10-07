@@ -87,6 +87,8 @@ namespace ipxp {
 #define BYTES_REV(F)                  F(29305,    1,    8,   &flow.dst_bytes)
 #define PACKETS(F)                    F(0,        2,    8,   (temp = (uint64_t) flow.src_packets, &temp))
 #define PACKETS_REV(F)                F(29305,    2,    8,   (temp = (uint64_t) flow.dst_packets, &temp))
+#define FLOW_START_MSEC(F)            F(0,      152,    8,   (temp = ((uint64_t) flow.time_first.tv_sec) * 1000 + (flow.time_first.tv_usec / 1000), &temp))
+#define FLOW_END_MSEC(F)              F(0,      153,    8,   (temp = ((uint64_t) flow.time_last.tv_sec) * 1000 + (flow.time_last.tv_usec / 1000), &temp))
 #define FLOW_START_USEC(F)            F(0,      154,    8,   (temp = MK_NTP_TS(flow.time_first), &temp))
 #define FLOW_END_USEC(F)              F(0,      155,    8,   (temp = MK_NTP_TS(flow.time_last), &temp))
 #define OBSERVATION_MSEC(F)           F(0,      323,    8,   nullptr)
@@ -258,14 +260,23 @@ namespace ipxp {
  * all of them defined above.
  */
 
+#ifdef IPXP_TS_MSEC
+#define FLOW_START   FLOW_START_MSEC
+#define FLOW_END     FLOW_END_MSEC
+#else
+#define FLOW_START   FLOW_START_USEC
+#define FLOW_END     FLOW_END_USEC
+#endif
+
+
 #define BASIC_TMPLT_V4(F) \
    F(FLOW_END_REASON) \
    F(BYTES) \
    F(BYTES_REV) \
    F(PACKETS) \
    F(PACKETS_REV) \
-   F(FLOW_START_USEC) \
-   F(FLOW_END_USEC) \
+   F(FLOW_START) \
+   F(FLOW_END) \
    F(L3_PROTO) \
    F(L4_PROTO) \
    F(L4_TCP_FLAGS) \
@@ -284,8 +295,8 @@ namespace ipxp {
    F(BYTES_REV) \
    F(PACKETS) \
    F(PACKETS_REV) \
-   F(FLOW_START_USEC) \
-   F(FLOW_END_USEC) \
+   F(FLOW_START) \
+   F(FLOW_END) \
    F(L3_PROTO) \
    F(L4_PROTO) \
    F(L4_TCP_FLAGS) \

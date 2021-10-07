@@ -229,6 +229,13 @@ AC_ARG_WITH([flowlinesize],
        ]
 )
 
+AC_ARG_WITH([msects],
+       AC_HELP_STRING([--with-msects],[Compile ipfix plugin with miliseconds timestamp precision output instead of microsecond precision]),
+       [
+       CPPFLAGS="$CPPFLAGS -DIPXP_TS_MSEC"
+       ]
+)
+
 
 AM_CONDITIONAL(MAKE_RPMS, test x$RPMBUILD != x)
 
