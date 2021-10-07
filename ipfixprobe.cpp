@@ -490,6 +490,20 @@ void main_loop(ipxp_conf_t &conf)
             break;
          }
       }
+      for (auto &it : conf.storage_fut) {
+         std::future_status status = it.wait_for(std::chrono::seconds(0));
+         if (status == std::future_status::ready) {
+            stop = 1;
+            break;
+         }
+      }
+      for (auto &it : conf.output_fut) {
+         std::future_status status = it.wait_for(std::chrono::seconds(0));
+         if (status == std::future_status::ready) {
+            stop = 1;
+            break;
+         }
+      }
 
       usleep(1000);
    }
