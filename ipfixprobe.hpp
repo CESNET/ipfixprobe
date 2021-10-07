@@ -200,7 +200,7 @@ struct ipxp_conf_t {
    std::vector<WorkPipeline> pipelines;
    std::vector<OutputWorker> outputs;
 
-   std::vector<std::future<InputStats>> input_fut;
+   std::vector<std::shared_future<InputStats>> input_fut;
    std::vector<std::future<StorageStats>> storage_fut;
    std::vector<std::future<OutputStats>> output_fut;
 

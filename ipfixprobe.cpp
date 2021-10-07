@@ -473,14 +473,24 @@ void finish(ipxp_conf_t &conf)
 
 void main_loop(ipxp_conf_t &conf)
 {
-   while (!stop) {
-      for (auto &it : conf.input_fut) {
-         std::future_status status = it.wait_for(std::chrono::seconds(0));
+   std::vector<std::shared_future<InputStats>*> futs;
+   for (auto &it : conf.input_fut) {
+      futs.push_back(&it);
+   }
+   while (!stop && futs.size()) {
+      for (auto it = futs.begin(); it != futs.end(); it++) {
+         std::future_status status = (*it)->wait_for(std::chrono::seconds(0));
          if (status == std::future_status::ready) {
+            InputStats res = (*it)->get();
+            if (!res.error) {
+               it = futs.erase(it);
+               break;
+            }
             stop = 1;
             break;
          }
       }
+
       usleep(1000);
    }
 
