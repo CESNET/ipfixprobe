@@ -1,4 +1,4 @@
-# ipfixprobe - IPFIX flow exporter - README
+# ipfixprobe - IPFIX flow exporter
 
 ## Description
 This application creates biflows from packet input and exports them to output interface.
@@ -118,21 +118,44 @@ us.
 - `-h [PLUGIN]`   Print help text. Supported help for input, storage, output and process plugins
 - `-V`            Show version and exit
 
+### Help
+Printing general help is done using the `-h` parameter. To print help for specific plugins, `-h` with parameter is used.
+This parameter accepts `input`, `storage`, `process`, `output` or name of a plugin (or path to a .so file with plugin).
+
+## Example
+Here are the examples of various plugins usage:
+```
+# Capture from wlp2s0 interface using raw sockets, print flows to console
+./ipfixprobe -i 'raw;ifc=wlp2s0' -o 'text'
+
+# Capture from wlp2s0 interface and scale packet processing using 2 instances of plugins, send flow to ifpfix collector using UDP
+./ipfixprobe -i 'raw;ifc=wlp2s0;f' -i 'raw;ifc=wlp2s0;f' -o 'ipfix;u;host=collector.example.com;port=4739'
+
+# Capture from a COMBO card using ndp plugin, sends ipfix data to 127.0.0.1:4739 using TCP by default
+./ipfixprobe -i 'ndp;dev=/dev/nfb0:0' -i 'ndp;dev=/dev/nfb0:1' -i 'ndp;dev=/dev/nfb0:2'
+
+# Capture from eth0 interface using pcap plugin, split biflows into flows and prints them to console without mac addresses
+./ipfixprobe -i 'pcap;ifc=eth0' -s 'cache;split' -o 'text;m'
+
+# Read packets from pcap file, enable 4 processing plugins, sends L7 HTTP extended biflows to unirec interface named `http` and data from 3 other plugins to the `stats` interface
+./ipfixprobe -i 'pcap;file=pcaps/http.pcap' -p http -p 'pstats;i' -p idpcontent -p phists -o 'unirec;i=u:http:timeout=WAIT,u:stats:timeout=WAIT;p=http,(pstats,phists,idpcontent)'
+```
+
 ## Extension
 `ipfixprobe` can be extended by new plugins for exporting various new information from flow.
 There are already some existing plugins that export e.g. `DNS`, `HTTP`, `SIP`, `NTP`, `PassiveDNS`.
 
 ## Adding new plugin
-To create new plugin use [create_plugin.sh](create_plugin.sh) script. This interactive script will generate .cpp and .h
+To create new plugin use [process/create_plugin.sh](process/create_plugin.sh) script. This interactive script will generate .cpp and .h
 file template and will also print `TODO` guide what needs to be done.
 
 ## Possible issues
 ### Flows are not send to output interface when reading small pcap file (NEMEA output)
 
-Turn off message buffering using `buffer=off` option on output interfaces.
+Turn off message buffering using `buffer=off` option and set `timeout=WAIT` on output interfaces.
 
 ```
-./ipfixprobe -i u:abc:buffer=off -r traffic.pcap
+./ipfixprobe -i 'pcap;file=traffic.pcap' -o 'unirec;i=u:out:timeout=WAIT:buffer=off'
 ```
 
 ## Output data
