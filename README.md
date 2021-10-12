@@ -103,10 +103,10 @@ us.
 
 ## Parameters
 ### Module specific parameters
-- `-i ARGS`       Activate input plugin
-- `-s ARGS`       Activate storage plugin
-- `-o ARGS`       Activate output plugin
-- `-p ARGS`       Activate processing plugin
+- `-i ARGS`       Activate input plugin  (-h input for help)
+- `-s ARGS`       Activate storage plugin (-h storage for help)
+- `-o ARGS`       Activate output plugin (-h output for help)
+- `-p ARGS`       Activate processing plugin (-h process for help)
 - `-q SIZE`       Size of queue between input and storage plugins
 - `-b SIZE`       Size of input queue packet block
 - `-Q SIZE`       Size of queue between storage and output plugins

@@ -104,22 +104,22 @@ public:
    {
       m_delim = ' ';
 
-      register_option("-i", "--input", "ARGS", "Activate input plugin",
+      register_option("-i", "--input", "ARGS", "Activate input plugin (-h input for help)",
                       [this](const char *arg) {
                           m_input.push_back(arg);
                           return true;
                       }, OptionFlags::RequiredArgument);
-      register_option("-s", "--storage", "ARGS", "Activate storage plugin",
+      register_option("-s", "--storage", "ARGS", "Activate storage plugin (-h storage for help)",
                       [this](const char *arg) {
                           m_storage.push_back(arg);
                           return true;
                       }, OptionFlags::RequiredArgument);
-      register_option("-o", "--output", "ARGS", "Activate output plugin",
+      register_option("-o", "--output", "ARGS", "Activate output plugin (-h output for help)",
                       [this](const char *arg) {
                           m_output.push_back(arg);
                           return true;
                       }, OptionFlags::RequiredArgument);
-      register_option("-p", "--process", "ARGS", "Activate processing plugin",
+      register_option("-p", "--process", "ARGS", "Activate processing plugin (-h process for help)",
                       [this](const char *arg) {
                           m_process.push_back(arg);
                           return true;
