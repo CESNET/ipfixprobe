@@ -2,9 +2,9 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([ipfixprobe], [3.2.0], [nemea@cesnet.cz])
+AC_INIT([ipfixprobe], [3.2.1], [nemea@cesnet.cz])
 
-AC_CONFIG_SRCDIR([ipfixprobe.h])
+AC_CONFIG_SRCDIR([main.cpp])
 AC_CONFIG_HEADERS([config.h])
 
 RELEASE=1
@@ -25,8 +25,13 @@ AC_ARG_ENABLE([debug],
         [Enable build with debug symbols and without optimizations.]),
         [if test "$enableval" = "yes"; then
               CXXFLAGS="-Wall -g -O0 $CXXFLAGS"
+              CFLAGS="-Wall -g -O0 $CFLAGS"
+         else
+              CXXFLAGS="-Wall -g -O3 $CXXFLAGS"
+              CFLAGS="-Wall -g -O3 $CFLAGS"
         fi], [CXXFLAGS="-Wall -g -O3 $CXXFLAGS"
-              CPPFLAGS="-DNDEBUG=1 $CPPFLAGS"])
+              CPPFLAGS="-DNDEBUG=1 $CPPFLAGS"
+              CFLAGS="-Wall -g -O3"])
 AM_CONDITIONAL(DEBUG, test x"$debug" = x"true")
 
 AC_ARG_ENABLE([nemearpm],
@@ -67,7 +72,6 @@ AC_TYPE_UINT8_T
 
 AX_C_BIGENDIAN_CROSS
 
-
 ### openssl
 AC_ARG_ENABLE([legacy-ssl],
        AC_HELP_STRING([--enable-legacy-ssl],[Compile ipfixprobe on centos7.]),
@@ -90,9 +94,37 @@ AC_CHECK_HEADER(openssl/kdf.h, AC_CHECK_LIB(crypto, EVP_PKEY_CTX_new_id, [],
 
 ### openssl
 
+AM_CONDITIONAL(OS_CYGWIN, test x${host_os} = xcygwin)
+
+AC_ARG_WITH([raw],
+        AC_HELP_STRING([--without-raw],[Compile ipfixprobe with raw plugin for capturing using raw sockets]),
+        [
+      if test "$withval" = "yes"; then
+         if [[ -z "$OS_CYGWIN_TRUE" ]]; then
+            AC_MSG_ERROR(["raw plugin is not supported on cygwin"])
+         fi
+         withraw="yes"
+      else
+         withraw="no"
+      fi
+        ], [withraw="yes"]
+)
+
+if [[ -z "$OS_CYGWIN_TRUE" ]] && test "$withraw" = "yes"; then
+   AC_MSG_WARN(["raw plugin is not supported on cygwin"])
+   withraw="no"
+fi
+
+AM_CONDITIONAL(WITH_RAW,  test x${withraw} = xyes)
+if [[ -z "$WITH_RAW_TRUE" ]]; then
+   AC_CHECK_HEADERS([linux/if_packet.h net/ethernet.h net/if.h ifaddrs.h])
+   AC_CHECK_TYPES([struct tpacket3_hdr],[],AC_MSG_ERROR(["TPACKET_V3 required for raw sockets plugin. Upgrade kernel to version 3.19 at least"]), [#include <linux/if_packet.h>])
+   AC_DEFINE([WITH_RAW], [1], [Define to 1 if compile with raw plugin])
+fi
+
 
 AC_ARG_WITH([ndp],
-        AC_HELP_STRING([--with-ndp],[Compile ipfixprobe with ndp library.]),
+        AC_HELP_STRING([--with-ndp],[Compile ipfixprobe with ndp plugin for capturing using netcope-common library]),
         [
       if test "$withval" = "yes"; then
          withndp="yes"
@@ -107,20 +139,57 @@ AC_ARG_WITH([ndp],
 
 if test x${withndp} = xyes; then
         AC_CHECK_HEADER(nfb/nfb.h, AC_CHECK_LIB(nfb, nfb_open, [libnfb=yes],
-          [AC_MSG_ERROR([libnfb not found. Try installing netcope-common.])]
-        ), AC_MSG_ERROR([nfb/nfb.h not found. Try installing netcope-common-devel.]))
+          [AC_MSG_ERROR([libnfb not found. Try installing netcope-common])]
+        ), AC_MSG_ERROR([nfb/nfb.h not found. Try installing netcope-common-devel]))
 fi
 
-AM_CONDITIONAL(HAVE_NDP,  test x${libnfb} = xyes && test x${withndp} = xyes)
-if [[ -z "$HAVE_NDP_TRUE" ]]; then
-   AC_DEFINE([HAVE_NDP], [1], [Define to 1 if the ndp is available])
+AM_CONDITIONAL(WITH_NDP,  test x${libnfb} = xyes && test x${withndp} = xyes)
+if [[ -z "$WITH_NDP_TRUE" ]]; then
+   AC_DEFINE([WITH_NDP], [1], [Define to 1 if the ndp is available])
+   CPPFLAGS="$CPPFLAGS -DIPXP_FLOW_CACHE_SIZE=19 -DIPXP_FLOW_LINE_SIZE=2" # 524288 cache records, 4 record per line
    LIBS="-lnfb $LIBS"
    RPM_REQUIRES+=" netcope-common"
    RPM_BUILDREQ+=" netcope-common-devel"
 fi
 
+
+AC_ARG_WITH([pcap],
+        AC_HELP_STRING([--with-pcap],[Compile ipfixprobe with pcap plugin for capturing using libpcap library]),
+        [
+      if test "$withval" = "yes"; then
+         withpcap="yes"
+      else
+         withpcap="no"
+      fi
+        ], [withpcap="no"]
+)
+
+if test x${withpcap} = xyes; then
+   AC_CHECK_HEADER(pcap.h,
+              AC_CHECK_LIB(pcap, pcap_open_live, [libpcap=yes],
+                           AC_CHECK_LIB(wpcap, pcap_open_live, [libwpcap=yes], AC_MSG_ERROR([libpcap not found. Try installing libpcap]))),
+                           AC_MSG_ERROR([pcap.h not found. Try installing libpcap-devel or libwpcap-devel]))
+fi
+
+AM_CONDITIONAL(WITH_PCAP, test x${withpcap} && (test x${libpcap} = xyes || test x${libwpcap} = xyes))
+if [[ -z "$WITH_PCAP_TRUE" ]]; then
+   AC_DEFINE([WITH_PCAP], [1], [Define to 1 if the libpcap is available])
+   if [[ -z "$WITH_PCAP_TRUE" ]]; then
+      if test x${libpcap} = xyes; then
+         LIBS="-lpcap $LIBS"
+         RPM_REQUIRES+=" libpcap"
+         RPM_BUILDREQ+=" libpcap-devel"
+      else
+         LIBS="-lwpcap $LIBS"
+         RPM_REQUIRES+=" libwpcap"
+         RPM_BUILDREQ+=" libwpcap-devel"
+      fi
+   fi
+fi
+
+
 AC_ARG_WITH([unwind],
-        AC_HELP_STRING([--with-unwind],[Compile ipfixprobe with libunwind to print stack on crash.]),
+        AC_HELP_STRING([--with-unwind],[Compile ipfixprobe with libunwind to print stack on crash]),
         [
       if test "$withval" = "yes"; then
          withunwind="yes"
@@ -135,45 +204,17 @@ if test x${withunwind} = xyes; then
          AC_CHECK_LIB(unwind, unw_backtrace, [libunwind=yes], AC_MSG_ERROR([libunwind not found])),
          AC_MSG_ERROR([libunwind.h not found]))
 
-   AM_CONDITIONAL(HAVE_LIBUNWIND, test x${libunwind} = xyes)
-   if [[ -z "$HAVE_LIBUNWIND_TRUE" ]]; then
-      AC_DEFINE([HAVE_LIBUNWIND], [1], [Define to 1 if the libunwind is available])
+   AM_CONDITIONAL(WITH_LIBUNWIND, test x${libunwind} = xyes)
+   if [[ -z "$WITH_LIBUNWIND_TRUE" ]]; then
+      AC_DEFINE([WITH_LIBUNWIND], [1], [Define to 1 if the libunwind is available])
       LIBS="-lunwind $LIBS"
       RPM_REQUIRES+=" libunwind"
       RPM_BUILDREQ+=" libunwind-devel"
    fi
 else
-   AM_CONDITIONAL(HAVE_LIBUNWIND, false)
+   AM_CONDITIONAL(WITH_LIBUNWIND, false)
 fi
 
-if test x${withndp} = xno; then
-   AC_CHECK_HEADER(pcap.h,
-              AC_CHECK_LIB(pcap, pcap_open_live, [libpcap=yes],
-                           AC_CHECK_LIB(wpcap, pcap_open_live, [libwpcap=yes], AC_MSG_ERROR([libpcap not found. The ipfixprobe flow exporter will not be compiled.]))),
-                           AC_MSG_ERROR([pcap.h not found. The ipfixprobe flow exporter will not be compiled.]))
-
-   AM_CONDITIONAL(HAVE_LIBPCAP, test x${libpcap} = xyes || test x${libwpcap} = xyes)
-   if [[ -z "$HAVE_LIBPCAP_TRUE" ]]; then
-      if test x${libpcap} = xyes; then
-         LIBS="-lpcap $LIBS"
-         RPM_REQUIRES+=" libpcap"
-         RPM_BUILDREQ+=" libpcap-devel"
-      else
-         LIBS="-lwpcap $LIBS"
-         RPM_REQUIRES+=" libwpcap"
-         RPM_BUILDREQ+=" libwpcap-devel"
-      fi
-   fi
-else
-   AM_CONDITIONAL(HAVE_LIBPCAP, false)
-fi
-
-AC_ARG_WITH([flowcachesize],
-       AC_HELP_STRING([--with-flowcachesize=NUMBER],[Set default size of flow cache in number of flow records.]),
-       [
-       CPPFLAGS="$CPPFLAGS -DFLOW_CACHE_SIZE=$withval"
-       ]
-)
 
 AC_ARG_WITH([nemea],
         AC_HELP_STRING([--with-nemea],[Compile with NEMEA framework (nemea.liberouter.org).]),
@@ -199,7 +240,28 @@ RPM_REQUIRES+=" libtrap"
 RPM_BUILDREQ+=" libtrap-devel unirec"
 fi
 
-AM_CONDITIONAL(COMPILE_FLOWMETER,  test x${libpcap} = xyes || test x${libwpcap} = xyes || test x${libnfb} = xyes)
+
+AC_ARG_WITH([flowcachesize],
+       AC_HELP_STRING([--with-flowcachesize=EXPONENT],[Set default size of flow cache, accept exponent to the power of 2 number]),
+       [
+       CPPFLAGS="$CPPFLAGS -DIPXP_FLOW_CACHE_SIZE=$withval"
+       ]
+)
+
+AC_ARG_WITH([flowlinesize],
+       AC_HELP_STRING([--with-flowlinesize=EXPONENT],[Set default size of flow line, accept exponent to the power of 2 number]),
+       [
+       CPPFLAGS="$CPPFLAGS -DIPXP_FLOW_LINE_SIZE=$withval"
+       ]
+)
+
+AC_ARG_WITH([msects],
+       AC_HELP_STRING([--with-msects],[Compile ipfix plugin with miliseconds timestamp precision output instead of microsecond precision]),
+       [
+       CPPFLAGS="$CPPFLAGS -DIPXP_TS_MSEC"
+       ]
+)
+
 
 AM_CONDITIONAL(MAKE_RPMS, test x$RPMBUILD != x)
 
@@ -230,7 +292,7 @@ AM_CONDITIONAL([HAVE_SYSTEMD], [test "x$with_systemdsystemunitdir" != "xno"])
 AC_CONFIG_FILES([Makefile
                  ipfixprobe.spec
                  ipfixprobe.bash
-                 nfbCInterface/Makefile
+                 input/nfbCInterface/Makefile
                  init/Makefile
                  tests/Makefile])
 

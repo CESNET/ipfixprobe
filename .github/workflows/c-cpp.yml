@@ -22,7 +22,7 @@ jobs:
     - name: autoreconf
       run: autoreconf -i
     - name: configure
-      run: ./configure --with-nemea
+      run: ./configure --with-raw --with-pcap --with-nemea
     - name: make
       run: make
     - name: make check
@@ -30,7 +30,7 @@ jobs:
     - name: make distcheck
       run: make distcheck
     - name: configure with debug
-      run: ./configure --with-nemea --enable-debug CXXFLAGS=-coverage CFLAGS=-coverage LDFLAGS=-lgcov
+      run: ./configure --with-raw --with-pcap --with-nemea --enable-debug CXXFLAGS=-coverage CFLAGS=-coverage LDFLAGS=-lgcov
     - name: rebuild and check
       run: make clean; make check
     - uses: codecov/codecov-action@v1

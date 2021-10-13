@@ -1,12 +1,14 @@
-# ipfixprobe - IPFIX flow exporter - README
+# ipfixprobe - IPFIX flow exporter
 
 ## Description
-This NEMEA module creates biflows from input PCAP file / network interface and exports them to output interface.
+This application creates biflows from packet input and exports them to output interface.
 
 ## Requirements
-- To compile this module you will need [libpcap](http://www.tcpdump.org/) development library installed,
-  OR netcope-common to support high-speed transfers from [COMBO cards](https://www.liberouter.org/technologies/cards/) (NDP interface).
-- and libunwind-devel package
+- kernel version at least 3.19 when using raw sockets input plugin enabled by default (disable with `--without-raw` parameter for `./configure`)
+- [libpcap](http://www.tcpdump.org/) when compiling with pcap plugin (`--with-pcap` parameter)
+- netcope-common [COMBO cards](https://www.liberouter.org/technologies/cards/) when compiling with ndp plugin (`--with-ndp` parameter)
+- libunwind-devel when compiling with stack unwind on crash feature (`--with-unwind` parameter)
+- [nemea](http://github.com/CESNET/Nemea-Framework) when compiling with unirec output plugin (`--with-nemea` parameter)
 
 ## Build & Installation
 
@@ -26,8 +28,11 @@ Check `./configure --help` for more details and settings.
 ### RPM packages
 
 RPM package can be created in the following versions using `--with` parameter of `rpmbuild`:
-- `--with ndp` enables RPM with netcope-common, i.e., NDP communication interface; this disables libpcap input.
-- `--with nemea` enables RPM with NEMEA interface (output)
+- `--with pcap` enables RPM with pcap input plugin
+- `--with ndp` enables RPM with netcope-common, i.e., ndp input plugin
+- `--with nemea` enables RPM with unirec output plugin
+- `--without raw` disables RPM with default raw socket input plugin
+- `--with unwind` enables RPM with stack unwinding feature
 
 These parameters affect required dependencies of the RPM and build process.
 
@@ -76,18 +81,17 @@ Build project using commands in previous sections. Tested on cygwin version 2.90
 ## Input / Output of the flow exporter
 
 Input and output interfaces are dependent on the configuration (by `configure`).
-The default setting uses libpcap and the output is in IPFIX format only.
+The default setting uses raw sockets input plugin and the output is in IPFIX format only.
 
 When the project is configured with `./configure --with-nemea`, the flow
 exporter supports NEMEA output via TRAP IFC besides the default IPFIX output.
 For more information about NEMEA, visit
 [https://nemea.liberouter.org](https://nemea.liberouter.org).
 
-By default, the flow exporter uses libpcap, which allows for receiving packets
+The flow exporter supports compilation with libpcap (`./configure --with-pcap`), which allows for receiving packets
 from PCAP file or network interface card.
 
-When the project is configured with `./configure --with-ndp`, the flow exporter
-does not link libpcap. Contrary, it is prepared for high-speed packet transfer
+When the project is configured with `./configure --with-ndp`, it is prepared for high-speed packet transfer
 from special HW acceleration FPGA cards.  For more information about the cards,
 visit [COMBO cards](https://www.liberouter.org/technologies/cards/) or contact
 us.
@@ -99,59 +103,59 @@ us.
 
 ## Parameters
 ### Module specific parameters
-- `-p STRING`        Activate specified parsing plugins. Output interface (NEMEA only) for each plugin correspond the order which you specify items in -i and -p param. For example: '-i u:a,u:b,u:c -p http,basic,dns\' http traffic will be send to interface u:a, basic flow to u:b etc. If you don't specify -p parameter, flow meter will require one output interface for basic flow by default. Format: plugin_name[,...] Supported plugins: http,rtsp,tls,dns,sip,ntp,smtp,basic,passivedns,pstats,ssdp,dnssd,ovpn,idpcontent,netbios,basicplus
-  - Some plugins have features activated with additional parameters. Format: plugin_name[:plugin_param=value[:...]][,...] If plugin does not support parameters, any parameters given will be ignored. Supported plugin parameters are listed bellow with output data.
-- `-c NUMBER`        Quit after `NUMBER` of packets on each input are captured.
-- `-I STRING`        Capture from given network interface. Parameter require interface name (eth0 for example). For nfb interface you can specify channel after interface delimited by : (/dev/nfb0:1) default channel is 0.
-- `-r STRING`        Pcap file to read. `-` to read from stdin.
-- `-n`               Don't send NULL record on exit (for NEMEA output).
-- `-l NUMBER`        Snapshot length when reading packets. Set value between `120`-`65535`.
-- `-t NUM:NUM`       Active and inactive timeout in seconds. Format: DOUBLE:DOUBLE. Value default means use default value 300.0:30.0.
-- `-s STRING`        Size of flow cache. Parameter is used as an exponent to the power of two. Valid numbers are in range 4-30. default is 17 (131072 records).
-- `-S NUMBER`        Print flow cache statistics. `NUMBER` specifies interval between prints.
-- `-P`               Print pcap statistics every 5 seconds. The statistics do not behave the same way on all platforms.
-- `-L NUMBER`        Link bit field value.
-- `-D NUMBER`        Direction bit field value.
-- `-F STRING`        String containing filter expression to filter traffic. See man pcap-filter.
-- `-O`               Send ODID field instead of LINK_BIT_FIELD.
-- `-q NUMBER`        Input queue size (default 64).
-- `-Q NUMBER`        Output queue size (default 16536).
-- `-e NUMBER`        Export max N flows per second.
-- `-m NUMBER`        Max size of IPFIX data packet payload to send.
-- `-x STRING`        Export to IPFIX collector. Format: HOST:PORT or [HOST]:PORT.
-- `-u`               Use UDP when exporting to IPFIX collector.
-- `-V`               Print version.
-- `-v`               Increase verbosity of the output, it can be duplicated like -vv / -vvv.
+- `-i ARGS`       Activate input plugin  (-h input for help)
+- `-s ARGS`       Activate storage plugin (-h storage for help)
+- `-o ARGS`       Activate output plugin (-h output for help)
+- `-p ARGS`       Activate processing plugin (-h process for help)
+- `-q SIZE`       Size of queue between input and storage plugins
+- `-b SIZE`       Size of input queue packet block
+- `-Q SIZE`       Size of queue between storage and output plugins
+- `-B SIZE`       Size of packet buffer
+- `-f NUM`        Export max flows per second
+- `-c SIZE`       Quit after number of packets are processed on each interface
+- `-P FILE`       Create pid file
+- `-d`            Run as a standalone process
+- `-h [PLUGIN]`   Print help text. Supported help for input, storage, output and process plugins
+- `-V`            Show version and exit
 
-### Common TRAP parameters
-- `-h [trap,1]`      Print help message for this module / for libtrap specific parameters.
-- `-i IFC_SPEC`      Specification of interface types and their parameters.
-- `-v`               Be verbose.
-- `-vv`              Be more verbose.
-- `-vvv`             Be even more verbose.
+### Help
+Printing general help is done using the `-h` parameter. To print help for specific plugins, `-h` with parameter is used.
+This parameter accepts `input`, `storage`, `process`, `output` or name of a plugin (or path to a .so file with plugin).
 
-## Algorithm
-Stores packets from input PCAP file / network interface in flow cache to create flows. After whole PCAP file is processed, flows from flow cache are exported to output interface.
-When capturing from network interface, flows are continuously send to output interfaces until N (or unlimited number of packets if the -c option is not specified) packets are captured and exported.
+## Example
+Here are the examples of various plugins usage:
+```
+# Capture from wlp2s0 interface using raw sockets, print flows to console
+./ipfixprobe -i 'raw;ifc=wlp2s0' -o 'text'
+
+# Capture from wlp2s0 interface and scale packet processing using 2 instances of plugins, send flow to ifpfix collector using UDP
+./ipfixprobe -i 'raw;ifc=wlp2s0;f' -i 'raw;ifc=wlp2s0;f' -o 'ipfix;u;host=collector.example.com;port=4739'
+
+# Capture from a COMBO card using ndp plugin, sends ipfix data to 127.0.0.1:4739 using TCP by default
+./ipfixprobe -i 'ndp;dev=/dev/nfb0:0' -i 'ndp;dev=/dev/nfb0:1' -i 'ndp;dev=/dev/nfb0:2'
+
+# Capture from eth0 interface using pcap plugin, split biflows into flows and prints them to console without mac addresses
+./ipfixprobe -i 'pcap;ifc=eth0' -s 'cache;split' -o 'text;m'
+
+# Read packets from pcap file, enable 4 processing plugins, sends L7 HTTP extended biflows to unirec interface named `http` and data from 3 other plugins to the `stats` interface
+./ipfixprobe -i 'pcap;file=pcaps/http.pcap' -p http -p 'pstats;i' -p idpcontent -p phists -o 'unirec;i=u:http:timeout=WAIT,u:stats:timeout=WAIT;p=http,(pstats,phists,idpcontent)'
+```
 
 ## Extension
 `ipfixprobe` can be extended by new plugins for exporting various new information from flow.
 There are already some existing plugins that export e.g. `DNS`, `HTTP`, `SIP`, `NTP`, `PassiveDNS`.
 
 ## Adding new plugin
-To create new plugin use [create_plugin.sh](create_plugin.sh) script. This interactive script will generate .cpp and .h
+To create new plugin use [process/create_plugin.sh](process/create_plugin.sh) script. This interactive script will generate .cpp and .h
 file template and will also print `TODO` guide what needs to be done.
-
-## Exporting packets
-It is possible to export single packet with additional information using plugins (`ARP`).
 
 ## Possible issues
 ### Flows are not send to output interface when reading small pcap file (NEMEA output)
 
-Turn off message buffering using `buffer=off` option on output interfaces.
+Turn off message buffering using `buffer=off` option and set `timeout=WAIT` on output interfaces.
 
 ```
-./ipfixprobe -i u:abc:buffer=off -r traffic.pcap
+./ipfixprobe -i 'pcap;file=traffic.pcap' -o 'unirec;i=u:out:timeout=WAIT:buffer=off'
 ```
 
 ## Output data
@@ -526,6 +530,14 @@ List of UniRec fields exported together with basic flow fields on interface by W
 | WG_CONF_LEVEL      | uint8  | level of confidence that the flow record is a WireGuard tunnel|
 | WG_SRC_PEER        | uint32 | ephemeral SRC peer identifier                                 |
 | WG_DST_PEER        | uint32 | ephemeral DST peer identifier                                 |
+
+### Quic
+
+List of UniRec fields exported together with basic flow fields on interface by quic plugin.
+
+| UniRec field       | Type   | Description                     |
+|:------------------:|:------:|:-------------------------------:|
+| QUIC_SNI           | string | Decrypted server name           |
 
 ## Simplified function diagram
 Diagram below shows how `ipfixprobe` works.
