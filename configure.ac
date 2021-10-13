@@ -83,6 +83,11 @@ AC_ARG_ENABLE([legacy-ssl],
           RPM_BUILDREQ+=" openssl-devel"
          ]
 )
+
+AC_CHECK_HEADER(openssl/kdf.h, AC_CHECK_LIB(crypto, EVP_PKEY_CTX_new_id, [],
+  [AC_MSG_ERROR([libcrypto not found. Try installing at least version 1.1 of openssl-devel])]
+), AC_MSG_ERROR([openssl/kdf.h not found. Try installing at least version 1.1 of openssl-devel]))
+
 ### openssl
 
 
