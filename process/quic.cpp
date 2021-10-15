@@ -66,7 +66,6 @@ __attribute__((constructor)) static void register_this_plugin()
 
 
 // Print debug message if debugging is allowed.
-#define DEBUG_QUIC
 #ifdef DEBUG_QUIC
 # define DEBUG_MSG(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
 #else
@@ -137,153 +136,44 @@ ProcessPlugin *QUICPlugin::copy()
 // PARSE CRYPTO PAYLOAD
 // --------------------------------------------------------------------------------------------------------------------------------
 
-bool QUICPlugin::is_grease_value(uint16_t val)
-{
-   if (val != 0 && !(val & ~(0xFAFA)) && ((0x00FF & val) == (val >> 8))) {
-      return true;
-   }
-   return false;
-}
-
-void QUICPlugin::get_ja3_cipher_suites(std::stringstream &ja3, my_payload_data &data)
-{
-   int cipher_suites_length   = ntohs(*(uint16_t *) data.data);
-   uint16_t type_id           = 0;
-   const uint8_t *section_end = data.data + cipher_suites_length;
-
-   if (data.data + cipher_suites_length + 1 > data.end) {
-      data.valid = false;
-      return;
-   }
-   data.data += 2;
-
-   for (; data.data <= section_end; data.data += sizeof(uint16_t)) {
-      type_id = ntohs(*(uint16_t *) (data.data));
-      if (!is_grease_value(type_id)) {
-         ja3 << type_id;
-         if (data.data < section_end) {
-            ja3 << '-';
-         }
-      }
-   }
-   ja3 << ',';
-}
-
-void QUICPlugin::get_tls_server_name(my_payload_data &data, RecordExtQUIC *rec)
-{
-   uint16_t list_len = ntohs(*(uint16_t *) data.data);
-   uint16_t offset   = sizeof(list_len);
-   uint8_t *list_end = data.data + list_len + offset;
-
-   if (list_end > data.end) {
-      data.valid = false;
-      return;
-   }
-
-   while (data.data + sizeof(tls_ext_sni) + offset < list_end) {
-      tls_ext_sni *sni = (tls_ext_sni *) (data.data + offset);
-      uint16_t sni_len = ntohs(sni->length);
-
-      offset += sizeof(tls_ext_sni);
-      if (data.data + offset + sni_len > list_end) {
-         break;
-      }
-
-      if (rec->sni[0] != 0) {
-         break;
-      }
-      if (sni_len + (size_t) 1 > sizeof(rec->sni)) {
-         sni_len = sizeof(rec->sni) - 1;
-      }
-      memcpy(rec->sni, data.data + offset, sni_len);
-      rec->sni[sni_len] = 0;
-      data.sni_parsed++;
-      parsed_initial++;
-      offset += ntohs(sni->length);
-   }
-} // QUICPlugin::get_tls_server_name
-
 bool QUICPlugin::parse_tls(RecordExtQUIC *rec)
 {
-   my_payload_data payload = {
-      decrypted_payload,
-      decrypted_payload + payload_len,
+   payload_data payload = {
+      (char *) decrypted_payload,
+      (char *) decrypted_payload + payload_len,
       true,
       0
    };
 
    tls_rec_lay *tls = (tls_rec_lay *) payload.data;
-
    payload.data += sizeof(tls_rec_lay);
-
    if (payload_len - sizeof(tls_rec_lay) < 0 || tls->type != CRYPTO_FRAME) {
       DEBUG_MSG("Frame inside Initial packet is not of type CRYPTO\n");
       return false;
    }
 
-   tls_handshake *tls_hs = (tls_handshake *) payload.data;
-
-   if (payload.data + sizeof(tls_handshake) > payload.end || tls_hs->type != CLIENT_HELLO) {
-      DEBUG_MSG("Content of CRYPTO frame is not Client Hello\n");
+   if (!parse_tls_nonext_hdr(payload, nullptr)) {
+      DEBUG_MSG("Could not parse TLS header\n");
       return false;
    }
 
-   uint32_t hs_len = tls_hs->length1 << 16 | ntohs(tls_hs->length2);
-
-   if (payload.data + hs_len > payload.end || tls_hs->version.major != 3 ||
-     tls_hs->version.minor < 1 || tls_hs->version.minor > 3) {
-      DEBUG_MSG("Wrong version\n");
-      return false;
-   }
-   payload.data += sizeof(tls_handshake);
-
-   std::stringstream ja3;
-
-   ja3 << (uint16_t) tls_hs->version.version << ',';
-
-   payload.data += 32; // Skip random
-
-   int tmp = *(uint8_t *) payload.data;
-
-   if (payload.data + tmp + 2 > payload.end) {
-      return false;
-   }
-   payload.data += tmp + 1; // Skip session id
-
-   get_ja3_cipher_suites(ja3, payload);
-   if (!payload.valid) {
-      return false;
-   }
-
-   tmp = *(uint8_t *) payload.data;
-   if (payload.data + tmp + 2 > payload.end) {
-      return false;
-   }
-   payload.data += tmp + 1; // Skip compression methods
-
-   uint8_t *ext_end = payload.data + ntohs(*(uint16_t *) payload.data);
-
-   payload.data += 2;
-
-   if (ext_end > payload.end) {
-      return false;
-   }
-
-   while (payload.data + sizeof(tls_ext) <= ext_end) {
+   while (payload.data + sizeof(tls_ext) <= payload.end) {
       tls_ext *ext    = (tls_ext *) payload.data;
       uint16_t length = ntohs(ext->length);
       uint16_t type   = ntohs(ext->type);
 
       payload.data += sizeof(tls_ext);
       if (type == TLS_EXT_SERVER_NAME) {
-         get_tls_server_name(payload, rec);
+         get_tls_server_name(payload, rec->sni, sizeof(rec->sni));
+         parsed_initial += payload.sni_parsed;
+         break;
       }
       if (!payload.valid) {
          return false;
       }
       payload.data += length;
    }
-   return payload.sni_parsed != 0 || !ja3.str().empty();
+   return payload.sni_parsed != 0;
 } // QUICPlugin::parse_tls
 
 // --------------------------------------------------------------------------------------------------------------------------------

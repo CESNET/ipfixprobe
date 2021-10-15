@@ -223,9 +223,6 @@ private:
    bool     quic_derive_n_set(uint8_t *, uint8_t *, uint8_t, size_t, uint8_t *);
    bool     expand_label(const char *, const char *, const uint8_t *, uint8_t, uint16_t, uint8_t *, uint8_t &);
    bool     parse_tls(RecordExtQUIC *);
-   void     get_tls_server_name(my_payload_data&, RecordExtQUIC *);
-   void     get_ja3_cipher_suites(std::stringstream&, my_payload_data&);
-   bool     is_grease_value(uint16_t);
 
 
    uint64_t pntoh64(const void *);
