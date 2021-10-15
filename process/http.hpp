@@ -233,4 +233,4 @@ private:
 };
 
 }
-#endif /*IPXP_PROCESS_HTTP_HPP */
+#endif /* IPXP_PROCESS_HTTP_HPP */

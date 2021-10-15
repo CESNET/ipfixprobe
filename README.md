@@ -531,6 +531,14 @@ List of UniRec fields exported together with basic flow fields on interface by W
 | WG_SRC_PEER        | uint32 | ephemeral SRC peer identifier                                 |
 | WG_DST_PEER        | uint32 | ephemeral DST peer identifier                                 |
 
+### Quic
+
+List of UniRec fields exported together with basic flow fields on interface by quic plugin.
+
+| UniRec field       | Type   | Description                     |
+|:------------------:|:------:|:-------------------------------:|
+| QUIC_SNI           | string | Decrypted server name           |
+
 ## Simplified function diagram
 Diagram below shows how `ipfixprobe` works.
 

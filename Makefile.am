@@ -9,7 +9,7 @@ bin_PROGRAMS=ipfixprobe
 
 DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)"
 
-ipfixprobe_LDFLAGS=-lpthread -ldl
+ipfixprobe_LDFLAGS=-lpthread -lcrypto -ldl
 ipfixprobe_CFLAGS=-I$(srcdir)/include/
 ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/
 
@@ -108,7 +108,9 @@ ipfixprobe_process_src=\
 		process/stats.cpp \
 		process/stats.hpp \
 		process/md5.hpp \
-		process/md5.cpp
+		process/md5.cpp \
+		process/quic.hpp \
+		process/quic.cpp
 
 ipfixprobe_headers_src=\
 		include/ipfixprobe/plugin.hpp \
@@ -168,7 +170,8 @@ EXTRA_DIST=README.md \
 	pcaps/ovpn.pcap \
 	pcaps/idpcontent.pcap \
 	pcaps/bstats.pcap \
-	pcaps/wg.pcap
+	pcaps/wg.pcap \
+	pcaps/quic_initial-sample.pcap
 
 bashcompl_DATA=ipfixprobe.bash
 

@@ -123,110 +123,11 @@ int TLSPlugin::pre_update(Flow &rec, Packet &pkt)
    return 0;
 }
 
-bool TLSPlugin::parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *rec)
-{
-   payload_data payload = {
-      (char *) data,
-      data + payload_len,
-      true,
-      0
-   };
-   tls_rec *tls = (tls_rec *) payload.data;
-
-   if (payload_len < sizeof(tls_rec) || !tls || tls->type != TLS_HANDSHAKE ||
-     tls->version.major != 3 || tls->version.minor > 3) {
-      return false;
-   }
-   payload.data += sizeof(tls_rec);
-
-   tls_handshake *tls_hs = (tls_handshake *) payload.data;
-   if (payload.data + sizeof(tls_handshake) > payload.end || tls_hs->type != TLS_HANDSHAKE_CLIENT_HELLO) {
-      return false;
-   }
-
-   uint32_t hs_len = tls_hs->length1 << 16 | ntohs(tls_hs->length2);
-   if (payload.data + hs_len > payload.end || tls_hs->version.major != 3 ||
-     tls_hs->version.minor < 1 || tls_hs->version.minor > 3) {
-      return false;
-   }
-   payload.data += sizeof(tls_handshake);
-
-   std::stringstream ja3;
-   ja3 << (uint16_t) tls_hs->version.version << ',';
-
-   payload.data += 32; // Skip random
-
-   int tmp = *(uint8_t *) payload.data;
-   if (payload.data + tmp + 2 > payload.end) {
-      return false;
-   }
-   payload.data += tmp + 1; // Skip session id
-
-   get_ja3_cipher_suites(ja3, payload);
-   if (!payload.valid) {
-      return false;
-   }
-
-   tmp = *(uint8_t *) payload.data;
-   if (payload.data + tmp + 2 > payload.end) {
-      return false;
-   }
-   payload.data += tmp + 1; // Skip compression methods
-
-   const char *ext_end = payload.data + ntohs(*(uint16_t *) payload.data);
-   payload.data += 2;
-
-   if (ext_end > payload.end) {
-      return false;
-   }
-
-   std::string ecliptic_curves;
-   std::string ec_point_formats;
-
-   while (payload.data + sizeof(tls_ext) <= ext_end) {
-      tls_ext *ext    = (tls_ext *) payload.data;
-      uint16_t length = ntohs(ext->length);
-      uint16_t type   = ntohs(ext->type);
-
-      payload.data += sizeof(tls_ext);
-      if (type == TLS_EXT_SERVER_NAME) {
-         get_tls_server_name(payload, rec);
-      } else if (type == TLS_EXT_ECLIPTIC_CURVES) {
-         ecliptic_curves = get_ja3_ecpliptic_curves(payload);
-      } else if (type == TLS_EXT_EC_POINT_FORMATS) {
-         ec_point_formats = get_ja3_ec_point_formats(payload);
-      }
-
-      if (!payload.valid) {
-         return false;
-      }
-      payload.data += length;
-      if (!is_grease_value(type)) {
-         ja3 << type;
-
-         if (payload.data + sizeof(tls_ext) <= ext_end) {
-            ja3 << '-';
-         }
-      }
-   }
-
-   ja3 << ',' << ecliptic_curves << ',' << ec_point_formats;
-   md5_get_bin(ja3.str(), rec->ja3_hash_bin);
-
-   DEBUG_CODE(for(int i = 0; i < 16; i++){
-       DEBUG_MSG("%02x", rec->ja3_hash_bin[i]);
-   })
-   DEBUG_MSG("\n");
-   DEBUG_MSG("%s\n", ja3.str().c_str());
-
-   return payload.sni_parsed != 0 || !ja3.str().empty();
-} // TLSPlugin::parse_sni
-
 /*
  * Checking for reserved GRESE values.
  * The list of reserved values: https://tools.ietf.org/html/draft-ietf-tls-grease-01
  */
-bool TLSPlugin::is_grease_value(uint16_t val)
+bool is_grease_value(uint16_t val)
 {
    if (val != 0 && !(val & ~(0xFAFA)) && ((0x00FF & val) == (val >> 8))) {
       return true;
@@ -234,7 +135,7 @@ bool TLSPlugin::is_grease_value(uint16_t val)
    return false;
 }
 
-void TLSPlugin::get_ja3_cipher_suites(std::stringstream &ja3, payload_data &data)
+void get_ja3_cipher_suites(std::stringstream &ja3, payload_data &data)
 {
    int cipher_suites_length = ntohs(*(uint16_t *) data.data);
    uint16_t type_id         = 0;
@@ -258,7 +159,127 @@ void TLSPlugin::get_ja3_cipher_suites(std::stringstream &ja3, payload_data &data
    ja3 << ',';
 }
 
-void TLSPlugin::get_tls_server_name(payload_data &data, RecordExtTLS *rec)
+bool parse_tls_nonext_hdr(payload_data &payload, std::stringstream *ja3)
+{
+   tls_handshake *tls_hs = (tls_handshake *) payload.data;
+   if (payload.data + sizeof(tls_handshake) > payload.end || tls_hs->type != TLS_HANDSHAKE_CLIENT_HELLO) {
+      return false;
+   }
+
+   uint32_t hs_len = tls_hs->length1 << 16 | ntohs(tls_hs->length2);
+   if (payload.data + hs_len > payload.end || tls_hs->version.major != 3 ||
+     tls_hs->version.minor < 1 || tls_hs->version.minor > 3) {
+      return false;
+   }
+   payload.data += sizeof(tls_handshake);
+
+   if (ja3) {
+      *ja3 << (uint16_t) tls_hs->version.version << ',';
+   }
+
+   payload.data += 32; // Skip random
+
+   int tmp = *(uint8_t *) payload.data;
+   if (payload.data + tmp + 2 > payload.end) {
+      return false;
+   }
+   payload.data += tmp + 1; // Skip session id
+
+   if (ja3) {
+      get_ja3_cipher_suites(*ja3, payload);
+      if (!payload.valid) {
+         return false;
+      }
+   } else {
+      // Skip cipher suites
+      if (payload.data + 2 > payload.end) {
+         return false;
+      }
+      payload.data += ntohs(*(uint16_t *) payload.data) + 2;
+   }
+
+   tmp = *(uint8_t *) payload.data;
+   if (payload.data + tmp + 2 > payload.end) {
+      return false;
+   }
+   payload.data += tmp + 1; // Skip compression methods
+
+   const char *ext_end = payload.data + ntohs(*(uint16_t *) payload.data) + 2;
+   payload.data += 2;
+
+   if (ext_end > payload.end) {
+      return false;
+   }
+   payload.end = ext_end;
+
+   return true;
+}
+
+bool TLSPlugin::parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *rec)
+{
+   payload_data payload = {
+      (char *) data,
+      data + payload_len,
+      true,
+      0
+   };
+
+   std::string ecliptic_curves;
+   std::string ec_point_formats;
+   std::stringstream ja3;
+
+   tls_rec *tls = (tls_rec *) payload.data;
+   if (payload.data + sizeof(tls_rec) > payload.end || !tls || tls->type != TLS_HANDSHAKE ||
+     tls->version.major != 3 || tls->version.minor > 3) {
+      return false;
+   }
+   payload.data += sizeof(tls_rec);
+
+   if (!parse_tls_nonext_hdr(payload, &ja3)) {
+      return false;
+   }
+
+   while (payload.data + sizeof(tls_ext) <= payload.end) {
+      tls_ext *ext    = (tls_ext *) payload.data;
+      uint16_t length = ntohs(ext->length);
+      uint16_t type   = ntohs(ext->type);
+
+      payload.data += sizeof(tls_ext);
+      if (type == TLS_EXT_SERVER_NAME) {
+         get_tls_server_name(payload, rec->sni, sizeof(rec->sni));
+         parsed_sni += payload.sni_parsed;
+      } else if (type == TLS_EXT_ECLIPTIC_CURVES) {
+         ecliptic_curves = get_ja3_ecpliptic_curves(payload);
+      } else if (type == TLS_EXT_EC_POINT_FORMATS) {
+         ec_point_formats = get_ja3_ec_point_formats(payload);
+      }
+
+      if (!payload.valid) {
+         return false;
+      }
+      payload.data += length;
+      if (!is_grease_value(type)) {
+         ja3 << type;
+
+         if (payload.data + sizeof(tls_ext) <= payload.end) {
+            ja3 << '-';
+         }
+      }
+   }
+
+   ja3 << ',' << ecliptic_curves << ',' << ec_point_formats;
+   md5_get_bin(ja3.str(), rec->ja3_hash_bin);
+
+   DEBUG_CODE(for(int i = 0; i < 16; i++){
+       DEBUG_MSG("%02x", rec->ja3_hash_bin[i]);
+   })
+   DEBUG_MSG("\n");
+   DEBUG_MSG("%s\n", ja3.str().c_str());
+
+   return payload.sni_parsed != 0 || !ja3.str().empty();
+} // TLSPlugin::parse_sni
+
+void get_tls_server_name(payload_data &data, char *out, size_t bufsize)
 {
    uint16_t list_len    = ntohs(*(uint16_t *) data.data);
    uint16_t offset      = sizeof(list_len);
@@ -277,18 +298,15 @@ void TLSPlugin::get_tls_server_name(payload_data &data, RecordExtTLS *rec)
       if (data.data + offset + sni_len > list_end) {
          break;
       }
-      if (rec->sni[0] != 0) {
-         RecordExtTLS *tmp_rec = new RecordExtTLS();
-         rec->m_next = tmp_rec;
-         rec         = tmp_rec;
+      if (out[0] != 0) {
+         break;
       }
-      if (sni_len + (size_t) 1 > sizeof(rec->sni)) {
-         sni_len = sizeof(rec->sni) - 1;
+      if (sni_len + (size_t) 1 > bufsize) {
+         sni_len = bufsize - 1;
       }
-      memcpy(rec->sni, data.data + offset, sni_len);
-      rec->sni[sni_len] = 0;
+      memcpy(out, data.data + offset, sni_len);
+      out[sni_len] = 0;
       data.sni_parsed++;
-      parsed_sni++;
       offset += ntohs(sni->length);
    }
 }

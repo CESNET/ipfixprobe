@@ -16,7 +16,8 @@ TESTS=test_http.sh \
 	test_basicplus.sh \
 	test_phists.sh \
 	test_bstats.sh \
-	test_wg.sh
+	test_wg.sh \
+	test_quic.sh
 
 EXTRA_DIST=test.sh \
 	test_http.sh \
@@ -39,6 +40,7 @@ EXTRA_DIST=test.sh \
 	test_bstats.sh \
 	test_phists.sh \
 	test_wg.sh \
+	test_quic.sh \
 	reference/basic \
 	reference/basicplus \
 	reference/pstats \
@@ -57,7 +59,8 @@ EXTRA_DIST=test.sh \
 	reference/netbios \
 	reference/bstats \
 	reference/phists \
-	reference/wg
+	reference/wg \
+	reference/quic
 
 clean-local:
 	rm -rf output

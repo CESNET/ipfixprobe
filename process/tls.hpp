@@ -179,6 +179,9 @@ struct __attribute__ ((packed)) tls_ext_sni {
    /* Hostname bytes... */
 };
 
+void get_tls_server_name(payload_data &data, char *out, size_t bufsize);
+bool parse_tls_nonext_hdr(payload_data &payload, std::stringstream *ja3);
+
 /**
  * \brief Flow cache plugin for parsing HTTPS packets.
  */
@@ -201,11 +204,8 @@ public:
 private:
    void add_tls_record(Flow &rec, const Packet &pkt);
    bool parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *rec);
-   void get_ja3_cipher_suites(std::stringstream &ja3, payload_data &data);
    std::string get_ja3_ecpliptic_curves(payload_data &data);
    std::string get_ja3_ec_point_formats(payload_data &data);
-   void get_tls_server_name(payload_data &data, RecordExtTLS *rec);
-   bool is_grease_value(uint16_t val);
 
    RecordExtTLS *ext_ptr;
    uint32_t parsed_sni;
