@@ -59,10 +59,11 @@
 
 namespace ipxp {
 
-#define TLS_UNIREC_TEMPLATE "TLS_SNI,TLS_JA3"
+#define TLS_UNIREC_TEMPLATE "TLS_SNI,TLS_JA3,TLS_ALPN"
 
 UR_FIELDS(
    string TLS_SNI,
+   string TLS_ALPN,
    bytes TLS_JA3
 )
 
@@ -72,6 +73,7 @@ UR_FIELDS(
 struct RecordExtTLS : public RecordExt {
    static int REGISTERED_ID;
 
+   char alpn[255];
    char sni[255];
    char ja3_hash[33];
    uint8_t ja3_hash_bin[16];
@@ -82,6 +84,7 @@ struct RecordExtTLS : public RecordExt {
     */
    RecordExtTLS() : RecordExt(REGISTERED_ID)
    {
+      alpn[0] = 0;
       sni[0] = 0;
       ja3_hash[0] = 0;
    }
@@ -89,6 +92,7 @@ struct RecordExtTLS : public RecordExt {
    virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_set_string(tmplt, record, F_TLS_SNI, sni);
+      ur_set_string(tmplt, record, F_TLS_ALPN, alpn);
       ur_set_var(tmplt, record, F_TLS_JA3, ja3_hash_bin, 16);
    }
 
@@ -100,16 +104,21 @@ struct RecordExtTLS : public RecordExt {
 
    virtual int fill_ipfix(uint8_t *buffer, int size)
    {
-      int len = strlen(sni);
+      int sni_len = strlen(sni);
+      int alpn_len = strlen(alpn);
       int pos = 0;
 
-      if (len + 16 + 2 > size) {
+      if (sni_len + alpn_len + 16 + 3 > size) {
          return -1;
       }
 
-      buffer[pos++] = len;
-      memcpy(buffer + pos, sni, len);
-      pos += len;
+      buffer[pos++] = sni_len;
+      memcpy(buffer + pos, sni, sni_len);
+      pos += sni_len;
+
+      buffer[pos++] = alpn_len;
+      memcpy(buffer + pos, alpn, alpn_len);
+      pos += alpn_len;
 
       buffer[pos++] = 16;
       memcpy(buffer + pos, ja3_hash_bin, 16);
@@ -154,6 +163,7 @@ struct __attribute__ ((packed)) tls_rec {
 };
 
 #define TLS_HANDSHAKE_CLIENT_HELLO 1
+#define TLS_HANDSHAKE_SERVER_HELLO 2
 struct __attribute__ ((packed)) tls_handshake {
    uint8_t type;
    uint8_t length1; // length field is 3 bytes long...
@@ -166,6 +176,7 @@ struct __attribute__ ((packed)) tls_handshake {
 #define TLS_EXT_SERVER_NAME 0
 #define TLS_EXT_ECLIPTIC_CURVES 10 // AKA supported_groups
 #define TLS_EXT_EC_POINT_FORMATS 11
+#define TLS_EXT_ALPN 16
 
 struct __attribute__ ((packed)) tls_ext {
    uint16_t type;
@@ -206,6 +217,7 @@ private:
    bool parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *rec);
    std::string get_ja3_ecpliptic_curves(payload_data &data);
    std::string get_ja3_ec_point_formats(payload_data &data);
+   void get_alpn(payload_data &data, RecordExtTLS *rec);
 
    RecordExtTLS *ext_ptr;
    uint32_t parsed_sni;

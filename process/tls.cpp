@@ -113,9 +113,13 @@ int TLSPlugin::post_create(Flow &rec, const Packet &pkt)
 
 int TLSPlugin::pre_update(Flow &rec, Packet &pkt)
 {
-   RecordExt *ext = rec.get_extension(RecordExtTLS::REGISTERED_ID);
+   RecordExtTLS *ext = static_cast<RecordExtTLS *>(rec.get_extension(RecordExtTLS::REGISTERED_ID));
 
    if (ext != nullptr) {
+      if (ext->alpn[0] == 0) {
+         // Add ALPN from server packet
+         parse_tls((const char *) pkt.payload, pkt.payload_len, ext);
+      }
       return 0;
    }
    add_tls_record(rec, pkt);
@@ -162,7 +166,9 @@ void get_ja3_cipher_suites(std::stringstream &ja3, payload_data &data)
 bool parse_tls_nonext_hdr(payload_data &payload, std::stringstream *ja3)
 {
    tls_handshake *tls_hs = (tls_handshake *) payload.data;
-   if (payload.data + sizeof(tls_handshake) > payload.end || tls_hs->type != TLS_HANDSHAKE_CLIENT_HELLO) {
+   const uint8_t hs_type = tls_hs->type;
+   if (payload.data + sizeof(tls_handshake) > payload.end ||
+      !(hs_type == TLS_HANDSHAKE_CLIENT_HELLO || hs_type == TLS_HANDSHAKE_SERVER_HELLO)) {
       return false;
    }
 
@@ -185,28 +191,32 @@ bool parse_tls_nonext_hdr(payload_data &payload, std::stringstream *ja3)
    }
    payload.data += tmp + 1; // Skip session id
 
-   if (ja3) {
-      get_ja3_cipher_suites(*ja3, payload);
-      if (!payload.valid) {
-         return false;
+   if (hs_type == TLS_HANDSHAKE_CLIENT_HELLO) {
+      if (ja3) {
+         get_ja3_cipher_suites(*ja3, payload);
+         if (!payload.valid) {
+            return false;
+         }
+      } else {
+         if (payload.data + 2 > payload.end) {
+            return false;
+         }
+         payload.data += ntohs(*(uint16_t *) payload.data) + 2; // Skip cipher suites
       }
-   } else {
-      // Skip cipher suites
-      if (payload.data + 2 > payload.end) {
-         return false;
-      }
-      payload.data += ntohs(*(uint16_t *) payload.data) + 2;
-   }
 
-   tmp = *(uint8_t *) payload.data;
-   if (payload.data + tmp + 2 > payload.end) {
-      return false;
+      tmp = *(uint8_t *) payload.data;
+      if (payload.data + tmp + 3 > payload.end) {
+         return false;
+      }
+      payload.data += tmp + 1; // Skip compression methods
+   } else {
+      /* TLS_HANDSHAKE_SERVER_HELLO */
+      payload.data += 2; // Skip cipher suite
+      payload.data += 1; // Skip compression method
    }
-   payload.data += tmp + 1; // Skip compression methods
 
    const char *ext_end = payload.data + ntohs(*(uint16_t *) payload.data) + 2;
    payload.data += 2;
-
    if (ext_end > payload.end) {
       return false;
    }
@@ -235,6 +245,9 @@ bool TLSPlugin::parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *
    }
    payload.data += sizeof(tls_rec);
 
+   tls_handshake *tls_hs = (tls_handshake *) payload.data;
+   const uint8_t hs_type = tls_hs->type;
+
    if (!parse_tls_nonext_hdr(payload, &ja3)) {
       return false;
    }
@@ -245,13 +258,20 @@ bool TLSPlugin::parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *
       uint16_t type   = ntohs(ext->type);
 
       payload.data += sizeof(tls_ext);
-      if (type == TLS_EXT_SERVER_NAME) {
-         get_tls_server_name(payload, rec->sni, sizeof(rec->sni));
-         parsed_sni += payload.sni_parsed;
-      } else if (type == TLS_EXT_ECLIPTIC_CURVES) {
-         ecliptic_curves = get_ja3_ecpliptic_curves(payload);
-      } else if (type == TLS_EXT_EC_POINT_FORMATS) {
-         ec_point_formats = get_ja3_ec_point_formats(payload);
+      if (hs_type == TLS_HANDSHAKE_CLIENT_HELLO) {
+         if (type == TLS_EXT_SERVER_NAME) {
+            get_tls_server_name(payload, rec->sni, sizeof(rec->sni));
+            parsed_sni += payload.sni_parsed;
+         } else if (type == TLS_EXT_ECLIPTIC_CURVES) {
+            ecliptic_curves = get_ja3_ecpliptic_curves(payload);
+         } else if (type == TLS_EXT_EC_POINT_FORMATS) {
+            ec_point_formats = get_ja3_ec_point_formats(payload);
+         }
+      } else { /* TLS_HANDSHAKE_SERVER_HELLO */
+         if (type == TLS_EXT_ALPN) {
+            get_alpn(payload, rec);
+            return true;
+         }
       }
 
       if (!payload.valid) {
@@ -265,6 +285,9 @@ bool TLSPlugin::parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *
             ja3 << '-';
          }
       }
+   }
+   if (hs_type == TLS_HANDSHAKE_SERVER_HELLO) {
+      return false;
    }
 
    ja3 << ',' << ecliptic_curves << ',' << ec_point_formats;
@@ -308,6 +331,42 @@ void get_tls_server_name(payload_data &data, char *out, size_t bufsize)
       out[sni_len] = 0;
       data.sni_parsed++;
       offset += ntohs(sni->length);
+   }
+}
+
+void TLSPlugin::get_alpn(payload_data &data, RecordExtTLS *rec)
+{
+   uint16_t list_len    = ntohs(*(uint16_t *) data.data);
+   uint16_t offset      = sizeof(list_len);
+   const char *list_end = data.data + list_len + offset;
+
+   if (list_end > data.end) {
+      data.valid = false;
+      return;
+   }
+   if (rec->alpn[0] != 0) {
+      return;
+   }
+
+   uint16_t alpn_written = 0;
+   while (data.data + sizeof(uint8_t) + offset < list_end) {
+      uint8_t alpn_len = *(uint8_t *) (data.data + offset);
+      const char *alpn_str = data.data + offset + sizeof(uint8_t);
+
+      offset += sizeof(uint8_t) + alpn_len;
+      if (data.data + offset > list_end) {
+         break;
+      }
+      if (alpn_written + alpn_len + (size_t) 2 >= sizeof(rec->alpn)) {
+         break;
+      }
+
+      if (alpn_written != 0) {
+         rec->alpn[alpn_written++] = ';';
+      }
+      memcpy(rec->alpn + alpn_written, alpn_str, alpn_len);
+      alpn_written += alpn_len;
+      rec->alpn[alpn_written] = 0;
    }
 }
 
