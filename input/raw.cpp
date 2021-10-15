@@ -258,7 +258,7 @@ bool RawReader::get_block()
 {
    if ((m_pbd->hdr.bh1.block_status & TP_STATUS_USER) == 0) {
       // No data available at the moment
-      if (poll(&m_pfd, 1, -1) == -1) {
+      if (poll(&m_pfd, 1, 0) == -1) {
          throw PluginError(std::string("poll: ") + strerror(errno));
       }
       return false;
