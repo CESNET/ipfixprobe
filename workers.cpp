@@ -113,6 +113,15 @@ void input_worker(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint
 void storage_worker(StoragePlugin *cache, ipx_ring_t *queue, std::promise<StorageStats> *output, std::shared_future<void> *terminate)
 {
    StorageStats stats = {false, ""};
+   bool timeout = false;
+   struct timeval ts;
+   struct timespec begin;
+   struct timespec end;
+#ifdef __linux__
+   const clockid_t clk_id = CLOCK_MONOTONIC_COARSE;
+#else
+   const clockid_t clk_id = CLOCK_MONOTONIC;
+#endif
    while (1) {
       PacketBlock *block = static_cast<PacketBlock *>(ipx_ring_pop(queue));
       if (block) {
@@ -120,15 +129,27 @@ void storage_worker(StoragePlugin *cache, ipx_ring_t *queue, std::promise<Storag
             for (unsigned i = 0; i < block->cnt; i++) {
                cache->put_pkt(block->pkts[i]);
             }
+            ts = block->pkts[block->cnt - 1].ts;
          } catch (PluginError &e) {
             stats.error = true;
             stats.msg = e.what();
             break;
          }
+         timeout = false;
       } else if (terminate->wait_for(std::chrono::seconds(0)) == std::future_status::ready && !ipx_ring_cnt(queue)) {
          break;
       } else {
-         cache->export_expired(time(nullptr));
+         clock_gettime(clk_id, &end);
+         if (!timeout) {
+            timeout = true;
+            begin = end;
+         }
+         struct timespec diff = {end.tv_sec - begin.tv_sec, end.tv_nsec - begin.tv_nsec};
+         if (diff.tv_nsec < 0) {
+            diff.tv_nsec += 1000000000;
+            diff.tv_sec--;
+         }
+         cache->export_expired(ts.tv_sec + diff.tv_sec);
          usleep(1);
       }
    }
