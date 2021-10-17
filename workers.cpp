@@ -115,8 +115,8 @@ void storage_worker(StoragePlugin *cache, ipx_ring_t *queue, std::promise<Storag
    StorageStats stats = {false, ""};
    bool timeout = false;
    struct timeval ts = {0, 0};
-   struct timespec begin;
-   struct timespec end;
+   struct timespec begin = {0, 0};
+   struct timespec end = {0, 0};
 #ifdef __linux__
    const clockid_t clk_id = CLOCK_MONOTONIC_COARSE;
 #else
