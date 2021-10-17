@@ -72,6 +72,35 @@ AC_TYPE_UINT8_T
 
 AX_C_BIGENDIAN_CROSS
 
+
+### gtest
+AC_ARG_WITH([gtest],
+        AC_HELP_STRING([--with-gtest],[Compile ipfixprobe with gtest framework]),
+        [
+      if test "$withval" = "yes"; then
+         withgtest="yes"
+      else
+         withgtest="no"
+      fi
+        ], [withgtest="no"]
+)
+
+if test x${withgtest} = xyes; then
+   GTEST_HEADER="googletest/googletest/include/gtest/gtest.h"
+   AC_MSG_CHECKING(for googletest submodule)
+   AM_CONDITIONAL([HAVE_GOOGLETEST], [test -f $GTEST_HEADER])
+   AS_IF([test -f googletest/googletest/include/gtest/gtest.h],
+      [AC_DEFINE(HAVE_GOOGLETEST, 1, [Define to 1 if the googletest submodule is available]) AC_MSG_RESULT(yes)],
+      [AC_MSG_ERROR([
+   The googletest submodule is not present, so such tests are omitted. To prevent skipping use command:
+   git clone --recurse-submodules <this_repository> or
+   git clone https://github.com/google/googletest.git])]
+   )
+else
+AM_CONDITIONAL([HAVE_GOOGLETEST], [test])
+fi
+
+
 ### openssl
 AC_ARG_ENABLE([legacy-ssl],
        AC_HELP_STRING([--enable-legacy-ssl],[Compile ipfixprobe on centos7.]),
@@ -133,9 +162,6 @@ AC_ARG_WITH([ndp],
       fi
         ], [withndp="no"]
 )
-
-
-
 
 if test x${withndp} = xyes; then
         AC_CHECK_HEADER(nfb/nfb.h, AC_CHECK_LIB(nfb, nfb_open, [libnfb=yes],
@@ -289,12 +315,20 @@ AS_IF([test "x$with_systemdsystemunitdir" = "xno" -o "x$with_systemdsystemunitdi
 AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])
 AM_CONDITIONAL([HAVE_SYSTEMD], [test "x$with_systemdsystemunitdir" != "xno"])
 
+
+if [[ -z "$HAVE_GOOGLETEST_TRUE" ]]; then
+# 5ec7f0c4a113e2f18ac2c6cc7df51ad6afc24081
+AC_CONFIG_SUBDIRS([googletest])
+fi
+
 AC_CONFIG_FILES([Makefile
                  ipfixprobe.spec
                  ipfixprobe.bash
                  input/nfbCInterface/Makefile
                  init/Makefile
-                 tests/Makefile])
+                 tests/Makefile
+                 tests/functional/Makefile
+                 tests/unit/Makefile])
 
 #AC_CONFIG_SUBDIRS([nfbCInterface])
 

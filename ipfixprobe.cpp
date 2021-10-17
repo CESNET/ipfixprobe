@@ -511,4 +511,103 @@ void main_loop(ipxp_conf_t &conf)
    finish(conf);
 }
 
+int run(int argc, char *argv[])
+{
+   IpfixprobeOptParser parser;
+   ipxp_conf_t conf;
+   int status = EXIT_SUCCESS;
+
+   register_handlers();
+
+   try {
+      parser.parse(argc - 1, const_cast<const char **>(argv) + 1);
+   } catch (ParserError &e) {
+      error(e.what());
+      status = EXIT_FAILURE;
+      goto EXIT;
+   }
+
+   if (parser.m_help) {
+      if (parser.m_help_str.empty()) {
+         parser.usage(std::cout, 0, PACKAGE_NAME);
+      } else {
+         print_help(conf, parser.m_help_str);
+      }
+      goto EXIT;
+   }
+   if (parser.m_version) {
+      std::cout << PACKAGE_VERSION << std::endl;
+      goto EXIT;
+   }
+   if (parser.m_storage.size() > 1 || parser.m_output.size() > 1) {
+      error("only one storage and output plugin can be specified");
+      status = EXIT_FAILURE;
+      goto EXIT;
+   }
+   if (parser.m_input.size() == 0) {
+      error("specify at least one input plugin");
+      status = EXIT_FAILURE;
+      goto EXIT;
+   }
+
+   if (parser.m_daemon) {
+      if (daemon(1, 0) == -1) {
+         error("failed to run as a standalone process");
+         status = EXIT_FAILURE;
+         goto EXIT;
+      }
+   }
+   if (!parser.m_pid.empty()) {
+      std::ofstream pid_file(parser.m_pid, std::ofstream::out);
+      if (pid_file.fail()) {
+         error("failed to write pid file");
+         status = EXIT_FAILURE;
+         goto EXIT;
+      }
+      pid_file << getpid();
+      pid_file.close();
+   }
+
+   if (parser.m_iqueue < 1) {
+      error("input queue size must be at least 1 record");
+      status = EXIT_FAILURE;
+      goto EXIT;
+   }
+   if (parser.m_oqueue < 1) {
+      error("output queue size must be at least 1 record");
+      status = EXIT_FAILURE;
+      goto EXIT;
+   }
+
+   conf.worker_cnt = parser.m_input.size();
+   conf.iqueue_block = parser.m_iqueue_block;
+   conf.iqueue_size = parser.m_iqueue;
+   conf.oqueue_size = parser.m_oqueue;
+   conf.fps = parser.m_fps;
+   conf.pkt_bufsize = parser.m_pkt_bufsize;
+   conf.max_pkts = parser.m_max_pkts;
+
+   try {
+      init_packets(conf);
+      if (process_plugin_args(conf, parser)) {
+         goto EXIT;
+      }
+      main_loop(conf);
+   } catch (std::bad_alloc &e) {
+      error("not enough memory");
+      status = EXIT_FAILURE;
+      goto EXIT;
+   } catch (IPXPError &e) {
+      error(e.what());
+      status = EXIT_FAILURE;
+      goto EXIT;
+   }
+
+EXIT:
+   if (!parser.m_pid.empty()) {
+      unlink(parser.m_pid.c_str());
+   }
+   return status;
+}
+
 }

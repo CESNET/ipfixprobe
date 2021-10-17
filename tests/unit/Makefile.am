@@ -1,0 +1,43 @@
+if HAVE_GOOGLETEST
+cppflags=-I$(top_srcdir)/include/ -I$(top_srcdir)/googletest/googletest/include
+ldflags=-lipfixprobe -L$(top_srcdir)/.libs -lgtest -L$(top_srcdir)/googletest/googletest/lib
+else
+cppflags=
+ldflags=
+endif
+
+check_PROGRAMS=utils byte_utils options flowifc
+
+if HAVE_GOOGLETEST
+utils_SOURCES=utils.cpp
+else
+utils_SOURCES=skip.cpp
+endif
+utils_CPPFLAGS=$(cppflags)
+utils_LDFLAGS=$(ldflags)
+
+if HAVE_GOOGLETEST
+byte_utils_SOURCES=byte-utils.cpp
+else
+byte_utils_SOURCES=skip.cpp
+endif
+byte_utils_CPPFLAGS=$(cppflags)
+byte_utils_LDFLAGS=$(ldflags)
+
+if HAVE_GOOGLETEST
+options_SOURCES=options.cpp
+else
+options_SOURCES=skip.cpp
+endif
+options_CPPFLAGS=$(cppflags)
+options_LDFLAGS=$(ldflags)
+
+if HAVE_GOOGLETEST
+flowifc_SOURCES=flowifc.cpp
+else
+flowifc_SOURCES=skip.cpp
+endif
+flowifc_CPPFLAGS=$(cppflags)
+flowifc_LDFLAGS=$(ldflags) -ldl
+
+TESTS=$(check_PROGRAMS)

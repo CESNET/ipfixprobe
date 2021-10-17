@@ -2,6 +2,6 @@
 
 test -z "$srcdir" && export srcdir=.
 
-. $srcdir/test.sh
+. $srcdir/common.sh
 
 run_plugin_test tls "$pcap_dir/tls.pcap"

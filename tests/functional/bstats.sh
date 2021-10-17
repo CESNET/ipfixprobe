@@ -2,7 +2,7 @@
 
 test -z "$srcdir" && export srcdir=.
 
-. $srcdir/test.sh
+. $srcdir/common.sh
 
 run_plugin_test bstats "$pcap_dir/bstats.pcap"
 

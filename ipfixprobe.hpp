@@ -78,6 +78,7 @@ void print_help(ipxp_conf_t &conf, const std::string &arg);
 void init_packets(ipxp_conf_t &conf);
 bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser);
 void main_loop(ipxp_conf_t &conf);
+int run(int argc, char *argv[]);
 
 class IpfixprobeOptParser : public OptionsParser {
 public:

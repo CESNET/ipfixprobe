@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: recursive
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -22,7 +24,7 @@ jobs:
     - name: autoreconf
       run: autoreconf -i
     - name: configure
-      run: ./configure --with-raw --with-pcap --with-nemea
+      run: ./configure --with-raw --with-pcap --with-nemea --with-gtest
     - name: make
       run: make
     - name: make check
@@ -30,7 +32,7 @@ jobs:
     - name: make distcheck
       run: make distcheck
     - name: configure with debug
-      run: ./configure --with-raw --with-pcap --with-nemea --enable-debug CXXFLAGS=-coverage CFLAGS=-coverage LDFLAGS=-lgcov
+      run: ./configure --with-raw --with-pcap --with-nemea --with-gtest --enable-debug CXXFLAGS=-coverage CFLAGS=-coverage LDFLAGS=-lgcov
     - name: rebuild and check
       run: make clean; make check
     - uses: codecov/codecov-action@v1

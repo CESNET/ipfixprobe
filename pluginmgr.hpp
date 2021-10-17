@@ -61,10 +61,10 @@ public:
    explicit PluginManagerError(const char *msg) : std::runtime_error(msg) {}
 };
 
+// TODO: should be singleton
 class PluginManager
 {
 public:
-
    PluginManager();
    ~PluginManager();
    void register_plugin(const std::string &name, PluginGetter g);

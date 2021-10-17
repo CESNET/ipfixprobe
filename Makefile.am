@@ -142,15 +142,15 @@ ipfixprobe_src=\
 		workers.cpp \
 		workers.hpp \
 		ipfixprobe.hpp \
-		ipfixprobe.cpp \
-		main.cpp
+		ipfixprobe.cpp
+
 if WITH_LIBUNWIND
 ipfixprobe_src+=\
 		stacktrace.cpp \
 		stacktrace.hpp
 endif
 
-ipfixprobe_SOURCES=$(ipfixprobe_src)
+ipfixprobe_SOURCES=$(ipfixprobe_src) main.cpp
 
 pkgdocdir=${docdir}/ipfixprobe
 pkgdoc_DATA=README.md
@@ -175,6 +175,26 @@ EXTRA_DIST=README.md \
 
 bashcompl_DATA=ipfixprobe.bash
 
+if HAVE_GOOGLETEST
+check_LTLIBRARIES=libipfixprobe.la
+libipfixprobe_la_SOURCES=$(ipfixprobe_src)
+libipfixprobe_la_LDFLAGS=$(ipfixprobe_LDFLAGS)
+libipfixprobe_la_CFLAGS=$(ipfixprobe_CFLAGS)
+libipfixprobe_la_CXXFLAGS=$(ipfixprobe_CXXFLAGS)
+
+check-local:
+	@if test -e googletest/googletest/Makefile; then \
+		( cd googletest/googletest && $(MAKE) $(AM_MAKEFLAGS) lib/libgtest.la lib/libgtest_main.la ); \
+		( cd googletest/googlemock && $(MAKE) $(AM_MAKEFLAGS) lib/libgmock.la lib/libgmock_main.la ); \
+	else \
+		echo "missing googletest submodule, run `git submodule init && git submodule update` and reconfigure"; \
+	fi;
+
+clean-local:
+	@if test -e googletest/googletest/Makefile; then \
+	  ( cd googletest/googletest && $(MAKE) $(AM_MAKEFLAGS) clean; ) \
+	fi
+endif
 
 RPMDIR = RPMBUILD
 

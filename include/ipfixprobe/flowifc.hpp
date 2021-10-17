@@ -132,15 +132,11 @@ struct RecordExt {
     */
    void add_extension(RecordExt *ext)
    {
-      if (m_next == nullptr) {
-         m_next = ext;
-      } else {
-         RecordExt *tmp = m_next;
-         while (tmp->m_next != nullptr) {
-            tmp = tmp->m_next;
-         }
-         tmp->m_next = ext;
+      RecordExt **tmp = &m_next;
+      while (*tmp) {
+         tmp = &(*tmp)->m_next;
       }
+      *tmp = ext;
    }
 
    /**
@@ -179,14 +175,14 @@ struct Record {
     * \param [in] id Type of extension.
     * \return Pointer to the requested extension or nullptr if extension is not present.
     */
-   RecordExt *get_extension(int id)
+   RecordExt *get_extension(int id) const
    {
-      RecordExt *ext_ptr = m_exts;
-      while (ext_ptr != nullptr) {
-         if (ext_ptr->m_ext_id == id) {
-            return ext_ptr;
+      RecordExt *ext = m_exts;
+      while (ext != nullptr) {
+         if (ext->m_ext_id == id) {
+            return ext;
          }
-         ext_ptr = ext_ptr->m_next;
+         ext = ext->m_next;
       }
       return nullptr;
    }

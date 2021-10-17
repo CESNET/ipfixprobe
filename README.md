@@ -9,6 +9,7 @@ This application creates biflows from packet input and exports them to output in
 - netcope-common [COMBO cards](https://www.liberouter.org/technologies/cards/) when compiling with ndp plugin (`--with-ndp` parameter)
 - libunwind-devel when compiling with stack unwind on crash feature (`--with-unwind` parameter)
 - [nemea](http://github.com/CESNET/Nemea-Framework) when compiling with unirec output plugin (`--with-nemea` parameter)
+- cloned submodule with googletest framework to enabled optional tests (`--with-gtest` parameter)
 
 ## Build & Installation
 
@@ -17,6 +18,8 @@ This application creates biflows from packet input and exports them to output in
 This project uses a standard process of:
 
 ```
+git clone --recurse-submodules https://github.com/CESNET/ipfixprobe
+cd ipfixprobe
 autoreconf -i
 ./configure
 make

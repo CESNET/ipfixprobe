@@ -5,16 +5,16 @@ export LANG=C
 
 test -z "$srcdir" && export srcdir=.
 
-ipfixprobe_bin=../ipfixprobe
-if [ -x ../../logger/logger ]; then
-   logger_bin=../../logger/logger
+ipfixprobe_bin=../../ipfixprobe
+if [ -x ../../../logger/logger ]; then
+   logger_bin=../../../logger/logger
 elif [ -x /usr/local/bin/logger ]; then
    logger_bin=/usr/local/bin/logger
 else
    logger_bin=/usr/bin/nemea/logger
 fi
 
-pcap_dir=$srcdir/../pcaps
+pcap_dir=$srcdir/../../pcaps
 ref_dir=$srcdir/reference
 output_dir=./output
 file_out="$$.data"

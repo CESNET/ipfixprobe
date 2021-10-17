@@ -29,7 +29,7 @@ public:
    void operator=(OptionsParser &p) = delete;
    void operator=(OptionsParser &&p) = delete;
    void parse(const char *args) const;
-   void parse(int argc, const char *argv[]) const;
+   void parse(int argc, const char **argv) const;
    void usage(std::ostream &os, int indentation = 0, std::string mod_name = "") const;
 
 protected:

@@ -60,8 +60,11 @@ void OptionsParser::parse(const char *args) const
    parse(token_ptrs.size(), token_ptrs.data());
 }
 
-void OptionsParser::parse(int argc, const char *argv[]) const
+void OptionsParser::parse(int argc, const char **argv) const
 {
+   if (argc && !argv) {
+      throw std::runtime_error("");
+   }
    for (int i = 0; i < argc; i++) {
       Option *opt_spec = nullptr;
       std::string opt = argv[i];
