@@ -75,7 +75,7 @@ __attribute__((constructor)) static void register_this_plugin()
    register_plugin(&rec);
 }
 
-RawReader::RawReader() : m_sock(-1), m_rd(nullptr), m_buffer(nullptr), m_buffer_size(0),
+RawReader::RawReader() : m_sock(-1), m_fanout(0), m_rd(nullptr), m_pfd({0}), m_buffer(nullptr), m_buffer_size(0),
    m_block_idx(0), m_blocksize(0), m_framesize(0), m_blocknum(0), m_last_ppd(nullptr), m_pbd(nullptr), m_pkts_left(0)
 {
 }
@@ -365,15 +365,13 @@ InputPlugin::Result RawReader::get(PacketBlock &packets)
    if (ret == 0) {
       return Result::TIMEOUT;
    }
-   if (ret > 0) {
-      m_processed += ret;
-      m_parsed += packets.cnt;
-      return packets.cnt ? Result::PARSED : Result::NOT_PARSED;
-   }
    if (ret < 0) {
       throw PluginError("error during reading from socket");
    }
-   return Result::NOT_PARSED;
+
+   m_processed += ret;
+   m_parsed += packets.cnt;
+   return packets.cnt ? Result::PARSED : Result::NOT_PARSED;
  }
 
 }

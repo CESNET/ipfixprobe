@@ -109,10 +109,10 @@ TEST(TestParser1, argstrError) {
 
 TEST_F(TestParser2, invalidOptions) {
    auto func = [this](const char *arg){return true;};
-   EXPECT_THROW(register_option("", "", "", "", func, OptionFlags::NoArgument), ParserError);
-   EXPECT_THROW(register_option("-s", "", "", "desc", func, OptionFlags::NoArgument), ParserError);
-   EXPECT_THROW(register_option("", "--long", "", "desc", func, OptionFlags::NoArgument), ParserError);
-   EXPECT_THROW(register_option("-d", "--desc", "", "", func, OptionFlags::NoArgument), ParserError);
+   EXPECT_THROW(register_option("", "", "", "", func, OptionFlags::NoArgument), std::runtime_error);
+   EXPECT_THROW(register_option("-s", "", "", "desc", func, OptionFlags::NoArgument), std::runtime_error);
+   EXPECT_THROW(register_option("", "--long", "", "desc", func, OptionFlags::NoArgument), std::runtime_error);
+   EXPECT_THROW(register_option("-d", "--desc", "", "", func, OptionFlags::NoArgument), std::runtime_error);
 }
 
 TEST_F(TestParser2, dupOptions) {
@@ -120,8 +120,8 @@ TEST_F(TestParser2, dupOptions) {
    EXPECT_NO_THROW(register_option("a", "aaa", "", "a param", func, OptionFlags::NoArgument));
    EXPECT_NO_THROW(register_option("b", "bbb", "", "b param", func, OptionFlags::NoArgument));
    EXPECT_NO_THROW(register_option("c", "ccc", "", "c param", func, OptionFlags::NoArgument));
-   EXPECT_THROW(register_option("b", "ddd", "", "d param", func, OptionFlags::NoArgument), ParserError);
-   EXPECT_THROW(register_option("e", "ccc", "", "e param", func, OptionFlags::NoArgument), ParserError);
+   EXPECT_THROW(register_option("b", "ddd", "", "d param", func, OptionFlags::NoArgument), std::runtime_error);
+   EXPECT_THROW(register_option("e", "ccc", "", "e param", func, OptionFlags::NoArgument), std::runtime_error);
 }
 
 }

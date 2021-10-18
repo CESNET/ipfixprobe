@@ -131,31 +131,21 @@ const char *basic_tmplt_v6[] = {
    nullptr
 };
 
-IPFIXExporter::IPFIXExporter()
+IPFIXExporter::IPFIXExporter() :
+   extensions(nullptr), extension_cnt(0),
+   templates(nullptr), templatesDataSize(0),
+   basic_ifc_num(-1), verbose(false),
+   sequenceNum(0), exportedPackets(0),
+   fd(-1), addrinfo(nullptr),
+   host(""), port(4739), protocol(IPPROTO_TCP),
+   ip(AF_UNSPEC), flags(0),
+   reconnectTimeout(RECONNECT_TIMEOUT), lastReconnect(0), odid(0),
+   templateRefreshTime(TEMPLATE_REFRESH_TIME),
+   templateRefreshPackets(TEMPLATE_REFRESH_PACKETS),
+   dir_bit_field(0),
+   mtu(1500), packetDataBuffer(nullptr),
+   tmpltMaxBufferSize(mtu - IPFIX_HEADER_SIZE)
 {
-   extensions = nullptr;
-   templates = nullptr;
-   templatesDataSize = 0;
-   basic_ifc_num = -1;
-   verbose = false;
-
-   sequenceNum = 0;
-   exportedPackets = 0;
-   fd = -1;
-   addrinfo = nullptr;
-
-   host = "";
-   port = 4739;
-   protocol = IPPROTO_TCP;
-   ip = AF_UNSPEC; //AF_INET;
-   flags = 0;
-   reconnectTimeout = RECONNECT_TIMEOUT;
-   lastReconnect = 0;
-   odid = 0;
-   templateRefreshTime = TEMPLATE_REFRESH_TIME;
-   templateRefreshPackets = TEMPLATE_REFRESH_PACKETS;
-   dir_bit_field = 0;
-   packetDataBuffer = nullptr;
 }
 
 IPFIXExporter::~IPFIXExporter()

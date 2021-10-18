@@ -131,9 +131,15 @@ void print_help(ipxp_conf_t &conf, const std::string &arg)
    } else if (arg == "process") {
       print_plugins_help<ProcessPlugin>(*plugins);
    } else {
-      Plugin *p = conf.mgr.get(arg);
-      if (p == nullptr) {
-         std::cout << "No help available for " << arg << std::endl;
+      Plugin *p;
+      try {
+         p = conf.mgr.get(arg);
+         if (p == nullptr) {
+            std::cout << "No help available for " << arg << std::endl;
+            return;
+         }
+      } catch (PluginManagerError &e) {
+         error(std::string("when loading plugin: ") + e.what());
          return;
       }
       OptionsParser *parser = p->get_parser();

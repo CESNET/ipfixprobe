@@ -206,9 +206,10 @@ void UnirecExporter::create_tmplt(int ifc_idx, const char *tmplt_str)
    char *error = nullptr;
    m_tmplts[ifc_idx] = ur_create_output_template(ifc_idx, tmplt_str, &error);
    if (m_tmplts[ifc_idx] == nullptr) {
+      std::string tmp = error;
       free(error);
       free_unirec_resources();
-      throw PluginError(error);
+      throw PluginError(tmp);
    }
 }
 

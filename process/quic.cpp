@@ -94,16 +94,14 @@ QUICPlugin::QUICPlugin()
    payload_len = 0;
 
    dcid   = nullptr;
+   scid   = nullptr;
    pkn    = nullptr;
    sample = nullptr;
 
    decrypted_payload = nullptr;
-
-   parsed_initial = 0;
-
-   quic_ptr = nullptr;
-
    buffer_length = 0;
+   parsed_initial = 0;
+   quic_ptr = nullptr;
 }
 
 QUICPlugin::~QUICPlugin()
@@ -147,7 +145,7 @@ bool QUICPlugin::parse_tls(RecordExtQUIC *rec)
 
    tls_rec_lay *tls = (tls_rec_lay *) payload.data;
    payload.data += sizeof(tls_rec_lay);
-   if (payload_len - sizeof(tls_rec_lay) < 0 || tls->type != CRYPTO_FRAME) {
+   if (payload_len < sizeof(tls_rec_lay) || tls->type != CRYPTO_FRAME) {
       DEBUG_MSG("Frame inside Initial packet is not of type CRYPTO\n");
       return false;
    }
@@ -324,7 +322,7 @@ bool QUICPlugin::quic_check_version(uint32_t version, uint8_t max_version)
    return draft_version && draft_version <= max_version;
 }
 
-bool QUICPlugin::quic_create_initial_secrets(const char *side)
+bool QUICPlugin::quic_create_initial_secrets(CommSide side)
 {
    uint32_t version = quic_h1->version;
 
@@ -389,14 +387,16 @@ bool QUICPlugin::quic_create_initial_secrets(const char *side)
    uint8_t *cid    = nullptr;
    uint8_t cid_len = 0;
 
-   if (!strcmp(side, "client in")) {
+   if (side == CommSide::CLIENT_IN) {
       expand_label_buffer = client_In_Buffer;
       cid     = dcid;
       cid_len = quic_h1->dcid_len;
-   } else if (!strcmp(side, "server in")) {
+   } else if (side == CommSide::SERVER_IN) {
       expand_label_buffer = server_In_Buffer;
       cid     = scid;
       cid_len = quic_h2->scid_len;
+   } else {
+      throw PluginError("invalid communication side param");
    }
 
 
@@ -437,7 +437,9 @@ bool QUICPlugin::quic_create_initial_secrets(const char *side)
 
 
    // Expand-Label
-   expand_label("tls13 ", side, NULL, 0, HASH_SHA2_256_LENGTH, expand_label_buffer, expand_label_len);
+   char *labels[] = {"client in", "server in"};
+   static_assert(static_cast<size_t>(CommSide::CLIENT_IN) == 0);
+   expand_label("tls13 ", labels[static_cast<size_t>(side)], NULL, 0, HASH_SHA2_256_LENGTH, expand_label_buffer, expand_label_len);
 
    // HKDF-Expand
    if (!EVP_PKEY_derive_init(pctx)) {
@@ -782,7 +784,7 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
 
    // check port a.k.a direction, Server side does not contain ClientHello packets so neither SNI, but implemented for future expansion
    if (pkt.dst_port == 443) {
-      if (!quic_create_initial_secrets("client in")) {
+      if (!quic_create_initial_secrets(CommSide::CLIENT_IN)) {
          DEBUG_MSG("Error, creation of initial secrets failed (client side)\n");
          return false;
       }
@@ -801,7 +803,7 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
          return true;
       }
    } else if (pkt.src_port == 443) {
-      if (!quic_create_initial_secrets("server in")) {
+      if (!quic_create_initial_secrets(CommSide::SERVER_IN)) {
          DEBUG_MSG("Error, creation of initial secrets failed (client side)\n");
          return false;
       }

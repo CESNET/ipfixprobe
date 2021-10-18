@@ -85,7 +85,7 @@ void PluginManager::register_plugin(const std::string &name, PluginGetter g)
 {
    auto it = m_getters.find(name);
    if (it != m_getters.end()) {
-      throw PluginManagerError("plugin already registered");
+      throw PluginManagerError(name + " plugin already registered");
    }
    m_getters[name] = g;
 }
@@ -127,8 +127,14 @@ Plugin *PluginManager::load(const std::string &name)
       rec = rec->m_next;
    }
    if (rec) {
-      this->register_plugin(rec->m_name, rec->m_getter);
+      try {
+         // Register plugin name from .so
+         this->register_plugin(rec->m_name, rec->m_getter);
+      } catch (PluginManagerError &e) {
+         throw PluginManagerError("plugin " + rec->m_name + " from " + name + " library already registered");
+      }
       if (rec->m_name != name) {
+         // Register .so name
          this->register_plugin(name, rec->m_getter);
       }
       m_last_rec = rec;
@@ -158,7 +164,12 @@ void PluginManager::register_loaded_plugins()
       rec = ipxp_plugins;
    }
    while (rec) {
-      this->register_plugin(rec->m_name, rec->m_getter);
+      try {
+         this->register_plugin(rec->m_name, rec->m_getter);
+      } catch (PluginManagerError &e) {
+         std::cerr << "Error: loading of internal plugins failed: " << e.what() << std::endl;
+         exit(EXIT_FAILURE);
+      }
       m_last_rec = rec;
       rec = rec->m_next;
    }

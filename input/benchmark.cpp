@@ -61,7 +61,7 @@ __attribute__((constructor)) static void register_this_plugin()
 
 Benchmark::Benchmark()
    : m_generatePacketFunc(nullptr), m_flowMode(BenchmarkMode::FLOW_1), m_maxDuration(BENCHMARK_DEFAULT_DURATION), m_maxPktCnt(BENCHMARK_DEFAULT_PKT_CNT),
-     m_packetSizeFrom(BENCHMARK_DEFAULT_SIZE_FROM), m_packetSizeTo(BENCHMARK_DEFAULT_SIZE_TO), m_pktCnt(0)
+     m_packetSizeFrom(BENCHMARK_DEFAULT_SIZE_FROM), m_packetSizeTo(BENCHMARK_DEFAULT_SIZE_TO), m_firstTs({0}), m_currentTs({0}), m_pktCnt(0)
 {
 }
 

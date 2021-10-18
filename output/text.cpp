@@ -59,7 +59,7 @@ __attribute__((constructor)) static void register_this_plugin()
    register_plugin(&rec);
 }
 
-TextExporter::TextExporter() : m_out(&std::cout)
+TextExporter::TextExporter() : m_out(&std::cout), m_ignore_mac(false)
 {
 }
 

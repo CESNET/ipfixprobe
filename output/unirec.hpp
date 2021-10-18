@@ -127,29 +127,36 @@ private:
       size_t first = 0;
       size_t last = 0;
       size_t group = std::string::npos;
+      bool error = false;
       if (plugins.empty()) {
-         return ifc_map;
+         throw ParserError("invalid interface-plugin mapping");
       }
       while (last != std::string::npos) {
          char c = plugins[last];
          if (c == '(') {
             if (group != std::string::npos) {
-               throw ParserError("invalid interface-plugin mapping " + plugins);
+               error = true;
+               break;
             }
             group = last;
             last++;
          } else if (c == ')') {
             if (group == std::string::npos || first != group) {
-               throw ParserError("invalid interface-plugin mapping " + plugins);
+               error = true;
+               break;
             }
             ifc_map[ifc_map.size()] = parse_plugin_group(plugins.substr(group + 1, last - group - 1));
             group = std::string::npos;
             first = plugins.find_first_not_of(" ,\t\n\r", last + 1);
             last = first;
          } else if ((c == ',' && group == std::string::npos) || last == plugins.size()) {
-            std::string tmp = plugins.substr(first, (last == std::string::npos ? plugins.size() : last) - first);
+            std::string tmp = plugins.substr(first, last - first);
             ifc_map[ifc_map.size()] = parse_plugin_group(tmp);
             first = plugins.find_first_not_of(" ,\t\n\r", last);
+            if (c == ',' && first == std::string::npos) {
+               error = true;
+               break;
+            }
             if (last == plugins.size()) {
                break;
             }
@@ -158,7 +165,7 @@ private:
             last++;
          }
       }
-      if (group != std::string::npos) {
+      if (error || group != std::string::npos) {
          throw ParserError("invalid interface-plugin mapping " + plugins);
       }
 

@@ -207,12 +207,16 @@ public:
    void finish(bool print_stats);
 
 private:
-   bool     process_quic(RecordExtQUIC *, const Packet&);
+   enum class CommSide {
+      CLIENT_IN,
+      SERVER_IN
+   };
 
+   bool     process_quic(RecordExtQUIC *, const Packet&);
 
    bool     quic_check_initial(uint8_t);
    bool     quic_parse_data(const Packet&);
-   bool     quic_create_initial_secrets(const char *);
+   bool     quic_create_initial_secrets(CommSide side);
    bool     quic_check_version(uint32_t, uint8_t);
    uint8_t  quic_draft_version(uint32_t);
 

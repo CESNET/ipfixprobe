@@ -45,5 +45,10 @@
 
 int main(int argc, char *argv[])
 {
-   return ipxp::run(argc, argv);
+   try {
+      return ipxp::run(argc, argv);
+   } catch (std::runtime_error &e) {
+      std::cerr << "Error: " << e.what() << std::endl;
+   }
+   return EXIT_FAILURE;
 }
