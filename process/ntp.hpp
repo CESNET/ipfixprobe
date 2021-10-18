@@ -250,7 +250,7 @@ private:
 
    bool parse_ntp(const Packet &pkt, RecordExtNTP *ntp_data_ext);
    void add_ext_ntp(Flow &rec, const Packet &pkt);
-   std::string parse_timestamp(const Packet &pkt, int p1, int p4, int p5, int p8);
+   std::string parse_timestamp(const Packet &pkt, uint16_t p1, uint16_t p4, uint16_t p5, uint16_t p8);
 };
 
 }

@@ -146,7 +146,7 @@ void NTPPlugin::add_ext_ntp(Flow &rec, const Packet &pkt)
  */
 bool NTPPlugin::parse_ntp(const Packet &pkt, RecordExtNTP *ntp_data_ext)
 {
-   uint8_t i = 0;
+   size_t i = 0;
    int number = 0, ch_counter = 0;
    const unsigned char *payload = nullptr;
    unsigned char aux = '.';
@@ -383,9 +383,9 @@ bool NTPPlugin::parse_ntp(const Packet &pkt, RecordExtNTP *ntp_data_ext)
 *\param [in] P8: Index of Payload where the Fourth octect of the Fraction timestamp starts.
 *\return String of timestamp.
 */
-std::string NTPPlugin::parse_timestamp(const Packet &pkt, int p1, int p4, int p5, int p8)
+std::string NTPPlugin::parse_timestamp(const Packet &pkt, uint16_t p1, uint16_t p4, uint16_t p5, uint16_t p8)
 {
-   uint8_t i = 0, j = 0, k = 0;
+   size_t i = 0, k = 0;
    int number = 0;
    const unsigned char *payload = nullptr;
    std::string result = "", result2 = "";
@@ -430,12 +430,10 @@ std::string NTPPlugin::parse_timestamp(const Packet &pkt, int p1, int p4, int p5
    str = result;
    const char *c2 = str.c_str();
    time = strtoul(c2, 0, 16);
-   j = 0;
    tmp = time;
    for (i = 1; i <= 32; i++) {
       if ((highestbit & tmp) != 0) {
          fract = fract + curfract;
-         j++;
       }
       curfract = curfract / 2;
       tmp = tmp << 1;
@@ -443,11 +441,10 @@ std::string NTPPlugin::parse_timestamp(const Packet &pkt, int p1, int p4, int p5
    DEBUG_MSG("\t\ttimestamp fraction:\t\t\t%f\n", fract);
    convert2 << fract;
    result2 = convert2.str();
-   j = 1;
-   for(i = 0; j <= 1; i++) {
+   for (i = 0; ; i++) {
       if (result2[i] == '.') {
-         j = 5;
          for (k = i + 2; k <= result2.length(); k++) { result2[k - 2] = result2[k]; }
+         break;
       }
    }
    result2.resize(result2.length() - 1);
