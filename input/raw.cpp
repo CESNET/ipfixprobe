@@ -194,7 +194,8 @@ void RawReader::open_ifc(const std::string &ifc)
       throw PluginError(std::string("failed to enable RX_RING for AF_PACKET: ") + strerror(errno));
    }
 
-   uint8_t *buffer = static_cast<uint8_t *>(mmap(NULL, req.tp_block_size * req.tp_block_nr, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_LOCKED, sock, 0));
+   size_t mmap_bufsize = static_cast<size_t>(req.tp_block_size) * req.tp_block_nr;
+   uint8_t *buffer = static_cast<uint8_t *>(mmap(NULL, mmap_bufsize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_LOCKED, sock, 0));
    if (buffer == MAP_FAILED) {
       ::close(sock);
       throw PluginError(std::string("mmap() failed: ") + strerror(errno));
@@ -202,7 +203,7 @@ void RawReader::open_ifc(const std::string &ifc)
 
    struct iovec *rd = static_cast<struct iovec *>(malloc(req.tp_block_nr * sizeof(struct iovec)));
    if (rd == nullptr) {
-      munmap(buffer, req.tp_block_size * req.tp_block_nr);
+      munmap(buffer, mmap_bufsize);
       ::close(sock);
       throw PluginError("not enough memory");
    }
@@ -222,7 +223,7 @@ void RawReader::open_ifc(const std::string &ifc)
 
    int bind_res = bind(sock, (struct sockaddr *) &bind_addr, sizeof(bind_addr));
    if (bind_res == -1) {
-      munmap(buffer, req.tp_block_size * req.tp_block_nr);
+      munmap(buffer, mmap_bufsize);
       ::close(sock);
       free(rd);
       throw PluginError(std::string("bind failed: ") + strerror(errno));
@@ -233,7 +234,7 @@ void RawReader::open_ifc(const std::string &ifc)
       int fanout_arg = (m_fanout | (fanout_type << 16));
       int setsockopt_fanout = setsockopt(sock, SOL_PACKET, PACKET_FANOUT, &fanout_arg, sizeof(fanout_arg));
       if (setsockopt_fanout == -1) {
-         munmap(buffer, req.tp_block_size * req.tp_block_nr);
+         munmap(buffer, mmap_bufsize);
          ::close(sock);
          free(rd);
          throw PluginError(std::string("fanout failed: ") + strerror(errno));
@@ -247,7 +248,7 @@ void RawReader::open_ifc(const std::string &ifc)
 
    m_sock = sock;
    m_rd = rd;
-   m_buffer_size = req.tp_block_size * req.tp_block_nr;
+   m_buffer_size = mmap_bufsize;
    m_buffer = buffer;
    m_block_idx = 0;
 
