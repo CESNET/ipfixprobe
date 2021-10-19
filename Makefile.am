@@ -9,7 +9,7 @@ bin_PROGRAMS=ipfixprobe
 
 DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)"
 
-ipfixprobe_LDFLAGS=-lpthread -lcrypto -ldl
+ipfixprobe_LDFLAGS=-lpthread -ldl
 ipfixprobe_CFLAGS=-I$(srcdir)/include/
 ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/
 
@@ -108,9 +108,13 @@ ipfixprobe_process_src=\
 		process/stats.cpp \
 		process/stats.hpp \
 		process/md5.hpp \
-		process/md5.cpp \
+		process/md5.cpp
+
+if WITH_QUIC
+ipfixprobe_process_src+=\
 		process/quic.hpp \
 		process/quic.cpp
+endif
 
 ipfixprobe_headers_src=\
 		include/ipfixprobe/plugin.hpp \

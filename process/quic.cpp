@@ -438,7 +438,7 @@ bool QUICPlugin::quic_create_initial_secrets(CommSide side)
 
    // Expand-Label
    char *labels[] = {"client in", "server in"};
-   static_assert(static_cast<size_t>(CommSide::CLIENT_IN) == 0);
+   static_assert(static_cast<size_t>(CommSide::CLIENT_IN) == 0, "Dependency check failed");
    expand_label("tls13 ", labels[static_cast<size_t>(side)], NULL, 0, HASH_SHA2_256_LENGTH, expand_label_buffer, expand_label_len);
 
    // HKDF-Expand

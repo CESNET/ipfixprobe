@@ -106,22 +106,49 @@ AC_ARG_ENABLE([legacy-ssl],
        AC_HELP_STRING([--enable-legacy-ssl],[Compile ipfixprobe on centos7.]),
        [
        if test "$withval" = "yes"; then
-          LIBS="-l:libcrypto.so.1.1 $LIBS"
-          CXXFLAGS="-I/usr/include/openssl11/ $CXXFLAGS"
-          RPM_BUILDREQ+=" openssl11-devel"
-          RPM_REQUIRES+=" openssl11"
+          legacyssl="yes"
+       else
+          legacyssl="no"
        fi
          ], [
-          RPM_REQUIRES+=" openssl"
-          RPM_BUILDREQ+=" openssl-devel"
+          legacyssl="no"
          ]
 )
-
-AC_CHECK_HEADER(openssl/kdf.h, AC_CHECK_LIB(crypto, EVP_PKEY_CTX_new_id, [],
-  [AC_MSG_ERROR([libcrypto not found. Try installing at least version 1.1 of openssl-devel])]
-), AC_MSG_ERROR([openssl/kdf.h not found. Try installing at least version 1.1 of openssl-devel]))
-
 ### openssl
+
+
+AC_ARG_WITH([quic],
+        AC_HELP_STRING([--without-quic],[Compile ipfixprobe without quic plugin (which have dependency on openssl-devel)]),
+        [
+      if test "$withval" = "yes"; then
+         withquic="yes"
+      else
+         withquic="no"
+      fi
+        ], [withquic="no"]
+)
+
+if test x${withquic} = xyes; then
+   if test x"${legacyssl}" = xyes; then
+      LIBS="-l:libcrypto.so.1.1 $LIBS"
+      CXXFLAGS="-I/usr/include/openssl11/ $CXXFLAGS"
+      RPM_BUILDREQ+=" openssl11-devel"
+      RPM_REQUIRES+=" openssl11"
+   else
+      RPM_REQUIRES+=" openssl"
+      RPM_BUILDREQ+=" openssl-devel"
+   fi
+
+   AC_CHECK_HEADER(openssl/kdf.h, AC_CHECK_LIB(crypto, EVP_PKEY_CTX_new_id, [],
+    [AC_MSG_ERROR([libcrypto not found. Try installing at least version 1.1 of openssl-devel])]
+    ), AC_MSG_ERROR([openssl/kdf.h not found. Try installing at least version 1.1 of openssl-devel]))
+fi
+
+AM_CONDITIONAL(WITH_QUIC,  test x${withquic} = xyes)
+if [[ -z "$WITH_QUIC_TRUE" ]]; then
+   AC_DEFINE([WITH_QUIC], [1], [Define to 1 if compile with quic plugin])
+fi
+
 
 AM_CONDITIONAL(OS_CYGWIN, test x${host_os} = xcygwin)
 

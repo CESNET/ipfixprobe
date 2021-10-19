@@ -16,8 +16,12 @@ TESTS=basic.sh \
 	idpcontent.sh \
 	bstats.sh \
 	phists.sh \
-	wg.sh \
+	wg.sh
+
+if WITH_QUIC
+TESTS+=\
 	quic.sh
+endif
 
 EXTRA_DIST=common.sh \
 	basic.sh \
