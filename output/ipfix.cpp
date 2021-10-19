@@ -143,7 +143,7 @@ IPFIXExporter::IPFIXExporter() :
    templateRefreshTime(TEMPLATE_REFRESH_TIME),
    templateRefreshPackets(TEMPLATE_REFRESH_PACKETS),
    dir_bit_field(0),
-   mtu(1500), packetDataBuffer(nullptr),
+   mtu(DEFAULT_MTU), packetDataBuffer(nullptr),
    tmpltMaxBufferSize(mtu - IPFIX_HEADER_SIZE)
 {
 }

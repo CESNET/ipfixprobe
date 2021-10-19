@@ -53,7 +53,8 @@
 #define TEMPLATE_SET_ID 2
 #define FIRST_TEMPLATE_ID 258
 #define IPFIX_VERISON 10
-#define PACKET_DATA_SIZE 1458 /* ethernet 14, ip 20, udp 8 */
+#define DEFAULT_MTU 1458 /* 1500 - (ethernet 14 + ip 20 + udp 8) */
+#define PACKET_DATA_SIZE DEFAULT_MTU
 #define IPFIX_HEADER_SIZE 16
 #define IPFIX_SET_HEADER_SIZE 4
 #define TEMPLATE_BUFFER_SIZE (PACKET_DATA_SIZE - IPFIX_HEADER_SIZE)
@@ -77,7 +78,7 @@ public:
    bool m_verbose;
 
    IpfixOptParser() : OptionsParser("ipfix", "Output plugin for ipfix export"),
-      m_host("127.0.0.1"), m_port(4739), m_mtu(1500), m_udp(false), m_id(DEFAULT_EXPORTER_ID), m_dir(0), m_verbose(false)
+      m_host("127.0.0.1"), m_port(4739), m_mtu(DEFAULT_MTU), m_udp(false), m_id(DEFAULT_EXPORTER_ID), m_dir(0), m_verbose(false)
    {
       register_option("h", "host", "ADDR", "Remote collector address", [this](const char *arg){m_host = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("p", "port", "PORT", "Remote collector port",
