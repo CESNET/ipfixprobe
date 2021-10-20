@@ -901,10 +901,14 @@ int IPFIXExporter::connect_to_collector()
 
    err = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &addrinfo);
    if (err) {
+      const char *err_msg = nullptr;
       if (err == EAI_SYSTEM) {
-         fprintf(stderr, "Cannot get server info: %s\n", strerror(errno));
+         err_msg = strerror(errno);
       } else {
-         fprintf(stderr, "Cannot get server info: %s\n", gai_strerror(err));
+         err_msg = gai_strerror(err);
+      }
+      if (verbose) {
+         fprintf(stderr, "Cannot get server info: %s\n", err_msg);
       }
       return 1;
    }
