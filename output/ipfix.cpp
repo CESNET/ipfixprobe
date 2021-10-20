@@ -775,9 +775,13 @@ void IPFIXExporter::send_data()
 
    /* Send all new templates */
    while (create_data_packet(&pkt)) {
-      if (send_packet(&pkt) == 1) {
+      int ret = send_packet(&pkt);
+      if (ret == 1) {
          /* Collector reconnected, resend the packet */
-         send_packet(&pkt);
+         ret = send_packet(&pkt);
+      }
+      if (ret != 0) {
+         m_flows_dropped += pkt.flows;
       }
    }
 }
