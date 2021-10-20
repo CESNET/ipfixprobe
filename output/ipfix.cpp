@@ -188,7 +188,7 @@ void IPFIXExporter::init(const char *params)
    int ret = connect_to_collector();
    if (ret == 1) {
       throw PluginError("unable to connect to remote collector");
-   } else if (connect_to_collector() == 2) {
+   } else if (ret == 2) {
       lastReconnect = time(nullptr);
    }
 
@@ -229,6 +229,7 @@ void IPFIXExporter::close()
       flush();
       ::close(fd);
       freeaddrinfo(addrinfo);
+      addrinfo = nullptr;
       fd = -1;
    }
 
@@ -843,6 +844,7 @@ int IPFIXExporter::send_packet(ipfix_packet_t *packet)
             ::close(fd);
             fd = -1;
             freeaddrinfo(addrinfo);
+            addrinfo = nullptr;
 
             /* Set last connection try time so that we would reconnect immediatelly */
             lastReconnect = 1;
@@ -962,6 +964,7 @@ int IPFIXExporter::connect_to_collector()
    if (tmp == nullptr) {
       /* Free allocated resources */
       freeaddrinfo(addrinfo);
+      addrinfo = nullptr;
       return 2;
    }
 
