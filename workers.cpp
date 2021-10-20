@@ -243,6 +243,8 @@ void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<OutputStat
          pkts_from_begin = 0;
       }
    }
+
+   exp->flush();
    stats.dropped = exp->m_flows_dropped;
    output->set_value(stats);
 }

@@ -222,9 +222,11 @@ void IPFIXExporter::init(const char *params, Plugins &plugins)
 
 void IPFIXExporter::close()
 {
+   /* Try to flush any remaining data */
+   flush();
+
    /* Close the connection */
    if (fd != -1) {
-      flush();
       ::close(fd);
       freeaddrinfo(addrinfo);
       addrinfo = nullptr;
