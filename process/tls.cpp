@@ -275,6 +275,9 @@ bool TLSPlugin::parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *
       }
 
       if (!payload.valid) {
+         if (hs_type == TLS_HANDSHAKE_CLIENT_HELLO) {
+            rec->sni[0] = 0;
+         }
          return false;
       }
       payload.data += length;
