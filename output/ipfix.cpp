@@ -186,9 +186,7 @@ void IPFIXExporter::init(const char *params)
    }
 
    int ret = connect_to_collector();
-   if (ret == 1) {
-      throw PluginError("unable to connect to remote collector");
-   } else if (ret == 2) {
+   if (ret) {
       lastReconnect = time(nullptr);
    }
 
