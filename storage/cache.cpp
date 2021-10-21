@@ -287,14 +287,20 @@ void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int ret, bool source_fl
 
    if (ret == FLOW_FLUSH_WITH_REINSERT) {
       FlowRecord *flow = m_flow_table[flow_index];
-      m_flow_table[m_cache_size + m_qidx]->m_flow =  flow->m_flow;
-      m_flow_table[m_cache_size + m_qidx]->m_flow.end_reason = FLOW_END_FORCED;
-      ipx_ring_push(m_export_queue, &m_flow_table[m_cache_size + m_qidx]->m_flow);
-      m_qidx = (m_qidx + 1) % m_qsize;
-      flow->m_flow.m_exts = nullptr;
+      flow->m_flow.end_reason = FLOW_END_FORCED;
+      ipx_ring_push(m_export_queue, &flow->m_flow);
 
+      std::swap(m_flow_table[flow_index], m_flow_table[m_cache_size + m_qidx]);
+
+      flow = m_flow_table[flow_index];
+      flow->m_flow.remove_extensions();
+      *flow = *m_flow_table[m_cache_size + m_qidx];
+      m_qidx = (m_qidx + 1) % m_qsize;
+
+      flow->m_flow.m_exts = nullptr;
       flow->reuse(); // Clean counters, set time first to last
       flow->update(pkt, source_flow); // Set new counters from packet
+
       ret = plugins_post_create(flow->m_flow, pkt);
       if (ret & FLOW_FLUSH) {
          flush(pkt, flow_index, ret, source_flow);
