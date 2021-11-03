@@ -1,6 +1,9 @@
-//
-// Created by ivrana on 8/10/21.
-//
+/**
+ * \file flexprobe-data-processing.h
+ * \brief Data processing for Flexprobe -- HW accelerated network probe
+ * \author Roman Vrana <ivrana@fit.vutbr.cz>
+ * \date 2021
+ */
 
 #ifndef IPFIXPROBE_FLEXPROBE_DATA_PROCESSING_H
 #define IPFIXPROBE_FLEXPROBE_DATA_PROCESSING_H
@@ -24,6 +27,9 @@ struct FrameSignature : public RecordExt, public std::array<unsigned char, 18> {
 
    virtual int fill_ipfix(uint8_t *buffer, int size)
    {
+       if (sizeof(Flexprobe::FrameSignature) > size) {
+           return -1;
+       }
        std::copy(begin(), end(), buffer);
 
        return sizeof(Flexprobe::FrameSignature);
@@ -44,10 +50,10 @@ class FlexprobeDataProcessing : public ProcessPlugin
 public:
     FlexprobeDataProcessing() = default;
 
-    void init(const char *params) {} // TODO
-    void close() {} // TODO
+    void init(const char *params) {}
+    void close() {}
     RecordExt *get_ext() const { return new FrameSignature(); }
-    OptionsParser *get_parser() const { return new OptionsParser("flexprobe-data", "Parse flexprobe data"); }
+    OptionsParser *get_parser() const { return new OptionsParser("flexprobe-data", "Parse flexprobe data (Flexprobe HW only)"); }
     std::string get_name() const { return "flexprobe-data"; }
     FlexprobeDataProcessing *copy() override
     {

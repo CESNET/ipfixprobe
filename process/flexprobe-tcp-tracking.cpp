@@ -1,6 +1,9 @@
-//
-// Created by ivrana on 8/10/21.
-//
+/**
+ * \file flexprobe-tcp-tracking.cpp
+ * \brief TCP tracking for Flexprobe -- HW accelerated network probe
+ * \author Roman Vrana <ivrana@fit.vutbr.cz>
+ * \date 2021
+ */
 
 #include "flexprobe-tcp-tracking.h"
 #include "flexprobe-data.h"
@@ -55,6 +58,10 @@ namespace ipxp
             return 0;
         }
 
+        if (pkt.ip_proto != 0x6) { // track only TCP
+            return 0;
+        }
+
         auto data_view = reinterpret_cast<const Flexprobe::FlexprobeData *>(pkt.custom);
 
         if (!rec.get_extension(TcpTrackingData::REGISTERED_ID)) {
@@ -62,12 +69,12 @@ namespace ipxp
 
             auto direction = pkt.source_pkt ? 0 : 1;
 
-            td->expected_seq[direction] = advance_expected_seq_(ntohl(pkt.tcp_seq),
+            td->expected_seq[direction] = advance_expected_seq_(pkt.tcp_seq,
                                                                 data_view->payload_size,
                                                                 pkt.tcp_flags & 0x2,
                                                                 pkt.tcp_flags & 0x1);
             direction = direction == 0 ? 1 : 0;
-            td->expected_seq[direction] = ntohl(pkt.tcp_ack); // TODO: add to HW
+            td->expected_seq[direction] = pkt.tcp_ack; // TODO: add to HW
             rec.add_extension(td);
         }
 
@@ -80,10 +87,14 @@ namespace ipxp
             return 0;
         }
 
+        if (pkt.ip_proto != 0x6) { // track only TCP
+            return 0;
+        }
+
         auto data_view = reinterpret_cast<const Flexprobe::FlexprobeData *>(pkt.custom);
 
         auto tcp_data = dynamic_cast<TcpTrackingData *>(rec.get_extension(TcpTrackingData::REGISTERED_ID));
-        auto next_tcp = ntohl(pkt.tcp_seq);
+        auto next_tcp = pkt.tcp_seq;
         auto direction = pkt.source_pkt ? 0 : 1;
 
         //skip check if SYN and ACK present and dst -> src at 0)

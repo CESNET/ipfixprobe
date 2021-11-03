@@ -1,11 +1,17 @@
-//
-// Created by ivrana on 9/1/21.
-//
+/**
+ * \file flexprobe-data.h
+ * \brief Data structures for Flexprobe -- HW accelerated network probe
+ * \author Roman Vrana <ivrana@fit.vutbr.cz>
+ * \date 2021
+ */
+
 
 #ifndef IPFIXPROBE_FLEXPROBE_DATA_H
 #define IPFIXPROBE_FLEXPROBE_DATA_H
 
+#include <cstdint>
 #include <limits>
+#include <array>
 
 namespace ipxp
 {
@@ -37,13 +43,6 @@ namespace ipxp
             {
                 sec = std::numeric_limits<seconds_type>::max();
                 nsec = std::numeric_limits<nanoseconds_type>::max();
-            }
-
-            // flip endianness for export
-            void to_export()
-            {
-                sec = htonl(sec);
-                nsec = htonl(nsec);
             }
         };
 
@@ -94,6 +93,7 @@ namespace ipxp
             std::uint16_t packet_size;
             std::uint16_t payload_size;
             std::uint32_t tcp_sequence_no;
+            std::uint32_t tcp_acknowledge_no;
             EncryptionData encr_data;
             std::uint16_t dyn_item_count;
             std::uint16_t dyn_payload_length;
@@ -114,6 +114,7 @@ namespace ipxp
                        + sizeof(packet_size)
                        + sizeof(payload_size)
                        + sizeof(tcp_sequence_no)
+                       + sizeof(tcp_acknowledge_no)
                        + sizeof(encr_data)
                        + sizeof(dyn_item_count)
                        + sizeof(dyn_payload_length);

@@ -1,6 +1,9 @@
-//
-// Created by ivrana on 8/10/21.
-//
+/**
+ * \file flexprobe-tcp-tracking.h
+ * \brief TCP tracking for Flexprobe -- HW accelerated network probe
+ * \author Roman Vrana <ivrana@fit.vutbr.cz>
+ * \date 2021
+ */
 
 #ifndef IPFIXPROBE_FLEXPROBE_TCP_TRACKING_H
 #define IPFIXPROBE_FLEXPROBE_TCP_TRACKING_H
@@ -44,6 +47,9 @@ struct TcpTrackingData : public RecordExt {
 
     virtual int fill_ipfix(uint8_t *buffer, int size)
     {
+        if (sizeof(std::uint8_t) > size) {
+            return -1;
+        }
         *buffer = std::underlying_type<TcpResult>::type(result);
         return sizeof(std::uint8_t);
     }
@@ -70,7 +76,7 @@ public:
     void init(const char *params) {} // TODO
     void close() {} // TODO
     RecordExt *get_ext() const { return new TcpTrackingData(); }
-    OptionsParser *get_parser() const { return new OptionsParser("flexprobe-tcp", "Parse flexprobe data"); }
+    OptionsParser *get_parser() const { return new OptionsParser("flexprobe-tcp", "Track TCP Sequence numbers using flexprobe format (Flexprobe HW only)"); }
     std::string get_name() const { return "flexprobe-tcp"; }
     FlexprobeTcpTracking *copy() override
     {

@@ -1,6 +1,9 @@
-//
-// Created by ivrana on 8/10/21.
-//
+/**
+ * \file flexprobe-data-processing.cpp
+ * \brief Data processing for Flexprobe -- HW accelerated network probe
+ * \author Roman Vrana <ivrana@fit.vutbr.cz>
+ * \date 2021
+ */
 
 #include "flexprobe-data-processing.h"
 

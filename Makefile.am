@@ -46,6 +46,12 @@ ipfixprobe_input_src+=\
 		input/pcap.hpp
 endif
 
+if WITH_STEM
+ipfixprobe_input_src+=\
+		input/stem.cpp \
+		input/stem.hpp
+endif
+
 ipfixprobe_storage_src=\
 		storage/cache.cpp \
 		storage/cache.hpp \
@@ -66,6 +72,8 @@ ipfixprobe_output_src+=\
 			fields.c \
 			fields.h
 endif
+
+
 
 ipfixprobe_process_src=\
 		process/http.cpp \
@@ -126,6 +134,12 @@ ipfixprobe_process_src+=\
 		process/flexprobe-encryption-processing.h
 endif
 
+if WITH_DPDK
+ipfixprobe_input_src+=\
+        input/dpdk.cpp \
+        input/dpdk.hpp
+endif
+
 ipfixprobe_headers_src=\
 		include/ipfixprobe/plugin.hpp \
 		include/ipfixprobe/input.hpp \
@@ -150,8 +164,6 @@ ipfixprobe_src=\
 		$(ipfixprobe_headers_src) \
 		pluginmgr.cpp \
 		pluginmgr.hpp \
-		stacktrace.cpp \
-		stacktrace.hpp \
 		options.cpp \
 		utils.cpp \
 		ring.c \

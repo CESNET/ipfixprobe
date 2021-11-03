@@ -1,6 +1,9 @@
-//
-// Created by ivrana on 8/12/21.
-//
+/**
+ * \file flexprobe-encryption-processing.cpp
+ * \brief Traffic feature processing for encryption analysis for Flexprobe -- HW accelerated network probe
+ * \author Roman Vrana <ivrana@fit.vutbr.cz>
+ * \date 2021
+ */
 
 #include "flexprobe-encryption-processing.h"
 #include "flexprobe-data.h"
