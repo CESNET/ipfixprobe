@@ -409,7 +409,6 @@ AC_CONFIG_FILES([Makefile
                  ipfixprobe.spec
                  ipfixprobe.bash
                  input/nfbCInterface/Makefile
-                 input/Makefile
                  init/Makefile
                  tests/Makefile
                  tests/functional/Makefile
