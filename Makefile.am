@@ -137,7 +137,7 @@ endif
 if WITH_DPDK
 ipfixprobe_input_src+=\
         input/dpdk.cpp \
-        input/dpdk.hpp
+        input/dpdk.h
 endif
 
 ipfixprobe_headers_src=\
