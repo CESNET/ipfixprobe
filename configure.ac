@@ -205,7 +205,6 @@ if [[ -z "$WITH_NDP_TRUE" ]]; then
    RPM_BUILDREQ+=" netcope-common-devel"
 fi
 
-
 AC_ARG_WITH([pcap],
         AC_HELP_STRING([--with-pcap],[Compile ipfixprobe with pcap plugin for capturing using libpcap library]),
         [
@@ -268,7 +267,6 @@ else
    AM_CONDITIONAL(WITH_LIBUNWIND, false)
 fi
 
-
 AC_ARG_WITH([nemea],
         AC_HELP_STRING([--with-nemea],[Compile with NEMEA framework (nemea.liberouter.org).]),
         [
@@ -291,6 +289,65 @@ if [[ -z "$WITH_NEMEA_TRUE" ]]; then
 AC_DEFINE([WITH_NEMEA], [1], [Define to 1 if the NEMEA is available])
 RPM_REQUIRES+=" libtrap"
 RPM_BUILDREQ+=" libtrap-devel unirec"
+fi
+
+
+AC_ARG_WITH([dpdk],
+         AS_HELP_STRING([--with-dpdk],[Compile ipfixprobe with DPDK interface support.]),
+         [
+            if test "$withval" = "yes"; then
+               withdpdk="yes"
+            else
+               withdpdk="no"
+            fi
+         ],
+         [withdpdk="no"]
+)
+
+AM_CONDITIONAL(WITH_DPDK, test x${withdpdk} = xyes)
+if [[ -z "$WITH_DPDK_TRUE" ]]; then
+   AC_DEFINE([WITH_DPDK], [1], [Define 1 if DPDK interface will be used])
+   PKG_CHECK_MODULES([DPDK], [libdpdk])
+   CFLAGS="$DPDK_CFLAGS $CFLAGS"
+   CXXFLAGS="$DPDK_CFLAGS $CXXFLAGS"
+   LIBS="$DPDK_LIBS $LIBS"
+fi
+
+AC_ARG_WITH([flexprobe],
+         AC_HELP_STRING([--with-flexprobe], [Compile with support for flexprobe data processing plugins.]),
+         [
+            if test "$withval" = "yes"; then
+               withflexprobe="yes"
+            else
+               withflexprobe="no"
+            fi
+         ],
+         [withflexprobe="no"]
+)
+
+AM_CONDITIONAL(WITH_FLEXPROBE, test x${withflexprobe} = xyes)
+if [[ -z "$WITH_FLEXPROBE_TRUE" ]]; then
+   AC_DEFINE([WITH_FLEXPROBE], [1], [Define to 1 to use flexprobe plugins])
+fi
+
+AC_ARG_WITH([stem],
+         AC_HELP_STRING([--with-stem], [Compile with FlexProbe StEm testing interface]),
+         [
+            if test "$withval" = "yes"; then
+               withstem="yes"
+            else
+               withstem="no"
+            fi
+         ],
+         [withstem="no"]
+)
+
+AM_CONDITIONAL(WITH_STEM, test x${withstem} = xyes)
+if [[ -z "$WITH_STEM_TRUE" ]]; then
+   AC_DEFINE([WITH_STEM], [1], [Define to 1 to use flexprobe testing interface])
+   CFLAGS="-I/usr/local/include/Stem $CFLAGS"
+   CXXFLAGS="-I/usr/local/include/Stem -std=gnu++17 -g -Wno-write-strings $CXXFLAGS"
+   LIBS="-lstem $LIBS"
 fi
 
 
@@ -370,21 +427,24 @@ echo
 echo
 echo "Configuration Options Summary:"
 echo
-echo "  ASM.(32 bit only)..: $ASM"
-echo "  Static binary......: $static"
+echo "  ASM.(32 bit only)......: $ASM"
+echo "  Static binary..........: $static"
 echo
-echo "Documentation..........: ${build_doc}"
+echo "Documentation............: ${build_doc}"
 echo
-echo "UniRec processor.......: $UNIRECPROC"
-echo "trap2man.sh............: $TRAP2MAN"
-echo "Compilation............: make (or gmake)"
-echo "  CPPFLAGS.............: $CPPFLAGS"
-echo "  CFLAGS...............: $CFLAGS"
-echo "  CXXFLAGS.............: $CXXFLAGS"
-echo "  LDFLAGS..............: $LDFLAGS"
-echo "  LIBS.................: $LIBS"
+echo "UniRec processor.........: $UNIRECPROC"
+echo "trap2man.sh..............: $TRAP2MAN"
+echo "Compilation..............: make (or gmake)"
+echo "  CPPFLAGS...............: $CPPFLAGS"
+echo "  CFLAGS.................: $CFLAGS"
+echo "  CXXFLAGS...............: $CXXFLAGS"
+echo "  LDFLAGS................: $LDFLAGS"
+echo "  LIBS...................: $LIBS"
 echo "Enforced NEMEA (for copr): $NEMEARPM"
+echo "FlexProbe Data Interface.: $withflexprobe"
+echo "DPDK Interface...........: $withdpdk"
 echo
-echo "Installation...........: make install (as root if needed, with 'su' or 'sudo')"
-echo "  prefix...............: $prefix"
+echo "Installation.............: make install (as root if needed, with 'su' or 'sudo')"
+echo "  prefix.................: $prefix"
 echo
+

@@ -252,6 +252,10 @@ namespace ipxp {
 
 #define QUIC_SNI(F)                   F(8057,    890,   -1,  nullptr)
 
+#ifdef WITH_FLEXPROBE
+#define FX_FRAME_SIGNATURE(F)         F(5715,   1010,  18,   NULL)
+#define FX_TCP_TRACKING(F)            F(5715,   1020,   1,   NULL)
+#endif
 
 /**
  * IPFIX Templates - list of elements
@@ -463,6 +467,15 @@ namespace ipxp {
 #define IPFIX_QUIC_TEMPLATE(F) \
   F(QUIC_SNI)
 
+#ifdef WITH_FLEXPROBE
+#define IPFIX_FLEXPROBE_DATA_TEMPLATE(F) F(FX_FRAME_SIGNATURE)
+#define IPFIX_FLEXPROBE_TCP_TEMPLATE(F) F(FX_TCP_TRACKING)
+#define IPFIX_FLEXPROBE_ENCR_TEMPLATE(F)
+#else
+#define IPFIX_FLEXPROBE_DATA_TEMPLATE(F)
+#define IPFIX_FLEXPROBE_TCP_TEMPLATE(F)
+#define IPFIX_FLEXPROBE_ENCR_TEMPLATE(F)
+#endif
 
 /**
  * List of all known templated.
@@ -491,7 +504,10 @@ namespace ipxp {
    IPFIX_BSTATS_TEMPLATE(F) \
    IPFIX_PHISTS_TEMPLATE(F) \
    IPFIX_WG_TEMPLATE(F) \
-   IPFIX_QUIC_TEMPLATE(F)
+   IPFIX_QUIC_TEMPLATE(F) \
+   IPFIX_FLEXPROBE_DATA_TEMPLATE(F) \
+   IPFIX_FLEXPROBE_TCP_TEMPLATE(F) \
+   IPFIX_FLEXPROBE_ENCR_TEMPLATE(F)
 
 /**
  * Helper macro, convert FIELD into its name as a C literal.

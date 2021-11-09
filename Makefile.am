@@ -46,6 +46,12 @@ ipfixprobe_input_src+=\
 		input/pcap.hpp
 endif
 
+if WITH_STEM
+ipfixprobe_input_src+=\
+		input/stem.cpp \
+		input/stem.hpp
+endif
+
 ipfixprobe_storage_src=\
 		storage/cache.cpp \
 		storage/cache.hpp \
@@ -66,6 +72,8 @@ ipfixprobe_output_src+=\
 			fields.c \
 			fields.h
 endif
+
+
 
 ipfixprobe_process_src=\
 		process/http.cpp \
@@ -114,6 +122,22 @@ if WITH_QUIC
 ipfixprobe_process_src+=\
 		process/quic.hpp \
 		process/quic.cpp
+endif
+if WITH_FLEXPROBE
+ipfixprobe_process_src+=\
+		process/flexprobe-data.h \
+		process/flexprobe-data-processing.cpp \
+		process/flexprobe-data-processing.h \
+		process/flexprobe-tcp-tracking.cpp \
+		process/flexprobe-tcp-tracking.h \
+		process/flexprobe-encryption-processing.cpp \
+		process/flexprobe-encryption-processing.h
+endif
+
+if WITH_DPDK
+ipfixprobe_input_src+=\
+        input/dpdk.cpp \
+        input/dpdk.h
 endif
 
 ipfixprobe_headers_src=\
