@@ -534,7 +534,7 @@ List of UniRec fields exported together with basic flow fields on interface by W
 | WG_SRC_PEER        | uint32 | ephemeral SRC peer identifier                                 |
 | WG_DST_PEER        | uint32 | ephemeral DST peer identifier                                 |
 
-### Quic
+### QUIC
 
 List of UniRec fields exported together with basic flow fields on interface by quic plugin.
 
