@@ -6,5 +6,5 @@ fields.h:
 fields.c: fields.h
 
 
-CLEANFILES = fields.c fields.h #$(mantargets)
+CLEANFILES = fields.c fields.h
 
