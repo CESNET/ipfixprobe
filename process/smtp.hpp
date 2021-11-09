@@ -1,5 +1,5 @@
 /**
- * \file smtpp.hpp
+ * \file smtp.hpp
  * \brief Plugin for parsing smtp traffic.
  * \author Jiri Havranek <havranek@cesnet.cz>
  * \date 2018
