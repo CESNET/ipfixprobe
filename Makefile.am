@@ -26,6 +26,13 @@ ipfixprobe_input_src=\
 		input/parser.hpp \
 		input/headers.hpp
 
+# How to create loadable example.so plugin:
+#pkglib_LTLIBRARIES=example.la
+#example_la_CXXFLAGS=-I$(srcdir)/include/
+#example_la_SOURCES=example.cpp example.hpp
+#example_la_LDFLAGS=-module -shared -avoid-version
+
+
 if WITH_NDP
 ipfixprobe_LDFLAGS+=-lnuma -lndpRI -L$(srcdir)/input/nfbCInterface/
 ipfixprobe_CXXFLAGS+=-I$(srcdir)/input/nfbCInterface/include/
