@@ -47,6 +47,8 @@
 #include <string>
 #include <cstring>
 #include <arpa/inet.h>
+#include <sstream>
+#include <iomanip>
 
 #ifdef WITH_NEMEA
 #include "fields.h"
@@ -135,6 +137,18 @@ struct RecordExtTLS : public RecordExt {
       };
 
       return ipfix_template;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "tlssni=\"" << sni << "\""
+         << ",tlsalpn=\"" << alpn << "\""
+         << ",tlsja3=";
+      for (int i = 0; i < 16; i++) {
+         out << std::hex << std::setw(2) << ja3_hash_bin[i];
+      }
+      return out.str();
    }
 };
 

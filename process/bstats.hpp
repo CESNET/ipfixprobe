@@ -46,6 +46,7 @@
 
 #include <string>
 #include <cstring>
+#include <sstream>
 #include <vector>
 
 #ifdef WITH_NEMEA
@@ -201,6 +202,43 @@ struct RecordExtBSTATS : public RecordExt {
          nullptr
       };
       return ipfix_tmplt;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      char dirs_c[2] = {'s', 'd'};
+      int dirs[2] = {BSTATS_SOURCE, BSTATS_DEST};
+
+      for (int j = 0; j < 2; j++) {
+         int dir = dirs[j];
+         out << dirs_c[j] << "burstpkts=(";
+         for (int i = 0; i < burst_count[dir]; i++) {
+            out << brst_pkts[dir][i];
+            if (i != burst_count[dir] - 1) {
+               out << ",";
+            }
+         }
+         out << ")," << dirs_c[j] << "burstbytes=(";
+         for (int i = 0; i < burst_count[dir]; i++) {
+            out << brst_bytes[dir][i];
+            if (i != burst_count[dir] - 1) {
+               out << ",";
+            }
+         }
+         out << ")," << dirs_c[j] << "bursttime=(";
+         for (int i = 0; i < burst_count[dir]; i++) {
+            struct timeval start = brst_start[dir][i];
+            struct timeval end = brst_end[dir][i];
+            out << start.tv_sec << "." << start.tv_usec << "-" << end.tv_sec << "." << end.tv_usec;
+            if (i != burst_count[dir] - 1) {
+               out << ",";
+            }
+         }
+         out << "),";
+      }
+
+      return out.str();
    }
 };
 

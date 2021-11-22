@@ -48,6 +48,7 @@
 #include <config.h>
 #include <cstring>
 #include <cstdlib>
+#include <sstream>
 #include <iostream>
 
 #ifdef WITH_NEMEA
@@ -194,6 +195,19 @@ struct RecordExtHTTP : public RecordExt {
          nullptr
       };
       return ipfix_template;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "method=\"" << method << "\""
+         << ",host=\"" << host << "\""
+         << ",uri=\"" << uri << "\""
+         << ",agent=\"" << user_agent << "\""
+         << ",referer=\"" << referer << "\""
+         << ",content=\"" << content_type << "\""
+         << ",status=" << code;
+      return out.str();
    }
 };
 

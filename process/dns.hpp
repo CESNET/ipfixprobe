@@ -169,6 +169,23 @@ struct RecordExtDNS : public RecordExt {
       };
       return ipfix_tmplt;
    }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "dnsid=" << id
+         << ",answers=" << answers
+         << ",rcode=" << rcode
+         << ",qname=\"" << qname << "\""
+         << ",qtype=" << qtype
+         << ",qclass=" << qclass
+         << ",rrttl=" << rr_ttl
+         << ",rlength=" << rlength
+         << ",data=\"" << data << "\""
+         << ",psize=" << psize
+         << ",dnsdo=" << dns_do;
+      return out.str();
+   }
 };
 
 /**

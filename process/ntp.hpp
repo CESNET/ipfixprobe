@@ -46,6 +46,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <sstream>
 
 #ifdef WITH_NEMEA
 #include <fields.h>
@@ -222,6 +223,25 @@ struct RecordExtNTP : public RecordExt {
       };
 
       return ipfix_tmplt;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "leap=" << (uint16_t) leap
+         << ",version=" << (uint16_t) version
+         << ",mode=" << (uint16_t) mode
+         << ",stratum=" << (uint16_t) stratum
+         << ",poll=" << (uint16_t) poll
+         << ",precision=" << (uint16_t) precision
+         << ",delay=" << delay
+         << ",dispersion=" << dispersion
+         << ",referenceid=\"" << reference_id << "\""
+         << ",reference=\"" << reference << "\""
+         << ",origin=\"" << origin << "\""
+         << ",receive=\"" << receive << "\""
+         << ",sent=\"" << sent << "\"";
+      return out.str();
    }
 };
 

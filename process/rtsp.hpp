@@ -47,6 +47,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <iostream>
+#include <sstream>
 
 #ifdef WITH_NEMEA
 #include <fields.h>
@@ -186,6 +187,18 @@ struct RecordExtRTSP : public RecordExt {
          nullptr
       };
       return ipfix_template;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "httpmethod=\"" << method << "\""
+         << ",uri=\"" << uri << "\""
+         << ",agent=\"" << user_agent << "\""
+         << ",server=\"" << server << "\""
+         << ",content=\"" << content_type << "\""
+         << ",status=" << code;
+      return out.str();
    }
 };
 

@@ -47,6 +47,7 @@
 
 #include <string>
 #include <cstring>
+#include <sstream>
 
 #ifdef WITH_NEMEA
 # include "fields.h"
@@ -177,6 +178,40 @@ struct RecordExtPSTATS : public RecordExt {
          nullptr
       };
       return ipfix_tmplt;
+   }
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "ppisizes=(";
+      for (int i = 0; i < pkt_count; i++) {
+         out << pkt_sizes[i];
+         if (i != pkt_count - 1) {
+            out << ",";
+         }
+      }
+      out << "),ppitimes=(";
+      for (int i = 0; i < pkt_count; i++) {
+         out << pkt_timestamps[i].tv_sec << "." << pkt_timestamps[i].tv_usec;
+         if (i != pkt_count - 1) {
+            out << ",";
+         }
+      }
+      out << "),ppiflags=(";
+      for (int i = 0; i < pkt_count; i++) {
+         out << (uint16_t) pkt_tcp_flgs[i];
+         if (i != pkt_count - 1) {
+            out << ",";
+         }
+      }
+      out << "),ppidirs=(";
+      for (int i = 0; i < pkt_count; i++) {
+         out << (int16_t) pkt_dirs[i];
+         if (i != pkt_count - 1) {
+            out << ",";
+         }
+      }
+      out << ")";
+      return out.str();
    }
 };
 

@@ -45,6 +45,7 @@
 #define IPXP_PROCESS_BASICPLUS_HPP
 
 #include <string>
+#include <sstream>
 
 #ifdef WITH_NEMEA
  #include "fields.h"
@@ -157,6 +158,18 @@ struct RecordExtBASICPLUS : public RecordExt {
          nullptr
       };
       return ipfix_tmplt;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "sttl=" << (uint16_t) ip_ttl[0] << ",dttl=" << (uint16_t) ip_ttl[1]
+         << ",sflg=" << (uint16_t) ip_flg[0] << ",dflg=" << (uint16_t) ip_flg[1]
+         << ",stcpw=" << tcp_win[0] << ",dtcpw=" << tcp_win[1]
+         << ",stcpo=" << tcp_opt[0] << ",dtcpo=" << tcp_opt[1]
+         << ",stcpm=" << tcp_mss[0] << ",dtcpm=" << tcp_mss[1]
+         << ",tcpsynsize=" << tcp_syn_size;
+      return out.str();
    }
 };
 

@@ -148,6 +148,25 @@ struct RecordExtPassiveDNS : public RecordExt {
 
       return ipfix_tmplt;
    }
+
+   std::string get_text() const
+   {
+      char ip_str[INET6_ADDRSTRLEN];
+      std::ostringstream out;
+
+      if (ip_version == 4) {
+         inet_ntop(AF_INET, (const void *) &ip.v4, ip_str, INET6_ADDRSTRLEN);
+      } else if (ip_version == 6) {
+         inet_ntop(AF_INET6, (const void *) &ip.v6, ip_str, INET6_ADDRSTRLEN);
+      }
+
+      out << "dnsid=" << id
+         << ",atype=" << atype
+         << ",aname=\"" << aname << "\""
+         << ",rrttl=" << rr_ttl
+         << ",ip=" << ip_str;
+      return out.str();
+   }
 };
 
 /**

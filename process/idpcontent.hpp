@@ -46,6 +46,8 @@
 
 #include <string>
 #include <cstring>
+#include <sstream>
+#include <iomanip>
 
 #ifdef WITH_NEMEA
 # include "fields.h"
@@ -128,6 +130,20 @@ struct RecordExtIDPCONTENT : public RecordExt {
       };
 
       return ipfix_tmplt;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "idpsrc=";
+      for (size_t i = 0; i < idps[IDP_CONTENT_INDEX].size; i++) {
+         out << std::hex << std::setw(2) << idps[IDP_CONTENT_INDEX].data[i];
+      }
+      out << ",idpdst=";
+      for (size_t i = 0; i < idps[IDP_CONTENT_REV_INDEX].size; i++) {
+         out << std::hex << std::setw(2) << idps[IDP_CONTENT_REV_INDEX].data[i];
+      }
+      return out.str();
    }
 };
 

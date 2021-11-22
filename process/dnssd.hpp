@@ -130,11 +130,10 @@ struct RecordExtDNSSD : public RecordExt {
     *
     * The string will allways contain complete entries.
     */
-   std::string queries_to_string(size_t max_length) {
-      std::list<std::string>::iterator it;
+   std::string queries_to_string(size_t max_length) const {
       std::string ret;
 
-      for (it = queries.begin(); it != queries.end(); it++) {
+      for (auto it = queries.cbegin(); it != queries.cend(); it++) {
          if (max_length == std::string::npos) {
             ret += *it + ";";
          } else {
@@ -152,7 +151,7 @@ struct RecordExtDNSSD : public RecordExt {
     * \brief Converts a response to semicolon separated string.
     * \param [in] response Iterator pointing at the response.
     */
-   std::string response_to_string(std::list<DnsSdRr>::iterator response) {
+   std::string response_to_string(std::list<DnsSdRr>::const_iterator response) const {
       std::stringstream ret;
 
       ret << response->name + ";";
@@ -174,11 +173,10 @@ struct RecordExtDNSSD : public RecordExt {
     *
     * The string will allways contain complete entries.
     */
-   std::string responses_to_string(size_t max_length) {
-      std::list<DnsSdRr>::iterator it;
+   std::string responses_to_string(size_t max_length) const {
       std::string ret, part;
 
-      for (it = responses.begin(); it != responses.end(); it++) {
+      for (auto it = responses.cbegin(); it != responses.cend(); it++) {
          if (max_length == std::string::npos) {
             ret += response_to_string(it);
          } else {
@@ -250,6 +248,14 @@ struct RecordExtDNSSD : public RecordExt {
       };
 
       return ipfix_tmplt;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "dnssdqueries=\"" << queries_to_string(std::string::npos) << "\""
+         << ",dnssdresponses=\"" << responses_to_string(std::string::npos) << "\"";
+      return out.str();
    }
 };
 

@@ -46,6 +46,7 @@
 
 #include <string>
 #include <cstring>
+#include <sstream>
 
 #ifdef WITH_NEMEA
 #include "fields.h"
@@ -220,6 +221,23 @@ struct RecordExtSMTP : public RecordExt {
          nullptr
       };
       return ipfix_template;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "2xxcnt=" << code_2xx_cnt
+         << ",3xxcnt=" << code_3xx_cnt
+         << ",4xxcnt=" << code_4xx_cnt
+         << ",5xxcnt=" << code_5xx_cnt
+         << ",cmdflgs=" << command_flags
+         << ",mailcmdcnt=" << mail_cmd_cnt
+         << ",rcptcmdcnt=" << mail_rcpt_cnt
+         << ",codeflags=" << mail_code_flags
+         << ",domain=\"" << domain << "\""
+         << ",firstsender=\"" << first_sender << "\""
+         << ",firstrecipient=\"" << first_recipient << "\"";
+      return out.str();
    }
 };
 

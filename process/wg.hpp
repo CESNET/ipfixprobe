@@ -45,6 +45,7 @@
 #define IPXP_PROCESS_WG_HPP
 
 #include <string>
+#include <sstream>
 
 #ifdef WITH_NEMEA
   #include "fields.h"
@@ -142,6 +143,15 @@ struct RecordExtWG : public RecordExt {
       };
 
       return ipfix_tmplt;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "wgconf=" << (uint16_t) possible_wg
+         << ",wgsrcpeer=" << src_peer
+         << ",wgdstpeer=" << dst_peer;
+      return out.str();
    }
 };
 

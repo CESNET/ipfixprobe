@@ -46,6 +46,7 @@
 #define IPXP_PROCESS_OVPN_HPP
 
 #include <string>
+#include <sstream>
 
 #ifdef WITH_NEMEA
 #include "fields.h"
@@ -116,6 +117,13 @@ struct RecordExtOVPN : RecordExt
       };
 
       return ipfix_tmplt;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "ovpnconf=" << (uint16_t) possible_vpn;
+      return out.str();
    }
 };
 

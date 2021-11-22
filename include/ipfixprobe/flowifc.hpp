@@ -97,7 +97,7 @@ struct RecordExt {
    }
 
    /**
-    * \brief Get unirec template string from plugin.
+    * \brief Get unirec template string.
     * \return Unirec template string.
     */
    virtual const char *get_unirec_tmplt() const
@@ -118,12 +118,21 @@ struct RecordExt {
    }
 
    /**
-    * \brief Register new unirec fields.
-    * \return Return unirec fields spec.
+    * \brief Get ipfix string fields.
+    * \return Return ipfix fields array.
     */
    virtual const char **get_ipfix_tmplt() const
    {
       return nullptr;
+   }
+
+   /**
+    * \brief Get text representation of exported elements
+    * \return Return fields converted to text
+    */
+   virtual std::string get_text() const
+   {
+      return "";
    }
 
    /**

@@ -46,6 +46,7 @@
 
 #include <string>
 #include <limits>
+#include <sstream>
 
 #ifdef WITH_NEMEA
 # include "fields.h"
@@ -160,6 +161,31 @@ struct RecordExtPHISTS : public RecordExt {
       };
 
       return ipfix_tmplt;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      char dirs_c[2] = {'s', 'd'};
+
+      for (int dir = 0; dir < 2; dir++) {
+         out << dirs_c[dir] << "phistsize=(";
+         for (int i = 0; i < HISTOGRAM_SIZE; i++) {
+            out << size_hist[dir][i];
+            if (i != HISTOGRAM_SIZE - 1) {
+               out << ",";
+            }
+         }
+         out << ")," << dirs_c[dir] << "phistipt=(";
+         for (int i = 0; i < HISTOGRAM_SIZE; i++) {
+            out << ipt_hist[dir][i];
+            if (i != HISTOGRAM_SIZE - 1) {
+               out << ",";
+            }
+         }
+         out << "),";
+      }
+      return out.str();
    }
 };
 

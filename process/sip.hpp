@@ -48,6 +48,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <sstream>
 
 #ifdef WITH_NEMEA
 #include <fields.h>
@@ -481,6 +482,22 @@ struct RecordExtSIP : public RecordExt {
       };
 
       return ipfix_tmplt;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+
+      out << "sipmsgtype=" << msg_type
+         << ",statuscode=" << status_code
+         << ",cseq=\"" << cseq << "\""
+         << ",callingparty=\"" << calling_party << "\""
+         << ",calledparty=\"" << called_party << "\""
+         << ",callid=\"" << call_id << "\""
+         << ",useragent=\"" << user_agent << "\""
+         << ",requri=\"" << request_uri << "\""
+         << ",via=\"" << via << "\"";
+      return out.str();
    }
 };
 

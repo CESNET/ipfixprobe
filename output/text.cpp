@@ -89,7 +89,7 @@ void TextExporter::init(const char *params)
    if (!m_hide_mac) {
       *m_out << "mac ";
    }
-   *m_out << "conversation packets bytes tcp-flags time" << std::endl;
+   *m_out << "conversation packets bytes tcp-flags time extensions" << std::endl;
 }
 
 void TextExporter::init(const char *params, Plugins &plugins)
@@ -112,8 +112,7 @@ int TextExporter::export_flow(const Flow &flow)
    m_flows_seen++;
    print_basic_flow(flow);
    while (ext != nullptr) {
-      *m_out << " " << ext->m_ext_id;
-      // TODO
+      *m_out << " " << ext->get_text();
       ext = ext->m_next;
    }
    *m_out << std::endl;

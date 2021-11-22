@@ -46,6 +46,7 @@
 
 #include <string>
 #include <cstring>
+#include <sstream>
 
 #ifdef WITH_NEMEA
 #include "fields.h"
@@ -166,6 +167,17 @@ struct RecordExtSSDP : public RecordExt {
       };
 
       return ipfix_tmplt;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "ssdpport=" << port
+         << ",nt=\"" << nt << "\""
+         << ",server=\"" << server << "\""
+         << ",st=\"" << st << "\""
+         << ",useragent=\"" << user_agent << "\"";
+      return out.str();
    }
 };
 

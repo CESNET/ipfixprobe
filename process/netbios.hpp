@@ -46,6 +46,7 @@
 
 #include <string>
 #include <cstring>
+#include <sstream>
 
 #ifdef WITH_NEMEA
 #include "fields.h"
@@ -116,6 +117,13 @@ struct RecordExtNETBIOS : public RecordExt {
       return ipfix_netbios_template;
    }
 
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "netbiossuffix=" << netbios_suffix
+         << ",name=\"" << netbios_name << "\"";
+      return out.str();
+   }
 };
 
 /**

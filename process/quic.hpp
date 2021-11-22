@@ -48,6 +48,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <iostream>
+#include <sstream>
 
 #ifdef WITH_NEMEA
 #include "fields.h"
@@ -181,6 +182,13 @@ struct RecordExtQUIC : public RecordExt {
          nullptr
       };
       return ipfix_template;
+   }
+
+   std::string get_text() const
+   {
+      std::ostringstream out;
+      out << "quicsni=\"" << sni << "\"";
+      return out.str();
    }
 };
 
