@@ -336,13 +336,13 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
          throw IPXPError(storage_name + std::string(": ") + e.what());
       }
 
-      std::vector<ProcessPlugin *> storage_plugins;
+      std::vector<ProcessPlugin *> storage_process_plugins;
       for (auto &it : *process_plugins) {
          ProcessPlugin *tmp = it.second->copy();
          storage_plugin->add_plugin(tmp);
          conf.active.process.push_back(tmp);
          conf.active.all.push_back(tmp);
-         storage_plugins.push_back(tmp);
+         storage_process_plugins.push_back(tmp);
       }
 
       ipx_ring_t *input_queue = ipx_ring_init(conf.iqueue_size, 0);
@@ -366,7 +366,7 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
                       storage_plugin,
                       new std::thread(storage_worker, storage_plugin, input_queue, storage_stats, &conf.exit_storage),
                       storage_stats,
-                      storage_plugins
+                      storage_process_plugins
               },
               input_queue
       };
@@ -616,6 +616,10 @@ int run(int argc, char *argv[])
          goto EXIT;
       }
       main_loop(conf);
+   } catch (std::system_error &e) {
+      error(e.what());
+      status = EXIT_FAILURE;
+      goto EXIT;
    } catch (std::bad_alloc &e) {
       error("not enough memory");
       status = EXIT_FAILURE;
