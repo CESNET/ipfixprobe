@@ -72,5 +72,8 @@ static inline uint64_t swap_uint64(uint64_t value)
 #  error  "Please fix <endian.h>"
 # endif
 
+void phton64(uint8_t *p, uint64_t v);
+uint64_t pntoh64(const void *p);
+
 }
 #endif /* IPXP_BYTE_UTILS_HPP */

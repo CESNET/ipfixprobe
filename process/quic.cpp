@@ -51,6 +51,8 @@
 #include <unirec/unirec.h>
 #endif
 
+#include <ipfixprobe/byte-utils.hpp>
+
 #include "quic.hpp"
 
 namespace ipxp {
@@ -575,26 +577,6 @@ bool QUICPlugin::quic_decrypt_header()
 
    return true;
 } // QUICPlugin::quic_decrypt_header
-
-void QUICPlugin::phton64(uint8_t *p, uint64_t v)
-{
-   int shift = 56;
-
-   for (unsigned int i = 0; i < 8; i++) {
-      p[i] = (uint8_t) (v >> (shift - (i * 8)));
-   }
-}
-
-uint64_t QUICPlugin::pntoh64(const void *p)
-{
-   uint64_t buffer = 0;
-   int shift       = 56;
-
-   for (unsigned x = 0; x < 8; x++) {
-      buffer |= (uint64_t) *((const uint8_t *) (p) + x) << (shift - (x * 8));
-   }
-   return buffer;
-}
 
 bool QUICPlugin::quic_decrypt_payload()
 {

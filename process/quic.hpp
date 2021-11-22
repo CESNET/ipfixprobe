@@ -228,10 +228,6 @@ private:
    bool     expand_label(const char *, const char *, const uint8_t *, uint8_t, uint16_t, uint8_t *, uint8_t &);
    bool     parse_tls(RecordExtQUIC *);
 
-
-   uint64_t pntoh64(const void *);
-   void     phton64(uint8_t *, uint64_t);
-
    // header pointers
    quic_header1 *quic_h1;
    quic_header2 *quic_h2;

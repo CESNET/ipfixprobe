@@ -85,4 +85,24 @@ void trim_str(std::string &str)
    str.erase(str.find_last_not_of(" \t\n\r") + 1);
 }
 
+void phton64(uint8_t *p, uint64_t v)
+{
+   int shift = 56;
+
+   for (unsigned int i = 0; i < 8; i++) {
+      p[i] = (uint8_t) (v >> (shift - (i * 8)));
+   }
+}
+
+uint64_t pntoh64(const void *p)
+{
+   uint64_t buffer = 0;
+   int shift       = 56;
+
+   for (unsigned x = 0; x < 8; x++) {
+      buffer |= (uint64_t) *((const uint8_t *) (p) + x) << (shift - (x * 8));
+   }
+   return buffer;
+}
+
 }
