@@ -88,7 +88,6 @@ void NdpPacketReader::init(const char *params)
       throw PluginError("specify device path");
    }
    init_ifc(parser.m_dev);
-   // TODO: id
 }
 
 void NdpPacketReader::close()

@@ -85,9 +85,6 @@ public:
       register_option("s", "snaplen", "SIZE", "Snapshot length in bytes",
          [this](const char *arg){try {m_snaplen = str2num<decltype(m_snaplen)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);
-      register_option("I", "id", "NUM", "Line identifier number",
-         [this](const char *arg){try {m_id = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
       register_option("l", "list", "", "Print list of available interfaces", [this](const char *arg){m_list = true; return true;}, OptionFlags::NoArgument);
    }
 };

@@ -130,8 +130,6 @@ void PcapReader::init(const char *params)
    if (!parser.m_filter.empty()) {
       set_filter(parser.m_filter);
    }
-
-   // TODO: id
 }
 
 void PcapReader::close()

@@ -60,26 +60,22 @@ public:
    uint16_t m_fanout;
    uint32_t m_block_cnt;
    uint32_t m_pkt_cnt;
-   uint64_t m_id;
    bool m_list;
 
    RawOptParser() : OptionsParser("raw", "Input plugin for reading packets from a raw socket"),
-      m_ifc(""), m_fanout(0), m_block_cnt(2048), m_pkt_cnt(32), m_id(0), m_list(false)
+      m_ifc(""), m_fanout(0), m_block_cnt(2048), m_pkt_cnt(32), m_list(false)
    {
       register_option("i", "ifc", "IFC", "Network interface name", [this](const char *arg){m_ifc = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("f", "fanout", "ID", "Enable packet fanout",
          [this](const char *arg){if (arg) {
-         try {m_fanout = str2num<decltype(m_fanout)>(arg); if (!m_fanout) {return false;}} catch(std::invalid_argument &e) {return false;}
+            try {m_fanout = str2num<decltype(m_fanout)>(arg); if (!m_fanout) {return false;}} catch(std::invalid_argument &e) {return false;}
          } else {m_fanout = getpid() & 0xFFFF;} return true;},
          OptionFlags::OptionalArgument);
       register_option("b", "blocks", "SIZE", "Number of packet blocks (should be power of two num)",
-         [this](const char *arg){try {m_block_cnt = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
+         [this](const char *arg){try {m_block_cnt = str2num<decltype(m_block_cnt)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);
       register_option("p", "pkts", "SIZE", "Number of packets in block (should be power of two num)",
-         [this](const char *arg){try {m_pkt_cnt = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
-      register_option("I", "id", "NUM", "Line identifier number",
-         [this](const char *arg){try {m_id = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
+         [this](const char *arg){try {m_pkt_cnt = str2num<decltype(m_pkt_cnt)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);
       register_option("l", "list", "", "Print list of available interfaces", [this](const char *arg){m_list = true; return true;}, OptionFlags::NoArgument);
    }

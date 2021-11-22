@@ -118,7 +118,6 @@ void RawReader::init(const char *params)
    }
 
    open_ifc(parser.m_ifc);
-   // TODO: id
 }
 
 void RawReader::close()
