@@ -61,15 +61,15 @@ class TextOptParser : public OptionsParser
 public:
    std::string m_file;
    bool m_to_file;
-   bool m_ignore_mac;
+   bool m_hide_mac;
 
    TextOptParser() : OptionsParser("text", "Output plugin for text export"),
-      m_file(""), m_to_file(false), m_ignore_mac(false)
+      m_file(""), m_to_file(false), m_hide_mac(false)
    {
       register_option("f", "file", "PATH", "Print output to file",
          [this](const char *arg){m_file = arg; m_to_file = true; return true;}, OptionFlags::RequiredArgument);
-      register_option("m", "mac", "", "Ignore mac addresses",
-         [this](const char *arg){m_ignore_mac = true; return true;}, OptionFlags::NoArgument);
+      register_option("m", "mac", "", "Hide mac addresses",
+         [this](const char *arg){m_hide_mac = true; return true;}, OptionFlags::NoArgument);
    }
 };
 
@@ -87,7 +87,7 @@ public:
 
 private:
    std::ostream *m_out;
-   bool m_ignore_mac;
+   bool m_hide_mac;
 
    void print_basic_flow(const Flow &flow);
 };

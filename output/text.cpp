@@ -59,7 +59,7 @@ __attribute__((constructor)) static void register_this_plugin()
    register_plugin(&rec);
 }
 
-TextExporter::TextExporter() : m_out(&std::cout), m_ignore_mac(false)
+TextExporter::TextExporter() : m_out(&std::cout), m_hide_mac(false)
 {
 }
 
@@ -84,9 +84,9 @@ void TextExporter::init(const char *params)
       }
       m_out = file;
    }
-   m_ignore_mac = parser.m_ignore_mac;
+   m_hide_mac = parser.m_hide_mac;
 
-   if (!m_ignore_mac) {
+   if (!m_hide_mac) {
       *m_out << "mac ";
    }
    *m_out << "conversation packets bytes tcp-flags time" << std::endl;
@@ -156,7 +156,7 @@ void TextExporter::print_basic_flow(const Flow &flow)
       rb = "]";
    }
 
-   if (!m_ignore_mac) {
+   if (!m_hide_mac) {
       *m_out << src_mac << "->" << dst_mac << " ";
    }
    *m_out <<
