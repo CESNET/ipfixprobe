@@ -125,7 +125,7 @@ AC_ARG_WITH([quic],
       else
          withquic="no"
       fi
-        ], [withquic="no"]
+        ], [withquic="yes"]
 )
 
 if test x${withquic} = xyes; then
