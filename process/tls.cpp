@@ -205,7 +205,7 @@ bool parse_tls_nonext_hdr(payload_data &payload, std::stringstream *ja3)
       }
 
       tmp = *(uint8_t *) payload.data;
-      if (payload.data + tmp + 3 > payload.end) {
+      if (payload.data + tmp + 3 > payload.end) { // check space for (1+tmp) bytes of compression + next 2 bytes of exts length
          return false;
       }
       payload.data += tmp + 1; // Skip compression methods
