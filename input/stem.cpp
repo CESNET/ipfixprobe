@@ -93,7 +93,7 @@ void StemPacketReader::close()
 void StemPacketReader::open_dev(const std::string &file)
 {
    try {
-      m_reader = new Stem::StemInterface<Stem::PcapReader>(file); // TODO: change reader
+      m_reader = new Stem::StemInterface<Stem::PcapReader>(file);
    } catch (Stem::Exceptions::Readers::ReaderSetupError &e) {
       throw PluginError(e.what());
    }

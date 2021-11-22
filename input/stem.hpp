@@ -62,7 +62,7 @@ class StemOptParser : public OptionsParser
 public:
    std::string m_dev;
 
-   StemOptParser() : OptionsParser("stem", "Input plugin for reading packets"), // TODO: better info
+   StemOptParser() : OptionsParser("stem", "Input plugin for reading packets using libstem"),
       m_dev("")
    {
       register_option("d", "dev", "PATH", "Path to a device file", [this](const char *arg){m_dev = arg; return true;}, OptionFlags::RequiredArgument);
@@ -82,7 +82,7 @@ public:
    InputPlugin::Result get(PacketBlock &packets);
 
 private:
-   Stem::StemInterface<Stem::PcapReader> *m_reader; //TODO: change reader
+   Stem::StemInterface<Stem::PcapReader> *m_reader;
 
    bool convert(Stem::StatisticsPacket &stem_pkt, Packet &pkt);
    void open_dev(const std::string &file);
