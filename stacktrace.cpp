@@ -1,7 +1,7 @@
 /**
  * \file stacktrace.cpp
  * \brief Stack trace functions source file
- * \author Jiri Havranek <havraji6@fit.cvut.cz>
+ * \author Jiri Havranek <havranek@cesnet.cz>
  * \date 2021
  */
 /*
@@ -42,8 +42,6 @@
  */
 
 #include <config.h>
-
-#ifdef HAVE_LIBUNWIND
 #include <unistd.h>
 #include <string.h>
 #include <sys/syscall.h>
@@ -52,7 +50,9 @@
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
 
-#include "stacktrace.h"
+#include "stacktrace.hpp"
+
+namespace ipxp {
 
 static void st_write(int fd, const char *buffer, size_t buflen)
 {
@@ -206,5 +206,4 @@ void st_dump(int fd, int sig)
    }
 }
 
-#endif
-
+}

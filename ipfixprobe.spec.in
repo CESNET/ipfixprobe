@@ -1,4 +1,6 @@
 %bcond_with ndp
+%bcond_with pcap
+%bcond_without raw
 %bcond_with nemea
 %bcond_with unwind
 
@@ -6,6 +8,18 @@
 %global compile_ndp yes
 %else
 %global compile_ndp no
+%endif
+
+%if %{with pcap}
+%global compile_pcap yes
+%else
+%global compile_pcap no
+%endif
+
+%if %{with raw}
+%global compile_raw yes
+%else
+%global compile_raw no
 %endif
 
 %if %{with nemea}
@@ -60,7 +74,7 @@ This package contains nemea flow exporter.
 %setup
 
 %build
-./configure -q --enable-silent-rules --prefix=%{_prefix} --libdir=%{_libdir} --bindir=%{_bindir} --sysconfdir=%{_sysconfdir} --docdir=%{_docdir} --mandir=%{_mandir} --datadir=%{_datadir} --with-ndp=%{compile_ndp} --with-nemea=%{compile_nemea} --with-unwind=%{compile_unwind};
+./configure -q --enable-silent-rules --prefix=%{_prefix} --libdir=%{_libdir} --bindir=%{_bindir} --sysconfdir=%{_sysconfdir} --docdir=%{_docdir} --mandir=%{_mandir} --datadir=%{_datadir} --with-ndp=%{compile_ndp} --with-raw=%{compile_raw} --with-pcap=%{compile_pcap} --with-nemea=%{compile_nemea} --with-unwind=%{compile_unwind};
 make clean
 make -j5
 
