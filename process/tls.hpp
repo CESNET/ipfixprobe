@@ -146,7 +146,7 @@ struct RecordExtTLS : public RecordExt {
          << ",tlsalpn=\"" << alpn << "\""
          << ",tlsja3=";
       for (int i = 0; i < 16; i++) {
-         out << std::hex << std::setw(2) << (unsigned) ja3_hash_bin[i];
+         out << std::hex << std::setw(2) << std::setfill('0') << (unsigned) ja3_hash_bin[i];
       }
       return out.str();
    }

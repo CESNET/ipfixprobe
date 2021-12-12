@@ -137,11 +137,11 @@ struct RecordExtIDPCONTENT : public RecordExt {
       std::ostringstream out;
       out << "idpsrc=";
       for (size_t i = 0; i < idps[IDP_CONTENT_INDEX].size; i++) {
-         out << std::hex << std::setw(2) << idps[IDP_CONTENT_INDEX].data[i];
+         out << std::hex << std::setw(2) << std::setfill('0') << idps[IDP_CONTENT_INDEX].data[i];
       }
       out << ",idpdst=";
       for (size_t i = 0; i < idps[IDP_CONTENT_REV_INDEX].size; i++) {
-         out << std::hex << std::setw(2) << idps[IDP_CONTENT_REV_INDEX].data[i];
+         out << std::hex << std::setw(2) << std::setfill('0') << idps[IDP_CONTENT_REV_INDEX].data[i];
       }
       return out.str();
    }
