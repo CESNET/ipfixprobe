@@ -172,7 +172,8 @@ bool parse_tls_nonext_hdr(payload_data &payload, std::stringstream *ja3)
       return false;
    }
 
-   uint32_t hs_len = tls_hs->length1 << 16 | ntohs(tls_hs->length2);
+   //uint32_t hs_len = tls_hs->length1 << 16 | ntohs(tls_hs->length2);
+
    // 1 + 3 + 2 + 32 + 1 + 2 + 1 + 2 = 44
    // type + length + version + random + sessionid + ciphers + compression + ext-len
    if (payload.data + 44 > payload.end || tls_hs->version.major != 3 ||
@@ -252,6 +253,7 @@ bool TLSPlugin::parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *
    if (!parse_tls_nonext_hdr(payload, &ja3)) {
       return false;
    }
+   rec->version = ((uint16_t) tls_hs->version.major << 8) | tls_hs->version.minor;
 
    while (payload.data + sizeof(tls_ext) <= payload.end) {
       tls_ext *ext    = (tls_ext *) payload.data;
