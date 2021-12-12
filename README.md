@@ -231,10 +231,12 @@ List of unirec fields exported together with basic flow fields on interface by R
 ### TLS
 List of unirec fields exported together with basic flow fields on interface by TLS plugin.
 
-| UniRec field        | Type   | Description                  |
-|:-------------------:|:------:|:----------------------------:|
-| TLS_SNI             | string | TLS server name indication   |
-| TLS_JA3             | string | TLS client JA3 fingerprint   |
+| UniRec field        | Type   | Description                                                   |
+|:-------------------:|:------:|:-------------------------------------------------------------:|
+| TLS_SNI             | string | TLS server name indication field from client                  |
+| TLS_ALPN            | string | TLS application protocol layer negotiation field from server  |
+| TLS_VERSION         | uint16 | TLS client protocol version                                   |
+| TLS_JA3             | string | TLS client JA3 fingerprint                                    |
 
 ### DNS
 List of unirec fields exported together with basic flow fields on interface by DNS plugin.
