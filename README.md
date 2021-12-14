@@ -413,7 +413,7 @@ Note: the following fields are UniRec arrays.
 
 ##### Example:
 ```
-ipfixprobe -p pstats:includezeros -r sample.pcap -i "f:output.trapcap"
+ipfixprobe 'pcap;file=pcaps/http.pcap' -p pstats:includezeros -o 'unirec;i=u:stats:timeout=WAIT;p=stats'"
 ```
 
 ### SSDP
@@ -507,7 +507,7 @@ The exported unirec fields and IPFIX basiclists is shown in following table:
 
 ##### Example:
 ```
-ipfixprobe -p phists:includezeros -r sample.pcap -i "f:output.trapcap"
+ipfixprobe 'pcap;file=pcaps/http.pcap' -p phists:includezeros -o 'unirec;i=u:hists:timeout=WAIT;p=phists'"
 ```
 ### BSTATS
 
