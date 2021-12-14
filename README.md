@@ -4,6 +4,7 @@
 This application creates biflows from packet input and exports them to output interface.
 
 ## Requirements
+- libatomic
 - kernel version at least 3.19 when using raw sockets input plugin enabled by default (disable with `--without-raw` parameter for `./configure`)
 - [libpcap](http://www.tcpdump.org/) when compiling with pcap plugin (`--with-pcap` parameter)
 - netcope-common [COMBO cards](https://www.liberouter.org/technologies/cards/) when compiling with ndp plugin (`--with-ndp` parameter)
