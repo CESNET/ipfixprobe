@@ -81,6 +81,8 @@ AC_ARG_WITH([defaultsocketdir],
 AC_SUBST([defaultsocketdir], [$with_defaultsocketdir])
 AC_DEFINE_DIR([DEFAULTSOCKETDIR], [defaultsocketdir], [Default path to socket directory])
 
+AC_CHECK_LIB(atomic, __atomic_store, [libatomic=yes], AC_MSG_ERROR([libatomic not found]))
+
 ### gtest
 AC_ARG_WITH([gtest],
         AC_HELP_STRING([--with-gtest],[Compile ipfixprobe with gtest framework]),
