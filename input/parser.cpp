@@ -47,9 +47,9 @@
 #include <iostream>
 #include <sys/types.h>
 
-#ifndef WITH_NDP
+#ifdef WITH_PCAP
 #include <pcap/sll.h>
-#endif /* WITH_NDP */
+#endif /* WITH_PCAP */
 
 #include "parser.hpp"
 #include "headers.hpp"
@@ -141,7 +141,7 @@ inline uint16_t parse_eth_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
    return hdr_len;
 }
 
-#ifndef WITH_NDP
+#ifdef WITH_PCAP
 /**
  * \brief Parse specific fields from SLL frame header.
  * \param [in] data_ptr Pointer to begin of header.
@@ -178,7 +178,7 @@ inline uint16_t parse_sll(const u_char *data_ptr, uint16_t data_len, Packet *pkt
    pkt->ethertype = ntohs(sll->sll_protocol);
    return sizeof(struct sll_header);
 }
-#endif /* WITH_NDP */
+#endif /* WITH_PCAP */
 
 
 /**
@@ -614,7 +614,7 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
    uint32_t l3_hdr_offset = 0;
    uint32_t l4_hdr_offset = 0;
    try {
-   #ifndef WITH_NDP
+   #ifdef WITH_PCAP
       if (opt->datalink == DLT_EN10MB) {
          data_offset = parse_eth_hdr(data, caplen, pkt);
       } else {
@@ -622,7 +622,7 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
       }
    #else
       data_offset = parse_eth_hdr(data, caplen, pkt);
-   #endif /* WITH_NDP */
+   #endif /* WITH_PCAP */
 
       if (pkt->ethertype == ETH_P_TRILL) {
          data_offset += parse_trill(data + data_offset, caplen - data_offset, pkt);
