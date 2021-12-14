@@ -200,6 +200,10 @@ int main(int argc, char *argv[])
             std::setw(9) << stats->dropped << " " << std::endl;
       }
 
+      if (parser.m_one) {
+         break;
+      }
+
       lines_written = hdr->inputs + hdr->outputs + 4;
       usleep(1000000);
    }
