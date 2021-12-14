@@ -369,7 +369,7 @@ InputPlugin::Result RawReader::get(PacketBlock &packets)
       throw PluginError("error during reading from socket");
    }
 
-   m_processed += ret;
+   m_seen += ret;
    m_parsed += packets.cnt;
    return packets.cnt ? Result::PARSED : Result::NOT_PARSED;
  }

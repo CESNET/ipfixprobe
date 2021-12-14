@@ -131,7 +131,7 @@ InputPlugin::Result Benchmark::get(PacketBlock &packets)
          break;
       }
    }
-   m_processed += packets.cnt;
+   m_seen += packets.cnt;
    m_parsed += packets.cnt;
    return res;
 }

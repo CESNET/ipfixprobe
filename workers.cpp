@@ -82,8 +82,9 @@ void input_worker(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint
          usleep(1);
          continue;
       } else if (ret == InputPlugin::Result::PARSED) {
-         stats.packets = plugin->m_processed;
+         stats.packets = plugin->m_seen;
          stats.parsed = plugin->m_parsed;
+         stats.dropped = plugin->m_dropped;
          stats.bytes += block->bytes;
 #ifdef __linux__
          const clockid_t clk_id = CLOCK_MONOTONIC_COARSE;
@@ -111,8 +112,9 @@ void input_worker(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint
       }
    }
 
-   stats.packets = plugin->m_processed;
+   stats.packets = plugin->m_seen;
    stats.parsed = plugin->m_parsed;
+   stats.dropped = plugin->m_dropped;
    out_stats->store(stats);
    out->set_value(res);
 }

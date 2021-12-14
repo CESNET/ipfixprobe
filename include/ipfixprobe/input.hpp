@@ -66,10 +66,11 @@ public:
       ERROR
    };
 
-   uint64_t m_processed;
+   uint64_t m_seen;
    uint64_t m_parsed;
+   uint64_t m_dropped;
 
-   InputPlugin() : m_processed(0), m_parsed(0) {}
+   InputPlugin() : m_seen(0), m_parsed(0), m_dropped(0) {}
    virtual ~InputPlugin() {}
 
    virtual Result get(PacketBlock &packets) = 0;
