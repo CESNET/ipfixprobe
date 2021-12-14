@@ -5,11 +5,11 @@ SUBDIRS+=input/nfbCInterface
 endif
 
 SUBDIRS+=. tests init
-bin_PROGRAMS=ipfixprobe
+bin_PROGRAMS=ipfixprobe ipfixprobe_stats
 
 DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)"
 
-ipfixprobe_LDFLAGS=-lpthread -ldl
+ipfixprobe_LDFLAGS=-lpthread -ldl -latomic
 ipfixprobe_CFLAGS=-I$(srcdir)/include/
 ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/
 
@@ -176,6 +176,8 @@ ipfixprobe_src=\
 		ring.c \
 		workers.cpp \
 		workers.hpp \
+		stats.cpp \
+		stats.hpp \
 		ipfixprobe.hpp \
 		ipfixprobe.cpp
 
@@ -186,6 +188,15 @@ ipfixprobe_src+=\
 endif
 
 ipfixprobe_SOURCES=$(ipfixprobe_src) main.cpp
+
+ipfixprobe_stats_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/
+ipfixprobe_stats_SOURCES=ipfixprobe_stats.cpp \
+		include/ipfixprobe/options.hpp \
+		include/ipfixprobe/utils.hpp \
+		stats.cpp \
+		stats.hpp \
+		options.cpp \
+		utils.cpp
 
 pkgdocdir=${docdir}/ipfixprobe
 pkgdoc_DATA=README.md

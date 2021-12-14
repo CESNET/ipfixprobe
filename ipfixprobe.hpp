@@ -48,6 +48,7 @@
 #include <string>
 #include <thread>
 #include <future>
+#include <atomic>
 
 #include <ipfixprobe/input.hpp>
 #include <ipfixprobe/storage.hpp>
@@ -201,9 +202,12 @@ struct ipxp_conf_t {
    std::vector<WorkPipeline> pipelines;
    std::vector<OutputWorker> outputs;
 
-   std::vector<std::shared_future<InputStats>> input_fut;
-   std::vector<std::future<StorageStats>> storage_fut;
-   std::vector<std::future<OutputStats>> output_fut;
+   std::vector<std::atomic<InputStats> *> input_stats;
+   std::vector<std::atomic<OutputStats> *> output_stats;
+
+   std::vector<std::shared_future<WorkerResult>> input_fut;
+   std::vector<std::future<WorkerResult>> storage_fut;
+   std::vector<std::future<WorkerResult>> output_fut;
 
    std::promise<void> exit_input_pr;
    std::promise<void> exit_storage_pr;
@@ -275,6 +279,13 @@ struct ipxp_conf_t {
          delete it.promise;
          delete it.plugin;
          ipx_ring_destroy(it.queue);
+      }
+
+      for (auto &it : input_stats) {
+         delete it;
+      }
+      for (auto &it : output_stats) {
+         delete it;
       }
 
       delete[] pkts;

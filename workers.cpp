@@ -52,13 +52,14 @@ namespace ipxp {
 #define MICRO_SEC 1000000L
 
 void input_worker(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint64_t pkt_limit, ipx_ring_t *queue,
-                  std::promise<InputStats> *output, std::shared_future<void> *terminate)
+                  std::promise<WorkerResult> *out, std::atomic<InputStats> *out_stats, std::shared_future<void> *terminate)
 {
    struct timespec start;
    struct timespec end;
    size_t i = 0;
    InputPlugin::Result ret;
-   InputStats stats = {0, 0, 0, 0, false, ""};
+   InputStats stats = {0, 0, 0, 0, 0};
+   WorkerResult res = {false, ""};
    while (terminate->wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
       PacketBlock *block = &pkts[i];
       block->cnt = 0;
@@ -73,14 +74,16 @@ void input_worker(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint
       try {
          ret = plugin->get(*block);
       } catch (PluginError &e) {
-         stats.error = true;
-         stats.msg = e.what();
+         res.error = true;
+         res.msg = e.what();
          break;
       }
       if (ret == InputPlugin::Result::TIMEOUT) {
          usleep(1);
          continue;
       } else if (ret == InputPlugin::Result::PARSED) {
+         stats.packets = plugin->m_processed;
+         stats.parsed = plugin->m_parsed;
          stats.bytes += block->bytes;
 #ifdef __linux__
          const clockid_t clk_id = CLOCK_MONOTONIC_COARSE;
@@ -97,22 +100,26 @@ void input_worker(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint
          }
          stats.qtime += time;
          i = (i + 1) % block_cnt;
+
+         out_stats->store(stats);
       } else if (ret == InputPlugin::Result::ERROR) {
-         stats.error = true;
-         stats.msg = "error occured during reading";
+         res.error = true;
+         res.msg = "error occured during reading";
          break;
       } else if (ret == InputPlugin::Result::END_OF_FILE) {
          break;
       }
    }
-   stats.parsed = plugin->m_parsed;
+
    stats.packets = plugin->m_processed;
-   output->set_value(stats);
+   stats.parsed = plugin->m_parsed;
+   out_stats->store(stats);
+   out->set_value(res);
 }
 
-void storage_worker(StoragePlugin *cache, ipx_ring_t *queue, std::promise<StorageStats> *output, std::shared_future<void> *terminate)
+void storage_worker(StoragePlugin *cache, ipx_ring_t *queue, std::promise<WorkerResult> *out, std::shared_future<void> *terminate)
 {
-   StorageStats stats = {false, ""};
+   WorkerResult res = {false, ""};
    bool timeout = false;
    struct timeval ts = {0, 0};
    struct timespec begin = {0, 0};
@@ -131,8 +138,8 @@ void storage_worker(StoragePlugin *cache, ipx_ring_t *queue, std::promise<Storag
             }
             ts = block->pkts[block->cnt - 1].ts;
          } catch (PluginError &e) {
-            stats.error = true;
-            stats.msg = e.what();
+            res.error = true;
+            res.msg = e.what();
             break;
          }
          timeout = false;
@@ -159,7 +166,7 @@ void storage_worker(StoragePlugin *cache, ipx_ring_t *queue, std::promise<Storag
    while (ipx_ring_cnt(outq)) {
       usleep(1);
    }
-   output->set_value(stats);
+   out->set_value(res);
 }
 
 static long timeval_diff(const struct timeval *start, const struct timeval *end)
@@ -168,9 +175,11 @@ static long timeval_diff(const struct timeval *start, const struct timeval *end)
           + (end->tv_usec - start->tv_usec);
 }
 
-void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<OutputStats> *output, uint32_t fps, std::shared_future<void> *terminate)
+void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<WorkerResult> *out, std::atomic<OutputStats> *out_stats,
+   uint32_t fps, std::shared_future<void> *terminate)
 {
-   OutputStats stats = {0, 0, 0, 0, false, ""};
+   WorkerResult res = {false, ""};
+   OutputStats stats = {0, 0, 0, 0};
    struct timespec sleep_time = {0};
    struct timeval begin;
    struct timeval end;
@@ -203,11 +212,13 @@ void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<OutputStat
       stats.biflows++;
       stats.bytes += flow->src_bytes + flow->dst_bytes;
       stats.packets += flow->src_packets + flow->dst_packets;
+      stats.dropped = exp->m_flows_dropped;
+      out_stats->store(stats);
       try {
          exp->export_flow(*flow);
       } catch (PluginError &e) {
-         stats.error = true;
-         stats.msg = e.what();
+         res.error = true;
+         res.msg = e.what();
          break;
       }
 
@@ -246,7 +257,8 @@ void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<OutputStat
 
    exp->flush();
    stats.dropped = exp->m_flows_dropped;
-   output->set_value(stats);
+   out_stats->store(stats);
+   out->set_value(res);
 }
 
 }

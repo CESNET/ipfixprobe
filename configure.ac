@@ -73,6 +73,14 @@ AC_TYPE_UINT8_T
 AX_C_BIGENDIAN_CROSS
 
 
+AC_ARG_WITH([defaultsocketdir],
+   [AS_HELP_STRING([--with-defaultsocketdir=DIR], [Directory for UNIX&service IFCs [/tmp], for production set it to e.g. /var/run/ipfixprobe.])],
+   [],
+   [with_defaultsocketdir=/tmp])
+
+AC_SUBST([defaultsocketdir], [$with_defaultsocketdir])
+AC_DEFINE_DIR([DEFAULTSOCKETDIR], [defaultsocketdir], [Default path to socket directory])
+
 ### gtest
 AC_ARG_WITH([gtest],
         AC_HELP_STRING([--with-gtest],[Compile ipfixprobe with gtest framework]),

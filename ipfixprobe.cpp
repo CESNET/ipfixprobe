@@ -52,6 +52,7 @@
 #include <thread>
 #include <future>
 #include <signal.h>
+#include <poll.h>
 
 #ifdef WITH_DPDK
 #include <rte_eal.h>
@@ -62,6 +63,7 @@
 #ifdef WITH_LIBUNWIND
 #include "stacktrace.hpp"
 #endif
+#include "stats.hpp"
 
 namespace ipxp {
 
@@ -279,15 +281,18 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
    }
 
    {
-      std::promise<OutputStats> *output_stats = new std::promise<OutputStats>();
+      std::promise<WorkerResult> *output_res = new std::promise<WorkerResult>();
+      auto output_stats = new std::atomic<OutputStats>();
+      conf.output_stats.push_back(output_stats);
       OutputWorker tmp = {
               output_plugin,
-              new std::thread(output_worker, output_plugin, output_queue, output_stats, conf.fps, &conf.exit_output),
+              new std::thread(output_worker, output_plugin, output_queue, output_res, output_stats, conf.fps, &conf.exit_output),
+              output_res,
               output_stats,
               output_queue
       };
       conf.outputs.push_back(tmp);
-      conf.output_fut.push_back(output_stats->get_future());
+      conf.output_fut.push_back(output_res->get_future());
    }
 
    // Input
@@ -350,22 +355,26 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
          throw IPXPError("unable to initialize ring buffer");
       }
 
-      std::promise<InputStats> *input_stats = new std::promise<InputStats>();
-      std::promise<StorageStats> *storage_stats = new std::promise<StorageStats>();
-      conf.input_fut.push_back(input_stats->get_future());
-      conf.storage_fut.push_back(storage_stats->get_future());
+      std::promise<WorkerResult> *input_res = new std::promise<WorkerResult>();
+      std::promise<WorkerResult> *storage_res = new std::promise<WorkerResult>();
+      conf.input_fut.push_back(input_res->get_future());
+      conf.storage_fut.push_back(storage_res->get_future());
+
+      auto input_stats = new std::atomic<InputStats>();
+      conf.input_stats.push_back(input_stats);
 
       WorkPipeline tmp = {
               {
                       input_plugin,
                       new std::thread(input_worker, input_plugin, &conf.blocks[pipeline_idx * (conf.iqueue_size + 1)],
-                                      conf.iqueue_size + 1, conf.max_pkts, input_queue, input_stats, &conf.exit_input),
-                      input_stats,
+                                      conf.iqueue_size + 1, conf.max_pkts, input_queue, input_res, input_stats, &conf.exit_input),
+                      input_res,
+                      input_stats
               },
               {
                       storage_plugin,
-                      new std::thread(storage_worker, storage_plugin, input_queue, storage_stats, &conf.exit_storage),
-                      storage_stats,
+                      new std::thread(storage_worker, storage_plugin, input_queue, storage_res, &conf.exit_storage),
+                      storage_res,
                       storage_process_plugins
               },
               input_queue
@@ -412,23 +421,26 @@ void finish(ipxp_conf_t &conf)
       std::setw(10) << "packets" <<
       std::setw(10) << "parsed" <<
       std::setw(16) << "bytes" <<
+      std::setw(10) << "dropped" <<
       std::setw(10) << "qtime" <<
       std::setw(7) << "status" << std::endl;
 
    int idx = 0;
    for (auto &it : conf.input_fut) {
-      InputStats input = it.get();
+      WorkerResult res = it.get();
       std::string status = "ok";
-      if (input.error) {
+      if (res.error) {
          ok = false;
-         status = input.msg;
+         status = res.msg;
       }
+      InputStats stats = conf.input_stats[idx]->load();
       std::cout <<
          std::setw(3) << idx++ << " " <<
-         std::setw(9) << input.packets << " " <<
-         std::setw(9) << input.parsed << " " <<
-         std::setw(15) << input.bytes << " " <<
-         std::setw(9) << input.qtime << " " <<
+         std::setw(9) << stats.packets << " " <<
+         std::setw(9) << stats.parsed << " " <<
+         std::setw(15) << stats.bytes << " " <<
+         std::setw(9) << stats.dropped << " " <<
+         std::setw(9) << stats.qtime << " " <<
          std::setw(6) << status << std::endl;
    }
 
@@ -440,12 +452,12 @@ void finish(ipxp_conf_t &conf)
    idx = 0;
    bool storage_ok = true;
    for (auto &it : conf.storage_fut) {
-      StorageStats storage = it.get();
+      WorkerResult res = it.get();
       std::string status = "ok";
-      if (storage.error) {
+      if (res.error) {
          ok = false;
          storage_ok = false;
-         status = storage.msg;
+         status = res.msg;
       }
       oss <<
          std::setw(3) << idx++ << " " <<
@@ -465,18 +477,19 @@ void finish(ipxp_conf_t &conf)
 
    idx = 0;
    for (auto &it : conf.output_fut) {
-      OutputStats output = it.get();
+      WorkerResult res = it.get();
       std::string status = "ok";
-      if (output.error) {
+      if (res.error) {
          ok = false;
-         status = output.msg;
+         status = res.msg;
       }
+      OutputStats stats = conf.output_stats[idx]->load();
       std::cout <<
          std::setw(3) << idx++ << " " <<
-         std::setw(9) << output.biflows << " " <<
-         std::setw(9) << output.packets << " " <<
-         std::setw(15) << output.bytes << " " <<
-         std::setw(9) << output.dropped << " " <<
+         std::setw(9) << stats.biflows << " " <<
+         std::setw(9) << stats.packets << " " <<
+         std::setw(15) << stats.bytes << " " <<
+         std::setw(9) << stats.dropped << " " <<
          std::setw(6) << status << std::endl;
    }
 
@@ -485,17 +498,82 @@ void finish(ipxp_conf_t &conf)
    }
 }
 
+void serve_stat_clients(ipxp_conf_t &conf, struct pollfd pfds[2])
+{
+   uint8_t buffer[100000];
+   size_t written = 0;
+   msg_header_t *hdr = (msg_header_t *) buffer;
+   int ret = ppoll(pfds, 2, 0, NULL);
+   if (ret <= 0) {
+      return;
+   }
+   if (pfds[1].fd > 0 && pfds[1].revents & POLL_IN) {
+      ret = recv_data(pfds[1].fd, sizeof(uint32_t), buffer);
+      if (ret < 0) {
+         // Client disconnected
+         close(pfds[1].fd);
+         pfds[1].fd = -1;
+      } else {
+         if (*((uint32_t *) buffer) != MSG_MAGIC) {
+            return;
+         }
+         // Received stats request from client
+         written += sizeof(msg_header_t);
+         for (auto &it : conf.input_stats) {
+            InputStats stats = it->load();
+            *(InputStats *)(buffer + written) = stats;
+            written += sizeof(InputStats);
+         }
+         for (auto &it : conf.output_stats) {
+            OutputStats stats = it->load();
+            *(OutputStats *)(buffer + written) = stats;
+            written += sizeof(OutputStats);
+         }
+
+         hdr->magic = MSG_MAGIC;
+         hdr->size = written - sizeof(msg_header_t);
+         hdr->inputs = conf.input_stats.size();
+         hdr->outputs = conf.output_stats.size();
+
+         send_data(pfds[1].fd, written, buffer);
+      }
+   }
+
+   if (pfds[0].revents & POLL_IN) {
+      int fd = accept(pfds[0].fd, NULL, NULL);
+      if (pfds[1].fd == -1) {
+         pfds[1].fd = fd;
+      } else {
+         close(fd);
+      }
+   }
+}
+
 void main_loop(ipxp_conf_t &conf)
 {
-   std::vector<std::shared_future<InputStats>*> futs;
+   std::vector<std::shared_future<WorkerResult>*> futs;
    for (auto &it : conf.input_fut) {
       futs.push_back(&it);
    }
+
+   struct pollfd pfds[2] = {
+      {.fd = -1, .events = POLL_IN}, // Server
+      {.fd = -1, .events = POLL_IN} // Client
+   };
+
+   std::string sock_path = create_sockpath(std::to_string(getpid()).c_str());
+   pfds[0].fd = create_stats_sock(sock_path.c_str());
+   if (pfds[0].fd < 0) {
+      error("Unable to create stats socket " + sock_path);
+   }
+
    while (!stop && futs.size()) {
+      serve_stat_clients(conf, pfds);
+
       for (auto it = futs.begin(); it != futs.end(); it++) {
          std::future_status status = (*it)->wait_for(std::chrono::seconds(0));
          if (status == std::future_status::ready) {
-            InputStats res = (*it)->get();
+            WorkerResult res = (*it)->get();
             if (!res.error) {
                it = futs.erase(it);
                break;
@@ -522,6 +600,9 @@ void main_loop(ipxp_conf_t &conf)
       usleep(1000);
    }
 
+   close(pfds[0].fd);
+   close(pfds[1].fd);
+   unlink(sock_path.c_str());
    finish(conf);
 }
 
