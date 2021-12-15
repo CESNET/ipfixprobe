@@ -503,7 +503,7 @@ void serve_stat_clients(ipxp_conf_t &conf, struct pollfd pfds[2])
    uint8_t buffer[100000];
    size_t written = 0;
    msg_header_t *hdr = (msg_header_t *) buffer;
-   int ret = ppoll(pfds, 2, 0, NULL);
+   int ret = poll(pfds, 2, 0);
    if (ret <= 0) {
       return;
    }
