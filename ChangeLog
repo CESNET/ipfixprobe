@@ -1,3 +1,11 @@
+2021-12-16 ipfixprobe-4.0.0
+    * Reworked ipfxprobe parameter passing
+	* quic: Parsing quic protocol
+	* tests: Added several tests
+	* Bug fixes, memory leaks fixes
+	* Documentation improved
+	* Code refactoring
+
 2021-08-18 ipfixprobe-3.2.1
 	* bugfix parser overflows due bug in old version of libpcap
 
