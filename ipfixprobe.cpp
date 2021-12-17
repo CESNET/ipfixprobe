@@ -600,8 +600,12 @@ void main_loop(ipxp_conf_t &conf)
       usleep(1000);
    }
 
-   close(pfds[0].fd);
-   close(pfds[1].fd);
+   if (pfds[0].fd != -1) {
+      close(pfds[0].fd);
+   }
+   if (pfds[1].fd != -1) {
+      close(pfds[1].fd);
+   }
    unlink(sock_path.c_str());
    finish(conf);
 }
