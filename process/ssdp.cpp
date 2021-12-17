@@ -53,6 +53,7 @@ __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("ssdp", [](){return new SSDPPlugin();});
    register_plugin(&rec);
+   RecordExtSSDP::REGISTERED_ID = register_extension();
 }
 
 // #define DEBUG_SSDP
