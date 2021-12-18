@@ -1,3 +1,39 @@
+2021-08-18 ipfixprobe-3.2.1
+	* bugfix parser overflows due bug in old version of libpcap
+
+2021-07-28 ipfixprobe-3.2.0
+	* improved code doc
+	* tlsplugin: fixed out of bounds write to an array
+	* ipfix: Minor changes
+
+2021-07-23 ipfixprobe-3.1.1
+	* systemd: added restart on failure
+	* added stacktrace print on segmentation fault
+	* added export of flowEndReason IPFIX field
+	* rpm: packages are compiled with libunwind
+
+2021-07-21 ipfixprobe-3.1.0
+	* http: updated HTTP IPFIX element identifiers
+	* ghactions: add coverity and codecov
+	* improved systemd service
+	* build: fixed errors on turris and tplink
+	
+2021-06-08 ipfixprobe-3.0.0
+	* added multi-thread version of ipfixprobe
+	* added wireguard plugin
+	* support cygwin compatibility
+	* bugfixes: RTSP plugin, build, memory
+	* updated tests - test for WireGuard plugin
+	
+2021-02-27 ipfixprobe-2.19.0
+	* added phist plugin - histograms of packets
+	* added bstats plugin - burst characteristics of flows
+	* added netbios support
+	* improved basic fields
+	* bugfixes: build, payload size
+	* maintenance: improved IPFIX basiclist representation
+	* updated tests - new timestamp precision
+
 2020-11-01 ipfixprobe-2.18.0
 	* add IDPContent plugin (initial data from packet payload)
 	* updated create_plugin.sh

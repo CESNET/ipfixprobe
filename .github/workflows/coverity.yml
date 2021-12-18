@@ -1,0 +1,54 @@
+name: coverity
+
+on:
+  push:
+    branches: 'coverity'
+  pull_request:
+    branches: 'master'
+    
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install git build-essential autoconf libtool libpcap-dev pkg-config libxml2-dev
+        ( git clone --depth 1 https://github.com/CESNET/nemea-framework /tmp/nemea-framework; cd /tmp/nemea-framework; ./bootstrap.sh &&./configure --bindir=/usr/bin/nemea/ -q &&make -j10 && sudo make install; sudo ldconfig)
+        ( git clone --depth 1 https://github.com/CESNET/nemea-modules /tmp/nemea-modules; cd /tmp/nemea-modules; ./bootstrap.sh &&./configure --bindir=/usr/bin/nemea/ -q &&make -j10 && sudo make install; )
+    - name: autoreconf
+      run: autoreconf -i
+    - name: configure
+      run: ./configure --with-nemea
+    - name: Download Coverity Build Tool
+      run: |
+        wget -q https://scan.coverity.com/download/cxx/linux64 --post-data "token=$TOKEN&project=CESNET%2Fipfixprobe" -O cov-analysis-linux64.tar.gz
+        mkdir cov-analysis-linux64
+        tar xzf cov-analysis-linux64.tar.gz --strip 1 -C cov-analysis-linux64
+      env:
+        TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+    - name: Fixed world writable dirs
+      run: |
+        chmod go-w $HOME
+        sudo chmod -R go-w /usr/share
+    - name: Build with cov-build
+      run: |
+        export PATH=`pwd`/cov-analysis-linux64/bin:$PATH
+        cov-build --dir cov-int make
+    - name: Submit the result to Coverity Scan
+      run: |
+        tar czvf project.tgz cov-int
+        curl \
+          --form project=CESNET%2Fipfixprobe \
+          --form token=$TOKEN \
+          --form email=cejkat@cesnet.cz \
+          --form file=@project.tgz \
+          --form version=trunk \
+          --form description="ipfixprobe build" \
+          https://scan.coverity.com/builds?project=CESNET%2Fipfixprobe
+      env:
+        TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+

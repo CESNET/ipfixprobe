@@ -61,7 +61,7 @@
 /**
  * Difference between NTP and UNIX epoch in number of seconds.
  */
-#define EPOCH_DIFF 2208988800
+#define EPOCH_DIFF 2208988800ULL
 
 /**
  * Conversion from microseconds to NTP fraction (resolution 1/(2^32)s,  ~233 picoseconds).
@@ -72,7 +72,7 @@
 /**
  * Create 64 bit NTP timestamp which consist of 32 bit seconds part and 32 bit fraction part.
  */
-#define MK_NTP_TS(ts) (htonl(ts.tv_sec + EPOCH_DIFF) | ((uint64_t) htonl(NTP_USEC_TO_FRAC(ts.tv_usec)) << 32))
+#define MK_NTP_TS(ts) (((uint64_t) (ts.tv_sec + EPOCH_DIFF) << 32) | (uint64_t) NTP_USEC_TO_FRAC(ts.tv_usec))
 
 /**
  * Convert FIELD to its "attributes", i.e. BYTES(FIELD) used in the source code produces
@@ -86,11 +86,12 @@
 #define BYTES_REV(F)                  F(29305,    1,    8,   &flow.dst_octet_total_length)
 #define PACKETS(F)                    F(0,        2,    8,   (temp = (uint64_t) flow.src_pkt_total_cnt, &temp))
 #define PACKETS_REV(F)                F(29305,    2,    8,   (temp = (uint64_t) flow.dst_pkt_total_cnt, &temp))
-#define FLOW_START_USEC(F)            F(0,      154,    8,   (temp = swap_uint64(MK_NTP_TS(flow.time_first)), &temp))
-#define FLOW_END_USEC(F)              F(0,      155,    8,   (temp = swap_uint64(MK_NTP_TS(flow.time_last)), &temp))
+#define FLOW_START_USEC(F)            F(0,      154,    8,   (temp = MK_NTP_TS(flow.time_first), &temp))
+#define FLOW_END_USEC(F)              F(0,      155,    8,   (temp = MK_NTP_TS(flow.time_last), &temp))
 #define OBSERVATION_MSEC(F)           F(0,      323,    8,   NULL)
 #define INPUT_INTERFACE(F)            F(0,       10,    2,   &this->dir_bit_field)
 #define OUTPUT_INTERFACE(F)           F(0,       14,    2,   NULL)
+#define FLOW_END_REASON(F)            F(0,      136,    1,   &flow.end_reason)
 
 #define ETHERTYPE(F)                  F(0,      256,    2,   NULL)
 
@@ -128,13 +129,13 @@
 #define L4_TCP_MSS_REV(F)             F(8057,   901,   4,   NULL)
 #define L4_TCP_SYN_SIZE(F)            F(8057,   902,   2,   NULL)
 
-#define HTTP_USERAGENT(F)             F(16982,  100,   -1,   NULL)
-#define HTTP_METHOD(F)                F(16982,  101,   -1,   NULL)
-#define HTTP_DOMAIN(F)                F(16982,  102,   -1,   NULL)
-#define HTTP_REFERER(F)               F(16982,  103,   -1,   NULL)
-#define HTTP_CONTENT_TYPE(F)          F(16982,  104,   -1,   NULL)
-#define HTTP_URI(F)                   F(16982,  105,   -1,   NULL)
-#define HTTP_STATUS(F)                F(16982,  106,    2,   NULL)
+#define HTTP_DOMAIN(F)                F(39499,    1,   -1,   NULL)
+#define HTTP_REFERER(F)               F(39499,    3,   -1,   NULL)
+#define HTTP_URI(F)                   F(39499,    2,   -1,   NULL)
+#define HTTP_CONTENT_TYPE(F)          F(39499,   10,   -1,   NULL)
+#define HTTP_STATUS(F)                F(39499,   12,    2,   NULL)
+#define HTTP_USERAGENT(F)             F(39499,   20,   -1,   NULL)
+#define HTTP_METHOD(F)                F(8057,   200,   -1,   NULL)
 
 #define RTSP_METHOD(F)                F(16982,  600,   -1,   NULL)
 #define RTSP_USERAGENT(F)             F(16982,  601,   -1,   NULL)
@@ -189,6 +190,7 @@
 #define ARP_DST_PA(F)                 F(8057,    37,   -1,   NULL)
 
 #define TLS_SNI(F)                    F(8057,   808,   -1,   NULL)
+#define TLS_ALPN(F)                   F(8057,   809,   -1,   NULL)
 #define TLS_JA3(F)                    F(8057,   830,   -1,   NULL)
 
 #define SMTP_COMMANDS(F)              F(8057,    810,   4,   NULL)
@@ -238,6 +240,24 @@
 #define OSQUERY_KERNEL_VERSION(F)             F(8057,    861,  -1,   NULL)
 #define OSQUERY_SYSTEM_HOSTNAME(F)            F(8057,    862,  -1,   NULL)
 
+#define SBI_BRST_PACKETS(F)           F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1050 (uint16*)
+#define SBI_BRST_BYTES(F)             F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1051 (uint16*)
+#define SBI_BRST_TIME_START(F)        F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1052 (time*)
+#define SBI_BRST_TIME_STOP(F)         F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1053 (time*)
+#define DBI_BRST_PACKETS(F)           F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1054 (uint16*)
+#define DBI_BRST_BYTES(F)             F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1055 (uint16*)
+#define DBI_BRST_TIME_START(F)        F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1056 (time*)
+#define DBI_BRST_TIME_STOP(F)         F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1057 (time*)
+
+#define D_PHISTS_IPT(F)               F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1063 (uint16*)
+#define D_PHISTS_SIZES(F)             F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1062 (uint16*)
+#define S_PHISTS_SIZES(F)             F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1060 (uint16*)
+#define S_PHISTS_IPT(F)               F(0,       291,  -1,   NULL) // BASIC LIST -- FIELD IS e8057id1061 (uint16*)
+
+#define WG_CONF_LEVEL(F)              F(8057,    861,   1,   NULL)
+#define WG_SRC_PEER(F)                F(8057,    862,   4,   NULL)
+#define WG_DST_PEER(F)                F(8057,    863,   4,   NULL)
+
 /**
  * IPFIX Templates - list of elements
  *
@@ -245,17 +265,12 @@
  * This argument must be a macro function which is substituted with every
  * specified element of the template.
  *
- * For instance, PACKET_TMPLT contains L2_SRC_MAC, L2_DST_MAC, ETHERTYPE, OBSERVATION_MSEC,
+ * For instance, BASIC_TMPLT_V4 contains FLOW_END_REASON, BYTES, BYTES_REV, PACKETS,...
  * all of them defined above.
  */
 
-#define PACKET_TMPLT(F) \
-   F(L2_SRC_MAC) \
-   F(L2_DST_MAC) \
-   F(ETHERTYPE) \
-   F(OBSERVATION_MSEC)
-
 #define BASIC_TMPLT_V4(F) \
+   F(FLOW_END_REASON) \
    F(BYTES) \
    F(BYTES_REV) \
    F(PACKETS) \
@@ -275,6 +290,7 @@
    F(L2_DST_MAC)
 
 #define BASIC_TMPLT_V6(F) \
+   F(FLOW_END_REASON) \
    F(BYTES) \
    F(BYTES_REV) \
    F(PACKETS) \
@@ -312,6 +328,7 @@
 
 #define IPFIX_TLS_TEMPLATE(F) \
    F(TLS_SNI)\
+   F(TLS_ALPN)\
    F(TLS_JA3)
 
 #define IPFIX_NTP_TEMPLATE(F) \
@@ -328,15 +345,6 @@
    F(NTP_ORIG) \
    F(NTP_RECV) \
    F(NTP_SENT)
-
-#define IPFIX_ARP_TEMPLATE(F) \
-   F(ARP_HA_FORMAT) \
-   F(ARP_PA_FORMAT) \
-   F(ARP_OPCODE) \
-   F(ARP_SRC_HA) \
-   F(ARP_SRC_PA) \
-   F(ARP_DST_HA) \
-   F(ARP_DST_PA)
 
 #define IPFIX_DNS_TEMPLATE(F) \
    F(DNS_ANSWERS) \
@@ -419,6 +427,16 @@
   F(IDP_CONTENT) \
   F(IDP_CONTENT_REV)
 
+#define IPFIX_BSTATS_TEMPLATE(F) \
+  F(SBI_BRST_PACKETS) \
+  F(SBI_BRST_BYTES) \
+  F(SBI_BRST_TIME_START) \
+  F(SBI_BRST_TIME_STOP) \
+  F(DBI_BRST_PACKETS) \
+  F(DBI_BRST_BYTES) \
+  F(DBI_BRST_TIME_START) \
+  F(DBI_BRST_TIME_STOP)
+
 #define IPFIX_NETBIOS_TEMPLATE(F) \
    F(NB_SUFFIX) \
    F(NB_NAME)
@@ -440,6 +458,17 @@
    F(L4_TCP_MSS_REV) \
    F(L4_TCP_SYN_SIZE)
 
+#define IPFIX_PHISTS_TEMPLATE(F) \
+  F(S_PHISTS_SIZES) \
+  F(S_PHISTS_IPT) \
+  F(D_PHISTS_SIZES) \
+  F(D_PHISTS_IPT)
+
+#define IPFIX_WG_TEMPLATE(F) \
+  F(WG_CONF_LEVEL) \
+  F(WG_SRC_PEER) \
+  F(WG_DST_PEER)
+
 /**
  * List of all known templated.
  *
@@ -447,14 +476,12 @@
  * templates at once.
  */
 #define IPFIX_ENABLED_TEMPLATES(F) \
-   PACKET_TMPLT(F) \
    BASIC_TMPLT_V4(F) \
    BASIC_TMPLT_V6(F) \
    IPFIX_HTTP_TEMPLATE(F) \
    IPFIX_RTSP_TEMPLATE(F) \
    IPFIX_TLS_TEMPLATE(F) \
    IPFIX_NTP_TEMPLATE(F) \
-   IPFIX_ARP_TEMPLATE(F) \
    IPFIX_SIP_TEMPLATE(F) \
    IPFIX_DNS_TEMPLATE(F) \
    IPFIX_PASSIVEDNS_TEMPLATE(F) \
@@ -466,7 +493,11 @@
    IPFIX_DNSSD_TEMPLATE(F) \
    IPFIX_IDPCONTENT_TEMPLATE(F) \
    IPFIX_NETBIOS_TEMPLATE(F) \
-   IPFIX_BASICPLUS_TEMPLATE(F)
+   IPFIX_BASICPLUS_TEMPLATE(F) \
+   IPFIX_BSTATS_TEMPLATE(F) \
+   IPFIX_PHISTS_TEMPLATE(F) \
+   IPFIX_WG_TEMPLATE(F)
+
 
 
 /**

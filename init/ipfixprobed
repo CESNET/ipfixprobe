@@ -1,17 +1,44 @@
-#!/usr/bin/sh
+#!/usr/bin/bash
 
 CONFFILE="/etc/ipfixprobe/$1.conf"
 
 if [ -e "$CONFFILE" ]; then
    source "$CONFFILE"
-   if [ "$UDP" = yes ]; then
-      udpparam=-u
-   else
-      udpparam=""
+   input=""
+   if `declare -p INPUT > /dev/null 2>/dev/null`; then
+      # list of input plugins
+      for ifc in "${!INPUT[@]}"; do
+         input="$input -i ${INPUT[ifc]}"
+      done
    fi
-   exec /usr/bin/ipfixprobe -I "$NIC" -p "$PLUGINS" -L "$LINK" -D "$DIR" -x "$COLLECTOR" $udpparam
+   CACHE_SIZE_PARAM=""
+   if [ ! -z ${CACHE_SIZE+x} ]; then
+      CACHE_SIZE_PARAM="size=${CACHE_SIZE}"
+   fi
+   CACHE_ACTIVET_PARAM=""
+   if [ ! -z ${ACTIVE_TIMEOUT+x} ]; then
+      CACHE_ACTIVET_PARAM=";active=${ACTIVE_TIMEOUT}"
+   fi
+   CACHE_INACTIVET_PARAM=""
+   if [ ! -z ${INACTIVE_TIMEOUT+x} ]; then
+      CACHE_INACTIVET_PARAM=";inactive=${INACTIVE_TIMEOUT}"
+   fi
+   storage="-s cache;${CACHE_SIZE_PARAM}${CACHE_ACTIVET_PARAM}${CACHE_INACTIVET_PARAM}"
+   process=""
+   if `declare -p PROCESS > /dev/null 2>/dev/null`; then
+      # list of input plugins
+      for ifc in "${!PROCESS[@]}"; do
+         process="$process -p ${PROCESS[ifc]}"
+      done
+   fi
+   UDP_PARAM=""
+   if [[ $UDP == "yes" ]]; then
+        UDP_PARAM="udp";
+   fi
+   output="-o ipfix;host=${HOST:-127.0.0.1};port=${PORT:-4739};id=${LINK:-0};dir=${DIR:-0};${UDP_PARAM}"
+
+   exec /usr/bin/ipfixprobe $input $storage $process $output
 else
    echo "Configuration file '$CONFFILE' does not exist, exitting." >&2
    exit 1
 fi
-

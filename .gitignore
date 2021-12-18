@@ -94,12 +94,12 @@ libtool
 fields.c
 fields.h
 ipfixprobe-nemea.*
-ipfixprobe
+./ipfixprobe
 ipfixprobe-*.tar.gz
 
 # Test Outputs
 tests/*.log
 tests/*.trs
-tests/test_output/
+tests/output/
 
 

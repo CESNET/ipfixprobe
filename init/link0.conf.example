@@ -1,11 +1,19 @@
 # set up shell-like variables
 
-# Network interface
-NIC=eth0
+# List of activated input plugins (arguments for -i parameter)
+#   Specify array of input plugins with arguments using INPUT[], indexes (subscripts) must be unique
+INPUT[0]="ndp;dev=/dev/nfb0:0"
+INPUT[1]="ndp;dev=/dev/nfb0:1"
 
-# List of activated plugins, to skip plugins, use "basic" only:
-# PLUGINS=basic
-PLUGINS=pstats,tls,http,ssdp,dnssd:txt
+# or specify inputs using loop
+# for i in `seq 0 15`; do
+# INPUT[$i]="ndp;dev=/dev/nfb0:$i"
+# done
+
+# List of activated process plugins (arguments for -p parameter), to skip plugins, use "basic" only:
+# PROCESS=(basic)
+PROCESS=(pstats tls http ssdp "dnssd;txt")
+
 
 # Link / ODID identifier
 LINK=0
@@ -14,8 +22,15 @@ LINK=0
 DIR=0
 
 # Address and port of the IPFIX collector
-COLLECTOR=127.0.0.1:4739
+HOST=127.0.0.1
+PORT=4739
 
 # Use UDP yes/no? (instead of TCP)
 UDP=yes
 
+# Size of flow cache, exponent to the power of two
+CACHE_SIZE=17
+
+# Active and inactive timeout in seconds (double)
+ACTIVE_TIMEOUT=300.0
+INACTIVE_TIMEOUT=65.0
