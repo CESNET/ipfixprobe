@@ -85,7 +85,7 @@ int create_stats_sock(const char *path)
 
    unlink(addr.sun_path);
    fd = socket(AF_UNIX, SOCK_STREAM, 0);
-   if (fd) {
+   if (fd != -1) {
       if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
          perror("unable to bind socket");
          close(fd);

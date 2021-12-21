@@ -104,28 +104,29 @@ int main(int argc, char *argv[])
    std::string path;
    IpfixStatsParser parser;
 
+
    signal(SIGTERM, signal_handler);
    signal(SIGINT, signal_handler);
-
    try {
       parser.parse(argc - 1, const_cast<const char **>(argv) + 1);
-   } catch (ParserError &e) {
+
+      if (parser.m_help) {
+         parser.usage(std::cout, 0);
+         goto EXIT;
+      }
+
+      path = DEFAULTSOCKETDIR "/ipfixprobe_" + std::to_string(parser.m_pid) + ".sock";
+      fd = connect_to_exporter(path.c_str());
+      if (fd == -1) {
+         error("connecting to exporter");
+         goto EXIT;
+      }
+   } catch (std::runtime_error &e) {
       error(e.what());
       status = EXIT_FAILURE;
       goto EXIT;
    }
 
-   if (parser.m_help) {
-      parser.usage(std::cout, 0);
-      goto EXIT;
-   }
-
-   path = DEFAULTSOCKETDIR "/ipfixprobe_" + std::to_string(parser.m_pid) + ".sock";
-   fd = connect_to_exporter(path.c_str());
-   if (fd == -1) {
-      error("connecting to exporter");
-      goto EXIT;
-   }
    while (!stop) {
       *(uint32_t *) buffer = MSG_MAGIC;
       // Send stats data request

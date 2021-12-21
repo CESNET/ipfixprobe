@@ -543,7 +543,8 @@ void serve_stat_clients(ipxp_conf_t &conf, struct pollfd pfds[2])
       int fd = accept(pfds[0].fd, NULL, NULL);
       if (pfds[1].fd == -1) {
          pfds[1].fd = fd;
-      } else {
+      } else if (fd != -1) {
+         // Close incoming connection
          close(fd);
       }
    }
