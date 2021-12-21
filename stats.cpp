@@ -57,62 +57,62 @@ namespace ipxp
 
 int connect_to_exporter(const char *path)
 {
-   int sd;
+   int fd;
    struct sockaddr_un addr;
 
    memset(&addr, 0, sizeof(addr));
    addr.sun_family = AF_UNIX;
    snprintf(addr.sun_path, sizeof(addr.sun_path) - 1, "%s", path);
 
-   sd = socket(AF_UNIX, SOCK_STREAM, 0);
-   if (sd != -1) {
-      if (connect(sd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
+   fd = socket(AF_UNIX, SOCK_STREAM, 0);
+   if (fd != -1) {
+      if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
          perror("unable to connect");
-         close(sd);
+         close(fd);
          return -1;
       }
    }
-   return sd;
+   return fd;
 }
 
 int create_stats_sock(const char *path)
 {
-   int sd;
+   int fd;
    struct sockaddr_un addr;
 
    addr.sun_family = AF_UNIX;
    snprintf(addr.sun_path, sizeof(addr.sun_path) - 1, "%s", path);
 
    unlink(addr.sun_path);
-   sd = socket(AF_UNIX, SOCK_STREAM, 0);
-   if (sd) {
-      if (bind(sd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
+   fd = socket(AF_UNIX, SOCK_STREAM, 0);
+   if (fd) {
+      if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
          perror("unable to bind socket");
-         close(sd);
+         close(fd);
          return -1;
       }
-      if (listen(sd, 1) == -1) {
+      if (listen(fd, 1) == -1) {
          perror("unable to listen on socket");
-         close(sd);
+         close(fd);
          return -1;
       }
       if (chmod(addr.sun_path, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) == -1) {
          perror("unable to set access rights");
-         close(sd);
+         close(fd);
          return -1;
       }
    }
-   return sd;
+   return fd;
 }
 
-int recv_data(int sd, uint32_t size, void *data)
+int recv_data(int fd, uint32_t size, void *data)
 {
    size_t num_of_timeouts = 0;
    size_t total_received = 0;
    ssize_t last_received = 0;
 
    while (total_received < size) {
-      last_received = recv(sd, (uint8_t *) data + total_received, size - total_received, MSG_DONTWAIT);
+      last_received = recv(fd, (uint8_t *) data + total_received, size - total_received, MSG_DONTWAIT);
       if (last_received == 0) {
          return -1;
       } else if (last_received == -1) {
@@ -132,14 +132,14 @@ int recv_data(int sd, uint32_t size, void *data)
    return 0;
 }
 
-int send_data(int sd, uint32_t size, void *data)
+int send_data(int fd, uint32_t size, void *data)
 {
    size_t num_of_timeouts = 0;
    size_t total_sent = 0;
    ssize_t last_sent = 0;
 
    while (total_sent < size) {
-      last_sent = send(sd, (uint8_t *) data + total_sent, size - total_sent, MSG_DONTWAIT);
+      last_sent = send(fd, (uint8_t *) data + total_sent, size - total_sent, MSG_DONTWAIT);
       if (last_sent == -1) {
          if (errno == EAGAIN  || errno == EWOULDBLOCK) {
             num_of_timeouts++;
