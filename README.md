@@ -4,6 +4,7 @@
 This application creates biflows from packet input and exports them to output interface.
 
 ## Requirements
+- libatomic
 - kernel version at least 3.19 when using raw sockets input plugin enabled by default (disable with `--without-raw` parameter for `./configure`)
 - [libpcap](http://www.tcpdump.org/) when compiling with pcap plugin (`--with-pcap` parameter)
 - netcope-common [COMBO cards](https://www.liberouter.org/technologies/cards/) when compiling with ndp plugin (`--with-ndp` parameter)
@@ -231,10 +232,12 @@ List of unirec fields exported together with basic flow fields on interface by R
 ### TLS
 List of unirec fields exported together with basic flow fields on interface by TLS plugin.
 
-| UniRec field        | Type   | Description                  |
-|:-------------------:|:------:|:----------------------------:|
-| TLS_SNI             | string | TLS server name indication   |
-| TLS_JA3             | string | TLS client JA3 fingerprint   |
+| UniRec field        | Type   | Description                                                   |
+|:-------------------:|:------:|:-------------------------------------------------------------:|
+| TLS_SNI             | string | TLS server name indication field from client                  |
+| TLS_ALPN            | string | TLS application protocol layer negotiation field from server  |
+| TLS_VERSION         | uint16 | TLS client protocol version                                   |
+| TLS_JA3             | string | TLS client JA3 fingerprint                                    |
 
 ### DNS
 List of unirec fields exported together with basic flow fields on interface by DNS plugin.
@@ -411,7 +414,7 @@ Note: the following fields are UniRec arrays.
 
 ##### Example:
 ```
-ipfixprobe -p pstats:includezeros -r sample.pcap -i "f:output.trapcap"
+ipfixprobe 'pcap;file=pcaps/http.pcap' -p pstats:includezeros -o 'unirec;i=u:stats:timeout=WAIT;p=stats'"
 ```
 
 ### OSQUERY
@@ -522,7 +525,7 @@ The exported unirec fields and IPFIX basiclists is shown in following table:
 
 ##### Example:
 ```
-ipfixprobe -p phists:includezeros -r sample.pcap -i "f:output.trapcap"
+ipfixprobe 'pcap;file=pcaps/http.pcap' -p phists:includezeros -o 'unirec;i=u:hists:timeout=WAIT;p=phists'"
 ```
 ### BSTATS
 

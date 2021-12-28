@@ -172,8 +172,11 @@ bool parse_tls_nonext_hdr(payload_data &payload, std::stringstream *ja3)
       return false;
    }
 
-   uint32_t hs_len = tls_hs->length1 << 16 | ntohs(tls_hs->length2);
-   if (payload.data + hs_len > payload.end || tls_hs->version.major != 3 ||
+   //uint32_t hs_len = tls_hs->length1 << 16 | ntohs(tls_hs->length2);
+
+   // 1 + 3 + 2 + 32 + 1 + 2 + 1 + 2 = 44
+   // type + length + version + random + sessionid + ciphers + compression + ext-len
+   if (payload.data + 44 > payload.end || tls_hs->version.major != 3 ||
      tls_hs->version.minor < 1 || tls_hs->version.minor > 3) {
       return false;
    }
@@ -217,10 +220,9 @@ bool parse_tls_nonext_hdr(payload_data &payload, std::stringstream *ja3)
 
    const char *ext_end = payload.data + ntohs(*(uint16_t *) payload.data) + 2;
    payload.data += 2;
-   if (ext_end > payload.end) {
-      return false;
+   if (ext_end <= payload.end) {
+      payload.end = ext_end;
    }
-   payload.end = ext_end;
 
    return true;
 }
@@ -251,6 +253,7 @@ bool TLSPlugin::parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *
    if (!parse_tls_nonext_hdr(payload, &ja3)) {
       return false;
    }
+   rec->version = ((uint16_t) tls_hs->version.major << 8) | tls_hs->version.minor;
 
    while (payload.data + sizeof(tls_ext) <= payload.end) {
       tls_ext *ext    = (tls_ext *) payload.data;
@@ -258,6 +261,10 @@ bool TLSPlugin::parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *
       uint16_t type   = ntohs(ext->type);
 
       payload.data += sizeof(tls_ext);
+      if (payload.data + length > payload.end) {
+         break;
+      }
+
       if (hs_type == TLS_HANDSHAKE_CLIENT_HELLO) {
          if (type == TLS_EXT_SERVER_NAME) {
             get_tls_server_name(payload, rec->sni, sizeof(rec->sni));

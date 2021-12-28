@@ -61,11 +61,12 @@
 
 namespace ipxp {
 
-#define TLS_UNIREC_TEMPLATE "TLS_SNI,TLS_JA3,TLS_ALPN"
+#define TLS_UNIREC_TEMPLATE "TLS_SNI,TLS_JA3,TLS_ALPN,TLS_VERSION"
 
 UR_FIELDS(
    string TLS_SNI,
    string TLS_ALPN,
+   uint16 TLS_VERSION,
    bytes TLS_JA3
 )
 
@@ -75,6 +76,7 @@ UR_FIELDS(
 struct RecordExtTLS : public RecordExt {
    static int REGISTERED_ID;
 
+   uint16_t version;
    char alpn[255];
    char sni[255];
    char ja3_hash[33];
@@ -84,7 +86,7 @@ struct RecordExtTLS : public RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtTLS() : RecordExt(REGISTERED_ID)
+   RecordExtTLS() : RecordExt(REGISTERED_ID), version(0)
    {
       alpn[0] = 0;
       sni[0] = 0;
@@ -93,6 +95,7 @@ struct RecordExtTLS : public RecordExt {
 #ifdef WITH_NEMEA
    virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
+      ur_set(tmplt, record, F_TLS_VERSION, version);
       ur_set_string(tmplt, record, F_TLS_SNI, sni);
       ur_set_string(tmplt, record, F_TLS_ALPN, alpn);
       ur_set_var(tmplt, record, F_TLS_JA3, ja3_hash_bin, 16);
@@ -110,9 +113,12 @@ struct RecordExtTLS : public RecordExt {
       int alpn_len = strlen(alpn);
       int pos = 0;
 
-      if (sni_len + alpn_len + 16 + 3 > size) {
+      if (sni_len + alpn_len + 2 + 16 + 3 > size) {
          return -1;
       }
+
+      *(uint16_t *) buffer = ntohs(version);
+      pos += 2;
 
       buffer[pos++] = sni_len;
       memcpy(buffer + pos, sni, sni_len);
@@ -144,9 +150,10 @@ struct RecordExtTLS : public RecordExt {
       std::ostringstream out;
       out << "tlssni=\"" << sni << "\""
          << ",tlsalpn=\"" << alpn << "\""
+         << ",tlsversion=0x" << std::hex << std::setw(4) << std::setfill('0') << version
          << ",tlsja3=";
       for (int i = 0; i < 16; i++) {
-         out << std::hex << std::setw(2) << ja3_hash_bin[i];
+         out << std::hex << std::setw(2) << std::setfill('0') << (unsigned) ja3_hash_bin[i];
       }
       return out.str();
    }

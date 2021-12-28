@@ -82,7 +82,7 @@ public:
       register_option("f", "file", "PATH", "Path to a pcap file", [this](const char *arg){m_file = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("i", "ifc", "IFC", "Network interface name", [this](const char *arg){m_ifc = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("F", "filter", "STR", "Filter string", [this](const char *arg){m_filter = arg; return true;}, OptionFlags::RequiredArgument);
-      register_option("s", "snaplen", "SIZE", "Snapshot length in bytes",
+      register_option("s", "snaplen", "SIZE", "Snapshot length in bytes (live capture only)",
          [this](const char *arg){try {m_snaplen = str2num<decltype(m_snaplen)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);
       register_option("l", "list", "", "Print list of available interfaces", [this](const char *arg){m_list = true; return true;}, OptionFlags::NoArgument);

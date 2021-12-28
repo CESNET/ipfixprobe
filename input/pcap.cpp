@@ -263,13 +263,13 @@ InputPlugin::Result PcapReader::get(PacketBlock &packets)
          return Result::TIMEOUT;
       }
       if (ret > 0) {
-         m_processed += ret;
+         m_seen += ret;
          m_parsed += opt.pblock->cnt;
          return opt.packet_valid ? Result::PARSED : Result::NOT_PARSED;
       }
    } else {
       if (opt.pblock->cnt) {
-         m_processed += ret ? ret : opt.pblock->cnt;
+         m_seen += ret ? ret : opt.pblock->cnt;
          m_parsed += opt.pblock->cnt;
          return Result::PARSED;
       } else if (ret == 0) {

@@ -194,6 +194,7 @@ namespace ipxp {
 
 #define TLS_SNI(F)                    F(8057,   808,   -1,   nullptr)
 #define TLS_ALPN(F)                   F(8057,   809,   -1,   nullptr)
+#define TLS_VERSION(F)                F(8057,   810,    2,   nullptr)
 #define TLS_JA3(F)                    F(8057,   830,   -1,   nullptr)
 
 #define SMTP_COMMANDS(F)              F(8057,    810,   4,   nullptr)
@@ -348,6 +349,7 @@ namespace ipxp {
 #define IPFIX_TLS_TEMPLATE(F) \
    F(TLS_SNI) \
    F(TLS_ALPN) \
+   F(TLS_VERSION) \
    F(TLS_JA3)
 
 #define IPFIX_NTP_TEMPLATE(F) \

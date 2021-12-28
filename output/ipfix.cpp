@@ -200,6 +200,9 @@ void IPFIXExporter::init(const char *params, Plugins &plugins)
    init(params);
 
    extension_cnt = get_extension_cnt();
+   if (extension_cnt > 64) {
+      throw PluginError("output plugin operates only with up to 64 running plugins");
+   }
    extensions = new RecordExt*[extension_cnt];
    for (int i = 0; i < extension_cnt; i++) {
       extensions[i] = nullptr;
@@ -211,7 +214,7 @@ void IPFIXExporter::init(const char *params, Plugins &plugins)
       if (ext == nullptr) {
          continue;
       }
-      if (ext->m_ext_id > 64) {
+      if (ext->m_ext_id >= 64) {
          throw PluginError("detected plugin ID >64");
       } else if (ext->m_ext_id >= extension_cnt) {
          throw PluginError("detected plugin ID larger than number of extensions");
@@ -274,7 +277,7 @@ template_t *IPFIXExporter::get_template(const Flow &flow)
 
       RecordExt *ext = flow.m_exts;
       while (ext != nullptr) {
-         if (ext->m_ext_id >= extension_cnt || ext->m_ext_id >= 64) {
+         if (ext->m_ext_id < 0 || ext->m_ext_id >= extension_cnt) {
             throw PluginError("encountered invalid extension id");
          }
          extensions[ext->m_ext_id] = ext;

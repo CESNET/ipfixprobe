@@ -1,6 +1,6 @@
 /**
- * \file workers.hpp
- * \brief Exporter worker procedures
+ * \file stats.hpp
+ * \brief Exporter stats definition and service IO functions
  * \author Jiri Havranek <havranek@cesnet.cz>
  * \date 2021
  */
@@ -41,60 +41,47 @@
  *
  */
 
-#ifndef IPXP_WORKERS_HPP
-#define IPXP_WORKERS_HPP
+#ifndef IPXP_STATS_HPP
+#define IPXP_STATS_HPP
 
-#include <future>
-#include <atomic>
+#define SERVICE_WAIT_BEFORE_TIMEOUT 250000  ///< Timeout after EAGAIN or EWOULDBLOCK errno returned from service send() and recv().
+#define SERVICE_WAIT_MAX_TRY 8  ///< A maximal count of repeated timeouts per each service recv() and send() function call.
 
-#include <ipfixprobe/input.hpp>
-#include <ipfixprobe/storage.hpp>
-#include <ipfixprobe/output.hpp>
-#include <ipfixprobe/process.hpp>
-#include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/ring.h>
+#define MSG_MAGIC 0xBEEFFEEB
 
-#include "stats.hpp"
+namespace ipxp
+{
 
-namespace ipxp {
-
-#define MICRO_SEC 1000000L
-
-struct WorkerResult {
-   bool error;
-   std::string msg;
+struct InputStats {
+   uint64_t packets;
+   uint64_t parsed;
+   uint64_t bytes;
+   uint64_t qtime;
+   uint64_t dropped;
 };
 
-struct WorkPipeline {
-   struct {
-      InputPlugin *plugin;
-      std::thread *thread;
-      std::promise<WorkerResult> *promise;
-      std::atomic<InputStats> *stats;
-   } input;
-   struct {
-      StoragePlugin *plugin;
-      std::thread *thread;
-      std::promise<WorkerResult> *promise;
-      std::vector<ProcessPlugin *> plugins;
-   } storage;
-   ipx_ring_t *queue;
+struct OutputStats {
+   uint64_t biflows;
+   uint64_t bytes;
+   uint64_t packets;
+   uint64_t dropped;
 };
 
-struct OutputWorker {
-   OutputPlugin *plugin;
-   std::thread *thread;
-   std::promise<WorkerResult> *promise;
-   std::atomic<OutputStats> *stats;
-   ipx_ring_t *queue;
-};
+typedef struct msg_header_s
+{
+   uint32_t magic;
+   uint16_t size;
+   uint16_t inputs;
+   uint16_t outputs;
 
-void input_worker(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint64_t pkt_limit, ipx_ring_t *queue,
-      std::promise<WorkerResult> *out, std::atomic<InputStats> *out_stats, std::shared_future<void> *terminate);
-void storage_worker(StoragePlugin *cache, ipx_ring_t *queue, std::promise<WorkerResult> *out, std::shared_future<void> *terminate);
-void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<WorkerResult> *out, std::atomic<OutputStats> *out_stats,
-      uint32_t fps, std::shared_future<void> *terminate);
+   // followed by arrays of plugin stats
+} msg_header_t;
+
+int connect_to_exporter(const char *path);
+int create_stats_sock(const char *path);
+int recv_data(int sd, uint32_t size, void *data);
+int send_data(int sd, uint32_t size, void *data);
+std::string create_sockpath(const char *id);
 
 }
-
-#endif /* IPXP_WORKERS_HPP */
+#endif /* IPXP_STATS_HPP */
