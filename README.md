@@ -414,6 +414,23 @@ Note: the following fields are UniRec arrays.
 ipfixprobe -p pstats:includezeros -r sample.pcap -i "f:output.trapcap"
 ```
 
+### OSQUERY
+List of unirec fields exported together with basic flow fields on interface by OSQUERY plugin.
+
+| UniRec field               | Type     | Description                                         |
+|:--------------------------:|:--------:|:---------------------------------------------------:|
+| PROGRAM_NAME               | string   | The name of the program that handles the connection |
+| USERNAME                   | string   | The name of the user who starts the process         |
+| OS_NAME                    | string   | Distribution or product name                        |
+| OS_MAJOR                   | uint16   | Major release version                               |
+| OS_MINOR                   | uint16   | Minor release version                               |
+| OS_BUILD                   | string   | Optional build-specific or variant string           |
+| OS_PLATFORM                | string   | OS Platform or ID                                   |
+| OS_PLATFORM_LIKE           | string   | Closely related platforms                           |
+| OS_ARCH                    | string   | OS Architecture                                     |
+| KERNEL_VERSION             | string   | Kernel version                                      |
+| SYSTEM_HOSTNAME            | string   | Network hostname including domain                   |
+
 ### SSDP
 List of unirec fields exported together with basic flow fields on interface by SSDP plugin.
 

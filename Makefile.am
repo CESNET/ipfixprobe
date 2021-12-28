@@ -80,8 +80,6 @@ ipfixprobe_output_src+=\
 			fields.h
 endif
 
-
-
 ipfixprobe_process_src=\
 		process/http.cpp \
 		process/http.hpp \
@@ -130,6 +128,7 @@ ipfixprobe_process_src+=\
 		process/quic.hpp \
 		process/quic.cpp
 endif
+
 if WITH_FLEXPROBE
 ipfixprobe_process_src+=\
 		process/flexprobe-data.h \
@@ -139,6 +138,12 @@ ipfixprobe_process_src+=\
 		process/flexprobe-tcp-tracking.h \
 		process/flexprobe-encryption-processing.cpp \
 		process/flexprobe-encryption-processing.h
+endif
+
+if WITH_OSQUERY
+ipfixprobe_input_src+=\
+      process/osquery.cpp\
+      process/osquery.hpp
 endif
 
 if WITH_DPDK

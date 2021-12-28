@@ -231,7 +231,6 @@ namespace ipxp {
 #define STATS_PCKT_TCPFLGS(F)         F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1015 (uint8*)
 #define STATS_PCKT_DIRECTIONS(F)      F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1016 (int8*)
 
-
 #define SBI_BRST_PACKETS(F)           F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1050 (uint16*)
 #define SBI_BRST_BYTES(F)             F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1051 (uint16*)
 #define SBI_BRST_TIME_START(F)        F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1052 (time*)
@@ -252,9 +251,21 @@ namespace ipxp {
 
 #define QUIC_SNI(F)                   F(8057,    890,   -1,  nullptr)
 
+#define OSQUERY_PROGRAM_NAME(F)       F(8057,    852,  -1,   nullptr)
+#define OSQUERY_USERNAME(F)           F(8057,    853,  -1,   nullptr)
+#define OSQUERY_OS_NAME(F)            F(8057,    854,  -1,   nullptr)
+#define OSQUERY_OS_MAJOR(F)           F(8057,    855,   2,   nullptr)
+#define OSQUERY_OS_MINOR(F)           F(8057,    856,   2,   nullptr)
+#define OSQUERY_OS_BUILD(F)           F(8057,    857,  -1,   nullptr)
+#define OSQUERY_OS_PLATFORM(F)        F(8057,    858,  -1,   nullptr)
+#define OSQUERY_OS_PLATFORM_LIKE(F)   F(8057,    859,  -1,   nullptr)
+#define OSQUERY_OS_ARCH(F)            F(8057,    860,  -1,   nullptr)
+#define OSQUERY_KERNEL_VERSION(F)     F(8057,    861,  -1,   nullptr)
+#define OSQUERY_SYSTEM_HOSTNAME(F)    F(8057,    862,  -1,   nullptr)
+
 #ifdef WITH_FLEXPROBE
-#define FX_FRAME_SIGNATURE(F)         F(5715,   1010,  18,   NULL)
-#define FX_TCP_TRACKING(F)            F(5715,   1020,   1,   NULL)
+#define FX_FRAME_SIGNATURE(F)         F(5715,   1010,  18,   nullptr)
+#define FX_TCP_TRACKING(F)            F(5715,   1020,   1,   nullptr)
 #endif
 
 /**
@@ -467,6 +478,19 @@ namespace ipxp {
 #define IPFIX_QUIC_TEMPLATE(F) \
   F(QUIC_SNI)
 
+#define IPFIX_OSQUERY_TEMPLATE(F) \
+   F(OSQUERY_PROGRAM_NAME) \
+   F(OSQUERY_USERNAME) \
+   F(OSQUERY_OS_NAME) \
+   F(OSQUERY_OS_MAJOR) \
+   F(OSQUERY_OS_MINOR) \
+   F(OSQUERY_OS_BUILD) \
+   F(OSQUERY_OS_PLATFORM) \
+   F(OSQUERY_OS_PLATFORM_LIKE) \
+   F(OSQUERY_OS_ARCH) \
+   F(OSQUERY_KERNEL_VERSION) \
+   F(OSQUERY_SYSTEM_HOSTNAME)
+
 #ifdef WITH_FLEXPROBE
 #define IPFIX_FLEXPROBE_DATA_TEMPLATE(F) F(FX_FRAME_SIGNATURE)
 #define IPFIX_FLEXPROBE_TCP_TEMPLATE(F) F(FX_TCP_TRACKING)
@@ -505,6 +529,7 @@ namespace ipxp {
    IPFIX_PHISTS_TEMPLATE(F) \
    IPFIX_WG_TEMPLATE(F) \
    IPFIX_QUIC_TEMPLATE(F) \
+   IPFIX_OSQUERY_TEMPLATE(F) \
    IPFIX_FLEXPROBE_DATA_TEMPLATE(F) \
    IPFIX_FLEXPROBE_TCP_TEMPLATE(F) \
    IPFIX_FLEXPROBE_ENCR_TEMPLATE(F)
