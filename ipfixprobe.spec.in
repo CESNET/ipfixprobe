@@ -35,7 +35,7 @@
 %global compile_unwind no
 %endif
 
-%if %{el7}
+%if "%{dist}" == ".el7"
 %global is_el7 yes
 %else
 %global is_el7 no
@@ -75,6 +75,14 @@ Requires: libunwind
 BuildRequires: libunwind-devel
 %endif
 
+%if "%{is_el7}" == "yes"
+Requires: openssl11
+BuildRequires: openssl11-devel
+%else
+Requires: openssl
+BuildRequires: openssl-devel
+%endif
+
 %description
 This package contains nemea flow exporter.
 
@@ -112,9 +120,6 @@ This package contains header file for liburfilter.
 %{_sysconfdir}/bash_completion.d/ipfixprobe.bash
 %{_sysconfdir}/ipfixprobe/link0.conf.example
 %{_docdir}/ipfixprobe/README.md
-%if %{with nemea} || "@NEMEARPM@" == "yes"
-%{_mandir}/man1/ipfixprobe-nemea.1*
-%endif
 %if %{with ndp}
 %{_libdir}/libndpRI.so.0
 %{_libdir}/libndpRI.so.0.0.0

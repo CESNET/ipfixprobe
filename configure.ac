@@ -115,7 +115,7 @@ fi
 AC_ARG_ENABLE([legacy-ssl],
        AC_HELP_STRING([--enable-legacy-ssl],[Compile ipfixprobe on centos7.]),
        [
-       if test "$withval" = "yes"; then
+       if test "$enableval" = "yes"; then
           legacyssl="yes"
        else
           legacyssl="no"
