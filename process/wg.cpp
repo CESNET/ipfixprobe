@@ -129,6 +129,8 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
    uint32_t cmp_peer;
    uint32_t cmp_new_peer;
 
+   static const char dns_query_mask [4] = {0x00, 0x01, 0x00, 0x00};
+
    total++;
 
    // The smallest message (according to specs) is the data message (0x04) with 16 header bytes
@@ -200,7 +202,16 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
          break;
    }
 
-   ext->possible_wg = 100;
+   // Possible misdetection
+   // - DNS request
+   //   Can happen when transaction ID is >= 1 and <= 4, the query is non-recursive
+   //   and other flags are zeros, too.
+   //   2B transaction ID, 2B flags, 2B questions count, 2B answers count
+   if (!memcmp((data + 4), dns_query_mask, sizeof(dns_query_mask))) {
+      ext->possible_wg = 1;
+   } else {
+      ext->possible_wg = 100;
+   }
    identified++;
    return true;
 }
