@@ -95,12 +95,16 @@ int WGPlugin::post_create(Flow &rec, const Packet &pkt)
 int WGPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    RecordExtWG *vpn_data = (RecordExtWG *) rec.get_extension(RecordExtWG::REGISTERED_ID);
-   if (vpn_data != nullptr) {
-      parse_wg(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.source_pkt, vpn_data);
-
+   if (vpn_data != nullptr && vpn_data->possible_wg) {
+      bool res = parse_wg(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.source_pkt, vpn_data);
+      // In case of new flow, flush
       if (flow_flush) {
          flow_flush = false;
          return FLOW_FLUSH_WITH_REINSERT;
+      }
+      // In other cases, when WG was not detected
+      if (!res) {
+         vpn_data->possible_wg = 0;
       }
    }
 
