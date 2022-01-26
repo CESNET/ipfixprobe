@@ -181,7 +181,7 @@ InputPlugin::Result StemPacketReader::get(PacketBlock &packets)
             bool status = convert(spkt, packets.pkts[packets.cnt]);
             packets.bytes += packets.pkts[packets.cnt].packet_len_wire;
 
-            m_processed += 1;
+            m_seen += 1;
             if (!status) {
                continue;
             }
