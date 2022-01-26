@@ -151,7 +151,7 @@ bool NTPPlugin::parse_ntp(const Packet &pkt, RecordExtNTP *ntp_data_ext)
    const unsigned char *payload = nullptr;
    unsigned char aux = '.';
    std::string result = "", result2 = "";
-   std::ostringstream convert, convert2;
+   std::string convert;
    std::string str;
    payload = (unsigned char *) pkt.payload;
 
@@ -237,56 +237,45 @@ bool NTPPlugin::parse_ntp(const Packet &pkt, RecordExtNTP *ntp_data_ext)
       * *******************************/
       ch_counter = 0;
       number = (int) payload[12];
-      convert << number;
-      result = convert.str();
-      for (i = 0; i < convert.str().length(); i++) {
-         ntp_data_ext->reference_id[ch_counter] = result[i];
+      convert = std::to_string(number);
+      for (i = 0; i < convert.length(); i++) {
+         ntp_data_ext->reference_id[ch_counter] = convert[i];
          ch_counter++;
       }
       ntp_data_ext->reference_id[ch_counter] = '.';
       ch_counter++;
-      result = "";
-      std::stringstream ss;
-      convert.str(".");
 
       /*********************************
       * Second octect NTP reference ID.*
       * ********************************/
       number = (int) payload[13];
-      convert << number;
-      result = convert.str();
-      for (i = 0; i < convert.str().length(); i++) {
-         ntp_data_ext->reference_id[ch_counter] = result[i];
+      convert = std::to_string(number);
+      for (i = 0; i < convert.length(); i++) {
+         ntp_data_ext->reference_id[ch_counter] = convert[i];
          ch_counter++;
       }
       ntp_data_ext->reference_id[ch_counter] = '.';
       ch_counter++;
-      result = "";
-      convert.str(".");
 
       /********************************
       * Third octect NTP reference ID.*
       * *******************************/
       number = (int) payload[14];
-      convert << number;
-      result = convert.str();
-      for (i = 0; i < convert.str().length(); i++) {
-         ntp_data_ext->reference_id[ch_counter] = result[i];
+      convert = std::to_string(number);
+      for (i = 0; i < convert.length(); i++) {
+         ntp_data_ext->reference_id[ch_counter] = convert[i];
          ch_counter++;
       }
       ntp_data_ext->reference_id[ch_counter] = '.';
       ch_counter++;
-      result = "";
-      convert.str(".");
 
       /*********************************
       * Fourth octect NTP reference ID.*
       * ********************************/
       number = (int) payload[15];
-      convert << number;
-      result = convert.str();
-      for (i = 0; i < convert.str().length(); i++) {
-         ntp_data_ext->reference_id[ch_counter] = result[i];
+      convert = std::to_string(number);
+      for (i = 0; i < convert.length(); i++) {
+         ntp_data_ext->reference_id[ch_counter] = convert[i];
          ch_counter++;
       }
       ntp_data_ext->reference_id[ch_counter] = '\0';
@@ -306,7 +295,6 @@ bool NTPPlugin::parse_ntp(const Packet &pkt, RecordExtNTP *ntp_data_ext)
       * ****************************/
       DEBUG_MSG("\tntp Reference Timestamp\n");
       ch_counter = 0;
-      result = "";
       result = parse_timestamp(pkt, 16, 19, 20, 23);
       for (i = 0; i < result.length(); i++) {
          ntp_data_ext->reference[ch_counter] = result[i];
@@ -323,7 +311,6 @@ bool NTPPlugin::parse_ntp(const Packet &pkt, RecordExtNTP *ntp_data_ext)
       *****************************/
       DEBUG_MSG("\tntp Origin Timestamp\n");
       ch_counter = 0;
-      result = "";
       result = parse_timestamp(pkt, 24, 27, 28, 31);
       for (i = 0; i < result.length(); i++){
          ntp_data_ext->origin[ch_counter] = result[i];
@@ -340,7 +327,6 @@ bool NTPPlugin::parse_ntp(const Packet &pkt, RecordExtNTP *ntp_data_ext)
       *****************************/
       DEBUG_MSG("\tntp Receive Timestamp\n");
       ch_counter = 0;
-      result = "";
       result = parse_timestamp(pkt, 32, 35, 36, 39);
       for(i = 0; i < result.length(); i++) {
          ntp_data_ext->receive[ch_counter] = result[i];
@@ -357,7 +343,6 @@ bool NTPPlugin::parse_ntp(const Packet &pkt, RecordExtNTP *ntp_data_ext)
       *****************************/
       DEBUG_MSG("\tntp Transmit Timestamp\n");
       ch_counter = 0;
-      result = "";
       result = parse_timestamp(pkt, 40, 43, 44, 47);
       for (i = 0; i < result.length(); i++) {
          ntp_data_ext->sent[ch_counter] = result[i];
@@ -389,44 +374,48 @@ std::string NTPPlugin::parse_timestamp(const Packet &pkt, uint16_t p1, uint16_t 
    int number = 0;
    const unsigned char *payload = nullptr;
    std::string result = "", result2 = "";
-   std::ostringstream convert, convert2;
    std::string str;
+   std::string convert2;
+   std::string convert;
+   char hex_buf[3];
    uint32_t time = 0;
    uint32_t highestbit = 0x80000000;
-   float fract = 0.0f;
+   double fract = 0.0f;
    uint32_t tmp = 0;
-   float curfract = 0.5;
+   double curfract = 0.5;
    payload = (unsigned char *) pkt.payload;
 
       /* ********************
       * SECONDS CALCULATION.*
       * *********************/
    result = "";
-   convert.str("");
    number = 0;
-   convert << 0;
+   convert = "0";
    for (i = p1; i <= p4; i++) {
       number =  payload[i];
-      convert << std::hex << number;
+      std::sprintf(hex_buf, "%x", number);
+      convert += hex_buf;
    }
-   result = convert.str();
+   result = convert;
    str = result;
    const char *c = str.c_str();
    time = strtoul(c, 0, 16);
-   convert2 << time;
+   convert2 = std::to_string(time);
    DEBUG_MSG("\t\ttimestamp seconds:\t\t\t%u\n", time);
 
       /* *********************
       * FRACTION CALCULATION.*
       * **********************/
    result = "";
-   convert.str("");
-   convert2 << ".";
+   convert2 += ".";
+   convert = "";
    for (i = p5; i <= p8; i++) {
       number = payload[i];
-      convert << number;
+      std::sprintf(hex_buf, "%x", number);
+      convert += hex_buf;
+
    }
-   result = convert.str();
+   result = convert;
    str = result;
    const char *c2 = str.c_str();
    time = strtoul(c2, 0, 16);
@@ -439,8 +428,9 @@ std::string NTPPlugin::parse_timestamp(const Packet &pkt, uint16_t p1, uint16_t 
       tmp = tmp << 1;
    }
    DEBUG_MSG("\t\ttimestamp fraction:\t\t\t%f\n", fract);
-   convert2 << fract;
-   result2 = convert2.str();
+   convert2 += std::to_string(fract);
+   result2 = convert2;
+
    for (i = 0; ; i++) {
       if (result2[i] == '.') {
          for (k = i + 2; k <= result2.length(); k++) { result2[k - 2] = result2[k]; }

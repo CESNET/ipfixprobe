@@ -139,7 +139,7 @@ bool is_grease_value(uint16_t val)
    return false;
 }
 
-void get_ja3_cipher_suites(std::stringstream &ja3, payload_data &data)
+void get_ja3_cipher_suites(std::string &ja3, payload_data &data)
 {
    int cipher_suites_length = ntohs(*(uint16_t *) data.data);
    uint16_t type_id         = 0;
@@ -154,16 +154,16 @@ void get_ja3_cipher_suites(std::stringstream &ja3, payload_data &data)
    for (; data.data <= section_end; data.data += sizeof(uint16_t)) {
       type_id = ntohs(*(uint16_t *) (data.data));
       if (!is_grease_value(type_id)) {
-         ja3 << type_id;
+         ja3 += std::to_string(type_id);
          if (data.data < section_end) {
-            ja3 << '-';
+            ja3 += '-';
          }
       }
    }
-   ja3 << ',';
+   ja3 += ',';
 }
 
-bool parse_tls_nonext_hdr(payload_data &payload, std::stringstream *ja3)
+bool parse_tls_nonext_hdr(payload_data &payload, std::string *ja3)
 {
    tls_handshake *tls_hs = (tls_handshake *) payload.data;
    const uint8_t hs_type = tls_hs->type;
@@ -183,7 +183,7 @@ bool parse_tls_nonext_hdr(payload_data &payload, std::stringstream *ja3)
    payload.data += sizeof(tls_handshake);
 
    if (ja3) {
-      *ja3 << (uint16_t) tls_hs->version.version << ',';
+      *ja3 += std::to_string((uint16_t) tls_hs->version.version) + ',';
    }
 
    payload.data += 32; // Skip random
@@ -238,7 +238,7 @@ bool TLSPlugin::parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *
 
    std::string ecliptic_curves;
    std::string ec_point_formats;
-   std::stringstream ja3;
+   std::string ja3;
 
    tls_rec *tls = (tls_rec *) payload.data;
    if (payload.data + sizeof(tls_rec) > payload.end || !tls || tls->type != TLS_HANDSHAKE ||
@@ -289,10 +289,10 @@ bool TLSPlugin::parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *
       }
       payload.data += length;
       if (!is_grease_value(type)) {
-         ja3 << type;
+         ja3 += std::to_string(type);
 
          if (payload.data + sizeof(tls_ext) <= payload.end) {
-            ja3 << '-';
+            ja3 += '-';
          }
       }
    }
@@ -300,16 +300,16 @@ bool TLSPlugin::parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *
       return false;
    }
 
-   ja3 << ',' << ecliptic_curves << ',' << ec_point_formats;
-   md5_get_bin(ja3.str(), rec->ja3_hash_bin);
+   ja3 += ',' + ecliptic_curves + ',' + ec_point_formats;
+   md5_get_bin(ja3, rec->ja3_hash_bin);
 
    DEBUG_CODE(for(int i = 0; i < 16; i++){
        DEBUG_MSG("%02x", rec->ja3_hash_bin[i]);
    })
    DEBUG_MSG("\n");
-   DEBUG_MSG("%s\n", ja3.str().c_str());
+   DEBUG_MSG("%s\n", ja3.c_str());
 
-   return payload.sni_parsed != 0 || !ja3.str().empty();
+   return payload.sni_parsed != 0 || !ja3.empty();
 } // TLSPlugin::parse_sni
 
 void get_tls_server_name(payload_data &data, char *out, size_t bufsize)
@@ -382,7 +382,7 @@ void TLSPlugin::get_alpn(payload_data &data, RecordExtTLS *rec)
 
 std::string TLSPlugin::get_ja3_ecpliptic_curves(payload_data &data)
 {
-   std::stringstream collected_types;
+   std::string collected_types;
    uint16_t type_id     = 0;
    uint16_t list_len    = ntohs(*(uint16_t *) data.data);
    const char *list_end = data.data + list_len + sizeof(list_len);
@@ -397,19 +397,19 @@ std::string TLSPlugin::get_ja3_ecpliptic_curves(payload_data &data)
       type_id = ntohs(*(uint16_t *) (data.data + offset));
       offset += sizeof(uint16_t);
       if (!is_grease_value(type_id)) {
-         collected_types << type_id;
+         collected_types += std::to_string(type_id);
 
          if (data.data + sizeof(uint16_t) + offset <= list_end) {
-            collected_types << '-';
+            collected_types += '-';
          }
       }
    }
-   return collected_types.str();
+   return collected_types;
 }
 
 std::string TLSPlugin::get_ja3_ec_point_formats(payload_data &data)
 {
-   std::stringstream collected_formats;
+   std::string collected_formats;
    uint8_t list_len     = *data.data;
    uint16_t offset      = sizeof(list_len);
    const char *list_end = data.data + list_len + offset;
@@ -422,13 +422,13 @@ std::string TLSPlugin::get_ja3_ec_point_formats(payload_data &data)
 
    while (data.data + sizeof(uint8_t) + offset <= list_end) {
       format = *(data.data + offset);
-      collected_formats << (int) format;
+      collected_formats += std::to_string((int)format);
       offset += sizeof(uint8_t);
       if (data.data + sizeof(uint8_t) + offset <= list_end) {
-         collected_formats << '-';
+         collected_formats += '-';
       }
    }
-   return collected_formats.str();
+   return collected_formats;
 }
 
 void TLSPlugin::add_tls_record(Flow &rec, const Packet &pkt)
