@@ -212,7 +212,7 @@ struct __attribute__ ((packed)) tls_ext_sni {
 };
 
 void get_tls_server_name(payload_data &data, char *out, size_t bufsize);
-bool parse_tls_nonext_hdr(payload_data &payload, std::stringstream *ja3);
+bool parse_tls_nonext_hdr(payload_data &payload, std::string *ja3);
 
 /**
  * \brief Flow cache plugin for parsing HTTPS packets.
