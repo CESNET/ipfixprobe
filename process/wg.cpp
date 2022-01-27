@@ -95,12 +95,16 @@ int WGPlugin::post_create(Flow &rec, const Packet &pkt)
 int WGPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    RecordExtWG *vpn_data = (RecordExtWG *) rec.get_extension(RecordExtWG::REGISTERED_ID);
-   if (vpn_data != nullptr) {
-      parse_wg(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.source_pkt, vpn_data);
-
+   if (vpn_data != nullptr && vpn_data->possible_wg) {
+      bool res = parse_wg(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.source_pkt, vpn_data);
+      // In case of new flow, flush
       if (flow_flush) {
          flow_flush = false;
          return FLOW_FLUSH_WITH_REINSERT;
+      }
+      // In other cases, when WG was not detected
+      if (!res) {
+         vpn_data->possible_wg = 0;
       }
    }
 
@@ -124,6 +128,8 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
 {
    uint32_t cmp_peer;
    uint32_t cmp_new_peer;
+
+   static const char dns_query_mask [4] = {0x00, 0x01, 0x00, 0x00};
 
    total++;
 
@@ -196,7 +202,16 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
          break;
    }
 
-   ext->possible_wg = 100;
+   // Possible misdetection
+   // - DNS request
+   //   Can happen when transaction ID is >= 1 and <= 4, the query is non-recursive
+   //   and other flags are zeros, too.
+   //   2B transaction ID, 2B flags, 2B questions count, 2B answers count
+   if (!memcmp((data + 4), dns_query_mask, sizeof(dns_query_mask))) {
+      ext->possible_wg = 1;
+   } else {
+      ext->possible_wg = 100;
+   }
    identified++;
    return true;
 }
