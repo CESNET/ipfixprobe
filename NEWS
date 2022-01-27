@@ -1,3 +1,17 @@
+2022-01-26 (xsiska12): Fixed undeclared variable.
+2022-01-26 (xsiska12): Replace std::stringstream due to performance issues on multi-thread usage Change precision of ntp test
+2022-01-20 (Pavel Valach): tests/functional/wg: added sporadic DNS detection test
+2022-01-20 (Pavel Valach): process/wg: account for possible misdetection of DNS traffic
+2022-01-20 (Pavel Valach): process/wg: pre_update: set confidence level to 0 if it cannot be WG
+2021-12-29 (Tomas Cejka): rpm: fixed build RPM package
+2021-12-21 (Jiri Havranek): stats: fixed issues reported by coverity
+2021-12-21 (Jiri Havranek): stats: code improvements
+2021-12-18 (Jiri Havranek): removed unused header file
+2021-12-17 (Jiri Havranek): ssdp: added missing extension id registration
+2021-12-17 (Jiri Havranek): ipfix: added contraints for number of process plugins
+2021-12-17 (Jiri Havranek): added fd check before close
+2021-12-16 (xsiska12): ipfixprobe: increased version, updated ChangeLog, released RPM package
+
 2021-12-16 (xsiska12): Set --enable-legacy-ssl to yes|no in spec file according to OS version
 2021-12-16 (Karel Hynek): fixed quic plugin compilation on CENTOS7 with --enable-legacy-ssl flag.
 2021-12-14 (Karel Hynek): Added the ability to specify active/inactive timeout in init config
