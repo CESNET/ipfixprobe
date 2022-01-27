@@ -1,3 +1,8 @@
+2022-01-27 ipfixprobe-4.1.0
+	* Added wireguard module
+	* Replace stringstream due to performance issues
+	* Fixed build of RPM package
+
 2021-12-16 ipfixprobe-4.0.0
     * Reworked ipfxprobe parameter passing
 	* quic: Parsing quic protocol
