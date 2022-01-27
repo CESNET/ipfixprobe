@@ -1,3 +1,124 @@
+2021-12-16 (xsiska12): Set --enable-legacy-ssl to yes|no in spec file according to OS version
+2021-12-16 (Karel Hynek): fixed quic plugin compilation on CENTOS7 with --enable-legacy-ssl flag.
+2021-12-14 (Karel Hynek): Added the ability to specify active/inactive timeout in init config
+2021-11-22 (Jiri Havranek): text: added extension support
+2021-11-22 (Jiri Havranek): tls: added code description
+2021-11-22 (Jiri Havranek): check for system_error when creating threads
+2021-11-22 (Jiri Havranek): text: ignore mac param now have better description
+2021-11-22 (Jiri Havranek): stem: removed TODOs
+2021-11-22 (Jiri Havranek): removed TODOs and unused code as no longer needed
+2021-11-22 (Jiri Havranek): quic: moved byte utility functions to general header
+2021-11-22 (Jiri Havranek): configure: quic is enabled by default
+2021-11-16 (Jiri Havranek): added example loadable plugin to Makefile.am
+2021-11-09 (Jiri Havranek): Update process/smtp.hpp
+2021-11-09 (Jiri Havranek): Update aminclude.am
+2021-11-09 (Jiri Havranek): Update aminclude.am
+2021-11-09 (Jiri Havranek): Update README.md
+2021-11-09 (Jiri Havranek): fixed typo in Makefile.am
+2021-11-09 (Jiri Havranek): configure: moved stem, flexprobe and dpdk options at the end
+2021-11-09 (Jiri Havranek): configure: removed unused Makefile entry
+2021-11-08 (Jiri Havranek): configure: removed old fragment
+2021-11-04 (Roman Vrana): Added licence headers
+2021-11-03 (Roman Vrana): Added DPDK interface and Flexprobe StEm testing interface
+2021-11-02 (Roman Vrana): Added plugins for processing Flexprobe data
+2021-10-23 (Jiri Havranek): cache: fixed unexported records being overwritten causing leaks
+2021-10-20 (Jiri Havranek): ipfix: flush data on termination
+2021-10-20 (Jiri Havranek): ipfix: count dropped flows from packets also
+2021-10-20 (Jiri Havranek): ipfix: print verbose error when getaddrinfo fails
+2021-10-20 (Jiri Havranek): ipfix: prevent termination when TCP conn fails at beginning
+2021-10-20 (Jiri Havranek): ipfix: fixed getaddrinfo memory leak
+2021-10-20 (Jiri Havranek): tls: reset record when parsing fails
+2021-10-19 (Jiri Havranek): ipfix: set default mtu to 1458
+2021-10-19 (Jiri Havranek): quic: can be now conditionaly build
+2021-10-18 (Jiri Havranek): fixed more issues reported by codeQL
+2021-10-18 (Jiri Havranek): increased version
+2021-10-18 (Jiri Havranek): tests: added unirec unit test
+2021-10-18 (Jiri Havranek): fixed issues reported by coverity
+2021-10-18 (Jiri Havranek): fixed issues reported by codeQL
+2021-10-18 (Jiri Havranek): added missing file documentation
+2021-10-17 (Jiri Havranek): added initializers in storage worker
+2021-10-17 (Jiri Havranek): tests: added unit tests in gtest framework
+2021-10-15 (Jiri Havranek): raw: changed poll timeout to 0, nonblocking
+2021-10-15 (Jiri Havranek): fixed export of flow when reading from offline source
+2021-10-15 (Jiri Havranek): quic: code refactoring
+2021-10-13 (Jiri Havranek): configure: added openssl-devel check
+2021-10-12 (Jiri Havranek): improved help string
+2021-10-11 (Jiri Havranek): updated README.md
+2021-10-07 (Jiri Havranek): added termination check of storage and output plugins
+2021-10-07 (Jiri Havranek): fixed early termination when reading from multiple offline inputs
+2021-10-07 (Jiri Havranek): replaced global vars with shared futures for termination
+2021-10-07 (Jiri Havranek): configure: added check for TPACKET_V3
+2021-10-07 (Jiri Havranek): cache: added option to split biflows
+2021-10-07 (Jiri Havranek): ipfix: added conditional compilation of timestamp precision
+2021-10-04 (Jiri Havranek): quic: updated coding style
+2021-10-04 (Jiri Havranek): uncrustify: updated coding rule
+2021-10-04 (Andrej Lukacovic): quic: fixed packet decryption not working for some messages
+2021-10-04 (Andrej Lukacovic): quic: payload decryption buffer is now allocated only once
+2021-10-01 (Jiri Havranek): updated README.md
+2021-10-01 (Jiri Havranek): fixed issues reported by coverity
+2021-09-27 (Jiri Havranek): quic: added test
+2021-09-27 (Jiri Havranek): quic: removed TODOs, fixed typo
+2021-09-27 (Jiri Havranek): quic: adding only one sni record from now
+2021-09-27 (Jiri Havranek): quic: reworked adding new record
+2021-09-26 (Jiri Havranek): quic: invalid header length fix
+2021-09-26 (Jiri Havranek): quic: added UDP constraint for flow
+2021-09-26 (Jiri Havranek): quic: simplified initial packet check
+2021-09-26 (Jiri Havranek): quic: added check of payload size when parsing data
+2021-09-26 (Jiri Havranek): quic: simplified condition
+2021-09-26 (Jiri Havranek): quic: fixed memory leaks
+2021-09-23 (Jiri Havranek): ipfixprobed: fixed UDP param
+2021-09-23 (Andrej Lukacovic): quic: added traffic sample
+2021-09-23 (Karel Hynek): quic: new plugin
+2021-09-13 (Jiri Havranek): tls: ALPN is now retrieved from server packet
+2021-09-09 (Jiri Havranek): cache: removed unused macros
+2021-09-08 (Jiri Havranek): raw: fixed block return when processing left packets
+2021-09-08 (Jiri Havranek): raw: added aditional build checks
+2021-09-08 (Karel Hynek): Fixed include zeros option in phists plugin
+2021-09-07 (Jiri Havranek): fixed typos
+2021-09-04 (Jiri Havranek): ndp: removed unnecessary check
+2021-09-04 (Jiri Havranek): ndp: fixed potentional segfault
+2021-09-04 (Jiri Havranek): ndp: fixed memory leak
+2021-09-03 (Jiri Havranek): benchmark: added seed parameter
+2021-09-03 (Jiri Havranek): benchmark: added constraint for minimal pkt size
+2021-09-03 (Jiri Havranek): benchmark: fixed packet limit check
+2021-09-03 (Jiri Havranek): ipfix: added member initializer
+2021-09-03 (Jiri Havranek): ipfixprobe: clean memory when printing plugin help
+2021-09-03 (Jiri Havranek): benchmark: fixed mode parameter check
+2021-09-03 (Jiri Havranek): ipfix: fixed default value for udp option
+2021-09-03 (Jiri Havranek): added option parser description to constructor
+2021-09-02 (Jiri Havranek): cache: fixed cache size parameter
+2021-09-02 (Jiri Havranek): ipfixprobe: fixed parameter initializer
+2021-09-02 (Jiri Havranek): systemd: updated scripts
+2021-09-02 (Jiri Havranek): ndp: fixed compilation issues
+2021-09-02 (Jiri Havranek): ipfix: fixed id parameter
+2021-09-02 (Jiri Havranek): ipfix: return error when connection to collector fails
+2021-09-02 (Jiri Havranek): dnssd: fixed txt parameter
+2021-09-02 (Jiri Havranek): cygwin compatibility
+2021-09-02 (Jiri Havranek): updated github workflows
+2021-09-02 (Jiri Havranek): configure.ac: added --with-raw --with-pcap --with-flowlinesize
+2021-09-02 (Jiri Havranek): added initializers to plugin pointers
+2021-09-02 (Jiri Havranek): raw: fixed use of strncpy
+2021-09-02 (Jiri Havranek): raw: removed packet_handler function
+2021-09-02 (Jiri Havranek): tls: added check for null payload
+2021-09-02 (Jiri Havranek): benchmark: fixed packet generation
+2021-09-01 (Jiri Havranek): fixed error messages printed when loading plugin fails
+2021-09-01 (Jiri Havranek): added public inheritance to record extensions classes
+2021-09-01 (Jiri Havranek): updated create_plugin.sh
+2021-08-31 (Jiri Havranek): throw error when load .so file fails
+2021-08-31 (Jiri Havranek): text: fixed ingore mac param
+2021-08-31 (Jiri Havranek): removed packet indicator, refactoring
+2021-08-31 (Jiri Havranek): reworked packet and flow structures
+2021-08-31 (Jiri Havranek): fixed loading of external plugins in form of .so file
+2021-08-30 (Jiri Havranek): removed unused parameter
+2021-08-30 (Jiri Havranek): updated README.md
+2021-08-30 (Jiri Havranek): updated create_plugin.sh
+2021-08-30 (Jiri Havranek): output: added text output plugin
+2021-08-30 (Jiri Havranek): input: added raw plugin for reading from raw sockets
+2021-08-30 (Jiri Havranek): input: added benchmark plugin
+2021-08-30 (Jiri Havranek): removed hardcoded flow extension type identifiers
+2021-08-30 (Jiri Havranek): reworked module
+2021-07-21 (Jiri Havranek): tls: added ALPN field export
+
 2021-08-17 (Karel Hynek): Merge pull request #43 from CESNET/parser-segfault
 2021-08-17 (Jiri Havranek): fixed segfault in parser caused by pcap_dispatch() ignoring max packet count
 2021-07-28 (Karel Hynek): Merge pull request #42 from CESNET/new_version
