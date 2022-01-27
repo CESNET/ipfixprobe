@@ -126,7 +126,7 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
       packet_ndp_handler(&opt, ndp_packet, ndp_header);
    }
 
-   m_processed += read_pkts;
+   m_seen += read_pkts;
    m_parsed += opt.pblock->cnt;
    return opt.pblock->cnt ? Result::PARSED : Result::NOT_PARSED;
 }

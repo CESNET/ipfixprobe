@@ -181,7 +181,7 @@ namespace ipxp
             // Convert Flexprobe pre-parsed packet into IPFIXPROBE packet
             auto conv_result = convert_from_flexprobe(mbufs_[i], packets.pkts[packets.cnt]);
             packets.bytes += packets.pkts[packets.cnt].packet_len_wire;
-            m_processed++;
+            m_seen++;
 
             if (!conv_result) {
                 continue;
