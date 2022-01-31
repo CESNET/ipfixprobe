@@ -1,3 +1,6 @@
+2022-01-31 ipfixprobe-4.2.0
+	* Fixed invalid order of ipfix elements for TLS plugin.
+
 2022-01-27 ipfixprobe-4.1.0
 	* Added wireguard module
 	* Replace stringstream due to performance issues
