@@ -34,13 +34,13 @@ AC_ARG_ENABLE([debug],
               CFLAGS="-Wall -g -O3"])
 AM_CONDITIONAL(DEBUG, test x"$debug" = x"true")
 
-AC_ARG_ENABLE([nemearpm],
-        AC_HELP_STRING([--enable-nemearpm],
+AC_ARG_ENABLE([coprrpm],
+        AC_HELP_STRING([--enable-coprrpm],
         [Enable NEMEA as a default dependency of RPM. This option simplifies copr build without parameters.]),
         [if test "$enableval" = "yes"; then
-                NEMEARPM=yes
-        fi], [NEMEARPM=no])
-AC_SUBST(NEMEARPM)
+                COPRRPM=yes
+        fi], [COPRRPM=no])
+AC_SUBST(COPRRPM)
 
 LT_INIT()
 
@@ -471,7 +471,7 @@ echo "  CFLAGS.................: $CFLAGS"
 echo "  CXXFLAGS...............: $CXXFLAGS"
 echo "  LDFLAGS................: $LDFLAGS"
 echo "  LIBS...................: $LIBS"
-echo "Enforced NEMEA (for copr): $NEMEARPM"
+echo "Enforced NEMEA (for copr): $COPRRPM"
 echo "FlexProbe Data Interface.: $withflexprobe"
 echo "DPDK Interface...........: $withdpdk"
 echo
