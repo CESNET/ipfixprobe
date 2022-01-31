@@ -347,9 +347,9 @@ namespace ipxp {
    F(RTSP_CONTENT_TYPE)
 
 #define IPFIX_TLS_TEMPLATE(F) \
+   F(TLS_VERSION) \
    F(TLS_SNI) \
    F(TLS_ALPN) \
-   F(TLS_VERSION) \
    F(TLS_JA3)
 
 #define IPFIX_NTP_TEMPLATE(F) \
