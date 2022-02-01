@@ -14,7 +14,7 @@
 %if %{with pcap}
 %global compile_pcap yes
 %else
-%global compile_pcap no
+%global compile_pcap @COPRRPM@
 %endif
 
 %if %{with raw}
@@ -26,13 +26,13 @@
 %if %{with nemea}
 %global compile_nemea yes
 %else
-%global compile_nemea @NEMEARPM@
+%global compile_nemea @COPRRPM@
 %endif
 
 %if %{with unwind}
 %global compile_unwind yes
 %else
-%global compile_unwind no
+%global compile_unwind @COPRRPM@
 %endif
 
 %if "%{dist}" == ".el7"
@@ -64,13 +64,13 @@ Requires: libpcap
 BuildRequires: libpcap-devel
 %endif
 
-%if %{with nemea} || "@NEMEARPM@" == "yes"
+%if %{with nemea} || "@COPRRPM@" == "yes"
 Requires: libtrap
 BuildRequires: libtrap-devel
 BuildRequires: unirec
 %endif
 
-%if %{with unwind}
+%if %{with unwind} || "@COPRRPM@" == "yes"
 Requires: libunwind
 BuildRequires: libunwind-devel
 %endif

@@ -49,7 +49,7 @@ Alternative versions (described in the following section) can be created by:
 We use [COPR infrastructure](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/) to build and serve RPM packages for EPEL7 and EPEL8.
 It is not possible to pass arguments to rpmbuild, so there is an option in configure to enforce NEMEA dependency:
 
-`./configure --enable-nemearpm && make srpm`
+`./configure --enable-coprrpm && make srpm`
 
 The output source RPM can be uploaded to copr.
 
