@@ -149,11 +149,9 @@ if test x${withquic} = xyes; then
    else
       RPM_REQUIRES+=" openssl"
       RPM_BUILDREQ+=" openssl-devel"
+      AC_CHECK_LIB(crypto, EVP_PKEY_CTX_new_id, [],
+     [AC_MSG_ERROR([libcrypto not found. Try installing at least version 1.1 of openssl-devel])])
    fi
-
-   AC_CHECK_LIB(crypto, EVP_PKEY_CTX_new_id, [],
-  [AC_MSG_ERROR([libcrypto not found. Try installing at least version 1.1 of openssl-devel])])
-
 fi
 
 AM_CONDITIONAL(WITH_QUIC,  test x${withquic} = xyes)

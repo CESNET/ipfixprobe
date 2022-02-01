@@ -406,7 +406,7 @@ bool QUICPlugin::quic_create_initial_secrets(CommSide side)
    EVP_PKEY_CTX *pctx;
 
    pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
-   if (!EVP_PKEY_derive_init(pctx)) {
+   if (1 != EVP_PKEY_derive_init(pctx)) {
       DEBUG_MSG("Error, context initialization failed(Extract)\n");
       EVP_PKEY_CTX_free(pctx);
       return false;
