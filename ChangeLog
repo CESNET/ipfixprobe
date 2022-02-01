@@ -1,3 +1,7 @@
+2022-02-01 ipfixprobe-4.3.0
+	* QUIC: FIXed wrong openssl linking on centos 7.
+	* Changed configuration of Copr RPM package.
+	
 2022-01-31 ipfixprobe-4.2.0
 	* Fixed invalid order of ipfix elements for TLS plugin.
 
