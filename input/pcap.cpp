@@ -185,9 +185,9 @@ void PcapReader::open_ifc(const std::string &ifc)
 
 void PcapReader::check_datalink(int datalink)
 {
-   if (m_datalink != DLT_EN10MB && m_datalink != DLT_LINUX_SLL) {
+   if (m_datalink != DLT_EN10MB && m_datalink != DLT_LINUX_SLL  && m_datalink != DLT_RAW) {
       close();
-      throw PluginError("unsupported link type detected, supported types are DLT_EN10MB and DLT_LINUX_SLL");
+      throw PluginError("unsupported link type detected, supported types are DLT_EN10MB and DLT_LINUX_SLL and DLT_RAW");
    }
 }
 
