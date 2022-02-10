@@ -184,6 +184,7 @@ void UnirecExporter::init(const char *params)
    m_group_map = parser.m_ifc_map;
    m_ifc_cnt = init_trap(parser.m_ifc, parser.m_verbose);
    m_ext_cnt = get_extension_cnt();
+   m_ext_id_flgs = new int[m_ext_cnt];
 
    try {
       m_tmplts = new ur_template_t*[m_ifc_cnt];
@@ -311,6 +312,7 @@ void UnirecExporter::close()
 
    m_basic_idx = -1;
    m_ifc_cnt = 0;
+   delete [] m_ext_id_flgs;
 }
 
 /**
@@ -359,10 +361,13 @@ int UnirecExporter::export_flow(const Flow &flow)
 
    m_flows_seen++;
    uint64_t tmplt_dbits = 0; // templates dirty bits
+   memset(m_ext_id_flgs, 0, sizeof(int)*m_ext_cnt); // in case one flow has multiple extension of same type
+   int ext_processed_cnd = 0;
    while (ext != nullptr) {
       if (ext->m_ext_id >= static_cast<int>(m_ext_cnt)) {
          throw PluginError("encountered invalid extension id");
       }
+      ext_processed_cnd++;
       int ifc_num = m_ifc_map[ext->m_ext_id];
       if (ifc_num >= 0) {
          tmplt_ptr = m_tmplts[ifc_num];
@@ -374,14 +379,24 @@ int UnirecExporter::export_flow(const Flow &flow)
             tmplt_dbits |= (1 << ifc_num);
          }
 
+         if (m_ext_id_flgs[ext->m_ext_id] == 1){
+           //send the previously filled unirec record
+           trap_send(ifc_num, record_ptr, ur_rec_fixlen_size(tmplt_ptr) + ur_rec_varlen_size(tmplt_ptr, record_ptr));
+         }else{
+           m_ext_id_flgs[ext->m_ext_id] = 1;
+         }
+
          fill_basic_flow(flow, tmplt_ptr, record_ptr);
          ext->fill_unirec(tmplt_ptr, record_ptr); /* Add each extension header into unirec record. */
-
-         trap_send(ifc_num, record_ptr, ur_rec_fixlen_size(tmplt_ptr) + ur_rec_varlen_size(tmplt_ptr, record_ptr));
       }
       ext = ext->m_next;
    }
-
+   //send the last record with all plugin data
+   for (size_t ifc_num = 0; ifc_num < m_ifc_cnt && !(m_basic_idx >= 0) && ext_processed_cnd > 0; ifc_num++){
+     tmplt_ptr = m_tmplts[ifc_num];
+     record_ptr = m_records[ifc_num];
+     trap_send(ifc_num, record_ptr, ur_rec_fixlen_size(tmplt_ptr) + ur_rec_varlen_size(tmplt_ptr, record_ptr));
+   }
    return 0;
 }
 

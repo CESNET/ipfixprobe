@@ -202,6 +202,7 @@ private:
    ur_template_t **m_tmplts;    /**< Pointer to unirec templates. */
    void          **m_records;   /**< Pointer to unirec records. */
    size_t m_ifc_cnt;            /**< Number of output interfaces. */
+   int *m_ext_id_flgs;          /** flags of used extension during export*/
 
    bool m_eof;                  /**< Send eof when module exits. */
    bool m_odid;            /**< Export ODID field instead of LINK_BIT_FIELD. */
