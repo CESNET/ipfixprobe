@@ -241,14 +241,10 @@ namespace ipxp {
 #define DBI_BRST_TIME_START(F)        F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1056 (time*)
 #define DBI_BRST_TIME_STOP(F)         F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1057 (time*)
 
-#define D_PHISTS_IPT(F)               F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1063 (uint16*)
-#define D_PHISTS_SIZES(F)             F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1062 (uint16*)
-#define S_PHISTS_SIZES(F)             F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1060 (uint16*)
-#define S_PHISTS_IPT(F)               F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1061 (uint16*)
-
-#define WG_CONF_LEVEL(F)              F(8057,    861,   1,   nullptr)
-#define WG_SRC_PEER(F)                F(8057,    862,   4,   nullptr)
-#define WG_DST_PEER(F)                F(8057,    863,   4,   nullptr)
+#define D_PHISTS_IPT(F)               F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1063 (uint32*)
+#define D_PHISTS_SIZES(F)             F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1062 (uint32*)
+#define S_PHISTS_SIZES(F)             F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1060 (uint32*)
+#define S_PHISTS_IPT(F)               F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id1061 (uint32*)
 
 #define QUIC_SNI(F)                   F(8057,    890,   -1,  nullptr)
 
@@ -268,6 +264,10 @@ namespace ipxp {
 #define FX_FRAME_SIGNATURE(F)         F(5715,   1010,  18,   nullptr)
 #define FX_TCP_TRACKING(F)            F(5715,   1020,   1,   nullptr)
 #endif
+
+#define WG_CONF_LEVEL(F)              F(8057,    1100,   1,   nullptr)
+#define WG_SRC_PEER(F)                F(8057,    1101,   4,   nullptr)
+#define WG_DST_PEER(F)                F(8057,    1102,   4,   nullptr)
 
 /**
  * IPFIX Templates - list of elements
