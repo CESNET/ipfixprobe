@@ -94,8 +94,10 @@ UR_FIELDS (
 /**
  * \brief Constructor.
  */
-UnirecExporter::UnirecExporter() : m_basic_idx(-1), m_ext_cnt(0), m_ifc_map(nullptr),
-   m_tmplts(nullptr), m_records(nullptr), m_ifc_cnt(0), m_eof(false), m_odid(false), m_link_bit_field(0), m_dir_bit_field(0)
+UnirecExporter::UnirecExporter() : m_basic_idx(-1), m_ext_cnt(0),
+ m_ifc_map(nullptr),m_tmplts(nullptr), m_records(nullptr), m_ifc_cnt(0),
+ m_ext_id_flgs(nullptr),m_eof(false), m_odid(false),m_link_bit_field(0),
+ m_dir_bit_field(0)
 {
 }
 
@@ -184,12 +186,12 @@ void UnirecExporter::init(const char *params)
    m_group_map = parser.m_ifc_map;
    m_ifc_cnt = init_trap(parser.m_ifc, parser.m_verbose);
    m_ext_cnt = get_extension_cnt();
-   m_ext_id_flgs = new int[m_ext_cnt];
 
    try {
       m_tmplts = new ur_template_t*[m_ifc_cnt];
       m_records = new void*[m_ifc_cnt];
       m_ifc_map = new int[m_ext_cnt];
+      m_ext_id_flgs = new int[m_ext_cnt];
    } catch (std::bad_alloc &e) {
       throw PluginError("not enough memory");
    }
