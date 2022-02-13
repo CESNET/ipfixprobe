@@ -193,9 +193,9 @@ namespace ipxp {
 #define ARP_DST_PA(F)                 F(8057,    37,   -1,   nullptr)
 
 #define TLS_SNI(F)                    F(8057,   808,   -1,   nullptr)
-#define TLS_ALPN(F)                   F(8057,   809,   -1,   nullptr)
-#define TLS_VERSION(F)                F(8057,   810,    2,   nullptr)
-#define TLS_JA3(F)                    F(8057,   830,   -1,   nullptr)
+#define TLS_VERSION(F)                F(39499,  333,    2,   nullptr)
+#define TLS_ALPN(F)                   F(39499,  337,   -1,   nullptr)
+#define TLS_JA3(F)                    F(39499,  357,   -1,   nullptr)
 
 #define SMTP_COMMANDS(F)              F(8057,    810,   4,   nullptr)
 #define SMTP_MAIL_COUNT(F)            F(8057,    811,   4,   nullptr)
