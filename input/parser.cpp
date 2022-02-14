@@ -617,8 +617,7 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
    #ifdef WITH_PCAP
       if (opt->datalink == DLT_EN10MB) {
          data_offset = parse_eth_hdr(data, caplen, pkt);
-      } 
-      else if (opt->datalink == DLT_LINUX_SLL){
+      } else if (opt->datalink == DLT_LINUX_SLL) {
             data_offset = parse_sll(data, caplen, pkt);
       } else if (opt->datalink == DLT_RAW) {
             if ((data[0] & 0xF0) == 0x40) {
