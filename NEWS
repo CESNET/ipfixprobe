@@ -1,3 +1,13 @@
+2022-02-14 (Tomas Cejka): Merge pull request #68 from CESNET/unirec_output_fix
+2022-02-14 (Tomas Cejka): Merge pull request #69 from CESNET/ipfix_elements_fix
+2022-02-14 (Tomas Cejka): Merge pull request #67 from koumajos/add_raw_format
+2022-02-13 (Tomas Cejka): ipfix-elements: cleaned TLS elements
+2022-02-11 (Karel Hynek): Fixed uninitialised variable in unirec output
+2022-02-11 (Tomas Cejka): ipfix-elements: fixed comments and WireGuard ids
+2022-02-10 (Karel Hynek): fixed unirec interface flow duplication when multiple plugins enabled
+2022-02-08 (Josef Koumar): Add DLT_RAW format of PCAP
+2022-02-01 (SiskaPavel): Merge pull request #66 from CESNET/new_version
+
 2022-02-01 (Karel Hynek): QUIC: FIXed wrong openssl linking on centos 7.
 2022-01-31 (xsiska12): Changed configuration of Copr RPM package.
 
