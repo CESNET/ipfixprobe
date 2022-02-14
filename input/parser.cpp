@@ -620,14 +620,10 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
       } 
       else if (opt->datalink == DLT_LINUX_SLL){
             data_offset = parse_sll(data, caplen, pkt);
-      }
-      else if (opt->datalink == DLT_RAW){
-            if ((data[0] & 0xF0) == 0x40)
-            {
+      } else if (opt->datalink == DLT_RAW) {
+            if ((data[0] & 0xF0) == 0x40) {
                pkt->ethertype = ETH_P_IP;
-            }
-            else if ((data[0] & 0xF0) == 0x60)
-            {
+            } else if ((data[0] & 0xF0) == 0x60) {
                pkt->ethertype = ETH_P_IPV6;
             }
       }
