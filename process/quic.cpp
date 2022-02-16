@@ -68,7 +68,8 @@ __attribute__((constructor)) static void register_this_plugin()
 
 
 // Print debug message if debugging is allowed.
-#ifdef DEBUG_QUIC
+#define DEBUG_QUIC 1
+#ifdef  DEBUG_QUIC
 # define DEBUG_MSG(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
 #else
 # define DEBUG_MSG(format, ...)
@@ -135,13 +136,221 @@ ProcessPlugin *QUICPlugin::copy()
 // --------------------------------------------------------------------------------------------------------------------------------
 // PARSE CRYPTO PAYLOAD
 // --------------------------------------------------------------------------------------------------------------------------------
+void get_tls_user_agent(my_payload_data &data, char *out, size_t bufsize)
+{
+   quic_transport_parameters *header = (quic_transport_parameters *)data.data;
+   uint8_t * tmp_data = (uint8_t *)data.data;
+   
+
+   tmp_data += sizeof(quic_transport_parameters);
+   printf("here %02x\n",*(data.data));
+
+   printf("here %02x\n",*(header->length));
+   uint8_t * tmp_data_end = (uint8_t*)(tmp_data + *(header->length));
+
+   while(tmp_data != tmp_data_end)
+   {
+      uint8_t param_size = (*tmp_data) & 0xC0;
+      uint64_t param = 0;
+      uint64_t length = 0;
+      switch (param_size)
+      {
+      case 0:
+         param = *(uint8_t*)tmp_data & 0x3F;
+         tmp_data += sizeof(uint8_t);
+         break;
+      case 64:
+         param = *(uint16_t*)tmp_data & 0x3FFF;
+         tmp_data += sizeof(uint16_t);
+         break;
+      case 128:
+         param = *(uint32_t*)tmp_data & 0x3FFFFFFF;
+         tmp_data += sizeof(uint32_t);
+         break;
+      case 192:
+         param = *(uint64_t*)tmp_data & 0x3FFFFFFFFFFFFFFF; 
+         tmp_data += sizeof(uint64_t);
+         break;
+      default:
+         break;
+      }
+
+      uint8_t length_size = (*tmp_data) & 0xC0;
+
+      switch (length_size)
+      {
+      case 0:
+         length = *(uint8_t*)tmp_data & 0x3F;;
+         tmp_data += sizeof(uint8_t);
+         break;
+      case 64:
+         length = *(uint16_t*)tmp_data & 0x3FFF;;
+         tmp_data += sizeof(uint16_t);
+         break;
+      case 128:
+         length = *(uint32_t*)tmp_data & 0x3FFFFFFF;;
+         tmp_data += sizeof(uint32_t);
+         break;
+      case 192:
+         length = *(uint64_t*)tmp_data & 0x3FFFFFFFFFFFFFFF; ;
+         tmp_data += sizeof(uint64_t);
+         break;
+      default:
+         break;
+      }
+
+
+      if(param == TLS_EXT_GOOGLE_USER_AGENT)
+      {
+         if (length + (size_t) 1 > bufsize) {
+            length = bufsize - 1;
+         memcpy(out, tmp_data, length);
+         out[length] = 0;
+         std::cout << out << std::endl;
+         data.user_agent_parsed++;
+      }
+      }
+      tmp_data += length;
+      
+   }
+
+}
+
+void get_tls_server_name(my_payload_data &data, char *out, size_t bufsize)
+{
+   uint16_t list_len    = ntohs(*(uint16_t *) data.data);
+   uint16_t offset      = sizeof(list_len);
+   const char *list_end = data.data + list_len + offset;
+
+   if (list_end > data.end) {
+      data.valid = false;
+      return;
+   }
+
+   while (data.data + sizeof(tls_ext_sni) + offset < list_end) {
+      tls_ext_sni *sni = (tls_ext_sni *) (data.data + offset);
+      uint16_t sni_len = ntohs(sni->length);
+
+      offset += sizeof(tls_ext_sni);
+      if (data.data + offset + sni_len > list_end) {
+         break;
+      }
+      if (out[0] != 0) {
+         break;
+      }
+      if (sni_len + (size_t) 1 > bufsize) {
+         sni_len = bufsize - 1;
+      }
+      memcpy(out, data.data + offset, sni_len);
+      out[sni_len] = 0;
+      data.sni_parsed++;
+      offset += ntohs(sni->length);
+   }
+}
+
+bool is_grease_value_(uint16_t val)
+{
+   if (val != 0 && !(val & ~(0xFAFA)) && ((0x00FF & val) == (val >> 8))) {
+      return true;
+   }
+   return false;
+}
+
+void get_ja3_cipher_suites(std::string &ja3, my_payload_data &data)
+{
+   int cipher_suites_length = ntohs(*(uint16_t *) data.data);
+   uint16_t type_id         = 0;
+   const char *section_end  = data.data + cipher_suites_length;
+
+   if (data.data + cipher_suites_length + 1 > data.end) {
+      data.valid = false;
+      return;
+   }
+   data.data += 2;
+
+   for (; data.data <= section_end; data.data += sizeof(uint16_t)) {
+      type_id = ntohs(*(uint16_t *) (data.data));
+      if (!is_grease_value_(type_id)) {
+         ja3 += std::to_string(type_id);
+         if (data.data < section_end) {
+            ja3 += '-';
+         }
+      }
+   }
+   ja3 += ',';
+}
+
+bool parse_tls_nonext_hdr(my_payload_data &payload, std::string *ja3)
+{
+   tls_handshake *tls_hs = (tls_handshake *) payload.data;
+   const uint8_t hs_type = tls_hs->type;
+   if (payload.data + sizeof(tls_handshake) > payload.end ||
+      !(hs_type == TLS_HANDSHAKE_CLIENT_HELLO || hs_type == TLS_HANDSHAKE_SERVER_HELLO)) {
+      return false;
+   }
+
+   //uint32_t hs_len = tls_hs->length1 << 16 | ntohs(tls_hs->length2);
+
+   // 1 + 3 + 2 + 32 + 1 + 2 + 1 + 2 = 44
+   // type + length + version + random + sessionid + ciphers + compression + ext-len
+   if (payload.data + 44 > payload.end || tls_hs->version.major != 3 ||
+     tls_hs->version.minor < 1 || tls_hs->version.minor > 3) {
+      return false;
+   }
+   payload.data += sizeof(tls_handshake);
+
+   if (ja3) {
+      *ja3 += std::to_string((uint16_t) tls_hs->version.version) + ',';
+   }
+
+   payload.data += 32; // Skip random
+
+   int tmp = *(uint8_t *) payload.data;
+   if (payload.data + tmp + 2 > payload.end) {
+      return false;
+   }
+   payload.data += tmp + 1; // Skip session id
+
+   if (hs_type == TLS_HANDSHAKE_CLIENT_HELLO) {
+      if (ja3) {
+         get_ja3_cipher_suites(*ja3, payload);
+         if (!payload.valid) {
+            return false;
+         }
+      } else {
+         if (payload.data + 2 > payload.end) {
+            return false;
+         }
+         payload.data += ntohs(*(uint16_t *) payload.data) + 2; // Skip cipher suites
+      }
+
+      tmp = *(uint8_t *) payload.data;
+      if (payload.data + tmp + 3 > payload.end) { // check space for (1+tmp) bytes of compression + next 2 bytes of exts length
+         return false;
+      }
+      payload.data += tmp + 1; // Skip compression methods
+   } else {
+      /* TLS_HANDSHAKE_SERVER_HELLO */
+      payload.data += 2; // Skip cipher suite
+      payload.data += 1; // Skip compression method
+   }
+
+   const char *ext_end = payload.data + ntohs(*(uint16_t *) payload.data) + 2;
+   payload.data += 2;
+   if (ext_end <= payload.end) {
+      payload.end = ext_end;
+   }
+
+   return true;
+}
 
 bool QUICPlugin::parse_tls(RecordExtQUIC *rec)
 {
-   payload_data payload = {
+   my_payload_data payload = {
       (char *) decrypted_payload,
       (char *) decrypted_payload + payload_len,
       true,
+      0,
       0
    };
 
@@ -166,14 +375,20 @@ bool QUICPlugin::parse_tls(RecordExtQUIC *rec)
       if (type == TLS_EXT_SERVER_NAME) {
          get_tls_server_name(payload, rec->sni, sizeof(rec->sni));
          parsed_initial += payload.sni_parsed;
-         break;
+      }
+      if (type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1 ||
+         type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS ||
+         type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2) {
+            printf("%02x\n",type);
+         get_tls_user_agent(payload, rec->user_agent, sizeof(rec->user_agent));
+         parsed_initial += payload.user_agent_parsed;
       }
       if (!payload.valid) {
          return false;
       }
       payload.data += length;
    }
-   return payload.sni_parsed != 0;
+   return payload.sni_parsed != 0 || payload.user_agent_parsed != 0;
 } // QUICPlugin::parse_tls
 
 // --------------------------------------------------------------------------------------------------------------------------------
@@ -578,6 +793,161 @@ bool QUICPlugin::quic_decrypt_header()
    return true;
 } // QUICPlugin::quic_decrypt_header
 
+
+bool QUICPlugin::quic_assemble()
+{
+   // potrebujeme zistit akeho typu je prvy ramec
+
+   uint8_t * tmp_ukazovacik = decrypted_payload;
+   //CRYPTO_PTR * first = (CRYPTO_PTR *)malloc(sizeof(CRYPTO_PTR));
+   CRYPTO_PTR * head = NULL;
+   CRYPTO_PTR * first = NULL;
+
+   while(tmp_ukazovacik != decrypted_payload + payload_len)
+   {
+      if(*tmp_ukazovacik == 0x06)
+      {
+         CRYPTO_PTR* tmp = (CRYPTO_PTR*)malloc(sizeof(CRYPTO_PTR));
+         tmp->next = NULL;
+
+
+         tmp_ukazovacik++;
+         uint8_t offset_len = *tmp_ukazovacik & 0xC0;
+         switch (offset_len)
+         {
+            case 0:
+            {
+               DEBUG_MSG("Offset length 1\n");
+               uint8_t offset = *tmp_ukazovacik & 0x3F;
+               tmp_ukazovacik += sizeof(uint8_t);
+               tmp->offset = offset;
+               
+               break;
+            }
+            case 64:
+            {
+               DEBUG_MSG("Offset length 2\n");
+               uint16_t offset = htons(*(uint16_t*)tmp_ukazovacik) & 0x3FFF;
+               tmp_ukazovacik += sizeof(uint16_t);
+               tmp->offset = offset;
+
+               break;
+            }
+            case 128:   
+            {
+               DEBUG_MSG("Offset length 4\n");
+               uint32_t offset = htons(*(uint32_t*)tmp_ukazovacik) & 0x3FFFFFFF;
+               tmp_ukazovacik += sizeof(uint32_t);
+               tmp->offset = offset;
+               break;
+            }
+            case 192:
+            {
+               DEBUG_MSG("Offset length 8\n");
+               uint64_t offset = htons(*(uint64_t*)tmp_ukazovacik) & 0x3FFFFFFFFFFFFFFF;
+               tmp_ukazovacik += sizeof(uint64_t);
+               tmp->offset = offset;
+               break;
+            }
+         }
+
+
+         uint8_t length_len = *tmp_ukazovacik & 0xC0;
+
+
+         switch (length_len)
+         {
+            case 0:
+            {
+               DEBUG_MSG("Length length 1\n");
+               uint8_t length = *tmp_ukazovacik & 0x3F;
+               tmp_ukazovacik += sizeof(uint8_t);
+               tmp->frame_addr = tmp_ukazovacik;
+               tmp->length = length;
+               
+               tmp_ukazovacik+= length;
+               break;
+            }
+            case 64:
+            {
+               DEBUG_MSG("Length length 2\n");
+               uint16_t length = htons(*(uint16_t*)tmp_ukazovacik) & 0x3FFF;
+               tmp_ukazovacik += sizeof(uint16_t);
+               tmp->frame_addr = tmp_ukazovacik;
+               tmp->length = length;
+               tmp_ukazovacik+= length;
+               break;
+            }
+            case 128:   
+            {
+               DEBUG_MSG("Length length 4\n");
+               uint32_t length = htons(*(uint32_t*)tmp_ukazovacik) & 0x3FFFFFFF;
+               tmp_ukazovacik += sizeof(uint32_t);
+               tmp->frame_addr = tmp_ukazovacik;
+               tmp->length = length;
+               tmp_ukazovacik+= length;
+               break;
+            }
+            case 192:
+            {
+               DEBUG_MSG("Length length 8\n");
+               uint64_t length = htons(*(uint64_t*)tmp_ukazovacik) & 0x3FFFFFFFFFFFFFFF;
+               tmp_ukazovacik += sizeof(uint64_t);
+               tmp->frame_addr = tmp_ukazovacik;
+               tmp->length = length;
+               tmp_ukazovacik+= length;
+               break;
+            }
+         }
+
+         if(first == NULL)
+         {
+            first = tmp;
+            head = first;
+         }
+         else
+         {
+            head->next = tmp;
+            head = head->next;
+         }
+      
+
+
+         
+      }
+      else
+      {
+         tmp_ukazovacik++;
+         continue;
+      }
+   
+   }
+
+   int total_length = 0;
+   CRYPTO_PTR * tmp1 = first;
+   while(tmp1 != NULL)
+   {
+      total_length += tmp1->length;
+      printf("%d,%d\n",tmp1->offset,tmp1->length);
+      tmp1 = tmp1->next;
+   }
+
+   printf("%d\n",total_length);
+   uint8_t * assembled_payload = (uint8_t*)malloc(sizeof(uint8_t) * total_length);
+   tmp1 = first;
+   while(tmp1 != NULL)
+   {
+      memcpy(&assembled_payload[tmp1->offset],tmp1->frame_addr,tmp1->length );
+      tmp1 = tmp1->next;
+   }
+   for(int x = 0 ; x < total_length;x++)
+   {
+      printf("%c",assembled_payload[x]);
+   }
+   printf("\n");
+   return true;
+}
+
 bool QUICPlugin::quic_decrypt_payload()
 {
    uint8_t atag[16] = { 0 };
@@ -670,6 +1040,12 @@ bool QUICPlugin::quic_decrypt_payload()
       return false;
    }
 
+
+   /*for(int x = 0 ; x < payload_len ; x++)
+   {
+      printf("%02x",decrypted_payload[x]);
+   }
+   printf("\n");*/
    EVP_CIPHER_CTX_free(ctx);
    return true;
 } // QUICPlugin::quic_decrypt_payload
@@ -778,6 +1154,10 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
          DEBUG_MSG("Error, payload decryption failed (client side)\n");
          return false;
       }
+      /*if (!quic_assemble()) {
+         DEBUG_MSG("Error, reassembling of crypto frames failed (client side)\n");
+         return false;
+      }*/
       if (!parse_tls(quic_data)) {
          DEBUG_MSG("SNI Extraction failed\n");
          return false;
@@ -786,17 +1166,21 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
       }
    } else if (pkt.src_port == 443) {
       if (!quic_create_initial_secrets(CommSide::SERVER_IN)) {
-         DEBUG_MSG("Error, creation of initial secrets failed (client side)\n");
+         DEBUG_MSG("Error, creation of initial secrets failed (server side)\n");
          return false;
       }
       if (!quic_decrypt_header()) {
-         DEBUG_MSG("Error, header decryption failed (client side)\n");
+         DEBUG_MSG("Error, header decryption failed (server side)\n");
          return false;
       }
       if (!quic_decrypt_payload()) {
-         DEBUG_MSG("Error, payload decryption failed (client side)\n");
+         DEBUG_MSG("Error, payload decryption failed (server side)\n");
          return false;
       }
+      /*if (!quic_assemble()) {
+         DEBUG_MSG("Error, reassembling of crypto frames failed (server side)\n");
+         return false;
+      }*/
       if (!parse_tls(quic_data)) {
          DEBUG_MSG("SNI Extraction failed\n");
          return false;
@@ -845,6 +1229,7 @@ void QUICPlugin::add_quic(Flow &rec, const Packet &pkt)
       rec.add_extension(quic_ptr);
       quic_ptr = nullptr;
    }
+   
 }
 
 void QUICPlugin::finish(bool print_stats)

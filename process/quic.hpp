@@ -65,6 +65,20 @@ namespace ipxp {
 
 #define QUIC_UNIREC_TEMPLATE "QUIC_SNI"
 
+
+#define TLS_EXT_SERVER_NAME 0
+#define TLS_EXT_ALPN 16
+// draf-33, draft-34 a rfc9001, maju tuto hodnotu defined ako 0x39 == 57
+#define TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1 0x39
+// draf-13 az draft-32 maju tuto hodnotu defined ako 0xffa5 == 65445
+#define TLS_EXT_QUIC_TRANSPORT_PARAMETERS 0xffa5 
+// draf-02 az draft-12 maju tuto hodnotu defined ako 0x26 == 38
+#define TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2 0x26 
+#define TLS_EXT_GOOGLE_USER_AGENT 12585
+
+
+
+
 UR_FIELDS(
    string QUIC_SNI
 )
@@ -83,12 +97,30 @@ UR_FIELDS(
 #define quic_serverIn_hkdf      sizeof("tls13 server in") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t)
 
 
+typedef struct __attribute__((packed)) crypto_ptr{
+   
+   crypto_ptr * next;
+   uint8_t * frame_addr;
+   uint64_t length;
+   uint64_t offset;
+
+
+}CRYPTO_PTR;
+
+
 struct my_payload_data {
-   uint8_t *data;
-   uint8_t *end;
+   char *data;
+   const char *end;
    bool     valid;
    int      sni_parsed;
+   int      user_agent_parsed;
 };
+
+typedef struct quic_transport_parameters
+{
+   uint16_t * type;
+   uint16_t * length;
+}quic_transport_parameters;
 
 
 typedef struct __attribute__((packed)) quic_header1 {
@@ -140,7 +172,9 @@ struct RecordExtQUIC : public RecordExt {
    static int REGISTERED_ID;
 
    int  sni_count = 0;
+   int  user_agent_count = 0;
    char sni[255]  = { 0 };
+   char user_agent[255]  = { 0 };
 
    RecordExtQUIC() : RecordExt(REGISTERED_ID)
    {
@@ -235,6 +269,7 @@ private:
    bool     quic_derive_n_set(uint8_t *, uint8_t *, uint8_t, size_t, uint8_t *);
    bool     expand_label(const char *, const char *, const uint8_t *, uint8_t, uint16_t, uint8_t *, uint8_t &);
    bool     parse_tls(RecordExtQUIC *);
+   bool     quic_assemble();
 
    // header pointers
    quic_header1 *quic_h1;
