@@ -52,8 +52,13 @@
 #include <assert.h>
 #include <inttypes.h>
 
+#ifdef DEBUG_RING
 #define IPX_ERROR(mod, format, ...) fprintf(stderr, "%s: " format, mod, ##__VA_ARGS__)
 #define IPX_WARNING(mod, format, ...) fprintf(stderr, "%s: " format, mod, ##__VA_ARGS__)
+#else
+#define IPX_ERROR(mod, format, ...)
+#define IPX_WARNING(mod, format, ...)
+#endif
 
 #ifndef IPX_CLINE_SIZE
 /** Expected CPU cache-line size        */
