@@ -136,90 +136,82 @@ ProcessPlugin *QUICPlugin::copy()
 // --------------------------------------------------------------------------------------------------------------------------------
 // PARSE CRYPTO PAYLOAD
 // --------------------------------------------------------------------------------------------------------------------------------
-void get_tls_user_agent(my_payload_data &data, char *out, size_t bufsize)
+void get_tls_user_agent(my_payload_data &data, uint16_t length_ext, char *out, size_t bufsize)
 {
-   quic_transport_parameters *header = (quic_transport_parameters *)data.data;
-   uint8_t * tmp_data = (uint8_t *)data.data;
-   
 
-   tmp_data += sizeof(quic_transport_parameters);
-   printf("here %02x\n",*(data.data));
+   const char *quic_transport_params_end = data.data + length_ext;
+   uint64_t offset = 0;
+   uint64_t param = 0;
+   uint64_t length = 0;
 
-   printf("here %02x\n",*(header->length));
-   uint8_t * tmp_data_end = (uint8_t*)(tmp_data + *(header->length));
-
-   while(tmp_data != tmp_data_end)
+   while (data.data + offset < quic_transport_params_end)
    {
-      uint8_t param_size = (*tmp_data) & 0xC0;
-      uint64_t param = 0;
-      uint64_t length = 0;
+      uint8_t param_size = *(data.data + offset) & 0xC0;
       switch (param_size)
       {
       case 0:
-         param = *(uint8_t*)tmp_data & 0x3F;
-         tmp_data += sizeof(uint8_t);
+         param = *(uint8_t*)(data.data + offset) & 0x3F;
+         offset += sizeof(uint8_t);
          break;
       case 64:
-         param = *(uint16_t*)tmp_data & 0x3FFF;
-         tmp_data += sizeof(uint16_t);
+         param = ntohs(*(uint16_t*)(data.data + offset)) & 0x3FFF;
+         offset += sizeof(uint16_t);
          break;
       case 128:
-         param = *(uint32_t*)tmp_data & 0x3FFFFFFF;
-         tmp_data += sizeof(uint32_t);
+         param = ntohs(*(uint32_t*)(data.data + offset)) & 0x3FFFFFFF;
+         offset += sizeof(uint32_t);
          break;
       case 192:
-         param = *(uint64_t*)tmp_data & 0x3FFFFFFFFFFFFFFF; 
-         tmp_data += sizeof(uint64_t);
+         param = ntohs(*(uint64_t*)(data.data + offset)) & 0x3FFFFFFFFFFFFFFF; 
+         offset += sizeof(uint64_t);
          break;
       default:
          break;
       }
 
-      uint8_t length_size = (*tmp_data) & 0xC0;
+      uint8_t length_size = (*data.data + offset) & 0xC0;
 
       switch (length_size)
       {
       case 0:
-         length = *(uint8_t*)tmp_data & 0x3F;;
-         tmp_data += sizeof(uint8_t);
+         length = *(uint8_t*)(data.data + offset) & 0x3F;;
+         offset += sizeof(uint8_t);
          break;
       case 64:
-         length = *(uint16_t*)tmp_data & 0x3FFF;;
-         tmp_data += sizeof(uint16_t);
+         length = ntohs(*(uint16_t*)(data.data + offset)) & 0x3FFF;;
+         offset += sizeof(uint16_t);
          break;
       case 128:
-         length = *(uint32_t*)tmp_data & 0x3FFFFFFF;;
-         tmp_data += sizeof(uint32_t);
+         length = ntohs(*(uint32_t*)(data.data + offset)) & 0x3FFFFFFF;;
+         offset += sizeof(uint32_t);
          break;
       case 192:
-         length = *(uint64_t*)tmp_data & 0x3FFFFFFFFFFFFFFF; ;
-         tmp_data += sizeof(uint64_t);
+         length = ntohs(*(uint64_t*)(data.data + offset)) & 0x3FFFFFFFFFFFFFFF; ;
+         offset += sizeof(uint64_t);
          break;
       default:
          break;
       }
-
-
       if(param == TLS_EXT_GOOGLE_USER_AGENT)
       {
-         if (length + (size_t) 1 > bufsize) {
+         
+         if (length + (size_t) 1 > bufsize)
             length = bufsize - 1;
-         memcpy(out, tmp_data, length);
-         out[length] = 0;
-         std::cout << out << std::endl;
+         memcpy(out, data.data + offset, length);
+         out[length] = 0; 
          data.user_agent_parsed++;
       }
-      }
-      tmp_data += length;
+      offset += length;
       
    }
 
 }
 
 void get_tls_server_name(my_payload_data &data, char *out, size_t bufsize)
-{
+{      
    uint16_t list_len    = ntohs(*(uint16_t *) data.data);
    uint16_t offset      = sizeof(list_len);
+   
    const char *list_end = data.data + list_len + offset;
 
    if (list_end > data.end) {
@@ -366,21 +358,23 @@ bool QUICPlugin::parse_tls(RecordExtQUIC *rec)
       return false;
    }
 
-   while (payload.data + sizeof(tls_ext) <= payload.end) {
-      tls_ext *ext    = (tls_ext *) payload.data;
-      uint16_t length = ntohs(ext->length);
+   while (payload.data + sizeof(QUIC_EXT) <= payload.end) {
+      QUIC_EXT *ext    = (QUIC_EXT *) payload.data;
       uint16_t type   = ntohs(ext->type);
+      uint16_t length   = ntohs(ext->length);
 
-      payload.data += sizeof(tls_ext);
+      payload.data += sizeof(QUIC_EXT);
+
       if (type == TLS_EXT_SERVER_NAME) {
          get_tls_server_name(payload, rec->sni, sizeof(rec->sni));
+         std::cout << rec->sni << std::endl;
          parsed_initial += payload.sni_parsed;
       }
-      if (type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1 ||
-         type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS ||
-         type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2) {
-            printf("%02x\n",type);
-         get_tls_user_agent(payload, rec->user_agent, sizeof(rec->user_agent));
+      else if (type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1 ||
+               type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS ||
+               type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2) {
+         get_tls_user_agent(payload,length ,rec->user_agent, sizeof(rec->user_agent));
+         std::cout << rec->user_agent << std::endl;
          parsed_initial += payload.user_agent_parsed;
       }
       if (!payload.valid) {
@@ -796,155 +790,84 @@ bool QUICPlugin::quic_decrypt_header()
 
 bool QUICPlugin::quic_assemble()
 {
-   // potrebujeme zistit akeho typu je prvy ramec
+   uint8_t * assembled_payload = (uint8_t*)malloc(sizeof(uint8_t) * payload_len);
+   uint8_t * payload_end = decrypted_payload + payload_len;
 
-   uint8_t * tmp_ukazovacik = decrypted_payload;
-   //CRYPTO_PTR * first = (CRYPTO_PTR *)malloc(sizeof(CRYPTO_PTR));
-   CRYPTO_PTR * head = NULL;
-   CRYPTO_PTR * first = NULL;
+   uint64_t offset = 0;
+   uint64_t offset_frame;
+   uint64_t length;
 
-   while(tmp_ukazovacik != decrypted_payload + payload_len)
+   while(decrypted_payload + offset < payload_end)
    {
-      if(*tmp_ukazovacik == 0x06)
+      if(*(decrypted_payload + offset) == 0x06)
       {
-         CRYPTO_PTR* tmp = (CRYPTO_PTR*)malloc(sizeof(CRYPTO_PTR));
-         tmp->next = NULL;
-
-
-         tmp_ukazovacik++;
-         uint8_t offset_len = *tmp_ukazovacik & 0xC0;
+         uint8_t offset_len = *(decrypted_payload + offset) & 0xC0;
          switch (offset_len)
          {
             case 0:
             {
-               DEBUG_MSG("Offset length 1\n");
-               uint8_t offset = *tmp_ukazovacik & 0x3F;
-               tmp_ukazovacik += sizeof(uint8_t);
-               tmp->offset = offset;
-               
+               offset_frame = *(decrypted_payload + offset) & 0x3F;
+               offset += sizeof(uint8_t);               
                break;
             }
             case 64:
             {
-               DEBUG_MSG("Offset length 2\n");
-               uint16_t offset = htons(*(uint16_t*)tmp_ukazovacik) & 0x3FFF;
-               tmp_ukazovacik += sizeof(uint16_t);
-               tmp->offset = offset;
-
+               offset_frame = htons(*(uint16_t*)(decrypted_payload + offset)) & 0x3FFF;
+               offset += sizeof(uint16_t);
                break;
             }
             case 128:   
             {
-               DEBUG_MSG("Offset length 4\n");
-               uint32_t offset = htons(*(uint32_t*)tmp_ukazovacik) & 0x3FFFFFFF;
-               tmp_ukazovacik += sizeof(uint32_t);
-               tmp->offset = offset;
+               offset_frame = htons(*(uint32_t*)(decrypted_payload + offset)) & 0x3FFFFFFF;
+               offset += sizeof(uint32_t);
                break;
             }
             case 192:
             {
-               DEBUG_MSG("Offset length 8\n");
-               uint64_t offset = htons(*(uint64_t*)tmp_ukazovacik) & 0x3FFFFFFFFFFFFFFF;
-               tmp_ukazovacik += sizeof(uint64_t);
-               tmp->offset = offset;
+               
+               offset_frame = htons(*(uint64_t*)(decrypted_payload + offset)) & 0x3FFFFFFFFFFFFFFF;
+               offset += sizeof(uint64_t);
                break;
             }
          }
 
-
-         uint8_t length_len = *tmp_ukazovacik & 0xC0;
-
+         uint8_t length_len = *(decrypted_payload + offset) & 0xC0;
 
          switch (length_len)
          {
             case 0:
             {
-               DEBUG_MSG("Length length 1\n");
-               uint8_t length = *tmp_ukazovacik & 0x3F;
-               tmp_ukazovacik += sizeof(uint8_t);
-               tmp->frame_addr = tmp_ukazovacik;
-               tmp->length = length;
-               
-               tmp_ukazovacik+= length;
+               length = *(decrypted_payload + offset) & 0x3F;
+               offset += sizeof(uint8_t);
                break;
             }
             case 64:
             {
-               DEBUG_MSG("Length length 2\n");
-               uint16_t length = htons(*(uint16_t*)tmp_ukazovacik) & 0x3FFF;
-               tmp_ukazovacik += sizeof(uint16_t);
-               tmp->frame_addr = tmp_ukazovacik;
-               tmp->length = length;
-               tmp_ukazovacik+= length;
+               length = htons(*(uint16_t*)(decrypted_payload + offset)) & 0x3FFF;
+               offset += sizeof(uint16_t);
                break;
             }
             case 128:   
             {
-               DEBUG_MSG("Length length 4\n");
-               uint32_t length = htons(*(uint32_t*)tmp_ukazovacik) & 0x3FFFFFFF;
-               tmp_ukazovacik += sizeof(uint32_t);
-               tmp->frame_addr = tmp_ukazovacik;
-               tmp->length = length;
-               tmp_ukazovacik+= length;
+               length = htons(*(uint32_t*)(decrypted_payload + offset)) & 0x3FFFFFFF;
+               offset += sizeof(uint32_t);
                break;
             }
             case 192:
             {
-               DEBUG_MSG("Length length 8\n");
-               uint64_t length = htons(*(uint64_t*)tmp_ukazovacik) & 0x3FFFFFFFFFFFFFFF;
-               tmp_ukazovacik += sizeof(uint64_t);
-               tmp->frame_addr = tmp_ukazovacik;
-               tmp->length = length;
-               tmp_ukazovacik+= length;
+               length = htons(*(uint64_t*)(decrypted_payload + offset)) & 0x3FFFFFFFFFFFFFFF;
+               offset += sizeof(uint64_t);
                break;
             }
          }
-
-         if(first == NULL)
-         {
-            first = tmp;
-            head = first;
-         }
-         else
-         {
-            head->next = tmp;
-            head = head->next;
-         }
-      
-
-
-         
       }
       else
       {
-         tmp_ukazovacik++;
-         continue;
+         offset++;
       }
    
    }
 
-   int total_length = 0;
-   CRYPTO_PTR * tmp1 = first;
-   while(tmp1 != NULL)
-   {
-      total_length += tmp1->length;
-      printf("%d,%d\n",tmp1->offset,tmp1->length);
-      tmp1 = tmp1->next;
-   }
-
-   printf("%d\n",total_length);
-   uint8_t * assembled_payload = (uint8_t*)malloc(sizeof(uint8_t) * total_length);
-   tmp1 = first;
-   while(tmp1 != NULL)
-   {
-      memcpy(&assembled_payload[tmp1->offset],tmp1->frame_addr,tmp1->length );
-      tmp1 = tmp1->next;
-   }
-   for(int x = 0 ; x < total_length;x++)
-   {
-      printf("%c",assembled_payload[x]);
-   }
-   printf("\n");
    return true;
 }
 
@@ -1040,12 +963,6 @@ bool QUICPlugin::quic_decrypt_payload()
       return false;
    }
 
-
-   /*for(int x = 0 ; x < payload_len ; x++)
-   {
-      printf("%02x",decrypted_payload[x]);
-   }
-   printf("\n");*/
    EVP_CIPHER_CTX_free(ctx);
    return true;
 } // QUICPlugin::quic_decrypt_payload
@@ -1154,13 +1071,20 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
          DEBUG_MSG("Error, payload decryption failed (client side)\n");
          return false;
       }
-      /*if (!quic_assemble()) {
-         DEBUG_MSG("Error, reassembling of crypto frames failed (client side)\n");
-         return false;
-      }*/
       if (!parse_tls(quic_data)) {
-         DEBUG_MSG("SNI Extraction failed\n");
-         return false;
+         if (!quic_assemble()) {
+            DEBUG_MSG("Error, reassembling of crypto frames failed (client side)\n");
+            return false;
+         }
+         else
+         {
+            if(!parse_tls(quic_data))
+            {
+               DEBUG_MSG("SNI Extraction failed\n");
+               return false;
+            }
+            return true;
+         }
       } else {
          return true;
       }
@@ -1177,15 +1101,21 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
          DEBUG_MSG("Error, payload decryption failed (server side)\n");
          return false;
       }
-      /*if (!quic_assemble()) {
-         DEBUG_MSG("Error, reassembling of crypto frames failed (server side)\n");
-         return false;
-      }*/
       if (!parse_tls(quic_data)) {
-         DEBUG_MSG("SNI Extraction failed\n");
-         return false;
+         if (!quic_assemble()) {
+            DEBUG_MSG("Error, reassembling of crypto frames failed (client side)\n");
+            return false;
+         }
+         else {
+            if(!parse_tls(quic_data))
+            {
+               DEBUG_MSG("SNI Extraction failed\n");
+               return false;
+            }
+            return true;
+         } 
       } else {
-         return true;
+            return true;
       }
    }
    return false;

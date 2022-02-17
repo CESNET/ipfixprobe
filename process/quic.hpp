@@ -74,7 +74,7 @@ namespace ipxp {
 #define TLS_EXT_QUIC_TRANSPORT_PARAMETERS 0xffa5 
 // draf-02 az draft-12 maju tuto hodnotu defined ako 0x26 == 38
 #define TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2 0x26 
-#define TLS_EXT_GOOGLE_USER_AGENT 12585
+#define TLS_EXT_GOOGLE_USER_AGENT 0x3129
 
 
 
@@ -107,6 +107,12 @@ typedef struct __attribute__((packed)) crypto_ptr{
 
 }CRYPTO_PTR;
 
+typedef struct __attribute__ ((packed)) quic_ext {
+   uint16_t type;
+   uint16_t length;
+}QUIC_EXT;
+
+
 
 struct my_payload_data {
    char *data;
@@ -116,11 +122,6 @@ struct my_payload_data {
    int      user_agent_parsed;
 };
 
-typedef struct quic_transport_parameters
-{
-   uint16_t * type;
-   uint16_t * length;
-}quic_transport_parameters;
 
 
 typedef struct __attribute__((packed)) quic_header1 {
