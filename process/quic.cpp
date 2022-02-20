@@ -68,7 +68,7 @@ __attribute__((constructor)) static void register_this_plugin()
 
 
 // Print debug message if debugging is allowed.
-#define DEBUG_QUIC 1
+//#define DEBUG_QUIC 1
 #ifdef  DEBUG_QUIC
 # define DEBUG_MSG(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
 #else
@@ -87,8 +87,6 @@ QUICPlugin::QUICPlugin()
 {
    quic_h1 = nullptr;
    quic_h2 = nullptr;
-   quic_h3 = nullptr;
-   quic_h4 = nullptr;
 
    header  = nullptr;
    payload = nullptr;
@@ -102,7 +100,10 @@ QUICPlugin::QUICPlugin()
    sample = nullptr;
 
    decrypted_payload = nullptr;
+   assembled_payload = nullptr;
+   final_payload = nullptr;
    buffer_length = 0;
+   buffer_length2 = 0;
    parsed_initial = 0;
    quic_ptr = nullptr;
 }
@@ -124,6 +125,7 @@ void QUICPlugin::close()
    quic_ptr = nullptr;
    if (decrypted_payload != nullptr) {
       free(decrypted_payload);
+      free(assembled_payload);
    }
    decrypted_payload = nullptr;
 }
@@ -169,7 +171,7 @@ void get_tls_user_agent(my_payload_data &data, uint16_t length_ext, char *out, s
          break;
       }
 
-      uint8_t length_size = (*data.data + offset) & 0xC0;
+      uint8_t length_size = *(data.data + offset) & 0xC0;
 
       switch (length_size)
       {
@@ -194,7 +196,6 @@ void get_tls_user_agent(my_payload_data &data, uint16_t length_ext, char *out, s
       }
       if(param == TLS_EXT_GOOGLE_USER_AGENT)
       {
-         
          if (length + (size_t) 1 > bufsize)
             length = bufsize - 1;
          memcpy(out, data.data + offset, length);
@@ -339,8 +340,8 @@ bool parse_tls_nonext_hdr(my_payload_data &payload, std::string *ja3)
 bool QUICPlugin::parse_tls(RecordExtQUIC *rec)
 {
    my_payload_data payload = {
-      (char *) decrypted_payload,
-      (char *) decrypted_payload + payload_len,
+      (char *) final_payload,
+      (char *) final_payload + payload_len,
       true,
       0,
       0
@@ -367,14 +368,14 @@ bool QUICPlugin::parse_tls(RecordExtQUIC *rec)
 
       if (type == TLS_EXT_SERVER_NAME) {
          get_tls_server_name(payload, rec->sni, sizeof(rec->sni));
-         std::cout << rec->sni << std::endl;
+         //std::cout << rec->sni << std::endl;
          parsed_initial += payload.sni_parsed;
       }
       else if (type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1 ||
                type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS ||
                type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2) {
          get_tls_user_agent(payload,length ,rec->user_agent, sizeof(rec->user_agent));
-         std::cout << rec->user_agent << std::endl;
+         //std::cout << rec->user_agent << std::endl;
          parsed_initial += payload.user_agent_parsed;
       }
       if (!payload.valid) {
@@ -686,6 +687,7 @@ bool QUICPlugin::quic_create_initial_secrets(CommSide side)
    EVP_PKEY_CTX_free(pctx);
 
 
+   
    // Derive other secrets
    if (!quic_derive_secrets(expanded_secret)) {
       DEBUG_MSG("Error, Derivation of initial secrets failed\n");
@@ -790,17 +792,39 @@ bool QUICPlugin::quic_decrypt_header()
 
 bool QUICPlugin::quic_assemble()
 {
-   uint8_t * assembled_payload = (uint8_t*)malloc(sizeof(uint8_t) * payload_len);
+   if (assembled_payload == nullptr) {
+      buffer_length2     = payload_len;
+      assembled_payload = (uint8_t *) malloc(sizeof(uint8_t) * buffer_length2);
+   } else {
+      if (buffer_length2 >= payload_len) {
+      } else {
+         buffer_length = payload_len;
+         uint8_t *tmp = (uint8_t *) realloc(assembled_payload, sizeof(uint8_t) * buffer_length2);
+         if (tmp != NULL) {
+            assembled_payload = tmp;
+         } else {
+            tmp = (uint8_t *) malloc(sizeof(uint8_t) * buffer_length2);
+            free(assembled_payload);
+            assembled_payload = tmp;
+         }
+      }
+   }
+   memset(assembled_payload,0,buffer_length2);
+
+   assembled_payload[0] = 0x06;
+   
+   
    uint8_t * payload_end = decrypted_payload + payload_len;
 
    uint64_t offset = 0;
-   uint64_t offset_frame;
-   uint64_t length;
+   uint64_t offset_frame = 0;
+   uint64_t length = 0;
 
    while(decrypted_payload + offset < payload_end)
    {
       if(*(decrypted_payload + offset) == 0x06)
       {
+         offset +=1;
          uint8_t offset_len = *(decrypted_payload + offset) & 0xC0;
          switch (offset_len)
          {
@@ -860,6 +884,11 @@ bool QUICPlugin::quic_assemble()
                break;
             }
          }
+         
+
+
+         memcpy(assembled_payload + offset_frame + 4*sizeof(uint8_t),decrypted_payload + offset,length);
+         offset += length;
       }
       else
       {
@@ -868,6 +897,7 @@ bool QUICPlugin::quic_assemble()
    
    }
 
+   final_payload = assembled_payload;
    return true;
 }
 
@@ -895,10 +925,6 @@ bool QUICPlugin::quic_decrypt_payload()
 
    EVP_CIPHER_CTX *ctx;
 
-
-   // decrypted_payload = (uint8_t *) malloc(sizeof(uint8_t) * payload_len + 16);
-
-
    // check if we have enough space for payload decryption
    if (decrypted_payload == nullptr) {
       // +16 means we have to allocate space for authentication tag
@@ -923,6 +949,8 @@ bool QUICPlugin::quic_decrypt_payload()
       }
    }
 
+
+   
    if (!(ctx = EVP_CIPHER_CTX_new())) {
       DEBUG_MSG("Payload decryption error, creating context failed\n");
       return false;
@@ -942,6 +970,7 @@ bool QUICPlugin::quic_decrypt_payload()
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
+   
    if (!EVP_DecryptUpdate(ctx, NULL, &len, header, header_len)) {
       DEBUG_MSG("Payload decryption error, initializing authenticated data failed\n");
       EVP_CIPHER_CTX_free(ctx);
@@ -963,7 +992,10 @@ bool QUICPlugin::quic_decrypt_payload()
       return false;
    }
 
+   
    EVP_CIPHER_CTX_free(ctx);
+
+   final_payload = decrypted_payload;
    return true;
 } // QUICPlugin::quic_decrypt_payload
 
@@ -1005,17 +1037,73 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
    tmp_pointer += quic_h2->scid_len;
 
 
-   quic_h3 = (quic_header3 *) tmp_pointer; // read overall length this length consists of packet number length and payload length
-
-   tmp_pointer += sizeof(quic_header3);
    if (tmp_pointer > payload_end) {
       return false;
    }
-   tmp_pointer += quic_h3->token_len;
 
 
-   quic_h4      = (quic_header4 *) tmp_pointer;
-   tmp_pointer += sizeof(uint16_t); // move after length, there should be packet number
+   // token length has variable length based on first two bits, so we cant use structure
+   uint8_t token_len_length = *(tmp_pointer) & 0xC0;
+   uint64_t token_length = 0;
+   switch (token_len_length)
+   {
+      case 0:
+         token_length = *(uint8_t*)(tmp_pointer) & 0x3F;
+         tmp_pointer += sizeof(uint8_t);
+         break;
+      case 64:
+         token_length = ntohs(*(uint16_t*)(tmp_pointer)) & 0x3FFF;
+         tmp_pointer += sizeof(uint16_t);
+         break;
+      case 128:
+         token_length = ntohs(*(uint32_t*)tmp_pointer) & 0x3FFFFFFF;
+         tmp_pointer += sizeof(uint32_t);
+         break;
+      case 192:
+         token_length = ntohs(*(uint64_t*)tmp_pointer) & 0x3FFFFFFFFFFFFFFF; 
+         tmp_pointer += sizeof(uint64_t);
+         break;
+      default:
+         break;
+   } 
+
+
+   if (tmp_pointer > payload_end) {
+      return false;
+   }
+   tmp_pointer += token_length;
+
+   if (tmp_pointer > payload_end) {
+      return false;
+   }
+
+
+   uint8_t packet_len_length = *(tmp_pointer) & 0xC0;
+   switch (packet_len_length)
+   {
+      case 0:
+         payload_len = *(uint8_t*)(tmp_pointer) & 0x3F;
+         tmp_pointer += sizeof(uint8_t);
+         break;
+      case 64:
+         payload_len = ntohs(*(uint16_t*)(tmp_pointer)) & 0x3FFF;
+         tmp_pointer += sizeof(uint16_t);
+         break;
+      case 128:
+         payload_len = ntohs(*(uint32_t*)tmp_pointer) & 0x3FFFFFFF;
+         tmp_pointer += sizeof(uint32_t);
+         break;
+      case 192:
+         payload_len = ntohs(*(uint64_t*)tmp_pointer) & 0x3FFFFFFFFFFFFFFF; 
+         tmp_pointer += sizeof(uint64_t);
+         break;
+      default:
+         break;
+   } 
+
+   if (tmp_pointer > payload_end) {
+      return false;
+   }
 
    pkn = tmp_pointer; // set packet number
 
@@ -1028,8 +1116,6 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
    if (tmp_pointer > payload_end) {
       return false;
    }
-
-   payload_len = htons(quic_h4->length) ^ 0x4000; // set payload length, again, payload length is with payload_len + pkn_len , this will be adjusted later.
 
 
    /* DO NOT SET header length this way , if packet contains more frames , pkt.payload_len is length of whole quic packet (so it contains length of all frames inside packet)
@@ -1045,6 +1131,7 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
 
 bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
 {
+   
    // check if packet contains LONG HEADER and is of type INITIAL
    if (pkt.ip_proto != 17 || !quic_check_initial(pkt.payload[0])) {
       DEBUG_MSG("Packet is not Initial or does not contains LONG HEADER\n");
@@ -1072,6 +1159,7 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
          return false;
       }
       if (!parse_tls(quic_data)) {
+         DEBUG_MSG("Starting frames assemble (client side)\n");
          if (!quic_assemble()) {
             DEBUG_MSG("Error, reassembling of crypto frames failed (client side)\n");
             return false;
@@ -1102,8 +1190,9 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
          return false;
       }
       if (!parse_tls(quic_data)) {
+         DEBUG_MSG("Starting frames assemble (server side)\n");
          if (!quic_assemble()) {
-            DEBUG_MSG("Error, reassembling of crypto frames failed (client side)\n");
+            DEBUG_MSG("Error, reassembling of crypto frames failed (server side)\n");
             return false;
          }
          else {
@@ -1151,6 +1240,7 @@ int QUICPlugin::post_update(Flow &rec, const Packet &pkt)
 
 void QUICPlugin::add_quic(Flow &rec, const Packet &pkt)
 {
+   DEBUG_MSG("----- Start -----\n");
    if (quic_ptr == nullptr) {
       quic_ptr = new RecordExtQUIC();
    }
@@ -1159,7 +1249,7 @@ void QUICPlugin::add_quic(Flow &rec, const Packet &pkt)
       rec.add_extension(quic_ptr);
       quic_ptr = nullptr;
    }
-   
+   DEBUG_MSG("----- End -----\n");
 }
 
 void QUICPlugin::finish(bool print_stats)

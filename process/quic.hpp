@@ -97,16 +97,6 @@ UR_FIELDS(
 #define quic_serverIn_hkdf      sizeof("tls13 server in") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t)
 
 
-typedef struct __attribute__((packed)) crypto_ptr{
-   
-   crypto_ptr * next;
-   uint8_t * frame_addr;
-   uint64_t length;
-   uint64_t offset;
-
-
-}CRYPTO_PTR;
-
 typedef struct __attribute__ ((packed)) quic_ext {
    uint16_t type;
    uint16_t length;
@@ -136,16 +126,6 @@ typedef struct __attribute__((packed)) quic_header2 {
    uint8_t scid_len;
    // contains scid_len (which is 0 in context of Client Hello packet) but from server side, header contains SCID so SCID length is not 0
 } quic_header2;
-
-typedef struct __attribute__((packed)) quic_header3 {
-   uint8_t token_len;
-   // token_len (variable) but not important
-} quic_header3;
-
-typedef struct __attribute__((packed)) quic_header4 {
-   uint16_t length;
-   // contains length (which consist of payload length + packet number length)
-} quic_header4;
 
 struct __attribute__((packed)) tls_handshake_prot {
    uint8_t     type;
@@ -275,8 +255,6 @@ private:
    // header pointers
    quic_header1 *quic_h1;
    quic_header2 *quic_h2;
-   quic_header3 *quic_h3;
-   quic_header4 *quic_h4;
 
 
    // buffers for HkdfExpanded Labels, sizes are constant so no need for malloc
@@ -294,7 +272,7 @@ private:
    uint8_t *payload;
 
    uint16_t header_len;
-   uint16_t payload_len;
+   uint64_t payload_len;
 
    // important header values (sample is part of payload)
    uint8_t *dcid;
@@ -304,7 +282,11 @@ private:
 
    // final decrypted payload
    uint8_t *decrypted_payload;
-   int buffer_length;
+   uint8_t *assembled_payload;
+   uint8_t *final_payload;
+
+   uint64_t buffer_length;
+   uint64_t buffer_length2;
 
    uint8_t nonce[TLS13_AEAD_NONCE_LENGTH] = { 0 };
 
