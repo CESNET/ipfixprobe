@@ -250,7 +250,9 @@ namespace ipxp {
 #define WG_SRC_PEER(F)                F(8057,    862,   4,   nullptr)
 #define WG_DST_PEER(F)                F(8057,    863,   4,   nullptr)
 
-#define QUIC_SNI(F)                   F(8057,    890,   -1,  nullptr)
+#define QUIC_SNI(F)                   F(8057,    890,  -1,   nullptr)
+#define QUIC_USER_AGENT(F)            F(8057,    891,  -1,   nullptr)
+#define QUIC_VERSION(F)               F(8057,    892,   4,   nullptr)
 
 #define OSQUERY_PROGRAM_NAME(F)       F(8057,    852,  -1,   nullptr)
 #define OSQUERY_USERNAME(F)           F(8057,    853,  -1,   nullptr)
@@ -478,7 +480,9 @@ namespace ipxp {
   F(WG_DST_PEER)
 
 #define IPFIX_QUIC_TEMPLATE(F) \
-  F(QUIC_SNI)
+  F(QUIC_SNI) \
+  F(QUIC_USER_AGENT) \
+  F(QUIC_VERSION)
 
 #define IPFIX_OSQUERY_TEMPLATE(F) \
    F(OSQUERY_PROGRAM_NAME) \

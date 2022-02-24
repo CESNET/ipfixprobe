@@ -68,7 +68,6 @@ __attribute__((constructor)) static void register_this_plugin()
 
 
 // Print debug message if debugging is allowed.
-//#define DEBUG_QUIC 1
 #ifdef  DEBUG_QUIC
 # define DEBUG_MSG(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
 #else
@@ -100,12 +99,19 @@ QUICPlugin::QUICPlugin()
    sample = nullptr;
 
    decrypted_payload = nullptr;
+   decrypt_buffer_len = 0;
+   
    assembled_payload = nullptr;
+   assemble_buffer_len = 0;
+   
    final_payload = nullptr;
-   buffer_length = 0;
-   buffer_length2 = 0;
+   
+
    parsed_initial = 0;
    quic_ptr = nullptr;
+
+
+   google_QUIC = false;
 }
 
 QUICPlugin::~QUICPlugin()
@@ -141,13 +147,23 @@ ProcessPlugin *QUICPlugin::copy()
 void get_tls_user_agent(my_payload_data &data, uint16_t length_ext, char *out, size_t bufsize)
 {
 
+   // compute end of quic_transport_parameters
    const char *quic_transport_params_end = data.data + length_ext;
+   
+   
+
    uint64_t offset = 0;
    uint64_t param = 0;
    uint64_t length = 0;
 
+   
+   
    while (data.data + offset < quic_transport_params_end)
    {
+      
+      // find out length of parameter field (and load parameter, then move offset) , defined in:
+      // https://www.rfc-editor.org/rfc/rfc9000.html#name-summary-of-integer-encoding
+      // this approach is used also in length field , and other QUIC defined fields.
       uint8_t param_size = *(data.data + offset) & 0xC0;
       switch (param_size)
       {
@@ -160,16 +176,19 @@ void get_tls_user_agent(my_payload_data &data, uint16_t length_ext, char *out, s
          offset += sizeof(uint16_t);
          break;
       case 128:
-         param = ntohs(*(uint32_t*)(data.data + offset)) & 0x3FFFFFFF;
+         param = ntohl(*(uint32_t*)(data.data + offset)) & 0x3FFFFFFF;
          offset += sizeof(uint32_t);
          break;
       case 192:
-         param = ntohs(*(uint64_t*)(data.data + offset)) & 0x3FFFFFFFFFFFFFFF; 
+         // ntohl has input parameter 32 bit value , but there is 64 bit value as input
+         param = ntohl(*(uint64_t*)(data.data + offset)) & 0x3FFFFFFFFFFFFFFF; 
          offset += sizeof(uint64_t);
          break;
       default:
          break;
       }
+
+
 
       uint8_t length_size = *(data.data + offset) & 0xC0;
 
@@ -184,16 +203,18 @@ void get_tls_user_agent(my_payload_data &data, uint16_t length_ext, char *out, s
          offset += sizeof(uint16_t);
          break;
       case 128:
-         length = ntohs(*(uint32_t*)(data.data + offset)) & 0x3FFFFFFF;;
+         length = ntohl(*(uint32_t*)(data.data + offset)) & 0x3FFFFFFF;;
          offset += sizeof(uint32_t);
          break;
       case 192:
-         length = ntohs(*(uint64_t*)(data.data + offset)) & 0x3FFFFFFFFFFFFFFF; ;
+         length = ntohl(*(uint64_t*)(data.data + offset)) & 0x3FFFFFFFFFFFFFFF; ;
          offset += sizeof(uint64_t);
          break;
       default:
          break;
       }
+
+      // check if this parameter is TLS_EXT_GOOGLE_USER_AGENT which contains user agent
       if(param == TLS_EXT_GOOGLE_USER_AGENT)
       {
          if (length + (size_t) 1 > bufsize)
@@ -202,6 +223,8 @@ void get_tls_user_agent(my_payload_data &data, uint16_t length_ext, char *out, s
          out[length] = 0; 
          data.user_agent_parsed++;
       }
+
+      // move offset after this parameter and check next parameter until ond of extension field
       offset += length;
       
    }
@@ -368,15 +391,16 @@ bool QUICPlugin::parse_tls(RecordExtQUIC *rec)
 
       if (type == TLS_EXT_SERVER_NAME) {
          get_tls_server_name(payload, rec->sni, sizeof(rec->sni));
-         //std::cout << rec->sni << std::endl;
          parsed_initial += payload.sni_parsed;
+         //std::cout << rec->sni << std::endl;
       }
       else if (type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1 ||
                type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS ||
                type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2) {
          get_tls_user_agent(payload,length ,rec->user_agent, sizeof(rec->user_agent));
-         //std::cout << rec->user_agent << std::endl;
          parsed_initial += payload.user_agent_parsed;
+         /*std::cout << rec->user_agent << std::endl;
+         printf("%02x\n",rec->quic_version);*/
       }
       if (!payload.valid) {
          return false;
@@ -414,7 +438,7 @@ bool QUICPlugin::expand_label(const char *label_prefix, const char *label, const
 
 
    const uint8_t label_vector_length = label_prefix_length + label_length;
-   const uint16_t length = htons(desired_len);
+   const uint16_t length = ntohs(desired_len);
 
    out_len = sizeof(length) + sizeof(label_vector_length) + label_vector_length + sizeof(context_length);
 
@@ -534,11 +558,12 @@ bool QUICPlugin::quic_check_version(uint32_t version, uint8_t max_version)
    return draft_version && draft_version <= max_version;
 }
 
-bool QUICPlugin::quic_create_initial_secrets(CommSide side)
+bool QUICPlugin::quic_create_initial_secrets(CommSide side,RecordExtQUIC * rec)
 {
    uint32_t version = quic_h1->version;
 
-   version = htonl(version);
+   version = ntohl(version);
+   rec->quic_version = version;
 
    static const uint8_t handshake_salt_draft_22[SALT_LENGTH] = {
       0x7f, 0xbc, 0xdb, 0x0e, 0x7c, 0x66, 0xbb, 0xe9, 0x19, 0x3a,
@@ -572,20 +597,46 @@ bool QUICPlugin::quic_create_initial_secrets(CommSide side)
 
    const uint8_t *salt;
 
+
+   // these three are Google QUIC version
    if (version == 0x51303530)
+   {
       salt = hanshake_salt_draft_q50;
+      google_QUIC = true;
+   }
    else if (version == 0x54303530)
+   {
       salt = hanshake_salt_draft_t50;
+      google_QUIC = true;
+   }
    else if (version == 0x54303531)
+   {
       salt = hanshake_salt_draft_t51;
+      google_QUIC = true;
+
+   }
    else if (quic_check_version(version, 22))
+   {
       salt = handshake_salt_draft_22;
+      google_QUIC = false;
+
+   }
    else if (quic_check_version(version, 28))
+   {
       salt = handshake_salt_draft_23;
+      google_QUIC = false;
+   }
    else if (quic_check_version(version, 32))
+   {
       salt = handshake_salt_draft_29;
+      google_QUIC = false;
+   }
    else
+   {
       salt = handshake_salt_v1;
+      google_QUIC = false;
+
+   }
 
 
    uint8_t extracted_secret[HASH_SHA2_256_LENGTH] = { 0 };
@@ -792,37 +843,55 @@ bool QUICPlugin::quic_decrypt_header()
 
 bool QUICPlugin::quic_assemble()
 {
+
+
+   // we try to recycle old allocated memory buffer, so check if the buffer size is sufficient etc..
    if (assembled_payload == nullptr) {
-      buffer_length2     = payload_len;
-      assembled_payload = (uint8_t *) malloc(sizeof(uint8_t) * buffer_length2);
+      assemble_buffer_len     = payload_len;
+      assembled_payload = (uint8_t *) malloc(sizeof(uint8_t) * assemble_buffer_len);
    } else {
-      if (buffer_length2 >= payload_len) {
+      if (assemble_buffer_len >= payload_len) {
       } else {
-         buffer_length = payload_len;
-         uint8_t *tmp = (uint8_t *) realloc(assembled_payload, sizeof(uint8_t) * buffer_length2);
+         assemble_buffer_len = payload_len;
+         uint8_t *tmp = (uint8_t *) realloc(assembled_payload, sizeof(uint8_t) * assemble_buffer_len);
          if (tmp != NULL) {
             assembled_payload = tmp;
          } else {
-            tmp = (uint8_t *) malloc(sizeof(uint8_t) * buffer_length2);
+            tmp = (uint8_t *) malloc(sizeof(uint8_t) * assemble_buffer_len);
             free(assembled_payload);
             assembled_payload = tmp;
          }
       }
    }
-   memset(assembled_payload,0,buffer_length2);
+
+
+   // set all buffer values to 0 (this is because crypto frames are padded so we want to avoid reading undefined values)
+   memset(assembled_payload,0,assemble_buffer_len);
 
    assembled_payload[0] = 0x06;
    
    
+
+   // compute end of payload
    uint8_t * payload_end = decrypted_payload + payload_len;
 
    uint64_t offset = 0;
    uint64_t offset_frame = 0;
    uint64_t length = 0;
 
+
+
+   // loop through whole padding, the logic is check first fragment (check type and length), if it`s of type crypto
+   // copy the frame into the buffer at offset which is defined in the frame, then skip length bytes, so we jump
+   // to the next fragment, this process repeat till the end of payload. If the frame is not of type crypto, we 
+   // skip only one byte, this is because for example padding fragments have no defined length, so we dont know
+   // how much bytes we have to skip, on the other hand ping frames have only 1 byte in length.
+   // In initial packets this types of frames can occure: Crypto, Padding, Ping, ACK, CONNECTION_CLOSE  
    while(decrypted_payload + offset < payload_end)
    {
-      if(*(decrypted_payload + offset) == 0x06)
+
+      // process of computing offset length and length field length, is same as above in extracting user agent
+      if(*(decrypted_payload + offset) == CRYPTO)
       {
          offset +=1;
          uint8_t offset_len = *(decrypted_payload + offset) & 0xC0;
@@ -836,20 +905,20 @@ bool QUICPlugin::quic_assemble()
             }
             case 64:
             {
-               offset_frame = htons(*(uint16_t*)(decrypted_payload + offset)) & 0x3FFF;
+               offset_frame = ntohs(*(uint16_t*)(decrypted_payload + offset)) & 0x3FFF;
                offset += sizeof(uint16_t);
                break;
             }
             case 128:   
             {
-               offset_frame = htons(*(uint32_t*)(decrypted_payload + offset)) & 0x3FFFFFFF;
+               offset_frame = ntohl(*(uint32_t*)(decrypted_payload + offset)) & 0x3FFFFFFF;
                offset += sizeof(uint32_t);
                break;
             }
             case 192:
             {
                
-               offset_frame = htons(*(uint64_t*)(decrypted_payload + offset)) & 0x3FFFFFFFFFFFFFFF;
+               offset_frame = ntohl(*(uint64_t*)(decrypted_payload + offset)) & 0x3FFFFFFFFFFFFFFF;
                offset += sizeof(uint64_t);
                break;
             }
@@ -867,32 +936,42 @@ bool QUICPlugin::quic_assemble()
             }
             case 64:
             {
-               length = htons(*(uint16_t*)(decrypted_payload + offset)) & 0x3FFF;
+               length = ntohs(*(uint16_t*)(decrypted_payload + offset)) & 0x3FFF;
                offset += sizeof(uint16_t);
                break;
             }
             case 128:   
             {
-               length = htons(*(uint32_t*)(decrypted_payload + offset)) & 0x3FFFFFFF;
+               length = ntohl(*(uint32_t*)(decrypted_payload + offset)) & 0x3FFFFFFF;
                offset += sizeof(uint32_t);
                break;
             }
             case 192:
             {
-               length = htons(*(uint64_t*)(decrypted_payload + offset)) & 0x3FFFFFFFFFFFFFFF;
+               length = ntohl(*(uint64_t*)(decrypted_payload + offset)) & 0x3FFFFFFFFFFFFFFF;
                offset += sizeof(uint64_t);
                break;
             }
          }
          
 
-
+         // copy crypto fragment into the buffer based on offset 
+         // + 4 bytes is because of final crypto header (this header technically contains no important information, but we
+         // need the 4 bytes at the start because of compatibility with function which parse tls)
          memcpy(assembled_payload + offset_frame + 4*sizeof(uint8_t),decrypted_payload + offset,length);
          offset += length;
       }
-      else
+      else if (*(decrypted_payload + offset) == PADDING ||
+               *(decrypted_payload + offset) == PING ||
+               *(decrypted_payload + offset) == ACK1 || 
+               *(decrypted_payload + offset) == ACK2 || 
+               *(decrypted_payload + offset) == CONNECTION_CLOSE )
       {
          offset++;
+      }
+      else{
+         DEBUG_MSG("Wrong Frame type read during frames assemble\n");
+         return false;
       }
    
    }
@@ -928,21 +1007,21 @@ bool QUICPlugin::quic_decrypt_payload()
    // check if we have enough space for payload decryption
    if (decrypted_payload == nullptr) {
       // +16 means we have to allocate space for authentication tag
-      buffer_length     = payload_len + 16;
-      decrypted_payload = (uint8_t *) malloc(sizeof(uint8_t) * buffer_length);
+      decrypt_buffer_len     = payload_len + 16;
+      decrypted_payload = (uint8_t *) malloc(sizeof(uint8_t) * decrypt_buffer_len);
    } else {
-      if (buffer_length >= payload_len + 16) {
+      if (decrypt_buffer_len >= payload_len + 16) {
          // do nothing, we have enough space
       } else {
-         buffer_length = payload_len + 16;
+         decrypt_buffer_len = payload_len + 16;
          // Try to realloc (I think it`s faster than malloc and free) we have to use another pointer(tmp) because if we overwrite decrypted_payload
          // we lost track of old memory block , so if realloc fails, we cannot free old memory block
-         uint8_t *tmp = (uint8_t *) realloc(decrypted_payload, sizeof(uint8_t) * buffer_length);
+         uint8_t *tmp = (uint8_t *) realloc(decrypted_payload, sizeof(uint8_t) * decrypt_buffer_len);
          // Check if realloc failed, if yes , use malloc (i think it`slower way)
          if (tmp != NULL) {
             decrypted_payload = tmp;
          } else {
-            tmp = (uint8_t *) malloc(sizeof(uint8_t) * buffer_length);
+            tmp = (uint8_t *) malloc(sizeof(uint8_t) * decrypt_buffer_len);
             free(decrypted_payload);
             decrypted_payload = tmp;
          }
@@ -1056,11 +1135,11 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
          tmp_pointer += sizeof(uint16_t);
          break;
       case 128:
-         token_length = ntohs(*(uint32_t*)tmp_pointer) & 0x3FFFFFFF;
+         token_length = ntohl(*(uint32_t*)tmp_pointer) & 0x3FFFFFFF;
          tmp_pointer += sizeof(uint32_t);
          break;
       case 192:
-         token_length = ntohs(*(uint64_t*)tmp_pointer) & 0x3FFFFFFFFFFFFFFF; 
+         token_length = htons(*(uint64_t*)tmp_pointer) & 0x3FFFFFFFFFFFFFFF; 
          tmp_pointer += sizeof(uint64_t);
          break;
       default:
@@ -1090,11 +1169,11 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
          tmp_pointer += sizeof(uint16_t);
          break;
       case 128:
-         payload_len = ntohs(*(uint32_t*)tmp_pointer) & 0x3FFFFFFF;
+         payload_len = ntohl(*(uint32_t*)tmp_pointer) & 0x3FFFFFFF;
          tmp_pointer += sizeof(uint32_t);
          break;
       case 192:
-         payload_len = ntohs(*(uint64_t*)tmp_pointer) & 0x3FFFFFFFFFFFFFFF; 
+         payload_len = ntohl(*(uint64_t*)tmp_pointer) & 0x3FFFFFFFFFFFFFFF; 
          tmp_pointer += sizeof(uint64_t);
          break;
       default:
@@ -1146,7 +1225,7 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
 
    // check port a.k.a direction, Server side does not contain ClientHello packets so neither SNI, but implemented for future expansion
    if (pkt.dst_port == 443) {
-      if (!quic_create_initial_secrets(CommSide::CLIENT_IN)) {
+      if (!quic_create_initial_secrets(CommSide::CLIENT_IN,quic_data)) {
          DEBUG_MSG("Error, creation of initial secrets failed (client side)\n");
          return false;
       }
@@ -1158,26 +1237,21 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
          DEBUG_MSG("Error, payload decryption failed (client side)\n");
          return false;
       }
-      if (!parse_tls(quic_data)) {
-         DEBUG_MSG("Starting frames assemble (client side)\n");
-         if (!quic_assemble()) {
-            DEBUG_MSG("Error, reassembling of crypto frames failed (client side)\n");
-            return false;
-         }
-         else
-         {
-            if(!parse_tls(quic_data))
-            {
-               DEBUG_MSG("SNI Extraction failed\n");
-               return false;
-            }
-            return true;
-         }
-      } else {
+      if (!google_QUIC && !quic_assemble())
+      {
+         DEBUG_MSG("Error, reassembling of crypto frames failed (client side)\n");
+         return false;
+      }
+      if (!google_QUIC && !parse_tls(quic_data))
+      {
+         DEBUG_MSG("SNI and User Agent Extraction failed\n");
+         return false;
+      }
+      else {
          return true;
       }
    } else if (pkt.src_port == 443) {
-      if (!quic_create_initial_secrets(CommSide::SERVER_IN)) {
+      if (!quic_create_initial_secrets(CommSide::SERVER_IN,quic_data)) {
          DEBUG_MSG("Error, creation of initial secrets failed (server side)\n");
          return false;
       }
@@ -1189,21 +1263,17 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
          DEBUG_MSG("Error, payload decryption failed (server side)\n");
          return false;
       }
-      if (!parse_tls(quic_data)) {
-         DEBUG_MSG("Starting frames assemble (server side)\n");
-         if (!quic_assemble()) {
-            DEBUG_MSG("Error, reassembling of crypto frames failed (server side)\n");
-            return false;
-         }
-         else {
-            if(!parse_tls(quic_data))
-            {
-               DEBUG_MSG("SNI Extraction failed\n");
-               return false;
-            }
-            return true;
-         } 
-      } else {
+      if (!google_QUIC && !quic_assemble())
+      {
+         DEBUG_MSG("Error, reassembling of crypto frames failed (server side)\n");
+         return false;
+      }
+      if (!google_QUIC && !parse_tls(quic_data))
+      {
+         DEBUG_MSG("SNI and User Agent Extraction failed\n");
+         return false;
+      }
+      else {
             return true;
       }
    }
