@@ -195,6 +195,34 @@ struct Record {
       }
       return nullptr;
    }
+    /**
+     * \brief Remove given extension.
+     * \param [in] id Type of extension.
+     * \return True when successfully removed
+     */
+    bool remove_extension(int id)
+    {
+       RecordExt *ext      = m_exts;
+       RecordExt *prev_ext = nullptr;
+
+       while (ext != nullptr) {
+          if (ext->m_ext_id == id) {
+             if (prev_ext == nullptr) { // at beginning
+                m_exts = ext->m_next;
+             } else if (ext->m_next == nullptr) { // at end
+                prev_ext->m_next = nullptr;
+             } else { // in middle
+                prev_ext->m_next = ext->m_next;
+             }
+             ext->m_next = nullptr;
+             delete ext;
+             return true;
+          }
+          prev_ext = ext;
+          ext      = ext->m_next;
+       }
+       return false;
+    }
 
    /**
     * \brief Remove extension headers.
