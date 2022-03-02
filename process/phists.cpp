@@ -154,6 +154,19 @@ void PHISTSPlugin::update_record(RecordExtPHISTS *phists_data, const Packet &pkt
    }
 }
 
+
+
+void PHISTSPlugin::pre_export(Flow &rec)
+{
+   //do not export phists for single packets flows, usually port scans
+   uint32_t packets = rec.src_packets + rec.dst_packets;
+   uint8_t flags = rec.src_tcp_flags | rec.dst_tcp_flags;
+
+   if (packets <= PHISTS_MINLEN && (flags & 0x02)) { //tcp SYN set
+      rec.remove_extension(RecordExtPHISTS::REGISTERED_ID);
+   }
+}
+
 int PHISTSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtPHISTS *phists_data = new RecordExtPHISTS();
