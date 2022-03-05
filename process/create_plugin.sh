@@ -119,9 +119,9 @@ struct RecordExt${PLUGIN_UPPER} : public RecordExt {
 };
 
 /**
- * \\brief Flow cache plugin for parsing ${PLUGIN_UPPER} packets.
+ * \\brief Process plugin for parsing ${PLUGIN_UPPER} packets.
  */
-class ${PLUGIN_UPPER}Plugin : public FlowCachePlugin
+class ${PLUGIN_UPPER}Plugin : public ProcessPlugin
 {
 public:
    ${PLUGIN_UPPER}Plugin();
@@ -131,7 +131,7 @@ public:
    OptionsParser *get_parser() const { return new OptionsParser(\"${PLUGIN}\", \"Parse ${PLUGIN_UPPER} traffic\"); }
    std::string get_name() const { return \"${PLUGIN}\"; }
    RecordExt *get_ext() const { return new RecordExt${PLUGIN_UPPER}(); }
-   FlowCachePlugin *copy();
+   ProcessPlugin *copy();
 
    int pre_create(Packet &pkt);
    int post_create(Flow &rec, const Packet &pkt);
@@ -177,7 +177,7 @@ void ${PLUGIN_UPPER}Plugin::close()
 {
 }
 
-FlowCachePlugin *${PLUGIN_UPPER}Plugin::copy()
+ProcessPlugin *${PLUGIN_UPPER}Plugin::copy()
 {
    return new ${PLUGIN_UPPER}Plugin(*this);
 }
