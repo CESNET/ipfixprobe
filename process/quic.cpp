@@ -55,6 +55,7 @@
 
 #include "quic.hpp"
 
+
 namespace ipxp {
 
 int RecordExtQUIC::REGISTERED_ID = -1;
@@ -399,8 +400,8 @@ bool QUICPlugin::parse_tls(RecordExtQUIC *rec)
                type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2) {
          get_tls_user_agent(payload,length ,rec->user_agent, sizeof(rec->user_agent));
          parsed_initial += payload.user_agent_parsed;
-         /*std::cout << rec->user_agent << std::endl;
-         printf("%02x\n",rec->quic_version);*/
+         //std::cout << rec->user_agent << std::endl;
+         //printf("%02x\n",rec->quic_version);
       }
       if (!payload.valid) {
          return false;
@@ -864,7 +865,7 @@ bool QUICPlugin::quic_assemble()
       }
    }
 
-
+   
    // set all buffer values to 0 (this is because crypto frames are padded so we want to avoid reading undefined values)
    memset(assembled_payload,0,assemble_buffer_len);
 
@@ -889,7 +890,7 @@ bool QUICPlugin::quic_assemble()
    // In initial packets this types of frames can occure: Crypto, Padding, Ping, ACK, CONNECTION_CLOSE  
    while(decrypted_payload + offset < payload_end)
    {
-
+      
       // process of computing offset length and length field length, is same as above in extracting user agent
       if(*(decrypted_payload + offset) == CRYPTO)
       {
@@ -923,7 +924,7 @@ bool QUICPlugin::quic_assemble()
                break;
             }
          }
-
+         
          uint8_t length_len = *(decrypted_payload + offset) & 0xC0;
 
          switch (length_len)
@@ -958,8 +959,19 @@ bool QUICPlugin::quic_assemble()
          // copy crypto fragment into the buffer based on offset 
          // + 4 bytes is because of final crypto header (this header technically contains no important information, but we
          // need the 4 bytes at the start because of compatibility with function which parse tls)
-         memcpy(assembled_payload + offset_frame + 4*sizeof(uint8_t),decrypted_payload + offset,length);
-         offset += length;
+         if(assembled_payload + offset_frame + 4*sizeof(uint8_t) < assembled_payload + assemble_buffer_len  &&
+            decrypted_payload + offset < payload_end                                                        &&
+            assembled_payload + offset_frame + 4*sizeof(uint8_t) + length < assembled_payload + assemble_buffer_len)
+         {
+            memcpy(assembled_payload + offset_frame + 4*sizeof(uint8_t),decrypted_payload + offset,length);
+            offset += length;
+         }
+         else
+         {
+            return false;
+         }
+            
+            
       }
       else if (*(decrypted_payload + offset) == PADDING ||
                *(decrypted_payload + offset) == PING ||
@@ -975,7 +987,6 @@ bool QUICPlugin::quic_assemble()
       }
    
    }
-
    final_payload = assembled_payload;
    return true;
 }
@@ -1008,6 +1019,7 @@ bool QUICPlugin::quic_decrypt_payload()
    if (decrypted_payload == nullptr) {
       // +16 means we have to allocate space for authentication tag
       decrypt_buffer_len     = payload_len + 16;
+      
       decrypted_payload = (uint8_t *) malloc(sizeof(uint8_t) * decrypt_buffer_len);
    } else {
       if (decrypt_buffer_len >= payload_len + 16) {
@@ -1028,7 +1040,7 @@ bool QUICPlugin::quic_decrypt_payload()
       }
    }
 
-
+   
    
    if (!(ctx = EVP_CIPHER_CTX_new())) {
       DEBUG_MSG("Payload decryption error, creating context failed\n");
@@ -1060,18 +1072,19 @@ bool QUICPlugin::quic_decrypt_payload()
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
+   
    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, 16, atag)) {
       DEBUG_MSG("Payload decryption error, TAG check failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
+   
    if (!EVP_DecryptFinal_ex(ctx, decrypted_payload + len, &len)) {
       DEBUG_MSG("Payload decryption error, final payload decryption failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
 
-   
    EVP_CIPHER_CTX_free(ctx);
 
    final_payload = decrypted_payload;
@@ -1093,6 +1106,12 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
 
    quic_h1 = (quic_header1 *) tmp_pointer; // read first byte, version and dcid length
 
+
+
+   if(quic_h1->version == 0x0)
+   {
+      return false;
+   }
    tmp_pointer += sizeof(quic_header1); // move after first struct
    if (tmp_pointer > payload_end) {
       return false;
@@ -1202,6 +1221,7 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
     */
    // header_len = pkt.payload_len - payload_len;
 
+
    if (payload_len > pkt.payload_len) {
       return false;
    }
@@ -1287,6 +1307,7 @@ int QUICPlugin::pre_create(Packet &pkt)
 
 int QUICPlugin::post_create(Flow &rec, const Packet &pkt)
 {
+   
    add_quic(rec, pkt);
    return 0;
 }
@@ -1298,6 +1319,7 @@ int QUICPlugin::pre_update(Flow &rec, Packet &pkt)
 
 int QUICPlugin::post_update(Flow &rec, const Packet &pkt)
 {
+   
    RecordExtQUIC *ext = (RecordExtQUIC *) rec.get_extension(RecordExtQUIC::REGISTERED_ID);
 
    if (ext == nullptr) {
