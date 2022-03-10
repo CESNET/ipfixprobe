@@ -2,6 +2,7 @@
  * \file utils.cpp
  * \brief Utility functions source
  * \author Jiri Havranek <havranek@cesnet.cz>
+ * \author Karel Hynek <Karel.Hynek@cesnet.cz>
  * \date 2021
  */
 /*
@@ -43,6 +44,8 @@
 
 #include <string>
 #include <utility>
+#include <cstring>
+#include <arpa/inet.h>
 
 #include <ipfixprobe/utils.hpp>
 
@@ -103,6 +106,21 @@ uint64_t pntoh64(const void *p)
       buffer |= (uint64_t) *((const uint8_t *) (p) + x) << (shift - (x * 8));
    }
    return buffer;
+}
+
+
+uint32_t variable2ipfix_buffer(uint8_t* buffer2write, uint8_t* buffer2read, uint16_t len)
+{
+   uint32_t ptr = 0;
+   if (len >= 255) {
+      buffer2write[ptr++] = 255;
+      *(uint16_t *)(buffer2write + ptr) = ntohs(len);
+      ptr += sizeof(uint16_t);
+   } else {
+      buffer2write[ptr++] = len;
+   }
+   std::memcpy(buffer2write + ptr, buffer2read, len);
+   return ptr + len;
 }
 
 }
