@@ -2,7 +2,8 @@
  * \file tls.hpp
  * \brief Plugin for parsing https traffic.
  * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2018
+ * \author Karel Hynek <Karel.Hynek@cesnet.cz>
+ * \date 2021
  */
 /*
  * Copyright (C) 2018 CESNET
@@ -47,6 +48,7 @@
 #include <string>
 #include <cstring>
 #include <arpa/inet.h>
+
 #include <sstream>
 #include <iomanip>
 
@@ -58,6 +60,7 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
+#include <ipfixprobe/utils.hpp>
 
 namespace ipxp {
 
@@ -109,24 +112,20 @@ struct RecordExtTLS : public RecordExt {
 
    virtual int fill_ipfix(uint8_t *buffer, int size)
    {
-      int sni_len = strlen(sni);
-      int alpn_len = strlen(alpn);
-      int pos = 0;
+      uint16_t sni_len = strlen(sni);
+      uint16_t alpn_len = strlen(alpn);
 
-      if (sni_len + alpn_len + 2 + 16 + 3 > size) {
+      uint32_t pos = 0;
+      uint32_t req_buff_len = (sni_len + 3) + (alpn_len + 3) + (2) + (16 + 3); // (SNI) + (ALPN) + (VERSION) + (JA3)
+      if (req_buff_len > size) {
          return -1;
       }
 
       *(uint16_t *) buffer = ntohs(version);
       pos += 2;
 
-      buffer[pos++] = sni_len;
-      memcpy(buffer + pos, sni, sni_len);
-      pos += sni_len;
-
-      buffer[pos++] = alpn_len;
-      memcpy(buffer + pos, alpn, alpn_len);
-      pos += alpn_len;
+      pos += variable2ipfix_buffer(buffer + pos, (uint8_t*) sni, sni_len);
+      pos += variable2ipfix_buffer(buffer + pos, (uint8_t*) alpn, alpn_len);
 
       buffer[pos++] = 16;
       memcpy(buffer + pos, ja3_hash_bin, 16);
