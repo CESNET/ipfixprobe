@@ -429,7 +429,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       }
    } else {
       if (pkt.ts.tv_sec - flow->m_flow.time_last.tv_sec >= m_inactive) {
-         m_flow_table[flow_index]->m_flow.end_reason = FLOW_END_INACTIVE;
+         m_flow_table[flow_index]->m_flow.end_reason = get_export_reason(flow->m_flow);
          plugins_pre_export(flow->m_flow);
          export_flow(flow_index);
    #ifdef FLOW_CACHE_STATS
@@ -466,11 +466,21 @@ int NHTFlowCache::put_pkt(Packet &pkt)
    return 0;
 }
 
+uint8_t NHTFlowCache::get_export_reason(Flow &flow)
+{
+   if ((flow.src_tcp_flags | flow.dst_tcp_flags) & (0x01 | 0x04)) {
+      // When FIN or RST is set, TCP connection ended naturally
+      return FLOW_END_EOF;
+   } else {
+      return FLOW_END_INACTIVE;
+   }
+}
+
 void NHTFlowCache::export_expired(time_t ts)
 {
    for (decltype(m_timeout_idx) i = m_timeout_idx; i < m_timeout_idx + m_line_new_idx; i++) {
       if (!m_flow_table[i]->is_empty() && ts - m_flow_table[i]->m_flow.time_last.tv_sec >= m_inactive) {
-         m_flow_table[i]->m_flow.end_reason = FLOW_END_INACTIVE;
+         m_flow_table[i]->m_flow.end_reason = get_export_reason(m_flow_table[i]->m_flow);
          plugins_pre_export(m_flow_table[i]->m_flow);
          export_flow(i);
 #ifdef FLOW_CACHE_STATS
