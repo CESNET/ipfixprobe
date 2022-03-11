@@ -1,3 +1,26 @@
+2022-03-11 (xsiska12): QUIC plugin: Updated coding style
+2022-03-11 (xsiska12): TLS plugin: Updated coding style
+2022-03-11 (xsiska12): QUIC plugin: Updated coding style
+2022-03-11 (Karel Hynek): HTTP Plugin: Updated coding style
+2022-03-11 (Karel Hynek): QUIC: Updated IPFIX elements export
+2022-03-11 (Karel Hynek): Fixed wrong minimal buffer len calculation in HTTP plugin
+2022-03-10 (Karel Hynek): FIXED HTTP plugin variable-length IE IPFIX export
+2022-03-10 (Karel Hynek): FIXED TLS plugin variable-length IE IPFIX export
+2022-03-10 (Karel Hynek): Added new function for variable-length IE  IPFIX export
+2022-03-10 (Karel Hynek): FIXED wrong export reason
+2022-03-09 (Andrej Lukacovic): FIXED: check for version negotiation packet and check for allocated memory borders while using memcpy
+2022-03-09 (Karel Hynek): FIXED mistakes in README
+2022-03-02 (Karel Hynek): enhancement: PHists, PStats do not export data for single-packet flow
+2022-03-02 (Karel Hynek): Added ability to remove extension's memory associated with flow
+2022-03-02 (Andrej Lukacovic): QUIC: Fixed test reference
+2022-02-24 (Andrej Lukacovic): Feature: Parsing Google UA extension and frame reassemble
+2022-02-20 (Andrej Lukacovic): Feature: Parsing Google UA Extension and frame reassemble (addted test pcaps)
+2022-02-20 (Andrej Lukacovic): Feature: Parsing Google UA extension and frame reassemble
+2022-02-17 (Andrej Lukacovic): initial
+2022-02-16 (Andrej Lukacovic): initial
+2022-02-15 (Tomas Cejka): turris: add CPP if macros to skip debug prints
+2022-02-14 (Tomas Cejka): Create LICENSE
+
 2022-02-14 (Tomas Cejka): Merge pull request #68 from CESNET/unirec_output_fix
 2022-02-14 (Tomas Cejka): Merge pull request #69 from CESNET/ipfix_elements_fix
 2022-02-14 (Tomas Cejka): Merge pull request #67 from koumajos/add_raw_format
