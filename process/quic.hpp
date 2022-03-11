@@ -77,8 +77,6 @@ namespace ipxp {
 #define TLS_EXT_GOOGLE_USER_AGENT 0x3129
 
 
-
-
 UR_FIELDS(
    string QUIC_SNI,
    string QUIC_USER_AGENT,
@@ -99,7 +97,6 @@ UR_FIELDS(
 #define quic_serverIn_hkdf      sizeof("tls13 server in") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t)
 
 
-
 // Frame types which can occure in Initial packets
 // https://www.rfc-editor.org/rfc/rfc9000.html#name-frame-types
 #define CRYPTO 0x06
@@ -110,22 +107,19 @@ UR_FIELDS(
 #define CONNECTION_CLOSE 0x1C
 
 
-
 typedef struct __attribute__ ((packed)) quic_ext {
    uint16_t type;
    uint16_t length;
-}QUIC_EXT;
-
+} QUIC_EXT;
 
 
 struct my_payload_data {
    char *data;
    const char *end;
-   bool     valid;
-   int      sni_parsed;
-   int      user_agent_parsed;
+   bool valid;
+   int  sni_parsed;
+   int  user_agent_parsed;
 };
-
 
 
 typedef struct __attribute__((packed)) quic_header1 {
@@ -277,7 +271,6 @@ private:
    uint8_t quic_hp[quic_hp_hkdf];
    uint8_t client_In_Buffer[quic_clientIn_hkdf];
    uint8_t server_In_Buffer[quic_serverIn_hkdf];
-
 
 
    // important pointers into QUIC packet, used in decryption process
