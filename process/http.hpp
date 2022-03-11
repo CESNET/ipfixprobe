@@ -137,7 +137,7 @@ struct RecordExtHTTP : public RecordExt {
       uint32_t total_length = 0;
 
       length = strlen(user_agent);
-      if (uint32_t (length + 1) > (uint32_t) size) {
+      if (uint32_t (length + 3) > (uint32_t) size) {
          return -1;
       }
       total_length += variable2ipfix_buffer(buffer + total_length, (uint8_t*) user_agent, length);
@@ -161,7 +161,7 @@ struct RecordExtHTTP : public RecordExt {
       total_length += variable2ipfix_buffer(buffer + total_length, (uint8_t*) referer, length);
 
       length = strlen(uri);
-      if (total_length + length + 4 > (uint32_t)size) {
+      if (total_length + length + 3 > (uint32_t)size) {
          return -1;
       }
       total_length += variable2ipfix_buffer(buffer + total_length, (uint8_t*) uri, length);
