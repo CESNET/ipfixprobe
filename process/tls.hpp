@@ -117,7 +117,7 @@ struct RecordExtTLS : public RecordExt {
 
       uint32_t pos = 0;
       uint32_t req_buff_len = (sni_len + 3) + (alpn_len + 3) + (2) + (16 + 3); // (SNI) + (ALPN) + (VERSION) + (JA3)
-      if (req_buff_len > size) {
+      if (req_buff_len > (uint32_t) size) {
          return -1;
       }
 
