@@ -1,3 +1,11 @@
+2022-03-11 ipfixprobe-4.5.0
+    * Fixed variable-length IE IPFIX export (quic, http, tls)
+	* QUIC plugin: Export of new information elements in QUIC plugin
+	* FIXED wrong export reason
+	* FIXED mistakes in README
+	* enhancement: PHists, PStats do not export data for single-packet flow
+	* turris: add CPP if macros to skip debug prints
+
 2022-02-14 ipfixprobe-4.4.0
 	* added DLT_RAW link-layer support
 	* bugfixes - uninitialized variable (unirec output), flow duplication
