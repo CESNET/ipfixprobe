@@ -170,6 +170,17 @@ int PSTATSPlugin::post_create(Flow &rec, const Packet &pkt)
    return 0;
 }
 
+void PSTATSPlugin::pre_export(Flow &rec)
+{
+   //do not export pstats for single packets flows, usually port scans
+   uint32_t packets = rec.src_packets + rec.dst_packets;
+   uint8_t flags = rec.src_tcp_flags | rec.dst_tcp_flags;
+   if (packets <= PSTATS_MINLEN && (flags & 0x02)) { //tcp SYN set
+      rec.remove_extension(RecordExtPSTATS::REGISTERED_ID);
+   }
+
+}
+
 int PSTATSPlugin::post_update(Flow &rec, const Packet &pkt)
 {
    RecordExtPSTATS *pstats_data = (RecordExtPSTATS *) rec.get_extension(RecordExtPSTATS::REGISTERED_ID);

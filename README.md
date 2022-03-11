@@ -142,7 +142,7 @@ Here are the examples of various plugins usage:
 ./ipfixprobe -i 'pcap;ifc=eth0' -s 'cache;split' -o 'text;m'
 
 # Read packets from pcap file, enable 4 processing plugins, sends L7 HTTP extended biflows to unirec interface named `http` and data from 3 other plugins to the `stats` interface
-./ipfixprobe -i 'pcap;file=pcaps/http.pcap' -p http -p 'pstats;i' -p idpcontent -p phists -o 'unirec;i=u:http:timeout=WAIT,u:stats:timeout=WAIT;p=http,(pstats,phists,idpcontent)'
+./ipfixprobe -i 'pcap;file=pcaps/http.pcap' -p http -p pstats -p idpcontent -p phists -o 'unirec;i=u:http:timeout=WAIT,u:stats:timeout=WAIT;p=http,(pstats,phists,idpcontent)'
 ```
 
 ## Extension
@@ -414,7 +414,7 @@ Note: the following fields are UniRec arrays.
 
 ##### Example:
 ```
-ipfixprobe 'pcap;file=pcaps/http.pcap' -p pstats:includezeros -o 'unirec;i=u:stats:timeout=WAIT;p=stats'"
+ipfixprobe 'pcap;file=pcaps/http.pcap' -p "pstats;includezeros" -o 'unirec;i=u:stats:timeout=WAIT;p=stats'"
 ```
 
 ### OSQUERY
@@ -525,7 +525,7 @@ The exported unirec fields and IPFIX basiclists is shown in following table:
 
 ##### Example:
 ```
-ipfixprobe 'pcap;file=pcaps/http.pcap' -p phists:includezeros -o 'unirec;i=u:hists:timeout=WAIT;p=phists'"
+ipfixprobe 'pcap;file=pcaps/http.pcap' -p "phists;includezeros" -o 'unirec;i=u:hists:timeout=WAIT;p=phists'"
 ```
 ### BSTATS
 

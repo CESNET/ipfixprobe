@@ -1,3 +1,8 @@
+2022-02-14 ipfixprobe-4.4.0
+	* added DLT_RAW link-layer support
+	* bugfixes - uninitialized variable (unirec output), flow duplication
+	* IPFIX elements update and cleanup
+
 2022-02-01 ipfixprobe-4.3.0
 	* QUIC: FIXed wrong openssl linking on centos 7.
 	* Changed configuration of Copr RPM package.

@@ -68,6 +68,10 @@ namespace ipxp {
 # define PSTATS_MAXELEMCOUNT 30
 #endif
 
+#ifndef PSTATS_MINLEN
+# define PSTATS_MINLEN 1
+#endif
+
 #define PSTATS_UNIREC_TEMPLATE "PPI_PKT_LENGTHS,PPI_PKT_TIMES,PPI_PKT_FLAGS,PPI_PKT_DIRECTIONS"
 
 UR_FIELDS (
@@ -232,6 +236,7 @@ public:
    int post_create(Flow &rec, const Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
    void update_record(RecordExtPSTATS *pstats_data, const Packet &pkt);
+   void pre_export(Flow &rec);
 
 private:
    bool use_zeros;
