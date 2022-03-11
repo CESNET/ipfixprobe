@@ -59,6 +59,7 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
+#include <ipfixprobe/utils.hpp>
 
 namespace ipxp {
 
@@ -132,56 +133,45 @@ struct RecordExtHTTP : public RecordExt {
 
    virtual int fill_ipfix(uint8_t *buffer, int size)
    {
-      int length, total_length = 0;
+      uint16_t length = 0;
+      uint32_t total_length = 0;
 
       length = strlen(user_agent);
-      if (length + 1 > size) {
+      if (uint32_t (length + 1) > (uint32_t) size) {
          return -1;
       }
-      buffer[0] = length;
-      memcpy(buffer + 1, user_agent, length);
-      total_length = length + 1;
+      total_length += variable2ipfix_buffer(buffer + total_length, (uint8_t*) user_agent, length);
 
       length = strlen(method);
-      if (total_length + length + 1 > size) {
+      if (total_length + length + 3 > (uint32_t)size) {
          return -1;
       }
-      buffer[total_length] = length;
-      memcpy(buffer + total_length + 1, method, length);
-      total_length += length + 1;
+      total_length += variable2ipfix_buffer(buffer + total_length, (uint8_t*) method, length);
 
       length = strlen(host);
-      if (total_length + length + 1 > size) {
+      if (total_length + length + 3 > (uint32_t)size) {
          return -1;
       }
-      buffer[total_length] = length;
-      memcpy(buffer + total_length + 1, host, length);
-      total_length += length + 1;
+      total_length += variable2ipfix_buffer(buffer + total_length, (uint8_t*) host, length);
 
       length = strlen(referer);
-      if (total_length + length + 1 > size) {
+      if (total_length + length + 3 > (uint32_t)size) {
          return -1;
       }
-      buffer[total_length] = length;
-      memcpy(buffer + total_length + 1, referer, length);
-      total_length += length + 1;
+      total_length += variable2ipfix_buffer(buffer + total_length, (uint8_t*) referer, length);
 
       length = strlen(uri);
-      if (total_length + length + 4 > size) {
+      if (total_length + length + 4 > (uint32_t)size) {
          return -1;
       }
-      buffer[total_length] = length;
-      memcpy(buffer + total_length + 1, uri, length);
-      total_length += length + 1;
+      total_length += variable2ipfix_buffer(buffer + total_length, (uint8_t*) uri, length);
 
       length = strlen(content_type);
-      if (total_length + length + 3 > size) {
+      if (total_length + length + 3 > (uint32_t)size) {
          return -1;
       }
-      buffer[total_length] = length;
+      total_length += variable2ipfix_buffer(buffer + total_length, (uint8_t*) content_type, length);
 
-      memcpy(buffer + total_length + 1, content_type, length);
-      total_length += length + 1;
       *(uint16_t *) (buffer + total_length) = ntohs(code);
       total_length += 2;
 

@@ -58,6 +58,7 @@ namespace ipxp {
 void parse_range(const std::string &arg, std::string &from, std::string &to, const std::string &delim = "-");
 bool str2bool(std::string str);
 void trim_str(std::string &str);
+uint32_t variable2ipfix_buffer(uint8_t* buffer2write, uint8_t* buffer2read, uint16_t len);
 
 template<typename T> constexpr
 T const& max(const T &a, const T &b) {
