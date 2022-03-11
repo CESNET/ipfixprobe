@@ -188,21 +188,18 @@ struct RecordExtQUIC : public RecordExt {
 
    virtual int fill_ipfix(uint8_t *buffer, int size)
    {
-      int len_sni = strlen(sni);
-      int len_user_agent = strlen(user_agent);
-      int len_version = sizeof(quic_version);
+      uint16_t len_sni = strlen(sni);
+      uint16_t len_user_agent = strlen(user_agent);
+      uint16_t len_version = sizeof(quic_version);
       int pos = 0;
 
-      if (len_sni + len_user_agent + len_version + 2 > size){
+      if ((len_sni + 3) + (len_user_agent + 3) + len_version > size) {
          return -1;
       }
 
-      buffer[pos++] = len_sni + len_user_agent + len_version;
-      memcpy(buffer + pos, sni, len_sni);
-      pos += len_sni;
-      memcpy(buffer + pos, user_agent, len_user_agent);
-      pos += len_user_agent;
-      memcpy(buffer + pos, &quic_version, len_version);
+      pos += variable2ipfix_buffer(buffer + pos, (uint8_t*) sni, len_sni);
+      pos += variable2ipfix_buffer(buffer + pos, (uint8_t*) user_agent, len_user_agent);
+      *(uint32_t *)(buffer + pos) = htonl(quic_version);
       pos += len_version;
       return pos;
    }
