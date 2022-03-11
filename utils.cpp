@@ -114,7 +114,7 @@ uint32_t variable2ipfix_buffer(uint8_t* buffer2write, uint8_t* buffer2read, uint
    uint32_t ptr = 0;
    if (len >= 255) {
       buffer2write[ptr++] = 255;
-      *(uint16_t *)(buffer2write + ptr) = ntohs(len);
+      *(uint16_t *)(buffer2write + ptr) = htons(len);
       ptr += sizeof(uint16_t);
    } else {
       buffer2write[ptr++] = len;

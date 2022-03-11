@@ -63,10 +63,24 @@
 
 namespace ipxp {
 
-#define QUIC_UNIREC_TEMPLATE "QUIC_SNI"
+#define QUIC_UNIREC_TEMPLATE "QUIC_SNI,QUIC_USER_AGENT,QUIC_VERSION"
+
+
+#define TLS_EXT_SERVER_NAME 0
+#define TLS_EXT_ALPN 16
+// draf-33, draft-34 a rfc9001, have this value defined as 0x39 == 57
+#define TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1 0x39
+// draf-13 az draft-32 have this value defined as 0xffa5 == 65445
+#define TLS_EXT_QUIC_TRANSPORT_PARAMETERS 0xffa5 
+// draf-02 az draft-12 have this value defined as 0x26 == 38
+#define TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2 0x26 
+#define TLS_EXT_GOOGLE_USER_AGENT 0x3129
+
 
 UR_FIELDS(
-   string QUIC_SNI
+   string QUIC_SNI,
+   string QUIC_USER_AGENT,
+   uint32 QUIC_VERSION
 )
 
 #define HASH_SHA2_256_LENGTH    32
@@ -83,11 +97,28 @@ UR_FIELDS(
 #define quic_serverIn_hkdf      sizeof("tls13 server in") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t)
 
 
+// Frame types which can occure in Initial packets
+// https://www.rfc-editor.org/rfc/rfc9000.html#name-frame-types
+#define CRYPTO 0x06
+#define PADDING 0x00
+#define PING 0x01
+#define ACK1 0x02
+#define ACK2 0x03
+#define CONNECTION_CLOSE 0x1C
+
+
+typedef struct __attribute__ ((packed)) quic_ext {
+   uint16_t type;
+   uint16_t length;
+} QUIC_EXT;
+
+
 struct my_payload_data {
-   uint8_t *data;
-   uint8_t *end;
-   bool     valid;
-   int      sni_parsed;
+   char *data;
+   const char *end;
+   bool valid;
+   int  sni_parsed;
+   int  user_agent_parsed;
 };
 
 
@@ -103,23 +134,6 @@ typedef struct __attribute__((packed)) quic_header2 {
    uint8_t scid_len;
    // contains scid_len (which is 0 in context of Client Hello packet) but from server side, header contains SCID so SCID length is not 0
 } quic_header2;
-
-typedef struct __attribute__((packed)) quic_header3 {
-   uint8_t token_len;
-   // token_len (variable) but not important
-} quic_header3;
-
-typedef struct __attribute__((packed)) quic_header4 {
-   uint16_t length;
-   // contains length (which consist of payload length + packet number length)
-} quic_header4;
-
-struct __attribute__((packed)) tls_handshake_prot {
-   uint8_t     type;
-   uint8_t     length1; // length field is 3 bytes long...
-   uint16_t    length2;
-   tls_version version;
-};
 
 struct __attribute__((packed)) tls_rec_lay {
    uint8_t  type;
@@ -140,17 +154,24 @@ struct RecordExtQUIC : public RecordExt {
    static int REGISTERED_ID;
 
    int  sni_count = 0;
+   int  user_agent_count = 0;
    char sni[255]  = { 0 };
+   char user_agent[255]  = { 0 };
+   uint32_t quic_version;
 
    RecordExtQUIC() : RecordExt(REGISTERED_ID)
    {
       sni[0] = 0;
+      user_agent[0] = 0;
+      quic_version = 0;
    }
 
    #ifdef WITH_NEMEA
    virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
       ur_set_string(tmplt, record, F_QUIC_SNI, sni);
+      ur_set_string(tmplt, record, F_QUIC_USER_AGENT, user_agent);
+      ur_set(tmplt, record, F_QUIC_VERSION, quic_version);
    }
 
    const char *get_unirec_tmplt() const
@@ -161,17 +182,19 @@ struct RecordExtQUIC : public RecordExt {
 
    virtual int fill_ipfix(uint8_t *buffer, int size)
    {
-      int len = strlen(sni);
+      uint16_t len_sni = strlen(sni);
+      uint16_t len_user_agent = strlen(user_agent);
+      uint16_t len_version = sizeof(quic_version);
       int pos = 0;
 
-      if (len + 2 > size){
+      if ((len_sni + 3) + (len_user_agent + 3) + len_version > size) {
          return -1;
       }
 
-      buffer[pos++] = len;
-      memcpy(buffer + pos, sni, len);
-      pos += len;
-
+      pos += variable2ipfix_buffer(buffer + pos, (uint8_t*) sni, len_sni);
+      pos += variable2ipfix_buffer(buffer + pos, (uint8_t*) user_agent, len_user_agent);
+      *(uint32_t *)(buffer + pos) = htonl(quic_version);
+      pos += len_version;
       return pos;
    }
 
@@ -187,7 +210,7 @@ struct RecordExtQUIC : public RecordExt {
    std::string get_text() const
    {
       std::ostringstream out;
-      out << "quicsni=\"" << sni << "\"";
+      out << "quicsni=\"" << sni << "\"" << "quicuseragent=\"" << user_agent << "\"" << "quicversion=\"" << quic_version << "\"";
       return out.str();
    }
 };
@@ -224,7 +247,7 @@ private:
 
    bool     quic_check_initial(uint8_t);
    bool     quic_parse_data(const Packet&);
-   bool     quic_create_initial_secrets(CommSide side);
+   bool     quic_create_initial_secrets(CommSide side,RecordExtQUIC*);
    bool     quic_check_version(uint32_t, uint8_t);
    uint8_t  quic_draft_version(uint32_t);
 
@@ -235,12 +258,11 @@ private:
    bool     quic_derive_n_set(uint8_t *, uint8_t *, uint8_t, size_t, uint8_t *);
    bool     expand_label(const char *, const char *, const uint8_t *, uint8_t, uint16_t, uint8_t *, uint8_t &);
    bool     parse_tls(RecordExtQUIC *);
+   bool     quic_assemble();
 
    // header pointers
    quic_header1 *quic_h1;
    quic_header2 *quic_h2;
-   quic_header3 *quic_h3;
-   quic_header4 *quic_h4;
 
 
    // buffers for HkdfExpanded Labels, sizes are constant so no need for malloc
@@ -251,14 +273,13 @@ private:
    uint8_t server_In_Buffer[quic_serverIn_hkdf];
 
 
-
    // important pointers into QUIC packet, used in decryption process
 
    uint8_t *header;
    uint8_t *payload;
 
    uint16_t header_len;
-   uint16_t payload_len;
+   uint64_t payload_len;
 
    // important header values (sample is part of payload)
    uint8_t *dcid;
@@ -268,7 +289,11 @@ private:
 
    // final decrypted payload
    uint8_t *decrypted_payload;
-   int buffer_length;
+   uint8_t *assembled_payload;
+   uint8_t *final_payload;
+
+   uint64_t decrypt_buffer_len;
+   uint64_t assemble_buffer_len;
 
    uint8_t nonce[TLS13_AEAD_NONCE_LENGTH] = { 0 };
 
@@ -278,6 +303,9 @@ private:
    RecordExtQUIC *quic_ptr;
 
    Initial_Secrets initial_secrets;
+
+
+   bool google_QUIC;
 };
 
 }
