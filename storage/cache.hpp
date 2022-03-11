@@ -199,6 +199,7 @@ private:
    void flush(Packet &pkt, size_t flow_index, int ret, bool source_flow);
    bool create_hash_key(Packet &pkt);
    void export_flow(size_t index);
+   static uint8_t get_export_reason(Flow &flow);
    void finish();
 
 #ifdef FLOW_CACHE_STATS
