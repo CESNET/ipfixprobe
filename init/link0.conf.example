@@ -31,6 +31,6 @@ UDP=yes
 # Size of flow cache, exponent to the power of two
 CACHE_SIZE=17
 
-# Active and inactive timeout in seconds (double)
-ACTIVE_TIMEOUT=300.0
-INACTIVE_TIMEOUT=65.0
+# Active and inactive timeout in seconds
+ACTIVE_TIMEOUT=300
+INACTIVE_TIMEOUT=65
