@@ -46,55 +46,81 @@
 
 namespace ipxp {
 
-int FlexprobeEncryptionData::REGISTERED_ID = -1;
+    int FlexprobeEncryptionData::REGISTERED_ID = -1;
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-   static PluginRecord rec = PluginRecord("flexprobe-encrypt", [](){return new FlexprobeEncryptionProcessing();});
-   register_plugin(&rec);
-   FlexprobeEncryptionData::REGISTERED_ID = register_extension();
-}
-
-int FlexprobeEncryptionProcessing::post_create(Flow& rec, const Packet& pkt)
-{
-    if (!rec.get_extension(FlexprobeEncryptionData::REGISTERED_ID)) {
-        auto ext = new FlexprobeEncryptionData();
-        rec.add_extension(ext);
+    __attribute__((constructor)) static void register_this_plugin()
+    {
+       static PluginRecord rec = PluginRecord("flexprobe-encrypt", [](){return new FlexprobeEncryptionProcessing();});
+       register_plugin(&rec);
+       FlexprobeEncryptionData::REGISTERED_ID = register_extension();
     }
 
-    return 0;
-}
+    int FlexprobeEncryptionProcessing::post_create(Flow& rec, const Packet& pkt)
+    {
+        if (!rec.get_extension(FlexprobeEncryptionData::REGISTERED_ID)) {
+            auto ext = new FlexprobeEncryptionData();
+            rec.add_extension(ext);
+        }
 
-int FlexprobeEncryptionProcessing::post_update(Flow& rec, const Packet& pkt)
-{
-    if (!pkt.custom) {
         return 0;
     }
 
-    // convert timestamp to decimal
-    auto data_view = reinterpret_cast<const Flexprobe::FlexprobeData*>(pkt.custom);
+    int FlexprobeEncryptionProcessing::post_update(Flow& rec, const Packet& pkt)
+    {
+        if (!pkt.custom) {
+            return 0;
+        }
 
-    auto arrival = data_view->arrival_time.to_decimal();
-    Flexprobe::Timestamp::DecimalTimestamp flow_end = static_cast<Flexprobe::Timestamp::DecimalTimestamp>(rec.time_last.tv_sec) + static_cast<Flexprobe::Timestamp::DecimalTimestamp>(rec.time_last.tv_usec) * 1e-6f;
-    auto encr_data = dynamic_cast<FlexprobeEncryptionData*>(rec.get_extension(FlexprobeEncryptionData::REGISTERED_ID));
-    auto total_packets = rec.src_packets + rec.dst_packets;
+        // convert timestamp to decimal
+        auto data_view = reinterpret_cast<const Flexprobe::FlexprobeData*>(pkt.custom);
 
-    encr_data->time_interpacket.update(arrival - flow_end, total_packets);
-    encr_data->payload_size.update(data_view->payload_size, total_packets);
+        auto arrival = data_view->arrival_time.to_decimal();
+        Flexprobe::Timestamp::DecimalTimestamp flow_end = static_cast<Flexprobe::Timestamp::DecimalTimestamp>(rec.time_last.tv_sec) + static_cast<Flexprobe::Timestamp::DecimalTimestamp>(rec.time_last.tv_usec) * 1e-6f;
+        auto encr_data = dynamic_cast<FlexprobeEncryptionData*>(rec.get_extension(FlexprobeEncryptionData::REGISTERED_ID));
+        auto total_packets = rec.src_packets + rec.dst_packets;
+        auto direction = pkt.source_pkt ? 0 : 1;
 
-    if (data_view->payload_size >= 256) {
-        encr_data->mpe8_valid_count += 1;
-        //TODO: update value
-        encr_data->mpe_8bit.update(1, encr_data->mpe8_valid_count);
+        encr_data->time_interpacket[direction].update(arrival - flow_end, total_packets);
+        encr_data->payload_size[direction].update(data_view->payload_size, total_packets);
+
+        if (data_view->payload_size >= 256) {
+            encr_data->mpe8_valid_count[direction] += 1;
+            encr_data->mpe_8bit[direction].update(static_cast<float>(data_view->encr_data.mpe_8bit.difference) / static_cast<float>(data_view->encr_data.mpe_8bit.expected_count),
+                                       encr_data->mpe8_valid_count[direction]);
+        }
+
+        if (data_view->payload_size >= 16) {
+            encr_data->mpe4_valid_count[direction] += 1;
+            encr_data->mpe_4bit[direction].update(static_cast<float>(data_view->encr_data.mpe_4bit.difference) / static_cast<float>(data_view->encr_data.mpe_4bit.expected_count),
+                                       encr_data->mpe4_valid_count[direction]);
+        }
+
+        return 0;
     }
 
-    if (data_view->payload_size >= 16) {
-        encr_data->mpe4_valid_count += 1;
-        //TODO: update value
-        encr_data->mpe_4bit.update(1, encr_data->mpe4_valid_count);
+    void FlexprobeEncryptionProcessing::pre_export(Flow& rec)
+    {
+        // compile tracked features into a sample
+        auto encr_data = dynamic_cast<FlexprobeEncryptionData*>(rec.get_extension(FlexprobeEncryptionData::REGISTERED_ID));
+        FlexprobeClassificationSample smp(*encr_data);
+        smp.packets_fwd = rec.src_packets;
+
+        // heuristic checking for TLS presence
+        auto tls = dynamic_cast<RecordExtTLS*>(rec.get_extension(RecordExtTLS::REGISTERED_ID));
+        if (tls != nullptr && tls->version != 0) {
+            encr_data->classification_result = true;
+        } else {
+            if (open_zmq_link_()) {
+                // classify sample
+                link_->send(zmq::buffer(&smp, sizeof(smp)), zmq::send_flags::dontwait);
+
+                zmq::message_t result(1);
+                link_->recv(result);
+
+                if (result.size() == 1) {
+                    encr_data->classification_result = result.data<bool>();
+                }
+            }
+        }
     }
-
-    return 0;
-}
-
 }

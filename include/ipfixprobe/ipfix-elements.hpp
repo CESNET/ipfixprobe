@@ -265,6 +265,7 @@ namespace ipxp {
 #ifdef WITH_FLEXPROBE
 #define FX_FRAME_SIGNATURE(F)         F(5715,   1010,  18,   nullptr)
 #define FX_TCP_TRACKING(F)            F(5715,   1020,   1,   nullptr)
+#define FX_ENCRYPTED_STAT(F)          F(5715,   1030,   1,   nullptr)
 #endif
 
 #define WG_CONF_LEVEL(F)              F(8057,    1100,   1,   nullptr)
@@ -500,7 +501,7 @@ namespace ipxp {
 #ifdef WITH_FLEXPROBE
 #define IPFIX_FLEXPROBE_DATA_TEMPLATE(F) F(FX_FRAME_SIGNATURE)
 #define IPFIX_FLEXPROBE_TCP_TEMPLATE(F) F(FX_TCP_TRACKING)
-#define IPFIX_FLEXPROBE_ENCR_TEMPLATE(F)
+#define IPFIX_FLEXPROBE_ENCR_TEMPLATE(F) F(FX_ENCRYPTED_STAT)
 #else
 #define IPFIX_FLEXPROBE_DATA_TEMPLATE(F)
 #define IPFIX_FLEXPROBE_TCP_TEMPLATE(F)

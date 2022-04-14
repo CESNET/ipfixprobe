@@ -357,6 +357,15 @@ AC_ARG_WITH([flexprobe],
 AM_CONDITIONAL(WITH_FLEXPROBE, test x${withflexprobe} = xyes)
 if [[ -z "$WITH_FLEXPROBE_TRUE" ]]; then
    AC_DEFINE([WITH_FLEXPROBE], [1], [Define to 1 to use flexprobe plugins])
+   AC_CHECK_LIB(zmq, zmq_ctx_new, [libzmq=yes], AC_MSG_WARN(libzmq is not present. Encryption detection feature will be disabled))
+   AM_CONDITIONAL(HAS_ZMQ, test x${libzmq} = xyes)
+   if [[ -z "$HAS_ZMQ_TRUE" ]]; then
+      withflexprobeencr="yes"
+      AC_DEFINE([HAS_ZMQ], [1], [Define 1 to allow for encryption detection to be performed])
+      LIBS="-lzmq $LIBS"
+   else
+      withflexprobeencr="no (libzmq not present)"
+   fi
 fi
 
 AC_ARG_WITH([stem],
@@ -456,23 +465,24 @@ echo
 echo
 echo "Configuration Options Summary:"
 echo
-echo "  ASM.(32 bit only)......: $ASM"
-echo "  Static binary..........: $static"
+echo "  ASM.(32 bit only)...........: $ASM"
+echo "  Static binary...............: $static"
 echo
-echo "Documentation............: ${build_doc}"
+echo "Documentation.................: ${build_doc}"
 echo
-echo "UniRec processor.........: $UNIRECPROC"
-echo "trap2man.sh..............: $TRAP2MAN"
-echo "Compilation..............: make (or gmake)"
-echo "  CPPFLAGS...............: $CPPFLAGS"
-echo "  CFLAGS.................: $CFLAGS"
-echo "  CXXFLAGS...............: $CXXFLAGS"
-echo "  LDFLAGS................: $LDFLAGS"
-echo "  LIBS...................: $LIBS"
-echo "Enforced NEMEA (for copr): $COPRRPM"
-echo "FlexProbe Data Interface.: $withflexprobe"
-echo "DPDK Interface...........: $withdpdk"
+echo "UniRec processor..............: $UNIRECPROC"
+echo "trap2man.sh...................: $TRAP2MAN"
+echo "Compilation...................: make (or gmake)"
+echo "  CPPFLAGS....................: $CPPFLAGS"
+echo "  CFLAGS......................: $CFLAGS"
+echo "  CXXFLAGS....................: $CXXFLAGS"
+echo "  LDFLAGS.....................: $LDFLAGS"
+echo "  LIBS........................: $LIBS"
+echo "Enforced NEMEA (for copr).....: $COPRRPM"
+echo "FlexProbe Data Interface......: $withflexprobe"
+echo "FlexProbe Encryption Detection: $withflexprobeencr"
+echo "DPDK Interface................: $withdpdk"
 echo
-echo "Installation.............: make install (as root if needed, with 'su' or 'sudo')"
-echo "  prefix.................: $prefix"
+echo "Installation..................: make install (as root if needed, with 'su' or 'sudo')"
+echo "  prefix......................: $prefix"
 echo

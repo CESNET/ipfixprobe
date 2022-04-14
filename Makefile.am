@@ -11,7 +11,7 @@ DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(syste
 
 ipfixprobe_LDFLAGS=-lpthread -ldl -latomic
 ipfixprobe_CFLAGS=-I$(srcdir)/include/
-ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/
+ipfixprobe_CXXFLAGS=-std=gnu++14 -Wno-write-strings -I$(srcdir)/include/
 
 if OS_CYGWIN
 ipfixprobe_CXXFLAGS+=-Wl,--export-all-symbols
@@ -135,9 +135,12 @@ ipfixprobe_process_src+=\
 		process/flexprobe-data-processing.cpp \
 		process/flexprobe-data-processing.h \
 		process/flexprobe-tcp-tracking.cpp \
-		process/flexprobe-tcp-tracking.h \
-		process/flexprobe-encryption-processing.cpp \
-		process/flexprobe-encryption-processing.h
+		process/flexprobe-tcp-tracking.h
+#if HAS_ZMQ
+#ipfixprobe_process_src+=\
+#		process/flexprobe-encryption-processing.cpp \
+#		process/flexprobe-encryption-processing.h
+#endif
 endif
 
 if WITH_OSQUERY
@@ -194,7 +197,7 @@ endif
 
 ipfixprobe_SOURCES=$(ipfixprobe_src) main.cpp
 
-ipfixprobe_stats_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/
+ipfixprobe_stats_CXXFLAGS=-std=gnu++14 -Wno-write-strings -I$(srcdir)/include/
 ipfixprobe_stats_SOURCES=ipfixprobe_stats.cpp \
 		include/ipfixprobe/options.hpp \
 		include/ipfixprobe/utils.hpp \
