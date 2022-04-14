@@ -167,16 +167,16 @@ namespace ipxp
         parser_opt_t opt{&packets, false, false, DLT_EN10MB};
 #endif
         packets.cnt = 0;
-        for (auto M : mbufs_) {
-            rte_pktmbuf_free(M);
+        for (auto i = 0; i < pkts_read_; i++) {
+            rte_pktmbuf_free(mbufs_[i]);
         }
 
-        auto pkts_read = rte_eth_rx_burst(port_id_, 0, mbufs_.data(), mbufs_.size());
-        if (pkts_read == 0) {
+        pkts_read_ = rte_eth_rx_burst(port_id_, 0, mbufs_.data(), mbufs_.size());
+        if (pkts_read_ == 0) {
             return Result::NOT_PARSED;
         }
 
-        for (auto i = 0; i < pkts_read; i++) {
+        for (auto i = 0; i < pkts_read_; i++) {
 #ifdef WITH_FLEXPROBE
             // Convert Flexprobe pre-parsed packet into IPFIXPROBE packet
             auto conv_result = convert_from_flexprobe(mbufs_[i], packets.pkts[packets.cnt]);
