@@ -43,6 +43,7 @@
 
 #include <cstring>
 #include <rte_ethdev.h>
+#include <rte_version.h>
 
 #include "dpdk.h"
 #include "parser.hpp"
@@ -126,7 +127,11 @@ namespace ipxp
     void DpdkReader::init(const char *params)
     {
         DpdkOptParser parser;
+#if RTE_VERSION >= RTE_VERSION_NUM(21,11,0,0)
+        rte_eth_conf port_conf{.rxmode = {.mtu = RTE_ETHER_MAX_LEN}};
+#else
         rte_eth_conf port_conf{.rxmode = {.max_rx_pkt_len = RTE_ETHER_MAX_LEN}};
+#endif
 
         try {
             parser.parse(params);
