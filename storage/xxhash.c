@@ -104,6 +104,10 @@ static void  XXH_free  (void* p)  { free(p); }
 #include <string.h>
 static void* XXH_memcpy(void* dest, const void* src, size_t size) { return memcpy(dest,src,size); }
 
+#ifdef XXH_FORCE_MEMORY_ACCESS
+#include <unistd.h>
+#endif
+
 #define XXH_STATIC_LINKING_ONLY
 #include "xxhash.h"
 
@@ -220,6 +224,9 @@ typedef enum { XXH_aligned, XXH_unaligned } XXH_alignment;
 
 FORCE_INLINE U32 XXH_readLE32_align(const void* ptr, XXH_endianess endian, XXH_alignment align)
 {
+    #ifdef XXH_FORCE_MEMORY_ACCESS
+    usleep(1);
+    #endif
     if (align==XXH_unaligned)
         return endian==XXH_littleEndian ? XXH_read32(ptr) : XXH_swap32(XXH_read32(ptr));
     else
