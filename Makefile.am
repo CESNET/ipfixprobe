@@ -136,11 +136,11 @@ ipfixprobe_process_src+=\
 		process/flexprobe-data-processing.h \
 		process/flexprobe-tcp-tracking.cpp \
 		process/flexprobe-tcp-tracking.h
-#if HAS_ZMQ
-#ipfixprobe_process_src+=\
-#		process/flexprobe-encryption-processing.cpp \
-#		process/flexprobe-encryption-processing.h
-#endif
+if HAS_ZMQ
+ipfixprobe_process_src+=\
+		process/flexprobe-encryption-processing.cpp \
+		process/flexprobe-encryption-processing.h
+endif
 endif
 
 if WITH_OSQUERY

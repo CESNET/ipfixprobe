@@ -56,7 +56,6 @@
 #include <zmq.hpp>
 
 #include "flexprobe-data.h"
-#include "tls.hpp"
 
 namespace ipxp {
     template<typename T> class RtStats
@@ -239,7 +238,7 @@ namespace ipxp {
                             "PATH",
                             "Path to ZMQ socket of the classification tool. Default: /tmp/ipfixprobe-classify.sock",
                             [this](const char* arg){zmq_path_ = arg; return true;},
-                            OptionalArgument);
+                            RequiredArgument);
         }
 
         std::string zmq_path() const
@@ -255,16 +254,23 @@ namespace ipxp {
         std::unique_ptr<zmq::socket_t> link_;
 
         std::string zmq_path_;
+
+        void shutdown_zmq_link_()
+        {
+            link_.reset();
+            ctx_.reset();
+        }
+
         bool open_zmq_link_()
         {
             if (!ctx_) {
                 try {
                     ctx_ = std::make_unique<zmq::context_t>();
                     link_ = std::make_unique<zmq::socket_t>(*ctx_, zmq::socket_type::req);
+                    link_->set(zmq::sockopt::linger, 0);
                     link_->connect("ipc://" + zmq_path_);
                 } catch (const zmq::error_t&) {
-                    ctx_.reset();
-                    link_.reset();
+                    shutdown_zmq_link_();
                     return false;
                 }
             }
@@ -282,6 +288,10 @@ namespace ipxp {
             FlexprobeEncryptionProcessingOptParser opts;
             opts.parse(params);
 
+
+            if (opts.zmq_path().empty()) {
+                throw PluginError("You must specify ZMQ socket path for encryption detection.");
+            }
             zmq_path_ = opts.zmq_path();
             open_zmq_link_();
         }

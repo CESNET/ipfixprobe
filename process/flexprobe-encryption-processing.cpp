@@ -43,6 +43,7 @@
 
 #include "flexprobe-encryption-processing.h"
 #include "flexprobe-data.h"
+#include "tls.hpp"
 
 namespace ipxp {
 
@@ -112,13 +113,17 @@ namespace ipxp {
         } else {
             if (open_zmq_link_()) {
                 // classify sample
-                link_->send(zmq::buffer(&smp, sizeof(smp)), zmq::send_flags::dontwait);
+                link_->send(zmq::buffer(&smp, sizeof(smp)));
 
                 zmq::message_t result(1);
-                link_->recv(result);
+                auto recv_bytes = link_->recv(result);
 
-                if (result.size() == 1) {
-                    encr_data->classification_result = result.data<bool>();
+                if (recv_bytes == 0) {
+                    shutdown_zmq_link_();
+                } else {
+                    if (result.size() == 1) {
+                        encr_data->classification_result = result.data<bool>();
+                    }
                 }
             }
         }
