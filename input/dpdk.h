@@ -98,7 +98,7 @@ namespace ipxp
         size_t port_id_;
         rte_mempool* mpool_;
         std::vector<rte_mbuf*> mbufs_;
-
+        std::uint16_t pkts_read_;
     public:
         Result get(PacketBlock& packets) override;
 
