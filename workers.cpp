@@ -52,7 +52,7 @@ namespace ipxp {
 #define MICRO_SEC 1000000L
 
 void input_worker(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint64_t pkt_limit, ipx_ring_t *queue,
-                  std::promise<WorkerResult> *out, std::atomic<InputStats> *out_stats, std::shared_future<void> *terminate)
+                  std::promise<WorkerResult> *out, std::atomic<InputStats> *out_stats)
 {
    struct timespec start;
    struct timespec end;
@@ -60,7 +60,7 @@ void input_worker(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint
    InputPlugin::Result ret;
    InputStats stats = {0, 0, 0, 0, 0};
    WorkerResult res = {false, ""};
-   while (terminate->wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
+   while (!terminate_input) {
       PacketBlock *block = &pkts[i];
       block->cnt = 0;
       block->bytes = 0;
@@ -119,7 +119,7 @@ void input_worker(InputPlugin *plugin, PacketBlock *pkts, size_t block_cnt, uint
    out->set_value(res);
 }
 
-void storage_worker(StoragePlugin *cache, ipx_ring_t *queue, std::promise<WorkerResult> *out, std::shared_future<void> *terminate)
+void storage_worker(StoragePlugin *cache, ipx_ring_t *queue, std::promise<WorkerResult> *out)
 {
    WorkerResult res = {false, ""};
    bool timeout = false;
@@ -145,7 +145,7 @@ void storage_worker(StoragePlugin *cache, ipx_ring_t *queue, std::promise<Worker
             break;
          }
          timeout = false;
-      } else if (terminate->wait_for(std::chrono::seconds(0)) == std::future_status::ready && !ipx_ring_cnt(queue)) {
+      } else if (terminate_storage && !ipx_ring_cnt(queue)) {
          break;
       } else {
          clock_gettime(clk_id, &end);
@@ -178,7 +178,7 @@ static long timeval_diff(const struct timeval *start, const struct timeval *end)
 }
 
 void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<WorkerResult> *out, std::atomic<OutputStats> *out_stats,
-   uint32_t fps, std::shared_future<void> *terminate)
+   uint32_t fps)
 {
    WorkerResult res = {false, ""};
    OutputStats stats = {0, 0, 0, 0};
@@ -205,7 +205,7 @@ void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<WorkerResu
             last_flush = end;
             exp->flush();
          }
-         if (terminate->wait_for(std::chrono::seconds(0)) == std::future_status::ready && !ipx_ring_cnt(queue)) {
+         if (terminate_export && !ipx_ring_cnt(queue)) {
             break;
          }
          continue;

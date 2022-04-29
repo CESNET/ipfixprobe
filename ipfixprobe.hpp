@@ -49,6 +49,7 @@
 #include <thread>
 #include <future>
 #include <atomic>
+#include <csignal>
 
 #include <ipfixprobe/input.hpp>
 #include <ipfixprobe/storage.hpp>
@@ -68,6 +69,11 @@ extern const uint32_t DEFAULT_IQUEUE_SIZE;
 extern const uint32_t DEFAULT_IQUEUE_BLOCK;
 extern const uint32_t DEFAULT_OQUEUE_SIZE;
 extern const uint32_t DEFAULT_FPS;
+
+// global termination variable
+extern volatile sig_atomic_t terminate_export;
+extern volatile sig_atomic_t terminate_storage;
+extern volatile sig_atomic_t terminate_input;
 
 class IpfixprobeOptParser;
 struct ipxp_conf_t;
@@ -207,14 +213,7 @@ struct ipxp_conf_t {
 
    std::vector<std::shared_future<WorkerResult>> input_fut;
    std::vector<std::future<WorkerResult>> storage_fut;
-   std::vector<std::future<WorkerResult>> output_fut;
-
-   std::promise<void> exit_input_pr;
-   std::promise<void> exit_storage_pr;
-   std::promise<void> exit_output_pr;
-   std::shared_future<void> exit_input;
-   std::shared_future<void> exit_storage;
-   std::shared_future<void> exit_output;
+   std::vector<std::future<WorkerResult>> output_fut;  
 
    size_t pkt_bufsize;
    size_t blocks_cnt;
@@ -234,10 +233,7 @@ struct ipxp_conf_t {
 
    ~ipxp_conf_t()
    {
-      try {
-         exit_input_pr.set_value();
-      } catch (std::future_error &e) {
-      }
+      terminate_input = 1;
       for (auto &it : pipelines) {
          if (it.input.thread->joinable()) {
             it.input.thread->join();
@@ -247,10 +243,7 @@ struct ipxp_conf_t {
          delete it.input.promise;
       }
 
-      try {
-         exit_storage_pr.set_value();
-      } catch (std::future_error &e) {
-      }
+      terminate_storage = 1;
       for (auto &it : pipelines) {
          if (it.storage.thread->joinable()) {
             it.storage.thread->join();
@@ -267,10 +260,7 @@ struct ipxp_conf_t {
          }
       }
 
-      try {
-         exit_output_pr.set_value();
-      } catch (std::future_error &e) {
-      }
+      terminate_export = 1;
       for (auto &it : outputs) {
          if (it.thread->joinable()) {
             it.thread->join();
