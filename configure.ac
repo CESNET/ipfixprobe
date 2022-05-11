@@ -385,7 +385,7 @@ if [[ -z "$WITH_STEM_TRUE" ]]; then
    AC_DEFINE([WITH_STEM], [1], [Define to 1 to use flexprobe testing interface])
    CFLAGS="-I/usr/local/include/Stem $CFLAGS"
    CXXFLAGS="-I/usr/local/include/Stem -std=gnu++17 -g -Wno-write-strings $CXXFLAGS"
-   LIBS="-lstem $LIBS"
+   LIBS="-lstem -lpcap $LIBS"
 fi
 
 

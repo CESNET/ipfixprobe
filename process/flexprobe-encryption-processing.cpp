@@ -41,9 +41,14 @@
  *
  */
 
+#include <iostream>
+#include <chrono>
+
 #include "flexprobe-encryption-processing.h"
 #include "flexprobe-data.h"
 #include "tls.hpp"
+
+//#define TIMEIT
 
 namespace ipxp {
 
@@ -99,10 +104,56 @@ namespace ipxp {
         return 0;
     }
 
+    void FlexprobeEncryptionProcessing::send_and_classify_(const FlexprobeClassificationSample& smp, FlexprobeEncryptionData* encr_data)
+    {
+        using namespace std::chrono;
+        using namespace std::chrono_literals;
+#ifdef TIMEIT
+        auto t_start = high_resolution_clock::now();
+#endif
+        link_->send(zmq::buffer(&smp, sizeof(smp)));
+        for (auto to = 1ms; to <= 8ms; to *= 2) {
+            auto rc = zmq::poll(&poller_, 1);//, to);
+
+            if (rc > 0 && (poller_.revents & ZMQ_POLLIN)) {
+                zmq::message_t result(2);
+                auto recv_bytes = link_->recv(result, zmq::recv_flags::dontwait);
+
+                if (recv_bytes == 0) {
+                    shutdown_zmq_link_();
+                } else {
+#ifndef NDEBUG
+                    std::cout << std::boolalpha
+                              << bool(*result.data<std::uint8_t>())
+                              << " "
+                              << static_cast<unsigned>(*(result.data<std::uint8_t>() + 1))
+                              << std::endl;
+#endif
+                    if (result.size() == 2) {
+                        encr_data->classification_result = *result.data<std::uint8_t>();
+                    }
+                }
+                poller_.revents = 0x0;
+#ifdef TIMEIT
+                auto end = high_resolution_clock::now();
+                std::cout << "RTT: " << duration_cast<microseconds>( end - t_start).count() << std::endl;
+#endif
+                break;
+            } else {
+                if (to == 8ms) {
+                    shutdown_zmq_link_();
+                }
+            }
+        }
+    }
+
     void FlexprobeEncryptionProcessing::pre_export(Flow& rec)
     {
         // compile tracked features into a sample
         auto encr_data = dynamic_cast<FlexprobeEncryptionData*>(rec.get_extension(FlexprobeEncryptionData::REGISTERED_ID));
+        if (!encr_data) {
+            return;
+        }
         FlexprobeClassificationSample smp(*encr_data);
         smp.packets_fwd = rec.src_packets;
 
@@ -112,19 +163,7 @@ namespace ipxp {
             encr_data->classification_result = true;
         } else {
             if (open_zmq_link_()) {
-                // classify sample
-                link_->send(zmq::buffer(&smp, sizeof(smp)));
-
-                zmq::message_t result(1);
-                auto recv_bytes = link_->recv(result);
-
-                if (recv_bytes == 0) {
-                    shutdown_zmq_link_();
-                } else {
-                    if (result.size() == 1) {
-                        encr_data->classification_result = result.data<bool>();
-                    }
-                }
+                send_and_classify_(smp, encr_data);
             }
         }
     }

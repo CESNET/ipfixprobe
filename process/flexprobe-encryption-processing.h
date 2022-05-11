@@ -156,12 +156,20 @@ namespace ipxp {
         RtStats<float> mpe_4bit[2];
         bool classification_result;
 
-        FlexprobeEncryptionData() : RecordExt(REGISTERED_ID), mpe8_valid_count(), mpe4_valid_count() {}
+        FlexprobeEncryptionData()
+        : RecordExt(REGISTERED_ID),
+          mpe8_valid_count(),
+          mpe4_valid_count(),
+          classification_result(false)
+        {
+            mpe_8bit[0] = mpe_8bit[1] = RtStats<float>(0, 0);
+            mpe_4bit[0] = mpe_4bit[1] = RtStats<float>(0, 0);
+        }
 
         virtual int fill_ipfix(uint8_t *buffer, int size)
         {
            // TODO: fill fields in correct order
-            if (sizeof(std::uint8_t) > size) {
+            if (sizeof(std::uint8_t) > static_cast<size_t>(size)) {
                 return -1;
             }
             *buffer = static_cast<std::uint8_t>(classification_result ? 1 : 0);
@@ -252,6 +260,7 @@ namespace ipxp {
     private:
         std::unique_ptr<zmq::context_t> ctx_;
         std::unique_ptr<zmq::socket_t> link_;
+        zmq_pollitem_t poller_;
 
         std::string zmq_path_;
 
@@ -269,6 +278,8 @@ namespace ipxp {
                     link_ = std::make_unique<zmq::socket_t>(*ctx_, zmq::socket_type::req);
                     link_->set(zmq::sockopt::linger, 0);
                     link_->connect("ipc://" + zmq_path_);
+                    poller_.socket = link_->handle();
+                    poller_.events = ZMQ_POLLIN;
                 } catch (const zmq::error_t&) {
                     shutdown_zmq_link_();
                     return false;
@@ -276,9 +287,11 @@ namespace ipxp {
             }
             return true;
         }
+
+        void send_and_classify_(const FlexprobeClassificationSample& smp, FlexprobeEncryptionData* encr_data);
     public:
         FlexprobeEncryptionProcessing() = default;
-        FlexprobeEncryptionProcessing(const FlexprobeEncryptionProcessing& other) : zmq_path_(other.zmq_path_)
+        FlexprobeEncryptionProcessing(const FlexprobeEncryptionProcessing& other) : poller_({nullptr, -1, 0, 0}), zmq_path_(other.zmq_path_)
         {
             open_zmq_link_();
         }
@@ -288,10 +301,10 @@ namespace ipxp {
             FlexprobeEncryptionProcessingOptParser opts;
             opts.parse(params);
 
-
             if (opts.zmq_path().empty()) {
                 throw PluginError("You must specify ZMQ socket path for encryption detection.");
             }
+
             zmq_path_ = opts.zmq_path();
             open_zmq_link_();
         }
