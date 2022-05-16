@@ -260,6 +260,7 @@ private:
    bool     parse_tls(RecordExtQUIC *);
    bool     quic_assemble();
 
+
    // header pointers
    quic_header1 *quic_h1;
    quic_header2 *quic_h2;
@@ -288,8 +289,8 @@ private:
    uint8_t *sample;
 
    // final decrypted payload
-   uint8_t *decrypted_payload;
-   uint8_t *assembled_payload;
+   uint8_t decrypted_payload[1500];
+   uint8_t assembled_payload[1500];
    uint8_t *final_payload;
 
    uint64_t decrypt_buffer_len;
