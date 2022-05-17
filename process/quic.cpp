@@ -72,6 +72,8 @@ __attribute__((constructor)) static void register_this_plugin()
 
 // Print debug message if debugging is allowed.
 
+
+#define DEBUG_QUIC 1
 #ifdef  DEBUG_QUIC
 # define DEBUG_MSG(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
 #else
@@ -749,38 +751,50 @@ bool QUICPlugin::quic_decrypt_header()
    }
 
    EVP_CIPHER_CTX_free(ctx);
+   // basically we create mask, as shown in code belove
    memcpy(mask, plaintext, sizeof(mask));
 
-   // https://datatracker.ietf.org/doc/html/draft-ietf-quic-tls-22#section-5.4.1
+   // https://www.rfc-editor.org/rfc/rfc9001.html#name-header-protection-applicati
 
-   //   if (packet[0] & 0x80) == 0x80:
-   //      # Long header: 4 bits masked
-   //      packet[0] ^= mask[0] & 0x0f
-   //   else:
-   //     # Short header: 5 bits masked
-   //     packet[0] ^= mask[0] & 0x1f
+   /* 
+      code belove shows a sample algorithm for applying header protection.
 
+      mask = header_protection(hp_key, sample)
+
+      pn_length = (packet[0] & 0x03) + 1
+      
+      if (packet[0] & 0x80) == 0x80:
+         # Long header: 4 bits masked
+         packet[0] ^= mask[0] & 0x0f
+      else:
+         # Short header: 5 bits masked
+         packet[0] ^= mask[0] & 0x1f
+      
+   */
+
+   
+   
    // we do not have to handle short header, Initial packets have only long header
 
    first_byte  = quic_h1->first_byte;
    first_byte ^= mask[0] & 0x0f;
    uint8_t pkn_len = (first_byte & 0x03) + 1;
 
-   // set decrypted first byte
+   // set deobfuscated first byte
    header[0] = first_byte;
 
 
-   // copy encrypted pkn into buffer
+   // now we know pkn length, so copy pkn into buffer
    memcpy(&full_pkn, pkn, pkn_len);
 
 
-   // decrypt pkn
+   // we now de-obsfuscate pkn
    for (unsigned int i = 0; i < pkn_len; i++) {
       packet_number |= (full_pkn[i] ^ mask[1 + i]) << (8 * (pkn_len - 1 - i));
    }
 
 
-   // after decrypting first byte, we know packet number length, so we can adjust payload start and lengths
+   // after de-obfuscating pkn, we know exactly pkn length so we can correctly adjust start of payload
    payload     = payload + pkn_len;
    payload_len = payload_len - pkn_len;
 
@@ -794,6 +808,8 @@ bool QUICPlugin::quic_decrypt_header()
 
 
    // adjust nonce for payload decryption
+   // https://www.rfc-editor.org/rfc/rfc9001.html#name-aead-usage
+   //  The exclusive OR of the padded packet number and the IV forms the AEAD nonce
    phton64(nonce + sizeof(nonce) - 8, pntoh64(nonce + sizeof(nonce) - 8) ^ packet_number);
 
    return true;
@@ -841,11 +857,15 @@ bool QUICPlugin::quic_decrypt_payload()
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
+
+   // SET NONCE and KEY
    if (!EVP_DecryptInit_ex(ctx, NULL, NULL, initial_secrets.key, nonce)) {
       DEBUG_MSG("Payload decryption error, setting KEY and NONCE failed\n");
       EVP_CIPHER_CTX_free(ctx);
       return false;
    }
+
+   // SET ASSOCIATED DATA (HEADER with unprotected PKN)
    if (!EVP_DecryptUpdate(ctx, NULL, &len, header, header_len)) {
       DEBUG_MSG("Payload decryption error, initializing authenticated data failed\n");
       EVP_CIPHER_CTX_free(ctx);
@@ -886,12 +906,12 @@ bool QUICPlugin::quic_assemble()
    assembled_payload[0] = 0x06;
    
 
-   // compute end of payload
+   // set end of payload
    uint8_t * payload_end = decrypted_payload + payload_len;
 
    uint64_t offset = 0;
-   uint64_t offset_frame = 0;
-   uint64_t length = 0;
+   uint64_t frame_offset = 0;
+   uint64_t frame_length = 0;
 
 
    // loop through whole padding, the logic is check first fragment (check type and length), if it`s of type crypto
@@ -904,22 +924,24 @@ bool QUICPlugin::quic_assemble()
       // process of computing offset length and length field length, is same as above in extracting user agent
       if (*(decrypted_payload + offset) == CRYPTO) {
          offset += 1;
-         offset_frame = quic_get_variable_length(decrypted_payload,offset);
-         
-         length = quic_get_variable_length(decrypted_payload,offset);
 
-         // copy crypto fragment into the buffer based on offset 
-         // + 4 bytes is because of final crypto header (this header technically contains no important information, but we
-         // need the 4 bytes at the start because of compatibility with function which parse tls)
-         if (assembled_payload + offset_frame + 4 * sizeof(uint8_t) < assembled_payload + 1500  
+         frame_offset = quic_get_variable_length(decrypted_payload,offset);
+         frame_length = quic_get_variable_length(decrypted_payload,offset);
+
+         // beware this part is tricky, tls parse data expects 4 bytes at the start of crypto frame (type(1), offset(1), length(2))
+         // BUT google quic uses variable length of some fields (more precisely length can have variable length), we consider that
+         // length field have 2 bytes, this is not wrong because length is not used in tls parse date.
+         if (assembled_payload + frame_offset + 4 * sizeof(uint8_t) < assembled_payload + 1500  
             && decrypted_payload + offset < payload_end
-            && assembled_payload + offset_frame + 4 * sizeof(uint8_t) + length < assembled_payload + 1500)
+            && assembled_payload + frame_offset + 4 * sizeof(uint8_t) + frame_length < assembled_payload + 1500)
          {
-            memcpy(assembled_payload + offset_frame + 4 * sizeof(uint8_t), decrypted_payload + offset, length);
-            offset += length;
+            memcpy(assembled_payload + frame_offset + 4 * sizeof(uint8_t), decrypted_payload + offset, frame_length);
+            offset += frame_length;
          } else {
             return false;
          }
+      // https://www.rfc-editor.org/rfc/rfc9000.html#name-frames-and-frame-types
+      // only those frames can occure in initial packets
       } else if (*(decrypted_payload + offset) == PADDING 
                  || *(decrypted_payload + offset) == PING 
                  || *(decrypted_payload + offset) == ACK1 
@@ -938,13 +960,22 @@ bool QUICPlugin::quic_assemble()
 
 bool QUICPlugin::quic_parse_data(const Packet &pkt)
 {
+   
+   
    uint8_t *tmp_pointer       = (uint8_t *) pkt.payload;
    uint64_t offset = 0;
    const uint8_t *payload_end = (uint8_t *) pkt.payload + pkt.payload_len;
 
+   
+   
+   // set header pointer to the start of header
    header = (uint8_t *) (tmp_pointer + offset); // set header pointer
 
-   quic_h1 = (quic_header1 *) (tmp_pointer + offset); // read first byte, version and dcid length
+   
+   
+   
+   // pointer to the first byte, version and dcid length
+   quic_h1 = (quic_header1 *) (tmp_pointer + offset);
 
 
    if (quic_h1->version == 0x0) {
@@ -953,16 +984,27 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
 
    offset += sizeof(quic_header1);
 
+
+
    if ((tmp_pointer + offset) > payload_end) {
       return false;
    }
 
+   
+   
+   // if dcid length is not zero , read dcid
    if (quic_h1->dcid_len != 0) {
-      dcid = (tmp_pointer + offset); // set dcid if dcid length is not 0
+      dcid = (tmp_pointer + offset);
+      offset += quic_h1->dcid_len;
    }
-   offset += quic_h1->dcid_len;
 
-   quic_h2 = (quic_header2 *) (tmp_pointer + offset); // read scid length
+   if ((tmp_pointer + offset) > payload_end) {
+      return false;
+   }
+   
+
+   // after dcid is scid length, so read scid length
+   quic_h2 = (quic_header2 *) (tmp_pointer + offset);
 
    offset += sizeof(quic_header2);
    
@@ -970,43 +1012,52 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
       return false;
    }
 
-   if (quic_h2->scid_len != 0) { // set scid if scid length is not 0
+
+   // if scid length is not zero, read scid
+   if (quic_h2->scid_len != 0) { 
       scid = (tmp_pointer + offset);
+      offset += quic_h2->scid_len;
    }
-   
-   offset += quic_h2->scid_len;
    
    if ((tmp_pointer + offset) > payload_end) {
       return false;
    }
 
 
-   // token length has variable length based on first two bits, so we cant use structure
+   // token length has variable length based on first two bits, after this offset should point to the token
    uint64_t token_length = quic_get_variable_length(tmp_pointer,offset);
 
    if ((tmp_pointer + offset) > payload_end) {
       return false;
    }
    
+   // after this offset should point after the token
    offset += token_length;
 
    if ((tmp_pointer + offset) > payload_end) {
       return false;
    }
 
+
+   // same as token length, payload length has variable length, after this offset should point to the packet number
    payload_len = quic_get_variable_length(tmp_pointer,offset);
 
    if ((tmp_pointer + offset) > payload_end) {
       return false;
    }
 
-   pkn = (tmp_pointer + offset); // set packet number
 
-   payload = (tmp_pointer + offset); // set payload start too, this pointer is adjusted later, because we do not know exact packet number length atm
+   // read packet number
+   pkn = (tmp_pointer + offset);
 
-   offset += sizeof(uint8_t) * 4; // skip packet number and go to sample start which is always after packet number(always assuming length of packet number == 4).
 
-   sample = (tmp_pointer + offset); // set sample pointer
+   // read payload, we do not know packet number length, so payload will be adjusted later (after de-obfuscating header)
+   payload = (tmp_pointer + offset);
+
+   
+   // read sample, sample is always assuming that packet number has length 4 bytes, so we do not need to know exact pkn length for reading sample.
+   offset += sizeof(uint8_t) * 4;
+   sample = (tmp_pointer + offset);
 
    if ((tmp_pointer + offset) > payload_end) {
       return false;
@@ -1014,14 +1065,10 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
 
 
    /* DO NOT SET header length this way , if packet contains more frames , pkt.payload_len is length of whole quic packet (so it contains length of all frames inside packet)
-    *  so then header length is not computed correctly. Instead of this approach calculate header length after decrypting packet number , this will ensure header length is computed correctly
+    *  so then header length is not computed correctly. Instead of this approach calculate header length after de-obfuscating packet number , this will ensure header length is computed correctly
     */
    // header_len = pkt.payload_len - payload_len;
 
-
-   if (payload_len > pkt.payload_len) {
-      return false;
-   }
    return true;
 } // QUICPlugin::quic_parse_data
 
@@ -1074,7 +1121,7 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
          return true;
       }
    } else if (pkt.src_port == 443) {
-      if (!quic_create_initial_secrets(CommSide::SERVER_IN,quic_data)) {
+      /*if (!quic_create_initial_secrets(CommSide::SERVER_IN,quic_data)) {
          DEBUG_MSG("Error, creation of initial secrets failed (server side)\n");
          return false;
       }
@@ -1098,7 +1145,8 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
       }
       else {
          return true;
-      }
+      }*/
+      return true;
    }
    return false;
 } // QUICPlugin::process_quic
