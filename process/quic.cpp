@@ -73,7 +73,6 @@ __attribute__((constructor)) static void register_this_plugin()
 // Print debug message if debugging is allowed.
 
 
-#define DEBUG_QUIC 1
 #ifdef  DEBUG_QUIC
 # define DEBUG_MSG(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
 #else
@@ -107,11 +106,7 @@ QUICPlugin::QUICPlugin()
 
    memset(decrypted_payload,0,1500);
    memset(assembled_payload,0,1500);
-   //decrypted_payload = nullptr;
-   decrypt_buffer_len = 0;
    
-   //assembled_payload = nullptr;
-   assemble_buffer_len = 0;
    
    final_payload = nullptr;
    
@@ -395,7 +390,7 @@ bool QUICPlugin::parse_tls(RecordExtQUIC *rec)
 } // QUICPlugin::parse_tls
 
 // --------------------------------------------------------------------------------------------------------------------------------
-// DECRYTP HEADER AND PAYLOAD
+// DECRYPT HEADER AND PAYLOAD
 // --------------------------------------------------------------------------------------------------------------------------------
 
 bool QUICPlugin::expand_label(const char *label_prefix, const char *label, const uint8_t *context_hash,
