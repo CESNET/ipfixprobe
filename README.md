@@ -12,6 +12,8 @@ This application creates biflows from packet input and exports them to output in
 - [nemea](http://github.com/CESNET/Nemea-Framework) when compiling with unirec output plugin (`--with-nemea` parameter)
 - cloned submodule with googletest framework to enabled optional tests (`--with-gtest` parameter)
 
+To use DPDK interfaces, make sure you have DPDK libraries installed and set the `PKG_CONFIG_PATH` environment variable if necessary. You can obtain latest DPDK at http://core.dpdk.org/download/ (`--with-dpdk` parameter)
+
 ## Build & Installation
 
 ### Source codes
@@ -143,6 +145,11 @@ Here are the examples of various plugins usage:
 
 # Read packets from pcap file, enable 4 processing plugins, sends L7 HTTP extended biflows to unirec interface named `http` and data from 3 other plugins to the `stats` interface
 ./ipfixprobe -i 'pcap;file=pcaps/http.pcap' -p http -p pstats -p idpcontent -p phists -o 'unirec;i=u:http:timeout=WAIT,u:stats:timeout=WAIT;p=http,(pstats,phists,idpcontent)'
+
+# Read packets using DPDK input interface, enable plugins for basic statistics, http and tls, output to IPFIX on a local machine
+# Note that parameters for the ipfixprobe application go AFTER the '--'. Parameters before are passed into the DPDK EAL
+# The application will run on a core 0 as defined with EAL parameter -c using mask 0x1
+./ipfixprobe -c 0x1 -- -i "dpdk;p=0" -p http "-p" bstats -p tls -o "ipfix;h=127.0.0.1"
 ```
 
 ## Extension
