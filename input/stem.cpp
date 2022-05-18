@@ -43,6 +43,7 @@
 
 #include <config.h>
 #include <string>
+#include <cstring>
 
 #include <packet-reader.h>
 
@@ -108,8 +109,8 @@ bool StemPacketReader::convert(Stem::StatisticsPacket &stem_pkt, Packet &pkt)
 
    pkt.ts = {hwdata.arrived_at.sec, hwdata.arrived_at.nsec / 1000};
 
-   memset(pkt.dst_mac, 0, sizeof(pkt.dst_mac));
-   memset(pkt.src_mac, 0, sizeof(pkt.src_mac));
+   std::memset(pkt.dst_mac, 0, sizeof(pkt.dst_mac));
+   std::memset(pkt.src_mac, 0, sizeof(pkt.src_mac));
    pkt.ethertype = 0;
 
    size_t vlan_cnt = (hwdata.vlan_0 ? 1 : 0) + (hwdata.vlan_1 ? 1 : 0);
@@ -126,8 +127,8 @@ bool StemPacketReader::convert(Stem::StatisticsPacket &stem_pkt, Packet &pkt)
       pkt.dst_ip.v4 = *reinterpret_cast<uint32_t*>(hwdata.dst_ip.data());
       pkt.ip_payload_len = pkt.ip_len - 20;
    } else {
-      memcpy(pkt.src_ip.v6, reinterpret_cast<uint8_t*>(hwdata.src_ip.data()), 16);
-      memcpy(pkt.dst_ip.v6, reinterpret_cast<uint8_t*>(hwdata.dst_ip.data()), 16);
+      std::memcpy(pkt.src_ip.v6, reinterpret_cast<uint8_t*>(hwdata.src_ip.data()), 16);
+      std::memcpy(pkt.dst_ip.v6, reinterpret_cast<uint8_t*>(hwdata.dst_ip.data()), 16);
       pkt.ip_payload_len = pkt.ip_len - 40;
    }
 
@@ -145,7 +146,7 @@ bool StemPacketReader::convert(Stem::StatisticsPacket &stem_pkt, Packet &pkt)
    if (datalen > pkt.buffer_size) {
       datalen = pkt.buffer_size;
    }
-   memcpy(pkt.buffer, raw_hwdata->data(), datalen);
+   std::memcpy(pkt.buffer, raw_hwdata->data(), datalen);
 
    pkt.packet = pkt.buffer;
    pkt.packet_len = 0;
