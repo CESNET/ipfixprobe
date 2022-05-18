@@ -136,7 +136,7 @@ ipfixprobe_process_src+=\
 		process/flexprobe-data-processing.h \
 		process/flexprobe-tcp-tracking.cpp \
 		process/flexprobe-tcp-tracking.h
-if HAS_ZMQ
+if HAS_MLPACK
 ipfixprobe_process_src+=\
 		process/flexprobe-encryption-processing.cpp \
 		process/flexprobe-encryption-processing.h

@@ -357,15 +357,17 @@ AC_ARG_WITH([flexprobe],
 AM_CONDITIONAL(WITH_FLEXPROBE, test x${withflexprobe} = xyes)
 if [[ -z "$WITH_FLEXPROBE_TRUE" ]]; then
    AC_DEFINE([WITH_FLEXPROBE], [1], [Define to 1 to use flexprobe plugins])
-   AC_CHECK_LIB(zmq, zmq_ctx_new, [libzmq=yes], AC_MSG_WARN(libzmq is not present. Encryption detection feature will be disabled))
-   AM_CONDITIONAL(HAS_ZMQ, test x${libzmq} = xyes)
-   if [[ -z "$HAS_ZMQ_TRUE" ]]; then
-      withflexprobeencr="yes"
-      AC_DEFINE([HAS_ZMQ], [1], [Define 1 to allow for encryption detection to be performed])
-      LIBS="-lzmq $LIBS"
-   else
-      withflexprobeencr="no (libzmq not present)"
-   fi
+   PKG_CHECK_MODULES([MLPACK], [mlpack],
+                     [
+                        withflexprobeencr="yes"
+                        AM_CONDITIONAL([HAS_MLPACK], [true])
+                        AC_DEFINE([HAS_MLPACK], [1], [Define 1 to allow for encryption detection to be performed])
+                        CFLAGS="$MLPACK_CFLAGS $CFLAGS"
+                        CXXFLAGS="$MLPACK_CXXFLAGS $CXXFLAGS"
+                        LIBS="$MLPACK_LIBS $LIBS"
+                     ],
+                     [withflexprobeencr="no (mlpack not present)"]
+   )
 fi
 
 AC_ARG_WITH([stem],

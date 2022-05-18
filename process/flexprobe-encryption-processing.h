@@ -53,7 +53,9 @@
 #include <ipfixprobe/options.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 
-#include <zmq.hpp>
+#include <mlpack/methods/random_forest/random_forest.hpp>
+#include <mlpack/methods/decision_tree/decision_tree.hpp>
+#include <mlpack/methods/adaboost/adaboost.hpp>
 
 #include "flexprobe-data.h"
 
@@ -230,13 +232,12 @@ namespace ipxp {
             payload_bytes_max_fwd = fed.payload_size[0].maximum();
             mpe_4bit_min_reverse = fed.mpe_4bit[1].minimum();
         }
-
     };
 
     class FlexprobeEncryptionProcessingOptParser : public OptionsParser
     {
     private:
-        std::string zmq_path_;
+        std::string model_path_;
 
     public:
         FlexprobeEncryptionProcessingOptParser() : OptionsParser("flexprobe-encrypt", "Collect statistical data about flow's behaviour and use them to determine if the flow contains encrypted communication.")
@@ -244,69 +245,36 @@ namespace ipxp {
             register_option("p",
                             "path",
                             "PATH",
-                            "Path to ZMQ socket of the classification tool. Default: /tmp/ipfixprobe-classify.sock",
-                            [this](const char* arg){zmq_path_ = arg; return true;},
+                            "Path to RandomForest model to load.",
+                            [this](const char* arg){model_path_ = arg; return true;},
                             RequiredArgument);
         }
 
-        std::string zmq_path() const
+        std::string model_path() const
         {
-            return zmq_path_;
+            return model_path_;
         }
     };
 
     class FlexprobeEncryptionProcessing : public ProcessPlugin
     {
     private:
-        std::unique_ptr<zmq::context_t> ctx_;
-        std::unique_ptr<zmq::socket_t> link_;
-        zmq_pollitem_t poller_;
+//        mlpack::tree::RandomForest<> clf_;
+        mlpack::adaboost::AdaBoost<mlpack::tree::DecisionTree<>> clf_;
 
-        std::string zmq_path_;
-
-        void shutdown_zmq_link_()
-        {
-            link_.reset();
-            ctx_.reset();
-        }
-
-        bool open_zmq_link_()
-        {
-            if (!ctx_) {
-                try {
-                    ctx_ = std::make_unique<zmq::context_t>();
-                    link_ = std::make_unique<zmq::socket_t>(*ctx_, zmq::socket_type::req);
-                    link_->set(zmq::sockopt::linger, 0);
-                    link_->connect("ipc://" + zmq_path_);
-                    poller_.socket = link_->handle();
-                    poller_.events = ZMQ_POLLIN;
-                } catch (const zmq::error_t&) {
-                    shutdown_zmq_link_();
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        void send_and_classify_(const FlexprobeClassificationSample& smp, FlexprobeEncryptionData* encr_data);
     public:
         FlexprobeEncryptionProcessing() = default;
-        FlexprobeEncryptionProcessing(const FlexprobeEncryptionProcessing& other) : poller_({nullptr, -1, 0, 0}), zmq_path_(other.zmq_path_)
-        {
-            open_zmq_link_();
-        }
 
         void init(const char *params) override
         {
             FlexprobeEncryptionProcessingOptParser opts;
             opts.parse(params);
 
-            if (opts.zmq_path().empty()) {
-                throw PluginError("You must specify ZMQ socket path for encryption detection.");
+            if (opts.model_path().empty()) {
+                throw PluginError("You must specify ML model to use.");
             }
 
-            zmq_path_ = opts.zmq_path();
-            open_zmq_link_();
+            mlpack::data::Load(opts.model_path(), "Encrypt Detect", clf_);
         }
 
         RecordExt *get_ext() const override { return new FlexprobeEncryptionData(); }

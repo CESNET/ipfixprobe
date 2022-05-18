@@ -104,67 +104,63 @@ namespace ipxp {
         return 0;
     }
 
-    void FlexprobeEncryptionProcessing::send_and_classify_(const FlexprobeClassificationSample& smp, FlexprobeEncryptionData* encr_data)
+    void FlexprobeEncryptionProcessing::pre_export(Flow& rec)
     {
         using namespace std::chrono;
         using namespace std::chrono_literals;
-#ifdef TIMEIT
-        auto t_start = high_resolution_clock::now();
-#endif
-        link_->send(zmq::buffer(&smp, sizeof(smp)));
-        for (auto to = 1ms; to <= 8ms; to *= 2) {
-            auto rc = zmq::poll(&poller_, 1);//, to);
-
-            if (rc > 0 && (poller_.revents & ZMQ_POLLIN)) {
-                zmq::message_t result(2);
-                auto recv_bytes = link_->recv(result, zmq::recv_flags::dontwait);
-
-                if (recv_bytes == 0) {
-                    shutdown_zmq_link_();
-                } else {
-#ifndef NDEBUG
-                    std::cout << std::boolalpha
-                              << bool(*result.data<std::uint8_t>())
-                              << " "
-                              << static_cast<unsigned>(*(result.data<std::uint8_t>() + 1))
-                              << std::endl;
-#endif
-                    if (result.size() == 2) {
-                        encr_data->classification_result = *result.data<std::uint8_t>();
-                    }
-                }
-                poller_.revents = 0x0;
-#ifdef TIMEIT
-                auto end = high_resolution_clock::now();
-                std::cout << "RTT: " << duration_cast<microseconds>( end - t_start).count() << std::endl;
-#endif
-                break;
-            } else {
-                if (to == 8ms) {
-                    shutdown_zmq_link_();
-                }
-            }
-        }
-    }
-
-    void FlexprobeEncryptionProcessing::pre_export(Flow& rec)
-    {
+        using namespace mlpack;
         // compile tracked features into a sample
         auto encr_data = dynamic_cast<FlexprobeEncryptionData*>(rec.get_extension(FlexprobeEncryptionData::REGISTERED_ID));
         if (!encr_data) {
             return;
         }
-        FlexprobeClassificationSample smp(*encr_data);
-        smp.packets_fwd = rec.src_packets;
+#ifdef TIMEIT
+        auto t_start = high_resolution_clock::now();
+#endif
+//        FlexprobeClassificationSample smp(*encr_data);
 
+        arma::vec sample(12);
+        sample.at(0) = encr_data->time_interpacket[0].variance();
+        sample.at(1) = encr_data->mpe_8bit[0].maximum();
+        sample.at(2) = encr_data->mpe_4bit[0].mean();
+        sample.at(3) = encr_data->mpe_4bit[0].deviation();
+        sample.at(4) = encr_data->mpe_4bit[0].minimum();
+        sample.at(5) = encr_data->mpe_4bit[0].maximum();
+        sample.at(6) = encr_data->payload_size[0].mean();
+        sample.at(7) = encr_data->payload_size[0].variance();
+        sample.at(8) = encr_data->payload_size[0].minimum();
+        sample.at(9) = encr_data->payload_size[0].maximum();
+        sample.at(10) = static_cast<float>(rec.src_packets);
+        sample.at(11) = encr_data->mpe_4bit[1].minimum();
+#ifdef TIMEIT
+        auto t_end = high_resolution_clock::now();
+        std::cout << "Sample preparation: " << duration_cast<nanoseconds>(t_end - t_start).count() << std::endl;
+#endif
         // heuristic checking for TLS presence
         auto tls = dynamic_cast<RecordExtTLS*>(rec.get_extension(RecordExtTLS::REGISTERED_ID));
         if (tls != nullptr && tls->version != 0) {
             encr_data->classification_result = true;
         } else {
-            if (open_zmq_link_()) {
-                send_and_classify_(smp, encr_data);
-            }
+#ifdef TIMEIT
+            t_start = high_resolution_clock::now();
+#endif
+            arma::vec proba;
+            arma::Row<size_t> result;
+            clf_.Classify(sample, result, proba);
+#ifndef NDEBUG
+                    std::cout << std::boolalpha
+                              << result.at(0)
+                              << " "
+                              << bool(result.at(0))
+                              << " "
+                              << static_cast<unsigned>(proba.max() * 100)
+                              << std::endl;
+#endif
+#ifdef TIMEIT
+            t_end = high_resolution_clock::now();
+            std::cout << "Classification: " << duration_cast<nanoseconds>(t_end - t_start).count() << std::endl;
+#endif
+            encr_data->classification_result = result.at(0);
         }
     }
 }
