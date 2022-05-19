@@ -53,21 +53,25 @@
 
 namespace ipxp {
 
-struct FrameSignature : public RecordExt, public std::array<unsigned char, 18> {
+struct FlexprobeData : public RecordExt {
    static int REGISTERED_ID;
+   std::array<unsigned char, 18> frame_signature;
+   std::uint8_t interface_in;
 
-   FrameSignature() : RecordExt(REGISTERED_ID), std::array<unsigned char, 18>()
+   FlexprobeData() : RecordExt(REGISTERED_ID), interface_in(0)
    {
+       frame_signature.fill(0x0);
    }
 
    virtual int fill_ipfix(uint8_t *buffer, int size)
    {
-       if (sizeof(Flexprobe::FrameSignature) > size) {
+       if ((sizeof(frame_signature) + sizeof(interface_in)) > size) {
            return -1;
        }
-       std::copy(begin(), end(), buffer);
+       std::copy(frame_signature.begin(), frame_signature.end(), buffer);
+       *(buffer + sizeof(frame_signature)) = interface_in;
 
-       return sizeof(Flexprobe::FrameSignature);
+       return frame_signature.size() + sizeof(interface_in);
    }
 
    const char **get_ipfix_tmplt() const
@@ -87,7 +91,7 @@ public:
 
     void init(const char *params) {}
     void close() {}
-    RecordExt *get_ext() const { return new FrameSignature(); }
+    RecordExt *get_ext() const { return new FlexprobeData(); }
     OptionsParser *get_parser() const { return new OptionsParser("flexprobe-data", "Parse flexprobe data (Flexprobe HW only)"); }
     std::string get_name() const { return "flexprobe-data"; }
     FlexprobeDataProcessing *copy() override
@@ -101,11 +105,12 @@ public:
             return 0;
         }
 
-        if (!rec.get_extension(FrameSignature::REGISTERED_ID)) {
-            auto *fs = new FrameSignature();
+        if (!rec.get_extension(FlexprobeData::REGISTERED_ID)) {
+            auto *fd = new FlexprobeData();
             auto data_view = reinterpret_cast<const Flexprobe::FlexprobeData*>(pkt.custom);
-            std::copy(data_view->frame_signature.begin(), data_view->frame_signature.end(), fs->begin());
-            rec.add_extension(fs);
+            std::copy(data_view->frame_signature.begin(), data_view->frame_signature.end(), fd->frame_signature.begin());
+            fd->interface_in = data_view->interface_in;
+            rec.add_extension(fd);
         }
         return 0;
     }
