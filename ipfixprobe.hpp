@@ -72,7 +72,6 @@ extern const uint32_t DEFAULT_FPS;
 
 // global termination variable
 extern volatile sig_atomic_t terminate_export;
-extern volatile sig_atomic_t terminate_storage;
 extern volatile sig_atomic_t terminate_input;
 
 class IpfixprobeOptParser;
@@ -212,7 +211,6 @@ struct ipxp_conf_t {
    std::vector<std::atomic<OutputStats> *> output_stats;
 
    std::vector<std::shared_future<WorkerResult>> input_fut;
-   std::vector<std::future<WorkerResult>> storage_fut;
    std::vector<std::future<WorkerResult>> output_fut;  
 
    size_t pkt_bufsize;
@@ -243,15 +241,8 @@ struct ipxp_conf_t {
          delete it.input.promise;
       }
 
-      terminate_storage = 1;
       for (auto &it : pipelines) {
-         if (it.storage.thread->joinable()) {
-            it.storage.thread->join();
-         }
          delete it.storage.plugin;
-         delete it.storage.thread;
-         delete it.storage.promise;
-         ipx_ring_destroy(it.queue);
       }
 
       for (auto &it : pipelines) {

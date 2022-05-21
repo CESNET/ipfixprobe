@@ -70,7 +70,6 @@ namespace ipxp {
 volatile sig_atomic_t stop = 0;
 
 volatile sig_atomic_t terminate_export = 0;
-volatile sig_atomic_t terminate_storage = 0;
 volatile sig_atomic_t terminate_input = 0;
 
 const uint32_t DEFAULT_IQUEUE_SIZE = 64;
@@ -350,15 +349,8 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
          storage_process_plugins.push_back(tmp);
       }
 
-      ipx_ring_t *input_queue = ipx_ring_init(conf.iqueue_size, 0);
-      if (input_queue == nullptr) {
-         throw IPXPError("unable to initialize ring buffer");
-      }
-
       std::promise<WorkerResult> *input_res = new std::promise<WorkerResult>();
-      std::promise<WorkerResult> *storage_res = new std::promise<WorkerResult>();
       conf.input_fut.push_back(input_res->get_future());
-      conf.storage_fut.push_back(storage_res->get_future());
 
       auto input_stats = new std::atomic<InputStats>();
       conf.input_stats.push_back(input_stats);
@@ -366,18 +358,15 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       WorkPipeline tmp = {
               {
                       input_plugin,
-                      new std::thread(input_worker, input_plugin, &conf.blocks[pipeline_idx * (conf.iqueue_size + 1)],
-                                      conf.iqueue_size + 1, conf.max_pkts, input_queue, input_res, input_stats),
+                      new std::thread(input_storage_worker, input_plugin, storage_plugin, &conf.blocks[pipeline_idx * (conf.iqueue_size + 1)],
+                                      conf.iqueue_size + 1, conf.max_pkts, input_res, input_stats),
                       input_res,
                       input_stats
               },
               {
                       storage_plugin,
-                      new std::thread(storage_worker, storage_plugin, input_queue, storage_res),
-                      storage_res,
                       storage_process_plugins
-              },
-              input_queue
+              }
       };
       conf.pipelines.push_back(tmp);
       pipeline_idx++;
@@ -398,9 +387,7 @@ void finish(ipxp_conf_t &conf)
    }
 
    // Terminate all storages
-   terminate_storage = 1;
    for (auto &it : conf.pipelines) {
-      it.storage.thread->join();
       for (auto &itp : it.storage.plugins) {
          itp->close();
       }
@@ -442,29 +429,6 @@ void finish(ipxp_conf_t &conf)
          std::setw(9) << stats.dropped << " " <<
          std::setw(9) << stats.qtime << " " <<
          std::setw(6) << status << std::endl;
-   }
-
-   std::ostringstream oss;
-   oss << "Storage stats:" << std::endl <<
-      std::setw(3) << "#" <<
-      std::setw(7) << "status" << std::endl;
-
-   idx = 0;
-   bool storage_ok = true;
-   for (auto &it : conf.storage_fut) {
-      WorkerResult res = it.get();
-      std::string status = "ok";
-      if (res.error) {
-         ok = false;
-         storage_ok = false;
-         status = res.msg;
-      }
-      oss <<
-         std::setw(3) << idx++ << " " <<
-         std::setw(6) << status << std::endl;
-   }
-   if (!storage_ok) {
-      std::cout << oss.str();
    }
 
    std::cout << "Output stats:" << std::endl <<
@@ -579,13 +543,6 @@ void main_loop(ipxp_conf_t &conf)
                it = futs.erase(it);
                break;
             }
-            stop = 1;
-            break;
-         }
-      }
-      for (auto &it : conf.storage_fut) {
-         std::future_status status = it.wait_for(std::chrono::seconds(0));
-         if (status == std::future_status::ready) {
             stop = 1;
             break;
          }
