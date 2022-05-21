@@ -84,11 +84,11 @@ struct Packet : public Record {
    uint32_t    tcp_seq;
    uint32_t    tcp_ack;
 
-   uint8_t     *packet; /**< Pointer to begin of packet, if available */
+   const uint8_t *packet; /**< Pointer to begin of packet, if available */
    uint16_t    packet_len; /**< Length of data in packet buffer, packet_len <= packet_len_wire */
    uint16_t    packet_len_wire; /**< Original packet length on wire */
 
-   uint8_t     *payload; /**< Pointer to begin of payload, if available */
+   const uint8_t *payload; /**< Pointer to begin of payload, if available */
    uint16_t    payload_len; /**< Length of data in payload buffer, payload_len <= payload_len_wire */
    uint16_t    payload_len_wire; /**< Original payload length computed from headers */
 

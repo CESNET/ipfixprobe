@@ -663,15 +663,10 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
       return;
    }
 
+   pkt->packet = data;
+
    uint16_t pkt_len = caplen;
-   if ((int) pkt_len > pkt->buffer_size - 1) {
-      pkt_len = pkt->buffer_size - 1;
-      DEBUG_MSG("Packet size too long, truncating to %u\n", pkt_len);
-   }
-   pkt->packet = pkt->buffer;
-   memcpy(pkt->packet, data, pkt_len);
-   pkt->packet[pkt_len] = 0;
-   pkt->packet_len = pkt_len;
+   pkt->packet_len = caplen;
 
    if (l4_hdr_offset != l3_hdr_offset) {
       if (l4_hdr_offset + pkt->ip_payload_len < 64) {
