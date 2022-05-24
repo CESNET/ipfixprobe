@@ -287,13 +287,13 @@ bool SMTPPlugin::parse_smtp_command(const char *data, int payload_len, RecordExt
    }
 
    begin = data;
-   end = strchr(begin, '\r');
+   end = (const char *)memchr(begin, '\r', payload_len);
 
    len = end - begin;
    if (end == nullptr) {
       return false;
    }
-   end = strchr(begin, ' ');
+   end = (const char *)memchr(begin, ' ', payload_len);
    if (end != nullptr) {
       len = end - begin;
    }
@@ -307,7 +307,7 @@ bool SMTPPlugin::parse_smtp_command(const char *data, int payload_len, RecordExt
    if (!strcmp(buffer, "HELO") || !strcmp(buffer, "EHLO")) {
       if (rec->domain[0] == 0 && end != nullptr) {
          begin = end;
-         end = strchr(begin, '\r');
+         end = (const char *)memchr(begin, '\r', payload_len - (begin - data));
          if (end != nullptr && begin != NULL) {
             begin++;
             len = end - begin;
@@ -327,8 +327,11 @@ bool SMTPPlugin::parse_smtp_command(const char *data, int payload_len, RecordExt
    } else if (!strcmp(buffer, "RCPT")) {
       rec->mail_rcpt_cnt++;
       if (rec->first_recipient[0] == 0 && end != nullptr) {
-         begin = strchr(end + 1, ':');
-         end = strchr(end, '\r');
+         if (payload_len - ((end + 1) - data) <= 0) {
+            return false;
+         }
+         begin = (const char *)memchr(end + 1, ':', payload_len - ((end + 1) - data));
+         end = (const char *)memchr(end, '\r', payload_len - (end - data));
          if (end != nullptr && begin != NULL) {
             begin++;
             len = end - begin;
@@ -344,8 +347,11 @@ bool SMTPPlugin::parse_smtp_command(const char *data, int payload_len, RecordExt
    } else if (!strcmp(buffer, "MAIL")) {
       rec->mail_cmd_cnt++;
       if (rec->first_sender[0] == 0 && end != nullptr) {
-         begin = strchr(end + 1, ':');
-         end = strchr(end, '\r');
+         if (payload_len - ((end + 1) - data) <= 0) {
+            return false;
+         }
+         begin = (const char *)memchr(end + 1, ':', payload_len - ((end + 1) - data));
+         end = (const char *)memchr(end, '\r', payload_len - (end - data));
          if (end != nullptr && begin != NULL) {
             begin++;
             len = end - begin;

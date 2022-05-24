@@ -247,14 +247,18 @@ bool HTTPPlugin::parse_http_request(const char *data, int payload_len, RecordExt
     */
 
    /* Find begin of URI. */
-   begin = strchr(data, ' ');
+   begin = (const char *) memchr(data, ' ', payload_len);
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tnot a http request header\n");
       return false;
    }
 
    /* Find end of URI. */
-   end = strchr(begin + 1, ' ');
+   if (payload_len - ((begin + 1) - data) <= 0) {
+      DEBUG_MSG("Parser quits:\tpayload end\n");
+      return false;
+   }
+   end = (const char *) memchr(begin + 1, ' ', payload_len - ((begin + 1) - data));
    if (end == nullptr) {
       DEBUG_MSG("Parser quits:\trequest is fragmented\n");
       return false;
@@ -303,7 +307,7 @@ bool HTTPPlugin::parse_http_request(const char *data, int payload_len, RecordExt
    /* Process headers. */
    while (begin - data < payload_len) {
       end = strstr(begin, HTTP_LINE_DELIMITER);
-      keyval_delimiter = strchr(begin, HTTP_KEYVAL_DELIMITER);
+      keyval_delimiter = (const char *) memchr(begin, HTTP_KEYVAL_DELIMITER, payload_len - (begin - data));
 
       if (end == nullptr) {
          DEBUG_MSG("Parser quits:\theader is fragmented\n");
@@ -385,14 +389,18 @@ bool HTTPPlugin::parse_http_response(const char *data, int payload_len, RecordEx
     */
 
    /* Find begin of status code. */
-   begin = strchr(data, ' ');
+   begin = (const char *) memchr(data, ' ', payload_len);
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tnot a http response header\n");
       return false;
    }
 
    /* Find end of status code. */
-   end = strchr(begin + 1, ' ');
+   if (payload_len - ((begin + 1) - data) <= 0) {
+      DEBUG_MSG("Parser quits:\tpayload end\n");
+      return false;
+   }
+   end = (const char *) memchr(begin + 1, ' ', payload_len - ((begin + 1) - data));
    if (end == nullptr) {
       DEBUG_MSG("Parser quits:\tresponse is fragmented\n");
       return false;
@@ -436,7 +444,7 @@ bool HTTPPlugin::parse_http_response(const char *data, int payload_len, RecordEx
    /* Process headers. */
    while (begin - data < payload_len) {
       end = strstr(begin, HTTP_LINE_DELIMITER);
-      keyval_delimiter = strchr(begin, HTTP_KEYVAL_DELIMITER);
+      keyval_delimiter = (const char *) memchr(begin, HTTP_KEYVAL_DELIMITER, payload_len - (begin - data));
 
       if (end == nullptr) {
          DEBUG_MSG("Parser quits:\theader is fragmented\n");

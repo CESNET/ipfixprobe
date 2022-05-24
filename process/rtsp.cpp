@@ -226,14 +226,18 @@ bool RTSPPlugin::parse_rtsp_request(const char *data, int payload_len, RecordExt
     */
 
    /* Find begin of URI. */
-   begin = strchr(data, ' ');
+   begin = (const char *) memchr(data, ' ', payload_len);
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tnot a rtsp request header\n");
       return false;
    }
 
    /* Find end of URI. */
-   end = strchr(begin + 1, ' ');
+   if (payload_len - ((begin + 1) - data) <= 0) {
+      DEBUG_MSG("Parser quits:\tpayload end\n");
+      return false;
+   }
+   end = (const char *) memchr(begin + 1, ' ', payload_len - ((begin + 1) - data));
    if (end == nullptr) {
       DEBUG_MSG("Parser quits:\trequest is fragmented\n");
       return false;
@@ -260,7 +264,11 @@ bool RTSPPlugin::parse_rtsp_request(const char *data, int payload_len, RecordExt
    DEBUG_MSG("\tURI: %s\n",      rec->uri);
 
    /* Find begin of next line after request line. */
-   begin = strchr(end, RTSP_LINE_DELIMITER);
+   if (payload_len - (end - data) <= 0) {
+      DEBUG_MSG("Parser quits:\tpayload end\n");
+      return false;
+   }
+   begin = (const char *)memchr(end, RTSP_LINE_DELIMITER, payload_len - (end - data));
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tNo line delim after request line\n");
       return false;
@@ -279,8 +287,8 @@ bool RTSPPlugin::parse_rtsp_request(const char *data, int payload_len, RecordExt
    rec->user_agent[0] = 0;
    /* Process headers. */
    while (begin - data < payload_len) {
-      end = strchr(begin, RTSP_LINE_DELIMITER);
-      keyval_delimiter = strchr(begin, RTSP_KEYVAL_DELIMITER);
+      end = (const char *) memchr(begin, RTSP_LINE_DELIMITER, payload_len - (begin - data));
+      keyval_delimiter = (const char *) memchr(begin, RTSP_KEYVAL_DELIMITER, payload_len - (begin - data));
 
       int tmp = end - begin;
       if (tmp == 0 || tmp == 1) { /* Check for blank line with \r\n or \n ending. */
@@ -354,14 +362,18 @@ bool RTSPPlugin::parse_rtsp_response(const char *data, int payload_len, RecordEx
     */
 
    /* Find begin of status code. */
-   begin = strchr(data, ' ');
+   begin = (const char *)memchr(data, ' ', payload_len);
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tnot a rtsp response header\n");
       return false;
    }
 
    /* Find end of status code. */
-   end = strchr(begin + 1, ' ');
+   if (payload_len - ((begin + 1) - data) <= 0) {
+      DEBUG_MSG("Parser quits:\tpayload end\n");
+      return false;
+   }
+   end = (const char *)memchr(begin + 1, ' ', payload_len - ((begin + 1) - data));
    if (end == nullptr) {
       DEBUG_MSG("Parser quits:\tresponse is fragmented\n");
       return false;
@@ -385,7 +397,11 @@ bool RTSPPlugin::parse_rtsp_response(const char *data, int payload_len, RecordEx
    rec->code = code;
 
    /* Find begin of next line after request line. */
-   begin = strchr(end, RTSP_LINE_DELIMITER);
+   if (payload_len - ((end) - data) <= 0) {
+      DEBUG_MSG("Parser quits:\tpayload end\n");
+      return false;
+   }
+   begin = (const char *)memchr(end, RTSP_LINE_DELIMITER, payload_len - (end - data));
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tNo line delim after request line\n");
       return false;
@@ -404,8 +420,8 @@ bool RTSPPlugin::parse_rtsp_response(const char *data, int payload_len, RecordEx
    rec->content_type[0] = 0;
    /* Process headers. */
    while (begin - data < payload_len) {
-      end = strchr(begin, RTSP_LINE_DELIMITER);
-      keyval_delimiter = strchr(begin, RTSP_KEYVAL_DELIMITER);
+      end = (const char *)memchr(begin, RTSP_LINE_DELIMITER, payload_len - (begin - data));
+      keyval_delimiter = (const char *)memchr(begin, RTSP_KEYVAL_DELIMITER, payload_len - (begin - data));
 
       int tmp = end - begin;
       if (tmp == 0 || tmp == 1) { /* Check for blank line with \r\n or \n ending. */
