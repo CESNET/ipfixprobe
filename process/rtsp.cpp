@@ -268,7 +268,7 @@ bool RTSPPlugin::parse_rtsp_request(const char *data, int payload_len, RecordExt
       DEBUG_MSG("Parser quits:\tpayload end\n");
       return false;
    }
-   begin = (const char *)memchr(end, RTSP_LINE_DELIMITER, payload_len - (end - data));
+   begin = (const char *) memchr(end, RTSP_LINE_DELIMITER, payload_len - (end - data));
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tNo line delim after request line\n");
       return false;
@@ -362,7 +362,7 @@ bool RTSPPlugin::parse_rtsp_response(const char *data, int payload_len, RecordEx
     */
 
    /* Find begin of status code. */
-   begin = (const char *)memchr(data, ' ', payload_len);
+   begin = (const char *) memchr(data, ' ', payload_len);
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tnot a rtsp response header\n");
       return false;
@@ -373,7 +373,7 @@ bool RTSPPlugin::parse_rtsp_response(const char *data, int payload_len, RecordEx
       DEBUG_MSG("Parser quits:\tpayload end\n");
       return false;
    }
-   end = (const char *)memchr(begin + 1, ' ', payload_len - ((begin + 1) - data));
+   end = (const char *) memchr(begin + 1, ' ', payload_len - ((begin + 1) - data));
    if (end == nullptr) {
       DEBUG_MSG("Parser quits:\tresponse is fragmented\n");
       return false;
@@ -401,7 +401,7 @@ bool RTSPPlugin::parse_rtsp_response(const char *data, int payload_len, RecordEx
       DEBUG_MSG("Parser quits:\tpayload end\n");
       return false;
    }
-   begin = (const char *)memchr(end, RTSP_LINE_DELIMITER, payload_len - (end - data));
+   begin = (const char *) memchr(end, RTSP_LINE_DELIMITER, payload_len - (end - data));
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tNo line delim after request line\n");
       return false;
@@ -420,8 +420,8 @@ bool RTSPPlugin::parse_rtsp_response(const char *data, int payload_len, RecordEx
    rec->content_type[0] = 0;
    /* Process headers. */
    while (begin - data < payload_len) {
-      end = (const char *)memchr(begin, RTSP_LINE_DELIMITER, payload_len - (begin - data));
-      keyval_delimiter = (const char *)memchr(begin, RTSP_KEYVAL_DELIMITER, payload_len - (begin - data));
+      end = (const char *) memchr(begin, RTSP_LINE_DELIMITER, payload_len - (begin - data));
+      keyval_delimiter = (const char *) memchr(begin, RTSP_KEYVAL_DELIMITER, payload_len - (begin - data));
 
       int tmp = end - begin;
       if (tmp == 0 || tmp == 1) { /* Check for blank line with \r\n or \n ending. */

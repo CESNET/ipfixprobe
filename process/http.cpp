@@ -51,6 +51,7 @@
 #endif
 
 #include "http.hpp"
+#include "common.hpp"
 
 namespace ipxp {
 
@@ -285,7 +286,11 @@ bool HTTPPlugin::parse_http_request(const char *data, int payload_len, RecordExt
    DEBUG_MSG("\tURI: %s\n",      rec->uri);
 
    /* Find begin of next line after request line. */
-   begin = strstr(end, HTTP_LINE_DELIMITER);
+   if (payload_len - (end - data) <= 0) {
+      DEBUG_MSG("Parser quits:\tpayload end\n");
+      return false;
+   }
+   begin = ipx_strnstr(end, HTTP_LINE_DELIMITER, payload_len - (end - data));
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tNo line delim after request line\n");
       return false;
@@ -306,7 +311,7 @@ bool HTTPPlugin::parse_http_request(const char *data, int payload_len, RecordExt
    rec->referer[0] = 0;
    /* Process headers. */
    while (begin - data < payload_len) {
-      end = strstr(begin, HTTP_LINE_DELIMITER);
+      end = ipx_strnstr(begin, HTTP_LINE_DELIMITER, payload_len - (begin - data));
       keyval_delimiter = (const char *) memchr(begin, HTTP_KEYVAL_DELIMITER, payload_len - (begin - data));
 
       if (end == nullptr) {
@@ -424,7 +429,11 @@ bool HTTPPlugin::parse_http_response(const char *data, int payload_len, RecordEx
    rec->code = code;
 
    /* Find begin of next line after request line. */
-   begin = strstr(end, HTTP_LINE_DELIMITER);
+   if (payload_len - (end - data) <= 0) {
+      DEBUG_MSG("Parser quits:\tpayload end\n");
+      return false;
+   }
+   begin = ipx_strnstr(end, HTTP_LINE_DELIMITER, payload_len - (end - data));
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tNo line delim after request line\n");
       return false;
@@ -443,7 +452,7 @@ bool HTTPPlugin::parse_http_response(const char *data, int payload_len, RecordEx
    rec->content_type[0] = 0;
    /* Process headers. */
    while (begin - data < payload_len) {
-      end = strstr(begin, HTTP_LINE_DELIMITER);
+      end = ipx_strnstr(begin, HTTP_LINE_DELIMITER, payload_len - (begin - data));
       keyval_delimiter = (const char *) memchr(begin, HTTP_KEYVAL_DELIMITER, payload_len - (begin - data));
 
       if (end == nullptr) {

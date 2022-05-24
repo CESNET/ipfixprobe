@@ -189,14 +189,16 @@ bool SSDPPlugin::get_header_val(char **data, const char *header, const int len)
  * \brief Parses SSDP payload based on configuration in conf struct.
  *
  * \param [in] data Pointer to pointer to SSDP data.
+ * \param [in] payload_len Lenght of payload data
  * \param [in] conf Struct containing parser configuration.
  */
-void SSDPPlugin::parse_headers(char *data, header_parser_conf conf)
+void SSDPPlugin::parse_headers(char *data, size_t payload_len, header_parser_conf conf)
 {
    char *ptr = data;
    char *old_ptr = ptr;
+   size_t len = 0;
 
-   while (*ptr != '\0') {
+   while (*ptr != '\0' && len <= payload_len) {
       if (*ptr == '\n' && *(ptr - 1) == '\r') {
          *(ptr - 1) = '\0';
          for (unsigned j = 0, i = 0; j < conf.select_cnt; j++) {
@@ -242,6 +244,7 @@ void SSDPPlugin::parse_headers(char *data, header_parser_conf conf)
          old_ptr = ptr + 1;
       }
       ptr++;
+      len++;
    }
    return;
 }
@@ -282,6 +285,7 @@ void SSDPPlugin::parse_ssdp_message(Flow &rec, const Packet &pkt)
       static_cast<RecordExtSSDP *>(rec.get_extension(RecordExtSSDP::REGISTERED_ID))
    };
    char *data = (char *) pkt.payload;
+   size_t payload_len = pkt.payload_len;
 
    total++;
    if (data[0] == 'N') {
@@ -290,14 +294,14 @@ void SSDPPlugin::parse_ssdp_message(Flow &rec, const Packet &pkt)
       int notify_headers[] = { NT, LOCATION, SERVER };
       parse_conf.select = notify_headers;
       parse_conf.select_cnt = sizeof(notify_headers) / sizeof(notify_headers[0]);
-      parse_headers(data, parse_conf);
+      parse_headers(data, payload_len, parse_conf);
    } else if (data[0] == 'M') {
       searches++;
       SSDP_DEBUG_MSG("M-search #%d\n", searches);
       int search_headers[] = { ST, USER_AGENT };
       parse_conf.select = search_headers;
       parse_conf.select_cnt = sizeof(search_headers) / sizeof(search_headers[0]);
-      parse_headers(data, parse_conf);
+      parse_headers(data, payload_len, parse_conf);
    }
    SSDP_DEBUG_MSG("\n");
 }
