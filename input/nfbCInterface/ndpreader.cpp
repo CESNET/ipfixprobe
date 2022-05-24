@@ -29,6 +29,11 @@ NdpReader::~NdpReader()
    this->close();
 }
 
+uint16_t NdpReader::get_packet_buffsize() noexcept
+{
+   return packet_bufferSize;
+}
+
 /**
  * \brief Initialize network interface for reading.
  * \param [in] interface Interface name.

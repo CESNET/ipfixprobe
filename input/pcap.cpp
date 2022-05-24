@@ -53,6 +53,9 @@
 
 namespace ipxp {
 
+// Read only 1 packet into packet block
+constexpr size_t PCAP_PACKET_BLOCK_SIZE = 1;
+
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("pcap", [](){return new PcapReader();});
@@ -257,7 +260,7 @@ InputPlugin::Result PcapReader::get(PacketBlock &packets)
    }
 
    packets.cnt = 0;
-   ret = pcap_dispatch(m_handle, packets.size, packet_handler, (u_char *) (&opt));
+   ret = pcap_dispatch(m_handle, PCAP_PACKET_BLOCK_SIZE, packet_handler, (u_char *) (&opt));
    if (m_live) {
       if (ret == 0) {
          return Result::TIMEOUT;

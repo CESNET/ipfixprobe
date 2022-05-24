@@ -108,9 +108,15 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
    struct ndp_packet *ndp_packet;
    struct ndp_header *ndp_header;
    size_t read_pkts = 0;
+   bool checked_packet_size = false;
    int ret = -1;
 
    packets.cnt = 0;
+   if (!checked_packet_size && packet.size > ndpReader.get_packet_buffsize()) {
+      checked_packet_size = true;
+      packet_bufferSize = ndpReader.get_packet_buffsize();
+   }
+
    for (unsigned i = 0; i < packets.size; i++) {
       ret = ndpReader.get_pkt(&ndp_packet, &ndp_header);
       if (ret == 0) {
