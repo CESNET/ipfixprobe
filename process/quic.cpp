@@ -41,10 +41,45 @@
  *
  */
 
+
+
+
+// known versions
+/*
+0x00000000 -- version negotiation
+0x00000001 -- newest , rfc 9000
+0xff0000xx -- drafts (IETF)
+0x709a50c4 -- quic version 2 -- newest draft (IETF)
+0xff020000 -- quic version 2 draft 00
+
+
+Google
+0x51303433 -- Q043 -- no evidence -- based on google doc , this should not be encrypted
+0x51303434 -- Q044 -- no evidence
+0x51303436 -- Q046 -- wireshark cant parse -- based on google doc , this should not be encrypted
+0x51303530 -- Q050 -- looks like no TLS inside crypto 
+
+0x54303530 -- T050
+0x54303531 -- T051
+
+
+MVFST
+0xfaceb001 -- should be draft 22
+0xfaceb002 -- should be draft 27
+0xfaceb003 -- ?
+0xfaceb00e -- experimental
+0xfaceb010 -- mvfst alias 
+0xfaceb00f -- MVFST_INVALID
+0xfaceb011 -- MVFST_EXPERIMENTAL2
+0xfaceb013 -- MVFST_EXPERIMENTAL3
+*/
+
+
 #include <iostream>
 #include <cstring>
 #include <sstream>
 #include <endian.h>
+
 
 #include <openssl/kdf.h>
 #include <openssl/evp.h>
@@ -57,6 +92,8 @@
 
 #include "quic.hpp"
 
+
+int counter  = 0;
 
 namespace ipxp {
 
@@ -71,7 +108,6 @@ __attribute__((constructor)) static void register_this_plugin()
 
 
 // Print debug message if debugging is allowed.
-
 
 #ifdef  DEBUG_QUIC
 # define DEBUG_MSG(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
@@ -115,7 +151,7 @@ QUICPlugin::QUICPlugin()
    quic_ptr = nullptr;
 
 
-   google_QUIC = false;
+   ietf_quic = false;
 }
 
 QUICPlugin::~QUICPlugin()
@@ -502,25 +538,28 @@ bool QUICPlugin::quic_derive_secrets(uint8_t *secret)
 
 uint8_t QUICPlugin::quic_draft_version(uint32_t version)
 {
+
+   // this is IETF implementation, older version used
    if ((version >> 8) == 0xff0000) {
       return (uint8_t) version;
    }
-
    switch (version) {
+   // older mvfst version, but still used, based on draft 22, but salt 21 used
    case (0xfaceb001):
       return 22;
+   // more used atm, salt 23 used
    case 0xfaceb002:
    case 0xfaceb00e:
-   case 0x51303530:
-   case 0x54303530:
-   case 0x54303531:
       return 27;
    case (0x0a0a0a0a & 0x0F0F0F0F):
       return 29;
-   case 0x00000001:
-      return 33;
+   // version 2 draft 00
+   // newest
+   case 0xff020000:
+   case 0x709a50c4:
+      return 100;
    default:
-      return 0;
+      return 255;
    }
 }
 
@@ -538,23 +577,51 @@ bool QUICPlugin::quic_create_initial_secrets(CommSide side,RecordExtQUIC * rec)
    version = ntohl(version);
    rec->quic_version = version;
 
-   static const uint8_t handshake_salt_draft_22[SALT_LENGTH] = {
+   // this salt is used to draft 7-9
+   static const uint8_t handshake_salt_draft_7[SALT_LENGTH] = {
+      0xaf, 0xc8, 0x24, 0xec, 0x5f, 0xc7, 0x7e, 0xca, 0x1e, 0x9d,
+      0x36, 0xf3, 0x7f, 0xb2, 0xd4, 0x65, 0x18, 0xc3, 0x66, 0x39
+   };
+   // this salt is used to draft 10-16
+   static const uint8_t handshake_salt_draft_10[SALT_LENGTH] = {
+      0x9c, 0x10, 0x8f, 0x98, 0x52, 0x0a, 0x5c, 0x5c, 0x32, 0x96,
+      0x8e, 0x95, 0x0e, 0x8a, 0x2c, 0x5f, 0xe0, 0x6d, 0x6c, 0x38
+   };
+   // this salt is used to draft 17-20
+   static const uint8_t handshake_salt_draft_17[SALT_LENGTH] = {
+      0xef, 0x4f, 0xb0, 0xab, 0xb4, 0x74, 0x70, 0xc4, 0x1b, 0xef,
+      0xcf, 0x80, 0x31, 0x33, 0x4f, 0xae, 0x48, 0x5e, 0x09, 0xa0
+   };
+   // this salt is used to draft 21-22
+      static const uint8_t handshake_salt_draft_21[SALT_LENGTH] = {
       0x7f, 0xbc, 0xdb, 0x0e, 0x7c, 0x66, 0xbb, 0xe9, 0x19, 0x3a,
       0x96, 0xcd, 0x21, 0x51, 0x9e, 0xbd, 0x7a, 0x02, 0x64, 0x4a
    };
+   // this salt is used to draft 23-28 
    static const uint8_t handshake_salt_draft_23[SALT_LENGTH] = {
       0xc3, 0xee, 0xf7, 0x12, 0xc7, 0x2e, 0xbb, 0x5a, 0x11, 0xa7,
       0xd2, 0x43, 0x2b, 0xb4, 0x63, 0x65, 0xbe, 0xf9, 0xf5, 0x02,
    };
+   // this salt is used to draft 29-32
    static const uint8_t handshake_salt_draft_29[SALT_LENGTH] = {
       0xaf, 0xbf, 0xec, 0x28, 0x99, 0x93, 0xd2, 0x4c, 0x9e, 0x97,
       0x86, 0xf1, 0x9c, 0x61, 0x11, 0xe0, 0x43, 0x90, 0xa8, 0x99
    };
+   // newest 33 -
    static const uint8_t handshake_salt_v1[SALT_LENGTH] = {
       0x38, 0x76, 0x2c, 0xf7, 0xf5, 0x59, 0x34, 0xb3, 0x4d, 0x17,
       0x9a, 0xe6, 0xa4, 0xc8, 0x0c, 0xad, 0xcc, 0xbb, 0x7f, 0x0a
    };
-   static const uint8_t hanshake_salt_draft_q50[SALT_LENGTH] = {
+
+   static const uint8_t handshake_salt_v2[SALT_LENGTH] = {
+      0xa7, 0x07, 0xc2, 0x03, 0xa5, 0x9b, 0x47, 0x18, 0x4a, 0x1d,
+      0x62, 0xca, 0x57, 0x04, 0x06, 0xea, 0x7a, 0xe3, 0xe5, 0xd3
+   };
+
+
+
+   // google salts
+   /*static const uint8_t hanshake_salt_draft_q50[SALT_LENGTH] = {
       0x50, 0x45, 0x74, 0xEF, 0xD0, 0x66, 0xFE, 0x2F, 0x9D, 0x94,
       0x5C, 0xFC, 0xDB, 0xD3, 0xA7, 0xF0, 0xD3, 0xB5, 0x6B, 0x45
    };
@@ -565,36 +632,46 @@ bool QUICPlugin::quic_create_initial_secrets(CommSide side,RecordExtQUIC * rec)
    static const uint8_t hanshake_salt_draft_t51[SALT_LENGTH] = {
       0x7a, 0x4e, 0xde, 0xf4, 0xe7, 0xcc, 0xee, 0x5f, 0xa4, 0x50,
       0x6c, 0x19, 0x12, 0x4f, 0xc8, 0xcc, 0xda, 0x6e, 0x03, 0x3d
-   };
+   };*/
 
 
    const uint8_t *salt;
 
 
    // these three are Google QUIC version
-   if (version == 0x51303530) {
-      salt = hanshake_salt_draft_q50;
-      google_QUIC = true;
-   } else if (version == 0x54303530) {
-      salt = hanshake_salt_draft_t50;
-      google_QUIC = true;
-   } else if (version == 0x54303531) {
-      salt = hanshake_salt_draft_t51;
-      google_QUIC = true;
+
+   // we do not parse gQUIC
+   if (version == 0x00000000) {
+      DEBUG_MSG("Error, version negotiation\n");
+      return false;
+   } else if (version == 0x00000001){
+      salt = handshake_salt_v1;
+      ietf_quic = true;
+   } else if (quic_check_version(version, 9)) {
+      salt = handshake_salt_draft_7;
+      ietf_quic = true;
+   } else if (quic_check_version(version, 16)) {
+      salt = handshake_salt_draft_10;
+      ietf_quic = true;
+   } else if (quic_check_version(version, 20)) {
+      salt = handshake_salt_draft_17;
+      ietf_quic = true;
    } else if (quic_check_version(version, 22)) {
-      salt = handshake_salt_draft_22;
-      google_QUIC = false;
+      salt = handshake_salt_draft_21;
+      ietf_quic = true;
    } else if (quic_check_version(version, 28)) {
       salt = handshake_salt_draft_23;
-      google_QUIC = false;
+      ietf_quic = true;
    } else if (quic_check_version(version, 32)) {
       salt = handshake_salt_draft_29;
-      google_QUIC = false;
+      ietf_quic = true;
+   } else if (quic_check_version(version, 100)) {
+      salt = handshake_salt_v2;
+      ietf_quic = true;
    } else {
-      salt = handshake_salt_v1;
-      google_QUIC = false;
+      DEBUG_MSG("Error, version not supported\n");
+      return false;
    }
-
 
    uint8_t extracted_secret[HASH_SHA2_256_LENGTH] = { 0 };
    uint8_t expanded_secret[HASH_SHA2_256_LENGTH]  = { 0 };
@@ -790,8 +867,11 @@ bool QUICPlugin::quic_decrypt_header()
 
 
    // after de-obfuscating pkn, we know exactly pkn length so we can correctly adjust start of payload
+   DEBUG_MSG("PPKN LEN %d\n",pkn_len);
    payload     = payload + pkn_len;
    payload_len = payload_len - pkn_len;
+
+   DEBUG_MSG("PAYLOAD LEN %d\n",payload_len);
 
    // SET HEADER LENGTH, if header length is set incorrectly AEAD will calculate wrong tag, so decryption will fail
    header_len = payload - header;
@@ -937,14 +1017,74 @@ bool QUICPlugin::quic_assemble()
          }
       // https://www.rfc-editor.org/rfc/rfc9000.html#name-frames-and-frame-types
       // only those frames can occure in initial packets
+      } else if (*(decrypted_payload + offset) == ACK1)
+      {
+         // https://www.rfc-editor.org/rfc/rfc9000.html#name-ack-frames
+         //skip type
+         offset++;
+         uint64_t quic_largest_acknowledged = quic_get_variable_length(decrypted_payload,offset);
+         uint64_t quic_ack_delay = quic_get_variable_length(decrypted_payload,offset);
+         uint64_t quic_ack_range_count = quic_get_variable_length(decrypted_payload,offset);
+         uint64_t quic_first_ack_range = quic_get_variable_length(decrypted_payload,offset);
+
+         
+         uint64_t quic_gap;
+         uint64_t quic_ack_range_length;
+         
+         for (uint x = 0 ; x < quic_ack_range_count;x++)
+         {
+            quic_gap = quic_get_variable_length(decrypted_payload,offset);
+            quic_ack_range_length = quic_get_variable_length(decrypted_payload,offset);
+         }
+
+      } else if (*(decrypted_payload + offset) == ACK2)
+      {
+         // https://www.rfc-editor.org/rfc/rfc9000.html#name-ack-frames
+         //skip type
+         offset++;
+         uint64_t quic_largest_acknowledged = quic_get_variable_length(decrypted_payload,offset);
+         uint64_t quic_ack_delay = quic_get_variable_length(decrypted_payload,offset);
+         uint64_t quic_ack_range_count = quic_get_variable_length(decrypted_payload,offset);
+         uint64_t quic_first_ack_range = quic_get_variable_length(decrypted_payload,offset);
+
+         
+         uint64_t quic_gap;
+         uint64_t quic_ack_range_length;
+         
+         for (uint x = 0 ; x < quic_ack_range_count;x++)
+         {
+            quic_gap = quic_get_variable_length(decrypted_payload,offset);
+            quic_ack_range_length = quic_get_variable_length(decrypted_payload,offset);
+         }
+
+         uint64_t ect0 = quic_get_variable_length(decrypted_payload,offset);
+         uint64_t ect1 = quic_get_variable_length(decrypted_payload,offset);
+         uint64_t ecn_ce = quic_get_variable_length(decrypted_payload,offset);
+
+         
+      } else if (*(decrypted_payload + offset) == CONNECTION_CLOSE1)
+      {
+         //skip type
+         offset++;
+
+         uint64_t error_code = quic_get_variable_length(decrypted_payload,offset);
+         uint64_t frame_type = quic_get_variable_length(decrypted_payload,offset);
+         uint64_t reason_phrase_length = quic_get_variable_length(decrypted_payload,offset);
+         offset+= reason_phrase_length;
+
+      } else if (*(decrypted_payload + offset) == CONNECTION_CLOSE2)
+      {
+         //skip type
+         offset++;
+         uint64_t error_code = quic_get_variable_length(decrypted_payload,offset);
+         uint64_t reason_phrase_length = quic_get_variable_length(decrypted_payload,offset);
+         offset+= reason_phrase_length;
+
       } else if (*(decrypted_payload + offset) == PADDING 
-                 || *(decrypted_payload + offset) == PING 
-                 || *(decrypted_payload + offset) == ACK1 
-                 || *(decrypted_payload + offset) == ACK2 
-                 || *(decrypted_payload + offset) == CONNECTION_CLOSE)
+                 || *(decrypted_payload + offset) == PING)
       {
          offset++;
-      } else{
+      }else{
          DEBUG_MSG("Wrong Frame type read during frames assemble\n");
          return false;
       }
@@ -1073,9 +1213,19 @@ bool QUICPlugin::quic_check_initial(uint8_t packet0)
    return (packet0 & 0xB0) == 0x80;
 }
 
+
 bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
 {
    
+
+   DEBUG_MSG("COUNTER %d\n",counter++);
+   DEBUG_MSG("FIRST %02x\n",pkt.payload[0] & 0xB0);
+   DEBUG_MSG("FIRSTTT  %02x\n",pkt.payload[0]);
+
+
+   memset(decrypted_payload,0,1500);
+   memset(assembled_payload,0,1500);
+
    // check if packet contains LONG HEADER and is of type INITIAL
    if (pkt.ip_proto != 17 || !quic_check_initial(pkt.payload[0])) {
       DEBUG_MSG("Packet is not Initial or does not contains LONG HEADER\n");
@@ -1102,12 +1252,12 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
          DEBUG_MSG("Error, payload decryption failed (client side)\n");
          return false;
       }
-      if (!google_QUIC && !quic_assemble())
+      if (ietf_quic && !quic_assemble())
       {
          DEBUG_MSG("Error, reassembling of crypto frames failed (client side)\n");
          return false;
       }
-      if (!google_QUIC && !parse_tls(quic_data))
+      if (ietf_quic && !parse_tls(quic_data))
       {
          DEBUG_MSG("SNI and User Agent Extraction failed\n");
          return false;
@@ -1128,12 +1278,12 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
          DEBUG_MSG("Error, payload decryption failed (server side)\n");
          return false;
       }
-      if (!google_QUIC && !quic_assemble())
+      if (ietf_quic && !quic_assemble())
       {
          DEBUG_MSG("Error, reassembling of crypto frames failed (server side)\n");
          return false;
       }
-      if (!google_QUIC && !parse_tls(quic_data))
+      if (ietf_quic && !parse_tls(quic_data))
       {
          DEBUG_MSG("SNI and User Agent Extraction failed\n");
          return false;
@@ -1147,7 +1297,7 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
 } // QUICPlugin::process_quic
 
 int QUICPlugin::pre_create(Packet &pkt)
-{
+{  
    return 0;
 }
 

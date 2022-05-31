@@ -104,7 +104,8 @@ UR_FIELDS(
 #define PING 0x01
 #define ACK1 0x02
 #define ACK2 0x03
-#define CONNECTION_CLOSE 0x1C
+#define CONNECTION_CLOSE1 0x1C
+#define CONNECTION_CLOSE2 0x1D
 
 
 typedef struct __attribute__ ((packed)) quic_ext {
@@ -307,7 +308,7 @@ private:
    Initial_Secrets initial_secrets;
 
 
-   bool google_QUIC;
+   bool ietf_quic;
 };
 
 }
