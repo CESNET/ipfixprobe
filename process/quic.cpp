@@ -93,7 +93,6 @@ MVFST
 #include "quic.hpp"
 
 
-int counter  = 0;
 
 namespace ipxp {
 
@@ -151,7 +150,7 @@ QUICPlugin::QUICPlugin()
    quic_ptr = nullptr;
 
 
-   ietf_quic = false;
+   can_parse = false;
 }
 
 QUICPlugin::~QUICPlugin()
@@ -554,8 +553,8 @@ uint8_t QUICPlugin::quic_draft_version(uint32_t version)
    case (0x0a0a0a0a & 0x0F0F0F0F):
       return 29;
    // version 2 draft 00
-   // newest
    case 0xff020000:
+   // newest
    case 0x709a50c4:
       return 100;
    default:
@@ -646,28 +645,28 @@ bool QUICPlugin::quic_create_initial_secrets(CommSide side,RecordExtQUIC * rec)
       return false;
    } else if (version == 0x00000001){
       salt = handshake_salt_v1;
-      ietf_quic = true;
+      can_parse = true;
    } else if (quic_check_version(version, 9)) {
       salt = handshake_salt_draft_7;
-      ietf_quic = true;
+      can_parse = true;
    } else if (quic_check_version(version, 16)) {
       salt = handshake_salt_draft_10;
-      ietf_quic = true;
+      can_parse = true;
    } else if (quic_check_version(version, 20)) {
       salt = handshake_salt_draft_17;
-      ietf_quic = true;
+      can_parse = true;
    } else if (quic_check_version(version, 22)) {
       salt = handshake_salt_draft_21;
-      ietf_quic = true;
+      can_parse = true;
    } else if (quic_check_version(version, 28)) {
       salt = handshake_salt_draft_23;
-      ietf_quic = true;
+      can_parse = true;
    } else if (quic_check_version(version, 32)) {
       salt = handshake_salt_draft_29;
-      ietf_quic = true;
+      can_parse = true;
    } else if (quic_check_version(version, 100)) {
       salt = handshake_salt_v2;
-      ietf_quic = true;
+      can_parse = true;
    } else {
       DEBUG_MSG("Error, version not supported\n");
       return false;
@@ -1064,6 +1063,7 @@ bool QUICPlugin::quic_assemble()
          
       } else if (*(decrypted_payload + offset) == CONNECTION_CLOSE1)
       {
+         // https://www.rfc-editor.org/rfc/rfc9000.html#name-connection_close-frames
          //skip type
          offset++;
 
@@ -1074,6 +1074,7 @@ bool QUICPlugin::quic_assemble()
 
       } else if (*(decrypted_payload + offset) == CONNECTION_CLOSE2)
       {
+         // https://www.rfc-editor.org/rfc/rfc9000.html#name-connection_close-frames
          //skip type
          offset++;
          uint64_t error_code = quic_get_variable_length(decrypted_payload,offset);
@@ -1217,12 +1218,6 @@ bool QUICPlugin::quic_check_initial(uint8_t packet0)
 bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
 {
    
-
-   DEBUG_MSG("COUNTER %d\n",counter++);
-   DEBUG_MSG("FIRST %02x\n",pkt.payload[0] & 0xB0);
-   DEBUG_MSG("FIRSTTT  %02x\n",pkt.payload[0]);
-
-
    memset(decrypted_payload,0,1500);
    memset(assembled_payload,0,1500);
 
@@ -1252,12 +1247,12 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
          DEBUG_MSG("Error, payload decryption failed (client side)\n");
          return false;
       }
-      if (ietf_quic && !quic_assemble())
+      if (can_parse && !quic_assemble())
       {
          DEBUG_MSG("Error, reassembling of crypto frames failed (client side)\n");
          return false;
       }
-      if (ietf_quic && !parse_tls(quic_data))
+      if (can_parse && !parse_tls(quic_data))
       {
          DEBUG_MSG("SNI and User Agent Extraction failed\n");
          return false;
@@ -1332,7 +1327,7 @@ void QUICPlugin::add_quic(Flow &rec, const Packet &pkt)
    }
 
    if (process_quic(quic_ptr, pkt)) {
-      std::cout << quic_ptr->sni << std::endl;
+      //std::cout << quic_ptr->sni << std::endl;
       rec.add_extension(quic_ptr);
       quic_ptr = nullptr;
    }
