@@ -308,7 +308,7 @@ private:
    Initial_Secrets initial_secrets;
 
 
-   bool ietf_quic;
+   bool can_parse;
 };
 
 }
