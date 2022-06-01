@@ -104,7 +104,8 @@ UR_FIELDS(
 #define PING 0x01
 #define ACK1 0x02
 #define ACK2 0x03
-#define CONNECTION_CLOSE 0x1C
+#define CONNECTION_CLOSE1 0x1C
+#define CONNECTION_CLOSE2 0x1D
 
 
 typedef struct __attribute__ ((packed)) quic_ext {
@@ -134,6 +135,8 @@ typedef struct __attribute__((packed)) quic_header2 {
    uint8_t scid_len;
    // contains scid_len (which is 0 in context of Client Hello packet) but from server side, header contains SCID so SCID length is not 0
 } quic_header2;
+
+
 
 struct __attribute__((packed)) tls_rec_lay {
    uint8_t  type;
@@ -260,6 +263,7 @@ private:
    bool     parse_tls(RecordExtQUIC *);
    bool     quic_assemble();
 
+
    // header pointers
    quic_header1 *quic_h1;
    quic_header2 *quic_h2;
@@ -271,6 +275,7 @@ private:
    uint8_t quic_hp[quic_hp_hkdf];
    uint8_t client_In_Buffer[quic_clientIn_hkdf];
    uint8_t server_In_Buffer[quic_serverIn_hkdf];
+   uint8_t nonce[TLS13_AEAD_NONCE_LENGTH] = { 0 };
 
 
    // important pointers into QUIC packet, used in decryption process
@@ -288,14 +293,12 @@ private:
    uint8_t *sample;
 
    // final decrypted payload
-   uint8_t *decrypted_payload;
-   uint8_t *assembled_payload;
+   uint8_t decrypted_payload[1500];
+   uint8_t assembled_payload[1500];
    uint8_t *final_payload;
 
-   uint64_t decrypt_buffer_len;
-   uint64_t assemble_buffer_len;
 
-   uint8_t nonce[TLS13_AEAD_NONCE_LENGTH] = { 0 };
+
 
    // counter
    int parsed_initial;
@@ -305,7 +308,7 @@ private:
    Initial_Secrets initial_secrets;
 
 
-   bool google_QUIC;
+   bool can_parse;
 };
 
 }
