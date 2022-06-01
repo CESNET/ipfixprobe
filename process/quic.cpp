@@ -42,6 +42,23 @@
  */
 
 
+#include <iostream>
+#include <cstring>
+#include <sstream>
+#include <endian.h>
+
+
+#include <openssl/kdf.h>
+#include <openssl/evp.h>
+
+#ifdef WITH_NEMEA
+#include <unirec/unirec.h>
+#endif
+
+#include <ipfixprobe/byte-utils.hpp>
+
+#include "quic.hpp"
+
 
 
 // known versions
@@ -75,22 +92,10 @@ MVFST
 */
 
 
-#include <iostream>
-#include <cstring>
-#include <sstream>
-#include <endian.h>
 
 
-#include <openssl/kdf.h>
-#include <openssl/evp.h>
 
-#ifdef WITH_NEMEA
-#include <unirec/unirec.h>
-#endif
 
-#include <ipfixprobe/byte-utils.hpp>
-
-#include "quic.hpp"
 
 
 
@@ -151,6 +156,10 @@ QUICPlugin::QUICPlugin()
 
 
    can_parse = false;
+
+   is_version2 = false;
+
+   salt = nullptr;
 }
 
 QUICPlugin::~QUICPlugin()
@@ -168,6 +177,8 @@ void QUICPlugin::close()
       delete quic_ptr;
    }
    quic_ptr = nullptr;
+   salt = nullptr;
+   final_payload = nullptr;
 }
 
 ProcessPlugin *QUICPlugin::copy()
@@ -569,108 +580,8 @@ bool QUICPlugin::quic_check_version(uint32_t version, uint8_t max_version)
    return draft_version && draft_version <= max_version;
 }
 
-bool QUICPlugin::quic_create_initial_secrets(CommSide side,RecordExtQUIC * rec)
+bool QUICPlugin::quic_create_initial_secrets(CommSide side)
 {
-   uint32_t version = quic_h1->version;
-
-   version = ntohl(version);
-   rec->quic_version = version;
-
-   // this salt is used to draft 7-9
-   static const uint8_t handshake_salt_draft_7[SALT_LENGTH] = {
-      0xaf, 0xc8, 0x24, 0xec, 0x5f, 0xc7, 0x7e, 0xca, 0x1e, 0x9d,
-      0x36, 0xf3, 0x7f, 0xb2, 0xd4, 0x65, 0x18, 0xc3, 0x66, 0x39
-   };
-   // this salt is used to draft 10-16
-   static const uint8_t handshake_salt_draft_10[SALT_LENGTH] = {
-      0x9c, 0x10, 0x8f, 0x98, 0x52, 0x0a, 0x5c, 0x5c, 0x32, 0x96,
-      0x8e, 0x95, 0x0e, 0x8a, 0x2c, 0x5f, 0xe0, 0x6d, 0x6c, 0x38
-   };
-   // this salt is used to draft 17-20
-   static const uint8_t handshake_salt_draft_17[SALT_LENGTH] = {
-      0xef, 0x4f, 0xb0, 0xab, 0xb4, 0x74, 0x70, 0xc4, 0x1b, 0xef,
-      0xcf, 0x80, 0x31, 0x33, 0x4f, 0xae, 0x48, 0x5e, 0x09, 0xa0
-   };
-   // this salt is used to draft 21-22
-      static const uint8_t handshake_salt_draft_21[SALT_LENGTH] = {
-      0x7f, 0xbc, 0xdb, 0x0e, 0x7c, 0x66, 0xbb, 0xe9, 0x19, 0x3a,
-      0x96, 0xcd, 0x21, 0x51, 0x9e, 0xbd, 0x7a, 0x02, 0x64, 0x4a
-   };
-   // this salt is used to draft 23-28 
-   static const uint8_t handshake_salt_draft_23[SALT_LENGTH] = {
-      0xc3, 0xee, 0xf7, 0x12, 0xc7, 0x2e, 0xbb, 0x5a, 0x11, 0xa7,
-      0xd2, 0x43, 0x2b, 0xb4, 0x63, 0x65, 0xbe, 0xf9, 0xf5, 0x02,
-   };
-   // this salt is used to draft 29-32
-   static const uint8_t handshake_salt_draft_29[SALT_LENGTH] = {
-      0xaf, 0xbf, 0xec, 0x28, 0x99, 0x93, 0xd2, 0x4c, 0x9e, 0x97,
-      0x86, 0xf1, 0x9c, 0x61, 0x11, 0xe0, 0x43, 0x90, 0xa8, 0x99
-   };
-   // newest 33 -
-   static const uint8_t handshake_salt_v1[SALT_LENGTH] = {
-      0x38, 0x76, 0x2c, 0xf7, 0xf5, 0x59, 0x34, 0xb3, 0x4d, 0x17,
-      0x9a, 0xe6, 0xa4, 0xc8, 0x0c, 0xad, 0xcc, 0xbb, 0x7f, 0x0a
-   };
-
-   static const uint8_t handshake_salt_v2[SALT_LENGTH] = {
-      0xa7, 0x07, 0xc2, 0x03, 0xa5, 0x9b, 0x47, 0x18, 0x4a, 0x1d,
-      0x62, 0xca, 0x57, 0x04, 0x06, 0xea, 0x7a, 0xe3, 0xe5, 0xd3
-   };
-
-
-
-   // google salts
-   /*static const uint8_t hanshake_salt_draft_q50[SALT_LENGTH] = {
-      0x50, 0x45, 0x74, 0xEF, 0xD0, 0x66, 0xFE, 0x2F, 0x9D, 0x94,
-      0x5C, 0xFC, 0xDB, 0xD3, 0xA7, 0xF0, 0xD3, 0xB5, 0x6B, 0x45
-   };
-   static const uint8_t hanshake_salt_draft_t50[SALT_LENGTH] = {
-      0x7f, 0xf5, 0x79, 0xe5, 0xac, 0xd0, 0x72, 0x91, 0x55, 0x80,
-      0x30, 0x4c, 0x43, 0xa2, 0x36, 0x7c, 0x60, 0x48, 0x83, 0x10
-   };
-   static const uint8_t hanshake_salt_draft_t51[SALT_LENGTH] = {
-      0x7a, 0x4e, 0xde, 0xf4, 0xe7, 0xcc, 0xee, 0x5f, 0xa4, 0x50,
-      0x6c, 0x19, 0x12, 0x4f, 0xc8, 0xcc, 0xda, 0x6e, 0x03, 0x3d
-   };*/
-
-
-   const uint8_t *salt;
-
-
-   // these three are Google QUIC version
-
-   // we do not parse gQUIC
-   if (version == 0x00000000) {
-      DEBUG_MSG("Error, version negotiation\n");
-      return false;
-   } else if (version == 0x00000001){
-      salt = handshake_salt_v1;
-      can_parse = true;
-   } else if (quic_check_version(version, 9)) {
-      salt = handshake_salt_draft_7;
-      can_parse = true;
-   } else if (quic_check_version(version, 16)) {
-      salt = handshake_salt_draft_10;
-      can_parse = true;
-   } else if (quic_check_version(version, 20)) {
-      salt = handshake_salt_draft_17;
-      can_parse = true;
-   } else if (quic_check_version(version, 22)) {
-      salt = handshake_salt_draft_21;
-      can_parse = true;
-   } else if (quic_check_version(version, 28)) {
-      salt = handshake_salt_draft_23;
-      can_parse = true;
-   } else if (quic_check_version(version, 32)) {
-      salt = handshake_salt_draft_29;
-      can_parse = true;
-   } else if (quic_check_version(version, 100)) {
-      salt = handshake_salt_v2;
-      can_parse = true;
-   } else {
-      DEBUG_MSG("Error, version not supported\n");
-      return false;
-   }
 
    uint8_t extracted_secret[HASH_SHA2_256_LENGTH] = { 0 };
    uint8_t expanded_secret[HASH_SHA2_256_LENGTH]  = { 0 };
@@ -1094,7 +1005,109 @@ bool QUICPlugin::quic_assemble()
    return true;
 }
 
-bool QUICPlugin::quic_parse_data(const Packet &pkt)
+
+bool QUICPlugin::handle_version(RecordExtQUIC * rec)
+{
+   uint32_t version = quic_h1->version;
+   version = ntohl(version);
+   rec->quic_version = version;
+
+
+
+
+   // this salt is used to draft 7-9
+static const uint8_t handshake_salt_draft_7[SALT_LENGTH] = {
+   0xaf, 0xc8, 0x24, 0xec, 0x5f, 0xc7, 0x7e, 0xca, 0x1e, 0x9d,
+   0x36, 0xf3, 0x7f, 0xb2, 0xd4, 0x65, 0x18, 0xc3, 0x66, 0x39
+};
+// this salt is used to draft 10-16
+static const uint8_t handshake_salt_draft_10[SALT_LENGTH] = {
+   0x9c, 0x10, 0x8f, 0x98, 0x52, 0x0a, 0x5c, 0x5c, 0x32, 0x96,
+   0x8e, 0x95, 0x0e, 0x8a, 0x2c, 0x5f, 0xe0, 0x6d, 0x6c, 0x38
+};
+// this salt is used to draft 17-20
+static const uint8_t handshake_salt_draft_17[SALT_LENGTH] = {
+   0xef, 0x4f, 0xb0, 0xab, 0xb4, 0x74, 0x70, 0xc4, 0x1b, 0xef,
+   0xcf, 0x80, 0x31, 0x33, 0x4f, 0xae, 0x48, 0x5e, 0x09, 0xa0
+};
+// this salt is used to draft 21-22
+   static const uint8_t handshake_salt_draft_21[SALT_LENGTH] = {
+   0x7f, 0xbc, 0xdb, 0x0e, 0x7c, 0x66, 0xbb, 0xe9, 0x19, 0x3a,
+   0x96, 0xcd, 0x21, 0x51, 0x9e, 0xbd, 0x7a, 0x02, 0x64, 0x4a
+};
+// this salt is used to draft 23-28 
+static const uint8_t handshake_salt_draft_23[SALT_LENGTH] = {
+   0xc3, 0xee, 0xf7, 0x12, 0xc7, 0x2e, 0xbb, 0x5a, 0x11, 0xa7,
+   0xd2, 0x43, 0x2b, 0xb4, 0x63, 0x65, 0xbe, 0xf9, 0xf5, 0x02,
+};
+// this salt is used to draft 29-32
+static const uint8_t handshake_salt_draft_29[SALT_LENGTH] = {
+   0xaf, 0xbf, 0xec, 0x28, 0x99, 0x93, 0xd2, 0x4c, 0x9e, 0x97,
+   0x86, 0xf1, 0x9c, 0x61, 0x11, 0xe0, 0x43, 0x90, 0xa8, 0x99
+};
+// newest 33 -
+static const uint8_t handshake_salt_v1[SALT_LENGTH] = {
+   0x38, 0x76, 0x2c, 0xf7, 0xf5, 0x59, 0x34, 0xb3, 0x4d, 0x17,
+   0x9a, 0xe6, 0xa4, 0xc8, 0x0c, 0xad, 0xcc, 0xbb, 0x7f, 0x0a
+};
+static const uint8_t handshake_salt_v2[SALT_LENGTH] = {
+   0xa7, 0x07, 0xc2, 0x03, 0xa5, 0x9b, 0x47, 0x18, 0x4a, 0x1d,
+   0x62, 0xca, 0x57, 0x04, 0x06, 0xea, 0x7a, 0xe3, 0xe5, 0xd3
+};
+
+
+
+// google salts
+/*static const uint8_t hanshake_salt_draft_q50[SALT_LENGTH] = {
+   0x50, 0x45, 0x74, 0xEF, 0xD0, 0x66, 0xFE, 0x2F, 0x9D, 0x94,
+   0x5C, 0xFC, 0xDB, 0xD3, 0xA7, 0xF0, 0xD3, 0xB5, 0x6B, 0x45
+};
+static const uint8_t hanshake_salt_draft_t50[SALT_LENGTH] = {
+   0x7f, 0xf5, 0x79, 0xe5, 0xac, 0xd0, 0x72, 0x91, 0x55, 0x80,
+   0x30, 0x4c, 0x43, 0xa2, 0x36, 0x7c, 0x60, 0x48, 0x83, 0x10
+};
+static const uint8_t hanshake_salt_draft_t51[SALT_LENGTH] = {
+   0x7a, 0x4e, 0xde, 0xf4, 0xe7, 0xcc, 0xee, 0x5f, 0xa4, 0x50,
+   0x6c, 0x19, 0x12, 0x4f, 0xc8, 0xcc, 0xda, 0x6e, 0x03, 0x3d
+};*/
+
+
+if (version == 0x00000000) {
+   DEBUG_MSG("Error, version negotiation\n");
+   return false;
+} else if (version == 0x00000001 && !is_version2){
+   salt = handshake_salt_v1;
+   can_parse = true;
+} else if (quic_check_version(version, 9)  && !is_version2) {
+   salt = handshake_salt_draft_7;
+   can_parse = true;
+} else if (quic_check_version(version, 16)  && !is_version2) {
+   salt = handshake_salt_draft_10;
+   can_parse = true;
+} else if (quic_check_version(version, 20)  && !is_version2) {
+   salt = handshake_salt_draft_17;
+   can_parse = true;
+} else if (quic_check_version(version, 22)  && !is_version2) {
+   salt = handshake_salt_draft_21;
+   can_parse = true;
+} else if (quic_check_version(version, 28)  && !is_version2) {
+   salt = handshake_salt_draft_23;
+   can_parse = true;
+} else if (quic_check_version(version, 32)  && !is_version2) {
+   salt = handshake_salt_draft_29;
+   can_parse = true;
+} else if (quic_check_version(version, 100)  && is_version2) {
+   salt = handshake_salt_v2;
+   can_parse = true;
+} else {
+   DEBUG_MSG("Error, version not supported\n");
+   return false;
+}
+
+return true;
+
+}
+bool QUICPlugin::quic_parse_data(const Packet &pkt,RecordExtQUIC * rec)
 {
    
    
@@ -1114,9 +1127,13 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
    quic_h1 = (quic_header1 *) (tmp_pointer + offset);
 
 
-   if (quic_h1->version == 0x0) {
+   if (!handle_version(rec))
+   {
       return false;
    }
+
+
+
 
    offset += sizeof(quic_header1);
 
@@ -1211,7 +1228,21 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt)
 bool QUICPlugin::quic_check_initial(uint8_t packet0)
 {
    // check if packet has LONG HEADER form (& 0x80 == 0x80) and is type INITIAL (& 0x30 == 0x00).
-   return (packet0 & 0xB0) == 0x80;
+
+
+   // version 1 (header form:long header(1) | fixed bit:fixed(1) | long packet type:initial(00) --> 1100 --> C)
+   if ((packet0 & 0xF0) == 0xC0)
+   {
+      return true;
+   }
+   // version 2 (header form:long header(1) | fixed bit:fixed(1) | long packet type:initial(01) --> 1101 --> D)
+   else if ((packet0 & 0xF0) == 0xD0)
+   {
+      is_version2 = true;
+      return true;
+   }
+   else
+      return false;
 }
 
 
@@ -1227,15 +1258,12 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
       return false;
    }
 
-
-   // header data extraction can extract data for both sides (client and server side), the differece is that server side header contains SCID length and so SCID.
-   if (!quic_parse_data(pkt)) {
-      return false;
-   }
-
    // check port a.k.a direction, Server side does not contain ClientHello packets so neither SNI, but implemented for future expansion
    if (pkt.dst_port == 443) {
-      if (!quic_create_initial_secrets(CommSide::CLIENT_IN,quic_data)) {
+      if (!quic_parse_data(pkt,quic_data)) {
+         return false;
+      }
+      if (!quic_create_initial_secrets(CommSide::CLIENT_IN)) {
          DEBUG_MSG("Error, creation of initial secrets failed (client side)\n");
          return false;
       }
