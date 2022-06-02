@@ -249,8 +249,8 @@ private:
    bool     process_quic(RecordExtQUIC *, const Packet&);
 
    bool     quic_check_initial(uint8_t);
-   bool     quic_parse_data(const Packet&);
-   bool     quic_create_initial_secrets(CommSide side,RecordExtQUIC*);
+   bool     quic_parse_data(const Packet&,RecordExtQUIC*);
+   bool     quic_create_initial_secrets(CommSide side);
    bool     quic_check_version(uint32_t, uint8_t);
    uint8_t  quic_draft_version(uint32_t);
 
@@ -262,6 +262,7 @@ private:
    bool     expand_label(const char *, const char *, const uint8_t *, uint8_t, uint16_t, uint8_t *, uint8_t &);
    bool     parse_tls(RecordExtQUIC *);
    bool     quic_assemble();
+   bool     handle_version(RecordExtQUIC*);
 
 
    // header pointers
@@ -276,6 +277,8 @@ private:
    uint8_t client_In_Buffer[quic_clientIn_hkdf];
    uint8_t server_In_Buffer[quic_serverIn_hkdf];
    uint8_t nonce[TLS13_AEAD_NONCE_LENGTH] = { 0 };
+
+   const uint8_t *salt;
 
 
    // important pointers into QUIC packet, used in decryption process
@@ -309,6 +312,7 @@ private:
 
 
    bool can_parse;
+   bool is_version2;
 };
 
 }
