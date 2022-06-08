@@ -92,9 +92,9 @@ namespace ipxp
             std::uint8_t encr_pattern_id;
             union {
                 struct {
-                    std::uint8_t match_found : 1;
-                    std::uint8_t pm_mult_pos : 1;
                     std::uint8_t pm_mult_pattern : 1;
+                    std::uint8_t pm_mult_pos : 1;
+                    std::uint8_t match_found : 1;
                     std::uint8_t reserved : 5;
                 } items;
                 std::uint8_t all;

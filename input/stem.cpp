@@ -179,6 +179,9 @@ InputPlugin::Result StemPacketReader::get(PacketBlock &packets)
             return Result::TIMEOUT;
          } else {
             Stem::StatisticsPacket spkt = std::move(pkt.value());
+#ifndef NDEBUG
+            std::cout << "[STEM]: " << spkt.log().str() << std::endl;
+#endif
             bool status = convert(spkt, packets.pkts[packets.cnt]);
             packets.bytes += packets.pkts[packets.cnt].packet_len_wire;
 
@@ -195,6 +198,6 @@ InputPlugin::Result StemPacketReader::get(PacketBlock &packets)
    }
 
    return packets.cnt ? Result::PARSED : Result::NOT_PARSED;
- }
+}
 
 }
