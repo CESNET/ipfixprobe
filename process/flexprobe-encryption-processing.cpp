@@ -47,6 +47,8 @@
 #include "flexprobe-encryption-processing.h"
 #include "flexprobe-data.h"
 #include "tls.hpp"
+#include "http.hpp"
+#include "dns.hpp"
 
 //#define TIMEIT
 
@@ -101,6 +103,13 @@ namespace ipxp {
                                        encr_data->mpe4_valid_count[direction]);
         }
 
+        if (encr_data->known_protocol_pattern_id == -1 && data_view->encr_data.pm_flags.items.match_found) {
+            encr_data->known_protocol_pattern_id = data_view->encr_data.encr_pattern_id;
+            encr_data->known_protocol_position = data_view->encr_data.pattern_offset - pi_pattern_lengths[encr_data->known_protocol_pattern_id]; //- pattern length because PI detects end of the pattern
+            encr_data->multiple_pattern_occurence = data_view->encr_data.pm_flags.items.pm_mult_pos;
+            encr_data->multiple_patterns = data_view->encr_data.pm_flags.items.pm_mult_pattern;
+        }
+
         return 0;
     }
 
@@ -109,38 +118,30 @@ namespace ipxp {
         using namespace std::chrono;
         using namespace std::chrono_literals;
         using namespace mlpack;
-        // compile tracked features into a sample
         auto encr_data = dynamic_cast<FlexprobeEncryptionData*>(rec.get_extension(FlexprobeEncryptionData::REGISTERED_ID));
         if (!encr_data) {
             return;
         }
-#ifdef TIMEIT
-        auto t_start = high_resolution_clock::now();
-#endif
-//        FlexprobeClassificationSample smp(*encr_data);
-
-        arma::vec sample(12);
-        sample.at(0) = encr_data->time_interpacket[0].variance();
-        sample.at(1) = encr_data->mpe_8bit[0].maximum();
-        sample.at(2) = encr_data->mpe_4bit[0].mean();
-        sample.at(3) = encr_data->mpe_4bit[0].deviation();
-        sample.at(4) = encr_data->mpe_4bit[0].minimum();
-        sample.at(5) = encr_data->mpe_4bit[0].maximum();
-        sample.at(6) = encr_data->payload_size[0].mean();
-        sample.at(7) = encr_data->payload_size[0].variance();
-        sample.at(8) = encr_data->payload_size[0].minimum();
-        sample.at(9) = encr_data->payload_size[0].maximum();
-        sample.at(10) = static_cast<float>(rec.src_packets);
-        sample.at(11) = encr_data->mpe_4bit[1].minimum();
-#ifdef TIMEIT
-        auto t_end = high_resolution_clock::now();
-        std::cout << "Sample preparation: " << duration_cast<nanoseconds>(t_end - t_start).count() << std::endl;
-#endif
         // heuristic checking for TLS presence
         auto tls = dynamic_cast<RecordExtTLS*>(rec.get_extension(RecordExtTLS::REGISTERED_ID));
-        if (tls != nullptr && tls->version != 0) {
+        if (tls != nullptr && tls->version != 0) { // TLS was detected from the start -> automatically assume data was encrypted
             encr_data->classification_result = true;
         } else {
+            // compile tracked features into a sample
+            arma::vec sample(12);
+            sample.at(0) = encr_data->time_interpacket[0].variance();
+            sample.at(1) = encr_data->mpe_8bit[0].maximum();
+            sample.at(2) = encr_data->mpe_4bit[0].mean();
+            sample.at(3) = encr_data->mpe_4bit[0].deviation();
+            sample.at(4) = encr_data->mpe_4bit[0].minimum();
+            sample.at(5) = encr_data->mpe_4bit[0].maximum();
+            sample.at(6) = encr_data->payload_size[0].mean();
+            sample.at(7) = encr_data->payload_size[0].variance();
+            sample.at(8) = encr_data->payload_size[0].minimum();
+            sample.at(9) = encr_data->payload_size[0].maximum();
+            sample.at(10) = static_cast<float>(rec.src_packets);
+            sample.at(11) = encr_data->mpe_4bit[1].minimum();
+
 #ifdef TIMEIT
             t_start = high_resolution_clock::now();
 #endif
@@ -148,19 +149,70 @@ namespace ipxp {
             arma::Row<size_t> result;
             clf_.Classify(sample, result, proba);
 #ifndef NDEBUG
-                    std::cout << std::boolalpha
-                              << result.at(0)
-                              << " "
-                              << bool(result.at(0))
-                              << " "
-                              << static_cast<unsigned>(proba.max() * 100)
-                              << std::endl;
+            std::cout << std::boolalpha
+                      << result.at(0)
+                      << " "
+                      << bool(result.at(0))
+                      << " "
+                      << static_cast<unsigned>(proba.at(0) * 100)
+                      << " "
+                      << static_cast<unsigned>(proba.at(1) * 100)
+                      << std::endl;
 #endif
+            // the ML analysis gives a baseline for evaluation
+            ConstrainedValue<unsigned, 0, 100> encr_score(static_cast<unsigned>(proba.at(1) * 100));
+#ifndef NDEBUG
+            std::cout << "[" << __PRETTY_FUNCTION__ << "]: " << "Base score:" << encr_score << std::endl;
+#endif
+
+            // is there a known pattern in data
+            if (encr_data->known_protocol_pattern_id != -1) {
+#ifndef NDEBUG
+                std::cout << "[" << __PRETTY_FUNCTION__ << "]: " << "Known pattern found." << std::endl;
+#endif
+                encr_score += Scores::KNOWN_PATTERN_FOUND;
+
+                // is the pattern at the beginning?
+                if (encr_data->known_protocol_position == 0) {
+#ifndef NDEBUG
+                    std::cout << "[" << __PRETTY_FUNCTION__ << "]: " << "Pattern is at the beginning." << std::endl;
+#endif
+                    encr_score += Scores::KNOWN_PATTERN_AT_THE_BEGINNING;
+                }
+
+                // does the pattern repeat?
+                if (encr_data->multiple_pattern_occurence) {
+#ifndef NDEBUG
+                    std::cout << "[" << __PRETTY_FUNCTION__ << "]: " << "Pattern repeat." << std::endl;
+#endif
+                    encr_score -= Scores::REPEATING_PATTERN;
+                }
+
+                // are there multiple known patterns?
+                if (encr_data->multiple_patterns) {
+#ifndef NDEBUG
+                    std::cout << "[" << __PRETTY_FUNCTION__ << "]: " << "Multiple known patterns are present." << std::endl;
+#endif
+                    encr_score -= Scores::MULTIPLE_KNOWN_PATTERNS;
+                }
+            }
+
+            // is there a known open protocol?
+            // requires use of appropriate plugins
+            if (rec.get_extension(RecordExtHTTP::REGISTERED_ID) || rec.get_extension(RecordExtDNS::REGISTERED_ID)) {
+#ifndef NDEBUG
+                std::cout << "[" << __PRETTY_FUNCTION__ << "]: " << "Known open protocol used." << std::endl;
+#endif
+                encr_score -= Scores::KNOWN_OPEN_PROTOCOL;
+            }
 #ifdef TIMEIT
             t_end = high_resolution_clock::now();
             std::cout << "Classification: " << duration_cast<nanoseconds>(t_end - t_start).count() << std::endl;
 #endif
-            encr_data->classification_result = result.at(0);
+#ifndef NDEBUG
+            std::cout << "[" << __PRETTY_FUNCTION__ << "]: " << "Final score " << encr_score << std::endl;
+#endif
+            encr_data->classification_result = encr_score > 66;
         }
     }
 }

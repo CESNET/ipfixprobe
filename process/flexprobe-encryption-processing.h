@@ -60,8 +60,137 @@
 #include "flexprobe-data.h"
 
 namespace ipxp {
+    template<typename NumType, NumType Lower, NumType Upper>
+    class ConstrainedValue
+    {
+        static_assert(std::is_arithmetic<NumType>::value, "ConstrainedValue: Only arithmetic type is allowed as NumType.");
+    private:
+        NumType value_;
+
+    public:
+        ConstrainedValue() : value_(Lower)
+        {};
+
+        explicit ConstrainedValue(NumType val) : value_(val)
+        {
+            using namespace std::string_literals;
+            if (!(val >= Lower and val <= Upper)) {
+                throw std::logic_error(
+                        "Assigned value must be in ["s + std::to_string(Lower) + ";" + std::to_string(Upper) +
+                        "] range.");
+            }
+        }
+
+        ConstrainedValue& operator=(const ConstrainedValue& other)
+        {
+            value_ = other.value_;
+            return *this;
+        }
+
+        ConstrainedValue& operator=(NumType val)
+        {
+            using namespace std::string_literals;
+            if (!(val >= Lower and val <= Upper)) {
+                throw std::logic_error(
+                        "Assigned value must be in ["s + std::to_string(Lower) + ";" + std::to_string(Upper) +
+                        "] range.");
+            }
+            value_ = val;
+            return *this;
+        }
+
+        ConstrainedValue& operator+=(NumType val)
+        {
+            if (value_ + val > Upper) {
+                value_ = Upper;
+            } else {
+                value_ += val;
+            }
+
+            return *this;
+        }
+
+        ConstrainedValue& operator-=(NumType val)
+        {
+            if (value_ - val < Lower) {
+                value_ = Lower;
+            } else {
+                value_ -= val;
+            }
+
+            return *this;
+        }
+
+        friend std::ostream& operator<<(std::ostream& os, const ConstrainedValue& val)
+        {
+            os << val.value_;
+            return os;
+        }
+
+        friend bool operator<(const ConstrainedValue& lhs, const ConstrainedValue& rhs)
+        {
+            return lhs.value_ < rhs.value_;
+        }
+
+        friend bool operator>(const ConstrainedValue& lhs, const ConstrainedValue& rhs)
+        {
+            return lhs.value_ > rhs.value_;
+        }
+
+        friend bool operator<=(const ConstrainedValue& lhs, const ConstrainedValue& rhs)
+        {
+            return lhs.value_ <= rhs.value_;
+        }
+
+        friend bool operator>=(const ConstrainedValue& lhs, const ConstrainedValue& rhs)
+        {
+            return lhs.value_ >= rhs.value_;
+        }
+
+        friend bool operator==(const ConstrainedValue& lhs, const ConstrainedValue& rhs)
+        {
+            return lhs.value_ == rhs.value_;
+        }
+
+        friend bool operator!=(const ConstrainedValue& lhs, const ConstrainedValue& rhs)
+        {
+            return lhs.value_ != rhs.value_;
+        }
+
+        friend bool operator<(const ConstrainedValue& lhs, NumType rhs)
+        {
+            return lhs.value_ < rhs;
+        }
+
+        friend bool operator>(const ConstrainedValue& lhs, NumType rhs)
+        {
+            return lhs.value_ > rhs;
+        }
+
+        friend bool operator<=(const ConstrainedValue& lhs, NumType rhs)
+        {
+            return lhs.value_ <= rhs;
+        }
+
+        friend bool operator>=(const ConstrainedValue& lhs, NumType rhs)
+        {
+            return lhs.value_ >= rhs;
+        }
+
+        friend bool operator==(const ConstrainedValue& lhs, NumType rhs)
+        {
+            return lhs.value_ == rhs;
+        }
+
+        friend bool operator!=(const ConstrainedValue& lhs, NumType rhs)
+        {
+            return lhs.value_ != rhs;
+        }
+    };
+
     template<typename T> class RtStats
     {
+        static_assert(std::is_arithmetic<T>::value, "RtStats: Only arithmetic type is allowed as T.");
     protected:
         // helper variables for variance calculation
     //    T prev_average_;
@@ -156,12 +285,20 @@ namespace ipxp {
         RtStats<std::uint16_t> payload_size[2];
         RtStats<float> mpe_8bit[2];
         RtStats<float> mpe_4bit[2];
+        ssize_t known_protocol_pattern_id;
+        unsigned known_protocol_position;
+        bool multiple_patterns;
+        bool multiple_pattern_occurence;
         bool classification_result;
 
         FlexprobeEncryptionData()
         : RecordExt(REGISTERED_ID),
           mpe8_valid_count(),
           mpe4_valid_count(),
+          known_protocol_pattern_id(-1),
+          known_protocol_position(),
+          multiple_patterns(),
+          multiple_pattern_occurence(),
           classification_result(false)
         {
             mpe_8bit[0] = mpe_8bit[1] = RtStats<float>(0, 0);
@@ -170,7 +307,6 @@ namespace ipxp {
 
         virtual int fill_ipfix(uint8_t *buffer, int size)
         {
-           // TODO: fill fields in correct order
             if (sizeof(std::uint8_t) > static_cast<size_t>(size)) {
                 return -1;
             }
@@ -261,9 +397,18 @@ namespace ipxp {
     private:
 //        mlpack::tree::RandomForest<> clf_;
         mlpack::adaboost::AdaBoost<mlpack::tree::DecisionTree<>> clf_;
+        const std::array<size_t, 2> pi_pattern_lengths;
+
+        enum Scores {
+            KNOWN_PATTERN_FOUND = 5,
+            KNOWN_PATTERN_AT_THE_BEGINNING = 5,
+            MULTIPLE_KNOWN_PATTERNS = 10,
+            REPEATING_PATTERN = 10,
+            KNOWN_OPEN_PROTOCOL = 20
+        };
 
     public:
-        FlexprobeEncryptionProcessing() = default;
+        FlexprobeEncryptionProcessing() : ProcessPlugin(), clf_(), pi_pattern_lengths({3, 8}) {}
 
         void init(const char *params) override
         {
