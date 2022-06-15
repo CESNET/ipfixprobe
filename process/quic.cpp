@@ -1008,7 +1008,7 @@ bool QUICPlugin::handle_version(RecordExtQUIC * rec)
    uint32_t version = quic_h1->version;
    version = ntohl(version);
    rec->quic_version = version;
-
+   DEBUG_MSG("version %d\n",version);
 
 
 
@@ -1132,6 +1132,7 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt,RecordExtQUIC * rec)
 
    if (!handle_version(rec))
    {
+      DEBUG_MSG("Error, version not supported\n");
       return false;
    }
 
@@ -1237,6 +1238,7 @@ bool QUICPlugin::quic_check_initial(uint8_t packet0)
    // version 1 (header form:long header(1) | fixed bit:fixed(1) | long packet type:initial(00) --> 1100 --> C)
    if ((packet0 & 0xF0) == 0xC0)
    {
+      is_version2 = false;
       return true;
    }
    // version 2 (header form:long header(1) | fixed bit:fixed(1) | long packet type:initial(01) --> 1101 --> D)
@@ -1246,7 +1248,10 @@ bool QUICPlugin::quic_check_initial(uint8_t packet0)
       return true;
    }
    else
+   {
       return false;
+   }
+      
 }
 
 
@@ -1324,7 +1329,8 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
       else {
          return true;
       }*/
-      return true;
+      DEBUG_MSG("Server side packet\n");
+      return false;
    }
    return false;
 } // QUICPlugin::process_quic
