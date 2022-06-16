@@ -112,9 +112,9 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
    int ret = -1;
 
    packets.cnt = 0;
-   if (!checked_packet_size && packet.size > ndpReader.get_packet_buffsize()) {
+   if (!checked_packet_size && packets.size > ndpReader.get_packet_buffsize()) {
       checked_packet_size = true;
-      packet_bufferSize = ndpReader.get_packet_buffsize();
+      packets.size = ndpReader.get_packet_buffsize();
    }
 
    for (unsigned i = 0; i < packets.size; i++) {

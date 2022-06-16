@@ -16,7 +16,10 @@ public:
    void print_stats();
    void close();
    int get_pkt(struct ndp_packet **ndp_packet, struct ndp_header **ndp_header);
-   uint16_t get_packet_buffsize() noexcept;
+   uint16_t get_packet_buffsize() noexcept
+{
+   return packet_bufferSize;
+}
    std::string error_msg;
 private:
    bool retrieve_ndp_packets();

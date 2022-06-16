@@ -59,7 +59,7 @@ namespace ipxp {
  *         If the string is not found, the function returns a null pointer.
  */
 const char *
-ipx_strnstr(const char *str1, const char *str2, size_t len)
+strnstr(const char *str1, const char *str2, size_t len)
 {
 	char c, sc;
 	size_t slen;
