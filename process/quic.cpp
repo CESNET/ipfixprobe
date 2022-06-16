@@ -932,19 +932,18 @@ bool QUICPlugin::quic_assemble()
          // https://www.rfc-editor.org/rfc/rfc9000.html#name-ack-frames
          //skip type
          offset++;
-         uint64_t quic_largest_acknowledged = quic_get_variable_length(decrypted_payload,offset);
-         uint64_t quic_ack_delay = quic_get_variable_length(decrypted_payload,offset);
+         quic_get_variable_length(decrypted_payload,offset);
+         quic_get_variable_length(decrypted_payload,offset);
          uint64_t quic_ack_range_count = quic_get_variable_length(decrypted_payload,offset);
-         uint64_t quic_first_ack_range = quic_get_variable_length(decrypted_payload,offset);
+         quic_get_variable_length(decrypted_payload,offset);
 
          
-         uint64_t quic_gap;
-         uint64_t quic_ack_range_length;
+
          
          for (uint x = 0 ; x < quic_ack_range_count;x++)
          {
-            quic_gap = quic_get_variable_length(decrypted_payload,offset);
-            quic_ack_range_length = quic_get_variable_length(decrypted_payload,offset);
+            quic_get_variable_length(decrypted_payload,offset);
+            quic_get_variable_length(decrypted_payload,offset);
          }
 
       } else if (*(decrypted_payload + offset) == ACK2)
@@ -952,24 +951,22 @@ bool QUICPlugin::quic_assemble()
          // https://www.rfc-editor.org/rfc/rfc9000.html#name-ack-frames
          //skip type
          offset++;
-         uint64_t quic_largest_acknowledged = quic_get_variable_length(decrypted_payload,offset);
-         uint64_t quic_ack_delay = quic_get_variable_length(decrypted_payload,offset);
+         quic_get_variable_length(decrypted_payload,offset);
+         quic_get_variable_length(decrypted_payload,offset);
          uint64_t quic_ack_range_count = quic_get_variable_length(decrypted_payload,offset);
-         uint64_t quic_first_ack_range = quic_get_variable_length(decrypted_payload,offset);
+         quic_get_variable_length(decrypted_payload,offset);
 
          
-         uint64_t quic_gap;
-         uint64_t quic_ack_range_length;
          
          for (uint x = 0 ; x < quic_ack_range_count;x++)
          {
-            quic_gap = quic_get_variable_length(decrypted_payload,offset);
-            quic_ack_range_length = quic_get_variable_length(decrypted_payload,offset);
+            quic_get_variable_length(decrypted_payload,offset);
+            quic_get_variable_length(decrypted_payload,offset);
          }
 
-         uint64_t ect0 = quic_get_variable_length(decrypted_payload,offset);
-         uint64_t ect1 = quic_get_variable_length(decrypted_payload,offset);
-         uint64_t ecn_ce = quic_get_variable_length(decrypted_payload,offset);
+         quic_get_variable_length(decrypted_payload,offset);
+         quic_get_variable_length(decrypted_payload,offset);
+         quic_get_variable_length(decrypted_payload,offset);
 
          
       } else if (*(decrypted_payload + offset) == CONNECTION_CLOSE1)
@@ -978,8 +975,8 @@ bool QUICPlugin::quic_assemble()
          //skip type
          offset++;
 
-         uint64_t error_code = quic_get_variable_length(decrypted_payload,offset);
-         uint64_t frame_type = quic_get_variable_length(decrypted_payload,offset);
+         quic_get_variable_length(decrypted_payload,offset);
+         quic_get_variable_length(decrypted_payload,offset);
          uint64_t reason_phrase_length = quic_get_variable_length(decrypted_payload,offset);
          offset+= reason_phrase_length;
 
@@ -988,7 +985,7 @@ bool QUICPlugin::quic_assemble()
          // https://www.rfc-editor.org/rfc/rfc9000.html#name-connection_close-frames
          //skip type
          offset++;
-         uint64_t error_code = quic_get_variable_length(decrypted_payload,offset);
+         quic_get_variable_length(decrypted_payload,offset);
          uint64_t reason_phrase_length = quic_get_variable_length(decrypted_payload,offset);
          offset+= reason_phrase_length;
 
@@ -1011,7 +1008,7 @@ bool QUICPlugin::handle_version(RecordExtQUIC * rec)
    uint32_t version = quic_h1->version;
    version = ntohl(version);
    rec->quic_version = version;
-
+   DEBUG_MSG("version %d\n",version);
 
 
 
@@ -1109,26 +1106,33 @@ return true;
 }
 bool QUICPlugin::quic_parse_data(const Packet &pkt,RecordExtQUIC * rec)
 {
+
+   if(pkt.payload_len > CURRENT_BUFFER_SIZE)
+   {
+      DEBUG_MSG("Error, payload length bigger than buffer size\n");
+      return false;
+   }
+
+
+   memcpy(tmp_packet_mem,pkt.payload,sizeof(uint8_t) * pkt.payload_len);   
+   uint8_t *tmp_pointer       = tmp_packet_mem;
    
-   
-   uint8_t *tmp_pointer       = (uint8_t *) pkt.payload;
    uint64_t offset = 0;
-   const uint8_t *payload_end = (uint8_t *) pkt.payload + pkt.payload_len;
+   const uint8_t *payload_end = (uint8_t *) tmp_packet_mem + pkt.payload_len;
 
    
    
    // set header pointer to the start of header
-   header = (uint8_t *) (tmp_pointer + offset); // set header pointer
-
+   header = tmp_packet_mem;
    
    
    
    // pointer to the first byte, version and dcid length
    quic_h1 = (quic_header1 *) (tmp_pointer + offset);
 
-
    if (!handle_version(rec))
    {
+      DEBUG_MSG("Error, version not supported\n");
       return false;
    }
 
@@ -1194,6 +1198,9 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt,RecordExtQUIC * rec)
 
    // same as token length, payload length has variable length, after this offset should point to the packet number
    payload_len = quic_get_variable_length(tmp_pointer,offset);
+   if (payload_len > CURRENT_BUFFER_SIZE) {
+      return false;
+   }
 
    if ((tmp_pointer + offset) > payload_end) {
       return false;
@@ -1206,6 +1213,7 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt,RecordExtQUIC * rec)
 
    // read payload, we do not know packet number length, so payload will be adjusted later (after de-obfuscating header)
    payload = (tmp_pointer + offset);
+
 
    
    // read sample, sample is always assuming that packet number has length 4 bytes, so we do not need to know exact pkn length for reading sample.
@@ -1233,6 +1241,7 @@ bool QUICPlugin::quic_check_initial(uint8_t packet0)
    // version 1 (header form:long header(1) | fixed bit:fixed(1) | long packet type:initial(00) --> 1100 --> C)
    if ((packet0 & 0xF0) == 0xC0)
    {
+      is_version2 = false;
       return true;
    }
    // version 2 (header form:long header(1) | fixed bit:fixed(1) | long packet type:initial(01) --> 1101 --> D)
@@ -1242,15 +1251,23 @@ bool QUICPlugin::quic_check_initial(uint8_t packet0)
       return true;
    }
    else
+   {
       return false;
+   }
+      
 }
 
 
 bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
 {
    
-   memset(decrypted_payload,0,1500);
-   memset(assembled_payload,0,1500);
+
+   // buffer for decrypted payload
+   memset(decrypted_payload,0,CURRENT_BUFFER_SIZE);
+   //buffer for reassembled payload
+   memset(assembled_payload,0,CURRENT_BUFFER_SIZE);
+   // buffer for raw data (quic content copied here)
+   memset(tmp_packet_mem,0,CURRENT_BUFFER_SIZE);
 
    // check if packet contains LONG HEADER and is of type INITIAL
    if (pkt.ip_proto != 17 || !quic_check_initial(pkt.payload[0])) {
@@ -1261,6 +1278,7 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
    // check port a.k.a direction, Server side does not contain ClientHello packets so neither SNI, but implemented for future expansion
    if (pkt.dst_port == 443) {
       if (!quic_parse_data(pkt,quic_data)) {
+         DEBUG_MSG("Error, parsing failed\n");
          return false;
       }
       if (!quic_create_initial_secrets(CommSide::CLIENT_IN)) {
@@ -1314,7 +1332,8 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
       else {
          return true;
       }*/
-      return true;
+      DEBUG_MSG("Server side packet\n");
+      return false;
    }
    return false;
 } // QUICPlugin::process_quic

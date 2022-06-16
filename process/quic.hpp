@@ -97,6 +97,9 @@ UR_FIELDS(
 #define quic_serverIn_hkdf      sizeof("tls13 server in") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t)
 
 
+#define CURRENT_BUFFER_SIZE     1500
+
+
 // Frame types which can occure in Initial packets
 // https://www.rfc-editor.org/rfc/rfc9000.html#name-frame-types
 #define CRYPTO 0x06
@@ -296,8 +299,11 @@ private:
    uint8_t *sample;
 
    // final decrypted payload
-   uint8_t decrypted_payload[1500];
-   uint8_t assembled_payload[1500];
+   uint8_t decrypted_payload[CURRENT_BUFFER_SIZE];
+   uint8_t assembled_payload[CURRENT_BUFFER_SIZE];
+   
+   
+   uint8_t tmp_packet_mem[CURRENT_BUFFER_SIZE];
    uint8_t *final_payload;
 
 
