@@ -381,7 +381,7 @@ namespace ipxp {
             register_option("p",
                             "path",
                             "PATH",
-                            "Path to RandomForest model to load.",
+                            "Path to AdaBoost model to load.",
                             [this](const char* arg){model_path_ = arg; return true;},
                             RequiredArgument);
         }
@@ -395,9 +395,10 @@ namespace ipxp {
     class FlexprobeEncryptionProcessing : public ProcessPlugin
     {
     private:
-//        mlpack::tree::RandomForest<> clf_;
         mlpack::adaboost::AdaBoost<mlpack::tree::DecisionTree<>> clf_;
         const std::array<size_t, 2> pi_pattern_lengths;
+
+        static constexpr auto ENCRYPTED_THRESHOLD = 66;
 
         enum Scores {
             KNOWN_PATTERN_FOUND = 5,

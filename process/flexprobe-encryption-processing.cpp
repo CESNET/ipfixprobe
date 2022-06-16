@@ -212,7 +212,7 @@ namespace ipxp {
 #ifndef NDEBUG
             std::cout << "[" << __PRETTY_FUNCTION__ << "]: " << "Final score " << encr_score << std::endl;
 #endif
-            encr_data->classification_result = encr_score > 66;
+            encr_data->classification_result = encr_score > ENCRYPTED_THRESHOLD;
         }
     }
 }
