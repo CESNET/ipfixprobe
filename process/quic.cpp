@@ -1198,6 +1198,9 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt,RecordExtQUIC * rec)
 
    // same as token length, payload length has variable length, after this offset should point to the packet number
    payload_len = quic_get_variable_length(tmp_pointer,offset);
+   if (payload_len > CURRENT_BUFFER_SIZE) {
+      return false;
+   }
 
    if ((tmp_pointer + offset) > payload_end) {
       return false;
