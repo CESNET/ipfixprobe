@@ -360,19 +360,17 @@ if [[ -z "$WITH_FLEXPROBE_TRUE" ]]; then
    PKG_CHECK_MODULES([MLPACK], [mlpack],
                      [
                         withflexprobeencr="yes"
-                        AM_CONDITIONAL([HAS_MLPACK], [true])
                         AC_DEFINE([HAS_MLPACK], [1], [Define 1 to allow for encryption detection to be performed])
                         CFLAGS="$MLPACK_CFLAGS $CFLAGS"
                         CXXFLAGS="$MLPACK_CXXFLAGS $CXXFLAGS"
                         LIBS="$MLPACK_LIBS $LIBS"
                      ],
                      [
-                        withflexprobeencr="no (mlpack not present)"
-                        AM_CONDITIONAL([HAS_MLPACK], [false])
+                        withflexprobeencr="no"
                      ]
    )
 fi
-
+AM_CONDITIONAL([HAS_MLPACK], [test x${withflexprobeencr} = xyes])
 AC_ARG_WITH([stem],
          AC_HELP_STRING([--with-stem], [Compile with FlexProbe StEm testing interface]),
          [
