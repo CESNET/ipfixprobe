@@ -366,7 +366,10 @@ if [[ -z "$WITH_FLEXPROBE_TRUE" ]]; then
                         CXXFLAGS="$MLPACK_CXXFLAGS $CXXFLAGS"
                         LIBS="$MLPACK_LIBS $LIBS"
                      ],
-                     [withflexprobeencr="no (mlpack not present)"]
+                     [
+                        withflexprobeencr="no (mlpack not present)"
+                        AM_CONDITIONAL([HAS_MLPACK], [false])
+                     ]
    )
 fi
 
