@@ -47,10 +47,6 @@
 #include <iostream>
 #include <sys/types.h>
 
-#ifdef WITH_PCAP
-#include <pcap/sll.h>
-#endif /* WITH_PCAP */
-
 #include "parser.hpp"
 #include "headers.hpp"
 #include <ipfixprobe/packet.hpp>
@@ -178,6 +174,39 @@ inline uint16_t parse_sll(const u_char *data_ptr, uint16_t data_len, Packet *pkt
    pkt->ethertype = ntohs(sll->sll_protocol);
    return sizeof(struct sll_header);
 }
+
+# ifdef DLT_LINUX_SLL2
+inline uint16_t parse_sll2(const u_char *data_ptr, uint16_t data_len, Packet *pkt)
+{
+   struct sll2_header *sll = (struct sll2_header *) data_ptr;
+   if (sizeof(struct sll2_header) > data_len) {
+      throw "Parser detected malformed packet";
+   }
+
+   DEBUG_MSG("SLL2 header:\n");
+   DEBUG_MSG("\tPacket type:\t%u\n",  ntohs(sll->sll2_pkttype));
+   DEBUG_MSG("\tHA type:\t%u\n", ntohs(sll->sll2_hatype));
+   DEBUG_MSG("\tHA len:\t\t%u\n",  ntohs(sll->sll2_halen));
+   DEBUG_MSG("\tinterface index:\t\t%u\n",  ntohl(sll->sll2_if_index));
+   DEBUG_CODE(
+      DEBUG_MSG("\tAddress:\t");
+      for (int i = 0; i < SLL_ADDRLEN; i++) {
+         DEBUG_MSG("%02x ", sll->sll2_addr[i]);
+      }
+      DEBUG_MSG("\n");
+   );
+   DEBUG_MSG("\tProtocol:\t%u\n",     ntohs(sll->sll2_protocol));
+
+   if (ntohs(sll->sll2_hatype) == ARPHRD_ETHER) {
+      memcpy(pkt->src_mac, sll->sll2_addr, 6);
+   } else {
+      memset(pkt->src_mac, 0, sizeof(pkt->src_mac));
+   }
+   memset(pkt->dst_mac, 0, sizeof(pkt->dst_mac));
+   pkt->ethertype = ntohs(sll->sll2_protocol);
+   return sizeof(struct sll2_header);
+}
+# endif /* DLT_LINUX_SLL2 */
 #endif /* WITH_PCAP */
 
 
@@ -619,6 +648,10 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
          data_offset = parse_eth_hdr(data, caplen, pkt);
       } else if (opt->datalink == DLT_LINUX_SLL) {
             data_offset = parse_sll(data, caplen, pkt);
+   # ifdef DLT_LINUX_SLL2
+      } else if (opt->datalink == DLT_LINUX_SLL2) {
+            data_offset = parse_sll2(data, caplen, pkt);
+   # endif /* DLT_LINUX_SLL2 */
       } else if (opt->datalink == DLT_RAW) {
             if ((data[0] & 0xF0) == 0x40) {
                pkt->ethertype = ETH_P_IP;

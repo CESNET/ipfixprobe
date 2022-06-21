@@ -46,6 +46,11 @@
 
 #include <ipfixprobe/packet.hpp>
 
+#ifdef WITH_PCAP
+#include <pcap/pcap.h>
+#include <pcap/sll.h>
+#endif /* WITH_PCAP */
+
 #ifndef DLT_EN10MB
 #define DLT_EN10MB 1
 #endif
