@@ -214,7 +214,7 @@ std::string PassiveDNSPlugin::get_name(const char *data) const
       data += ((uint8_t) data[0] + 1);
    }
 
-   if (name[0] == '.') {
+   if (name.length() > 0 && name[0] == '.') {
       name.erase(0, 1);
    }
 
@@ -433,7 +433,7 @@ bool PassiveDNSPlugin::process_ptr_record(std::string name, RecordExtPassiveDNS 
 {
    memset(&rec->ip, 0, sizeof(rec->ip));
 
-   if (name[name.length() - 1] == '.') {
+   if (name.length() > 0 && name[name.length() - 1] == '.') {
       name.erase(name.length() - 1);
    }
 
@@ -446,7 +446,7 @@ bool PassiveDNSPlugin::process_ptr_record(std::string name, RecordExtPassiveDNS 
    size_t type_pos = name.find(type_str);
    size_t begin = 0, end = 0, cnt = 0;
    uint8_t *ip;
-   if (type_pos + type_str.length() == name.length()) {
+   if (type_pos != std::string::npos && type_pos + type_str.length() == name.length()) {
       // IPv4
       name.erase(type_pos);
       rec->ip_version = IP::v4;
@@ -471,7 +471,7 @@ bool PassiveDNSPlugin::process_ptr_record(std::string name, RecordExtPassiveDNS 
    } else {
       type_str = ".ip6.arpa";
       type_pos = name.find(type_str);
-      if (type_pos + type_str.length() == name.length()) {
+      if (type_pos != std::string::npos && type_pos + type_str.length() == name.length()) {
          // IPv6
          name.erase(type_pos);
          rec->ip_version = IP::v6;

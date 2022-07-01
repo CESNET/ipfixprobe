@@ -84,8 +84,16 @@ bool str2bool(std::string str)
 
 void trim_str(std::string &str)
 {
-   str.erase(0, str.find_first_not_of(" \t\n\r"));
-   str.erase(str.find_last_not_of(" \t\n\r") + 1);
+  // when std::string::npos returned by find
+  // string.erase() will remove all characters till end
+  // https://cplusplus.com/reference/string/string/erase/
+  if (str.length() > 0) {
+    str.erase(0, str.find_first_not_of(" \t\n\r"));
+    size_t pos = str.find_last_not_of(" \t\n\r");
+    if (pos != std::string::npos) {
+      str.erase(str.find_last_not_of(" \t\n\r") + 1);
+    }
+  }
 }
 
 void phton64(uint8_t *p, uint64_t v)
