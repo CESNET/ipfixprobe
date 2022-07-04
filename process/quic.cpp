@@ -155,7 +155,6 @@ QUICPlugin::QUICPlugin()
    quic_ptr = nullptr;
 
 
-   can_parse = false;
 
    is_version2 = false;
 
@@ -531,9 +530,19 @@ bool QUICPlugin::quic_derive_secrets(uint8_t *secret)
 
 
    // expand label for other initial secrets
-   expand_label("tls13 ", "quic key", NULL, 0, 16, quic_key, len_quic_key);
-   expand_label("tls13 ", "quic iv", NULL, 0, 12, quic_iv, len_quic_iv);
-   expand_label("tls13 ", "quic hp", NULL, 0, 16, quic_hp, len_quic_hp);
+   if(!is_version2)
+   {
+      expand_label("tls13 ", "quic key", NULL, 0, 16, quic_key, len_quic_key);
+      expand_label("tls13 ", "quic iv", NULL, 0, 12, quic_iv, len_quic_iv);
+      expand_label("tls13 ", "quic hp", NULL, 0, 16, quic_hp, len_quic_hp);
+   }
+   else if (is_version2)
+   {
+      expand_label("tls13 ", "quicv2 key", NULL, 0, 16, quic_key, len_quic_key);
+      expand_label("tls13 ", "quicv2 iv", NULL, 0, 12, quic_iv, len_quic_iv);
+      expand_label("tls13 ", "quicv2 hp", NULL, 0, 16, quic_hp, len_quic_hp);
+   }
+
 
 
    // use HKDF-Expand to derive other secrets
@@ -1008,7 +1017,7 @@ bool QUICPlugin::handle_version(RecordExtQUIC * rec)
    uint32_t version = quic_h1->version;
    version = ntohl(version);
    rec->quic_version = version;
-   DEBUG_MSG("version %d\n",version);
+   DEBUG_MSG("version %02x\n",version);
 
 
 
@@ -1072,30 +1081,22 @@ static const uint8_t hanshake_salt_draft_t51[SALT_LENGTH] = {
 if (version == 0x00000000) {
    DEBUG_MSG("Error, version negotiation\n");
    return false;
-} else if (version == 0x00000001 && !is_version2){
+} else if (!is_version2 && version == 0x00000001){
    salt = handshake_salt_v1;
-   can_parse = true;
-} else if (quic_check_version(version, 9)  && !is_version2) {
+} else if (!is_version2 && quic_check_version(version, 9)) {
    salt = handshake_salt_draft_7;
-   can_parse = true;
-} else if (quic_check_version(version, 16)  && !is_version2) {
+} else if (!is_version2 && quic_check_version(version, 16)) {
    salt = handshake_salt_draft_10;
-   can_parse = true;
-} else if (quic_check_version(version, 20)  && !is_version2) {
+} else if (!is_version2 && quic_check_version(version, 20)) {
    salt = handshake_salt_draft_17;
-   can_parse = true;
-} else if (quic_check_version(version, 22)  && !is_version2) {
+} else if (!is_version2 && quic_check_version(version, 22)) {
    salt = handshake_salt_draft_21;
-   can_parse = true;
-} else if (quic_check_version(version, 28)  && !is_version2) {
+} else if (!is_version2 && quic_check_version(version, 28)) {
    salt = handshake_salt_draft_23;
-   can_parse = true;
-} else if (quic_check_version(version, 32)  && !is_version2) {
+} else if (!is_version2 && quic_check_version(version, 32)) {
    salt = handshake_salt_draft_29;
-   can_parse = true;
-} else if (quic_check_version(version, 100)  && is_version2) {
+} else if (is_version2 && quic_check_version(version, 100)) {
    salt = handshake_salt_v2;
-   can_parse = true;
 } else {
    DEBUG_MSG("Error, version not supported\n");
    return false;
@@ -1249,6 +1250,7 @@ bool QUICPlugin::quic_check_initial(uint8_t packet0)
    }
    else
    {
+      // udp does not carry quic initial version 1 or version 2
       return false;
    }
       
@@ -1290,12 +1292,12 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
          DEBUG_MSG("Error, payload decryption failed (client side)\n");
          return false;
       }
-      if (can_parse && !quic_assemble())
+      if (!quic_assemble())
       {
          DEBUG_MSG("Error, reassembling of crypto frames failed (client side)\n");
          return false;
       }
-      if (can_parse && !parse_tls(quic_data))
+      if (!parse_tls(quic_data))
       {
          DEBUG_MSG("SNI and User Agent Extraction failed\n");
          return false;

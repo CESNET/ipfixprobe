@@ -317,7 +317,6 @@ private:
    Initial_Secrets initial_secrets;
 
 
-   bool can_parse;
    bool is_version2;
 };
 
