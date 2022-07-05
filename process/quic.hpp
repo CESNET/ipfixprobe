@@ -98,6 +98,11 @@ UR_FIELDS(
 
 
 #define CURRENT_BUFFER_SIZE     1500
+// first byte (1) + version (4) + dcid length (1) + dcid (20) + scid length (1) + scid (20) + 
+// token length (variable so max is 8) + token (idk) + length (max 8) + pkt number (4)  
+// cant figure out if token length has any boundaries, teoretically 8 byte version of token length
+// means 2^64 as max length
+#define MAX_HEADER_LEN          1 + 4 + 1 + 20 + 1 + 20 + 8 + 100 + 8 + 4
 
 
 // Frame types which can occure in Initial packets
@@ -303,7 +308,9 @@ private:
    uint8_t assembled_payload[CURRENT_BUFFER_SIZE];
    
    
-   uint8_t tmp_packet_mem[CURRENT_BUFFER_SIZE];
+
+   uint8_t tmp_header_mem[MAX_HEADER_LEN];
+
    uint8_t *final_payload;
 
 

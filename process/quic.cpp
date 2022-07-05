@@ -771,6 +771,26 @@ bool QUICPlugin::quic_decrypt_header()
    first_byte ^= mask[0] & 0x0f;
    uint8_t pkn_len = (first_byte & 0x03) + 1;
 
+   // after de-obfuscating pkn, we know exactly pkn length so we can correctly adjust start of payload
+   DEBUG_MSG("PPKN LEN %d\n",pkn_len);
+   payload     = payload + pkn_len;
+   payload_len = payload_len - pkn_len;
+   DEBUG_MSG("PAYLOAD LEN %d\n",payload_len);
+
+
+   // SET HEADER LENGTH, if header length is set incorrectly AEAD will calculate wrong tag, so decryption will fail
+   header_len = payload - header;
+
+   if(header_len > MAX_HEADER_LEN)
+   {
+      DEBUG_MSG("Header length too long\n");
+      return false;
+   }
+
+   memcpy(tmp_header_mem,header, header_len);
+   header = tmp_header_mem;
+
+
    // set deobfuscated first byte
    header[0] = first_byte;
 
@@ -783,17 +803,6 @@ bool QUICPlugin::quic_decrypt_header()
    for (unsigned int i = 0; i < pkn_len; i++) {
       packet_number |= (full_pkn[i] ^ mask[1 + i]) << (8 * (pkn_len - 1 - i));
    }
-
-
-   // after de-obfuscating pkn, we know exactly pkn length so we can correctly adjust start of payload
-   DEBUG_MSG("PPKN LEN %d\n",pkn_len);
-   payload     = payload + pkn_len;
-   payload_len = payload_len - pkn_len;
-
-   DEBUG_MSG("PAYLOAD LEN %d\n",payload_len);
-
-   // SET HEADER LENGTH, if header length is set incorrectly AEAD will calculate wrong tag, so decryption will fail
-   header_len = payload - header;
 
    // set decrypted packet number
    for (unsigned i = 0; i < pkn_len; i++) {
@@ -1114,17 +1123,16 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt,RecordExtQUIC * rec)
       return false;
    }
 
-
-   memcpy(tmp_packet_mem,pkt.payload,sizeof(uint8_t) * pkt.payload_len);   
-   uint8_t *tmp_pointer       = tmp_packet_mem;
+  
+   uint8_t *tmp_pointer       = pkt.payload;
    
    uint64_t offset = 0;
-   const uint8_t *payload_end = (uint8_t *) tmp_packet_mem + pkt.payload_len;
+   const uint8_t *payload_end = (uint8_t *) pkt.payload + pkt.payload_len;
 
    
    
    // set header pointer to the start of header
-   header = tmp_packet_mem;
+   header = pkt.payload;
    
    
    
@@ -1189,7 +1197,7 @@ bool QUICPlugin::quic_parse_data(const Packet &pkt,RecordExtQUIC * rec)
       return false;
    }
    
-   // after this offset should point after the token
+   // after this, offset should point after the token
    offset += token_length;
 
    if ((tmp_pointer + offset) > payload_end) {
@@ -1269,7 +1277,7 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
    //buffer for reassembled payload
    memset(assembled_payload,0,CURRENT_BUFFER_SIZE);
    // buffer for raw data (quic content copied here)
-   memset(tmp_packet_mem,0,CURRENT_BUFFER_SIZE);
+   memset(tmp_header_mem,0,MAX_HEADER_LEN);
 
    // check if packet contains LONG HEADER and is of type INITIAL
    if (pkt.ip_proto != 17 || !quic_check_initial(pkt.payload[0])) {
