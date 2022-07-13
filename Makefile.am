@@ -127,7 +127,9 @@ ipfixprobe_process_src=\
 if WITH_QUIC
 ipfixprobe_process_src+=\
 		process/quic.hpp \
-		process/quic.cpp
+		process/quic.cpp \
+		process/quic_implementation.cpp \
+		process/quic_implementation.hpp
 endif
 
 if WITH_FLEXPROBE
