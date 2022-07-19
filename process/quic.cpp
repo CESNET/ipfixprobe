@@ -42,22 +42,25 @@
  */
 
 #ifdef WITH_NEMEA
-#include <unirec/unirec.h>
+# include <unirec/unirec.h>
 #endif
 
 
 #include "quic.hpp"
 
 namespace ipxp {
-
 int RecordExtQUIC::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
-   static PluginRecord rec = PluginRecord("quic", [](){return new QUICPlugin();});
+   static PluginRecord rec = PluginRecord("quic", [](){
+         return new QUICPlugin();
+      });
+
    register_plugin(&rec);
    RecordExtQUIC::REGISTERED_ID = register_extension();
 }
+
 QUICPlugin::QUICPlugin()
 {
    quic_ptr = nullptr;
@@ -69,8 +72,7 @@ QUICPlugin::~QUICPlugin()
 }
 
 void QUICPlugin::init(const char *params)
-{
-}
+{ }
 
 void QUICPlugin::close()
 {
@@ -87,15 +89,11 @@ ProcessPlugin *QUICPlugin::copy()
 
 bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
 {
-   
    QUICParser process_quic;
 
-   if (!process_quic.quic_start(pkt))
-   {
+   if (!process_quic.quic_start(pkt)) {
       return false;
-   }
-   else
-   {
+   } else   {
       process_quic.quic_get_sni(quic_data->sni);
       process_quic.quic_get_user_agent(quic_data->user_agent);
       process_quic.quic_get_version(quic_data->quic_version);
@@ -104,7 +102,7 @@ bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
 } // QUICPlugin::process_quic
 
 int QUICPlugin::pre_create(Packet &pkt)
-{  
+{
    return 0;
 }
 
@@ -150,5 +148,4 @@ void QUICPlugin::finish(bool print_stats)
       std::cout << "   Parsed SNI: " << parsed_initial << std::endl;
    }
 }
-
 }

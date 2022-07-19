@@ -53,16 +53,17 @@
 #include "md5.hpp"
 
 namespace ipxp {
-
 int RecordExtTLS::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
-   static PluginRecord rec = PluginRecord("tls", [](){return new TLSPlugin();});
+   static PluginRecord rec = PluginRecord("tls", [](){
+         return new TLSPlugin();
+      });
+
    register_plugin(&rec);
    RecordExtTLS::REGISTERED_ID = register_extension();
 }
-
 
 // Print debug message if debugging is allowed.
 #ifdef DEBUG_TLS
@@ -79,8 +80,7 @@ __attribute__((constructor)) static void register_this_plugin()
 #endif
 
 TLSPlugin::TLSPlugin() : ext_ptr(nullptr), parsed_sni(0), flow_flush(false)
-{
-}
+{ }
 
 TLSPlugin::~TLSPlugin()
 {
@@ -88,8 +88,7 @@ TLSPlugin::~TLSPlugin()
 }
 
 void TLSPlugin::init(const char *params)
-{
-}
+{ }
 
 void TLSPlugin::close()
 {
@@ -126,8 +125,7 @@ int TLSPlugin::pre_update(Flow &rec, Packet &pkt)
    return 0;
 }
 
-
-bool TLSPlugin::obtain_tls_data(TLSData &payload,RecordExtTLS *rec,std::string &ja3,uint8_t hs_type)
+bool TLSPlugin::obtain_tls_data(TLSData &payload, RecordExtTLS *rec, std::string &ja3, uint8_t hs_type)
 {
    std::string ecliptic_curves;
    std::string ec_point_formats;
@@ -151,9 +149,9 @@ bool TLSPlugin::obtain_tls_data(TLSData &payload,RecordExtTLS *rec,std::string &
          } else if (type == TLS_EXT_EC_POINT_FORMATS) {
             ec_point_formats = tls_parser.tls_get_ja3_ec_point_formats(payload);
          }
-      } else if (hs_type == TLS_HANDSHAKE_SERVER_HELLO){
+      } else if (hs_type == TLS_HANDSHAKE_SERVER_HELLO) {
          if (type == TLS_EXT_ALPN) {
-            tls_parser.tls_get_alpn(payload, rec->alpn,BUFF_SIZE);
+            tls_parser.tls_get_alpn(payload, rec->alpn, BUFF_SIZE);
             return true;
          }
       }
@@ -172,69 +170,58 @@ bool TLSPlugin::obtain_tls_data(TLSData &payload,RecordExtTLS *rec,std::string &
    ja3 += ',' + ecliptic_curves + ',' + ec_point_formats;
    md5_get_bin(ja3, rec->ja3_hash_bin);
    return true;
-
-}
+} // TLSPlugin::obtain_tls_data
 
 bool TLSPlugin::parse_tls(const uint8_t *data, uint16_t payload_len, RecordExtTLS *rec)
 {
    TLSData payload = {
-        payload.start = data,
-        payload.end = data + payload_len,
-        payload.obejcts_parsed = 0,
+      payload.start = data,
+      payload.end   = data + payload_len,
+      payload.obejcts_parsed = 0,
    };
    std::string ja3;
 
 
-   if(!tls_parser.tls_check_rec(payload))
-   {
+   if (!tls_parser.tls_check_rec(payload)) {
       return false;
    }
-   if(!tls_parser.tls_check_handshake(payload))
-   {
+   if (!tls_parser.tls_check_handshake(payload)) {
       return false;
    }
    tls_handshake tls_hs = tls_parser.tls_get_handshake();
+
    rec->version = ((uint16_t) tls_hs.version.major << 8) | tls_hs.version.minor;
    ja3 += std::to_string((uint16_t) tls_hs.version.version) + ',';
 
-   if(!tls_parser.tls_skip_random(payload))
-   {
+   if (!tls_parser.tls_skip_random(payload)) {
       return false;
    }
-   if(!tls_parser.tls_skip_sessid(payload))
-   {
+   if (!tls_parser.tls_skip_sessid(payload)) {
       return false;
    }
 
    if (tls_hs.type == TLS_HANDSHAKE_CLIENT_HELLO) {
-      if(!tls_parser.tls_get_ja3_cipher_suites(ja3, payload))
-      {
+      if (!tls_parser.tls_get_ja3_cipher_suites(ja3, payload)) {
          return false;
       }
-      if(!tls_parser.tls_skip_compression_met(payload))
-      {
+      if (!tls_parser.tls_skip_compression_met(payload)) {
          return false;
       }
    } else if (tls_hs.type == TLS_HANDSHAKE_SERVER_HELLO) {
       payload.start += 2; // Skip cipher suite
       payload.start += 1; // Skip compression method
-   }
-   else
-   {
+   } else   {
       return false;
    }
-   if(!tls_parser.tls_check_ext_len(payload))
-   {
+   if (!tls_parser.tls_check_ext_len(payload)) {
       return false;
    }
-   if(!obtain_tls_data(payload,rec,ja3,tls_hs.type))
-   {
+   if (!obtain_tls_data(payload, rec, ja3, tls_hs.type)) {
       return false;
    }
    parsed_sni = payload.obejcts_parsed;
    return payload.obejcts_parsed != 0 || !ja3.empty();
 } // TLSPlugin::parse_sni
-
 
 void TLSPlugin::add_tls_record(Flow &rec, const Packet &pkt)
 {
@@ -243,9 +230,10 @@ void TLSPlugin::add_tls_record(Flow &rec, const Packet &pkt)
    }
 
    if (parse_tls(pkt.payload, pkt.payload_len, ext_ptr)) {
-      DEBUG_CODE(for(int i = 0; i < 16; i++){
-       DEBUG_MSG("%02x", ext_ptr->ja3_hash_bin[i]);
-      })
+      DEBUG_CODE(for (int i = 0; i < 16; i++) {
+            DEBUG_MSG("%02x", ext_ptr->ja3_hash_bin[i]);
+         }
+      )
       DEBUG_MSG("\n");
       DEBUG_MSG("%s\n", ext_ptr->sni);
       DEBUG_MSG("%s\n", ext_ptr->alpn);
@@ -261,5 +249,4 @@ void TLSPlugin::finish(bool print_stats)
       std::cout << "   Parsed SNI: " << parsed_sni << std::endl;
    }
 }
-
 }

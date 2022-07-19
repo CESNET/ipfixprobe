@@ -45,9 +45,8 @@
 #define IPXP_PROCESS_QUIC_HPP
 
 
-
 #ifdef WITH_NEMEA
-#include "fields.h"
+# include "fields.h"
 #endif
 
 
@@ -58,7 +57,6 @@
 
 
 namespace ipxp {
-
 #define QUIC_UNIREC_TEMPLATE "QUIC_SNI,QUIC_USER_AGENT,QUIC_VERSION"
 UR_FIELDS(
    string QUIC_SNI,
@@ -71,15 +69,15 @@ UR_FIELDS(
  */
 struct RecordExtQUIC : public RecordExt {
    static int REGISTERED_ID;
-   char sni[BUFF_SIZE]  = { 0 };
-   char user_agent[BUFF_SIZE]  = { 0 };
-   uint32_t quic_version;
+   char       sni[BUFF_SIZE]        = { 0 };
+   char       user_agent[BUFF_SIZE] = { 0 };
+   uint32_t   quic_version;
 
    RecordExtQUIC() : RecordExt(REGISTERED_ID)
    {
-      sni[0] = 0;
+      sni[0]        = 0;
       user_agent[0] = 0;
-      quic_version = 0;
+      quic_version  = 0;
    }
 
    #ifdef WITH_NEMEA
@@ -94,22 +92,23 @@ struct RecordExtQUIC : public RecordExt {
    {
       return QUIC_UNIREC_TEMPLATE;
    }
-   #endif
+
+   #endif // ifdef WITH_NEMEA
 
    virtual int fill_ipfix(uint8_t *buffer, int size)
    {
-      uint16_t len_sni = strlen(sni);
+      uint16_t len_sni        = strlen(sni);
       uint16_t len_user_agent = strlen(user_agent);
-      uint16_t len_version = sizeof(quic_version);
+      uint16_t len_version    = sizeof(quic_version);
       int pos = 0;
 
       if ((len_sni + 3) + (len_user_agent + 3) + len_version > size) {
          return -1;
       }
 
-      pos += variable2ipfix_buffer(buffer + pos, (uint8_t*) sni, len_sni);
-      pos += variable2ipfix_buffer(buffer + pos, (uint8_t*) user_agent, len_user_agent);
-      *(uint32_t *)(buffer + pos) = htonl(quic_version);
+      pos += variable2ipfix_buffer(buffer + pos, (uint8_t *) sni, len_sni);
+      pos += variable2ipfix_buffer(buffer + pos, (uint8_t *) user_agent, len_user_agent);
+      *(uint32_t *) (buffer + pos) = htonl(quic_version);
       pos += len_version;
       return pos;
    }
@@ -120,13 +119,16 @@ struct RecordExtQUIC : public RecordExt {
          IPFIX_QUIC_TEMPLATE(IPFIX_FIELD_NAMES)
          nullptr
       };
+
       return ipfix_template;
    }
 
    std::string get_text() const
    {
       std::ostringstream out;
-      out << "quicsni=\"" << sni << "\"" << "quicuseragent=\"" << user_agent << "\"" << "quicversion=\"" << quic_version << "\"";
+
+      out << "quicsni=\"" << sni << "\"" << "quicuseragent=\"" << user_agent << "\"" << "quicversion=\"" <<
+           quic_version << "\"";
       return out.str();
    }
 };
@@ -142,8 +144,11 @@ public:
    void init(const char *params);
    void close();
    RecordExt *get_ext() const { return new RecordExtQUIC(); }
+
    OptionsParser *get_parser() const { return new OptionsParser("quic", "Parse QUIC traffic"); }
+
    std::string get_name() const { return "quic"; }
+
    ProcessPlugin *copy();
 
    int pre_create(Packet &pkt);
@@ -158,6 +163,5 @@ private:
    int parsed_initial;
    RecordExtQUIC *quic_ptr;
 };
-
 }
 #endif /* IPXP_PROCESS_QUIC_HPP */
