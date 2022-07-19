@@ -1,3 +1,16 @@
+/* SPDX-License-Identifier: BSD-3-Clause
+ * Copyright (C) 2022, CESNET z.s.p.o.
+ */
+
+/**
+ * \file quic_parser.cpp
+ * \brief Class for parsing quic traffic.
+ * \author Andrej Lukacovic lukacan1@fit.cvut.cz
+ * \author Karel Hynek <Karel.Hynek@cesnet.cz>
+ * \date 2022
+ */
+
+
 #include "quic_parser.hpp"
 
 // #include "quic_variable_length.cpp"

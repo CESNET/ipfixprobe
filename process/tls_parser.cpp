@@ -1,3 +1,15 @@
+/* SPDX-License-Identifier: BSD-3-Clause
+ * Copyright (C) 2022, CESNET z.s.p.o.
+ */
+
+/**
+ * \file tls_parser.cpp
+ * \brief Class for parsing TLS traffic.
+ * \author Andrej Lukacovic lukacan1@fit.cvut.cz
+ * \author Karel Hynek <Karel.Hynek@cesnet.cz>
+ * \date 2022
+ */
+
 #include "tls_parser.hpp"
 
 namespace ipxp {
