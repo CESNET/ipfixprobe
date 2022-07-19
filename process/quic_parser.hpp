@@ -100,7 +100,7 @@ private:
    bool     quic_check_initial(uint8_t);
    bool     quic_parse_header(const Packet&);
    bool     quic_create_initial_secrets();
-   bool     quic_decrypt_header();
+   bool     quic_decrypt_header(const Packet & );
    bool     quic_decrypt_payload();
    bool     quic_reassemble_frames();
    bool     quic_parse_tls();
@@ -114,9 +114,9 @@ private:
    void     quic_copy_crypto(uint8_t *, uint64_t&);
    bool     quic_encrypt_sample(uint8_t *);
    uint8_t  quic_draft_version(uint32_t);
-   uint64_t quic_get_variable_length(uint8_t *, uint64_t&);
+   uint64_t quic_get_variable_length(const uint8_t *, uint64_t&);
    bool     quic_check_version(uint32_t, uint8_t);
-   bool     quic_check_pointer_pos(uint8_t *, uint8_t *);
+   bool     quic_check_pointer_pos(const uint8_t *, const uint8_t *);
    bool     quic_obtain_tls_data(TLSData &);
 
    Initial_Secrets initial_secrets;
@@ -127,14 +127,14 @@ private:
    const uint8_t *salt;
 
    uint8_t *header;
-   uint8_t *payload;
+   const uint8_t *payload;
 
    uint16_t header_len;
    uint64_t payload_len;
 
-   uint8_t *dcid;
-   uint8_t *pkn;
-   uint8_t *sample;
+   const uint8_t *dcid;
+   const uint8_t *pkn;
+   const uint8_t *sample;
    uint32_t version;
 
    uint8_t decrypted_payload[CURRENT_BUFFER_SIZE];

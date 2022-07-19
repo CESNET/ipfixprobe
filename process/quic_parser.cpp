@@ -33,7 +33,6 @@ QUICParser::QUICParser()
 {
    quic_h1 = nullptr;
    quic_h2 = nullptr;
-   header  = nullptr;
    payload = nullptr;
 
    header_len  = 0;
@@ -66,7 +65,7 @@ void QUICParser::quic_get_user_agent(char *in)
    return;
 }
 
-bool QUICParser::quic_check_pointer_pos(uint8_t *current, uint8_t *end)
+bool QUICParser::quic_check_pointer_pos(const uint8_t *current, const uint8_t *end)
 {
    if (current < end)
       return true;
@@ -74,7 +73,7 @@ bool QUICParser::quic_check_pointer_pos(uint8_t *current, uint8_t *end)
    return false;
 }
 
-uint64_t QUICParser::quic_get_variable_length(uint8_t *start, uint64_t &offset)
+uint64_t QUICParser::quic_get_variable_length(const uint8_t *start, uint64_t &offset)
 {
    // find out length of parameter field (and load parameter, then move offset) , defined in:
    // https://www.rfc-editor.org/rfc/rfc9000.html#name-summary-of-integer-encoding
@@ -84,28 +83,24 @@ uint64_t QUICParser::quic_get_variable_length(uint8_t *start, uint64_t &offset)
    uint8_t two_bits = *(start + offset) & 0xC0;
 
    switch (two_bits) {
-       case 0:
-          tmp     = *(start + offset) & 0x3F;
-          offset += sizeof(uint8_t);
-          return tmp;
-
-       case 64:
-          tmp     = be16toh(*(uint16_t *) (start + offset)) & 0x3FFF;
-          offset += sizeof(uint16_t);
-          return tmp;
-
-       case 128:
-          tmp     = be32toh(*(uint32_t *) (start + offset)) & 0x3FFFFFFF;
-          offset += sizeof(uint32_t);
-          return tmp;
-
-       case 192:
-          tmp     = be64toh(*(uint64_t *) (start + offset)) & 0x3FFFFFFFFFFFFFFF;
-          offset += sizeof(uint64_t);
-          return tmp;
-
-       default:
-          return 0;
+   case 0:
+      tmp     = *(start + offset) & 0x3F;
+      offset += sizeof(uint8_t);
+      return tmp;
+   case 64:
+      tmp     = be16toh(*(uint16_t *) (start + offset)) & 0x3FFF;
+      offset += sizeof(uint16_t);
+      return tmp;
+   case 128:
+      tmp     = be32toh(*(uint32_t *) (start + offset)) & 0x3FFFFFFF;
+      offset += sizeof(uint32_t);
+      return tmp;
+   case 192:
+      tmp     = be64toh(*(uint64_t *) (start + offset)) & 0x3FFFFFFFFFFFFFFF;
+      offset += sizeof(uint64_t);
+      return tmp;
+   default:
+      return 0;
    }
 } // QUICParser::quic_get_variable_length
 
@@ -124,10 +119,10 @@ bool QUICParser::quic_obtain_tls_data(TLSData &payload)
 
       if (type == TLS_EXT_SERVER_NAME && length != 0) {
          tls_parser.tls_get_server_name(payload, sni, BUFF_SIZE);
-      } else if ((type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1 ||
-        type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS ||
-        type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2) &&
-        length != 0) {
+      } else if ((type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1 
+         || type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS 
+         || type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2) 
+         && length != 0) {
          tls_parser.tls_get_quic_user_agent(payload, user_agent, BUFF_SIZE);
       }
       payload.start += length;
@@ -174,26 +169,24 @@ uint8_t QUICParser::quic_draft_version(uint32_t version)
       return (uint8_t) version;
    }
    switch (version) {
-       // older mvfst version, but still used, based on draft 22, but salt 21 used
-       case (faceebook1):
-          return 22;
+   // older mvfst version, but still used, based on draft 22, but salt 21 used
+   case (faceebook1):
+      return 22;
+   // more used atm, salt 23 used
+   case faceebook2:
+   case facebook_experimental:
+      return 27;
+   case (force_ver_neg_pattern & 0x0F0F0F0F):
+      return 29;
 
-       // more used atm, salt 23 used
-       case faceebook2:
-       case facebook_experimental:
-          return 27;
+   // version 2 draft 00
+   case q_version2_draft00:
+   // newest
+   case q_version2_newest:
+      return 100;
 
-       case (force_ver_neg_pattern & 0x0F0F0F0F):
-          return 29;
-
-       // version 2 draft 00
-       case q_version2_draft00:
-       // newest
-       case q_version2_newest:
-          return 100;
-
-       default:
-          return 255;
+   default:
+      return 255;
    }
 }
 
@@ -526,7 +519,7 @@ bool QUICParser::quic_encrypt_sample(uint8_t *plaintext)
    return true;
 }
 
-bool QUICParser::quic_decrypt_header()
+bool QUICParser::quic_decrypt_header(const Packet & pkt)
 {
    uint8_t plaintext[SAMPLE_LENGTH];
    uint8_t mask[5]        = { 0 };
@@ -562,13 +555,13 @@ bool QUICParser::quic_decrypt_header()
    // after de-obfuscating pkn, we know exactly pkn length so we can correctly adjust start of payload
    payload     = payload + pkn_len;
    payload_len = payload_len - pkn_len;
-   header_len  = payload - header;
+   header_len  = payload - pkt.payload;
    if (header_len > MAX_HEADER_LEN) {
       DEBUG_MSG("Header length too long\n");
       return false;
    }
 
-   memcpy(tmp_header_mem, header, header_len);
+   memcpy(tmp_header_mem, pkt.payload, header_len);
    header = tmp_header_mem;
 
    header[0] = first_byte;
@@ -809,12 +802,10 @@ bool QUICParser::quic_initial_checks(const Packet&pkt)
 
 bool QUICParser::quic_parse_header(const Packet & pkt)
 {
-   uint8_t *payload_pointer = (uint8_t *) pkt.payload;
+   const uint8_t *payload_pointer = pkt.payload;
    uint64_t offset = 0;
 
-   uint8_t *payload_end = payload_pointer + pkt.payload_len;
-
-   header = payload_pointer;
+   const uint8_t *payload_end = payload_pointer + pkt.payload_len;
 
    quic_h1 = (quic_first_ver_dcidlen *) (payload_pointer + offset);
 
@@ -907,7 +898,7 @@ bool QUICParser::quic_start(const Packet& pkt)
       DEBUG_MSG("Error, creation of initial secrets failed (client side)\n");
       return false;
    }
-   if (!quic_decrypt_header()) {
+   if (!quic_decrypt_header(pkt)) {
       DEBUG_MSG("Error, header decryption failed (client side)\n");
       return false;
    }
