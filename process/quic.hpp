@@ -51,20 +51,20 @@
 #endif
 
 
-#include "quic_implementation.hpp"
+#include "quic_parser.hpp"
+#include <ipfixprobe/utils.hpp>
+#include <ipfixprobe/ipfix-elements.hpp>
+#include <sstream>
 
 
 namespace ipxp {
 
 #define QUIC_UNIREC_TEMPLATE "QUIC_SNI,QUIC_USER_AGENT,QUIC_VERSION"
-
-
 UR_FIELDS(
    string QUIC_SNI,
    string QUIC_USER_AGENT,
    uint32 QUIC_VERSION
 )
-
 
 /**
  * \brief Flow record extension header for storing parsed QUIC packets.

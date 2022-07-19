@@ -61,6 +61,12 @@
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/utils.hpp>
+#include <process/tls_parser.hpp>
+
+
+
+
+#define BUFF_SIZE 255
 
 namespace ipxp {
 
@@ -80,10 +86,10 @@ struct RecordExtTLS : public RecordExt {
    static int REGISTERED_ID;
 
    uint16_t version;
-   char alpn[255];
-   char sni[255];
-   char ja3_hash[33];
-   uint8_t ja3_hash_bin[16];
+   char alpn[BUFF_SIZE] = {0};
+   char sni[BUFF_SIZE] = {0};
+   char ja3_hash[33] = {0};
+   uint8_t ja3_hash_bin[16] = {0};
    std::string ja3;
 
    /**
@@ -159,59 +165,16 @@ struct RecordExtTLS : public RecordExt {
 };
 
 
-struct payload_data {
-   char* data;
-   const char* end;
-   bool valid;
-   int sni_parsed;
-};
-
-union __attribute__ ((packed)) tls_version {
-   uint16_t version;
-   struct {
-      uint8_t major;
-      uint8_t minor;
-   };
-};
-
-#define TLS_HANDSHAKE 22
-struct __attribute__ ((packed)) tls_rec {
-   uint8_t type;
-   tls_version version;
-   uint16_t length;
-   /* Record data... */
-};
 
 #define TLS_HANDSHAKE_CLIENT_HELLO 1
 #define TLS_HANDSHAKE_SERVER_HELLO 2
-struct __attribute__ ((packed)) tls_handshake {
-   uint8_t type;
-   uint8_t length1; // length field is 3 bytes long...
-   uint16_t length2;
-   tls_version version;
 
-   /* Handshake data... */
-};
 
 #define TLS_EXT_SERVER_NAME 0
 #define TLS_EXT_ECLIPTIC_CURVES 10 // AKA supported_groups
 #define TLS_EXT_EC_POINT_FORMATS 11
 #define TLS_EXT_ALPN 16
 
-struct __attribute__ ((packed)) tls_ext {
-   uint16_t type;
-   uint16_t length;
-   /* Extension pecific data... */
-};
-
-struct __attribute__ ((packed)) tls_ext_sni {
-   uint8_t type;
-   uint16_t length;
-   /* Hostname bytes... */
-};
-
-void get_tls_server_name(payload_data &data, char *out, size_t bufsize);
-bool parse_tls_nonext_hdr(payload_data &payload, std::string *ja3);
 
 /**
  * \brief Flow cache plugin for parsing HTTPS packets.
@@ -233,13 +196,12 @@ public:
    void finish(bool print_stats);
 
 private:
-   void add_tls_record(Flow &rec, const Packet &pkt);
-   bool parse_tls(const char *data, uint16_t payload_len, RecordExtTLS *rec);
-   std::string get_ja3_ecpliptic_curves(payload_data &data);
-   std::string get_ja3_ec_point_formats(payload_data &data);
-   void get_alpn(payload_data &data, RecordExtTLS *rec);
+   void add_tls_record(Flow&, const Packet&);
+   bool parse_tls(const uint8_t*, uint16_t, RecordExtTLS*);
+   bool obtain_tls_data(TLSData&,RecordExtTLS*,std::string&,uint8_t);
 
    RecordExtTLS *ext_ptr;
+   TLSParser tls_parser;
    uint32_t parsed_sni;
    bool flow_flush;
 };

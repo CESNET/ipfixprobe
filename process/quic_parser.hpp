@@ -1,8 +1,9 @@
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/byte-utils.hpp>
-#include "tls.hpp"
+#include "tls_parser.hpp"
 #include <openssl/kdf.h>
 #include <openssl/evp.h>
+
 
 
 #define HASH_SHA2_256_LENGTH    32
@@ -35,19 +36,6 @@
 
 namespace ipxp {
 
-typedef struct __attribute__ ((packed)) quic_ext {
-   uint16_t type;
-   uint16_t length;
-} quic_ext;
-
-typedef struct tls_data_struct {
-   char *data;
-   const char *end;
-   bool valid;
-   int  sni_parsed;
-   int  user_agent_parsed;
-}tls_data_struct;
-
 typedef struct __attribute__((packed)) quic_first_ver_dcidlen {
    uint8_t  first_byte;
    uint32_t version;
@@ -59,19 +47,13 @@ typedef struct __attribute__((packed)) quic_scidlen {
    uint8_t scid_len;
 } quic_scidlen;
 
-typedef struct __attribute__((packed)) quic_crypto {
-   uint8_t  type;
-   uint8_t  offset;
-   uint16_t length;
-}quic_crypto;
-
 typedef struct Initial_Secrets {
    uint8_t key[AES_128_KEY_LENGTH];
    uint8_t iv[TLS13_AEAD_NONCE_LENGTH];
    uint8_t hp[AES_128_KEY_LENGTH];
 } Initial_Secrets;
 
-class QUIC
+class QUICParser
 {
    private:
       enum FRAME_TYPE 
@@ -127,12 +109,9 @@ class QUIC
       bool     quic_encrypt_sample        (uint8_t*);     
       uint8_t  quic_draft_version         (uint32_t);
       uint64_t quic_get_variable_length   (uint8_t*, uint64_t&);   
-      void     quic_get_tls_user_agent    (tls_data_struct&, uint16_t);
-      void     quic_get_tls_server_name   (tls_data_struct &);
-      bool     quic_is_grease_value_      (uint16_t);
-      void     quic_get_ja3_cipher_suites (std::string&, tls_data_struct&);
-      bool     quic_parse_tls_nonext_hdr  (tls_data_struct&, std::string*);
       bool     quic_check_version         (uint32_t, uint8_t);
+      bool     quic_check_pointer_pos     (uint8_t*, uint8_t*);
+      bool     quic_obtain_tls_data       (TLSData &);
 
       Initial_Secrets initial_secrets;
 
@@ -165,8 +144,9 @@ class QUIC
 
       uint16_t quic_crypto_start;
       uint16_t quic_crypto_len;
+      TLSParser tls_parser;
    public:
-      QUIC();
+      QUICParser();
       bool quic_start         (const Packet&);
       void quic_get_sni       (char* in);
       void quic_get_user_agent(char* in);
@@ -175,13 +155,6 @@ class QUIC
 };
 
 }
-
-
-
-
-
-
-
 
 // known versions
 /*

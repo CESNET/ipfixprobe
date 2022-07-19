@@ -88,7 +88,7 @@ ProcessPlugin *QUICPlugin::copy()
 bool QUICPlugin::process_quic(RecordExtQUIC *quic_data, const Packet &pkt)
 {
    
-   QUIC process_quic;
+   QUICParser process_quic;
 
    if (!process_quic.quic_start(pkt))
    {
@@ -138,7 +138,6 @@ void QUICPlugin::add_quic(Flow &rec, const Packet &pkt)
    }
 
    if (process_quic(quic_ptr, pkt)) {
-      //std::cout << quic_ptr->sni << std::endl;
       rec.add_extension(quic_ptr);
       quic_ptr = nullptr;
    }
