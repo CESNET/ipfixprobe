@@ -69,6 +69,9 @@ namespace ipxp {
 #error "raw plugin is supported with TPACKET3 only"
 #endif
 
+// Read only 1 packet into packet block
+constexpr size_t RAW_PACKET_BLOCK_SIZE = 1;
+
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("raw", [](){return new RawReader();});
@@ -301,7 +304,7 @@ int RawReader::process_packets(struct tpacket_block_desc *pbd, PacketBlock &pack
 {
    parser_opt_t opt = {&packets, false, false, DLT_EN10MB};
    uint32_t num_pkts = pbd->hdr.bh1.num_pkts;
-   uint32_t capacity = packets.size - packets.cnt;
+   uint32_t capacity = RAW_PACKET_BLOCK_SIZE - packets.cnt;
    uint32_t to_read = 0;
    struct tpacket3_hdr *ppd;
 
