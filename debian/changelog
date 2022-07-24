@@ -1,0 +1,5 @@
+ipfixprobe (4.5.0ubuntu1) focal; urgency=medium
+
+  * Initial release. New architecture and new plugins
+
+ -- Tomas Cejka <cejkat@cesnet.cz>  Tue, 05 Apr 2022 22:20:54 +0000
