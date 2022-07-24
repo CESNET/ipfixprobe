@@ -51,7 +51,7 @@ namespace ipxp {
 
 #define MICRO_SEC 1000000L
 
-void input_storage_worker(InputPlugin *plugin, StoragePlugin *cache, PacketBlock *pkts, size_t block_cnt, uint64_t pkt_limit,
+void input_storage_worker(InputPlugin *plugin, StoragePlugin *cache, size_t queue_size, uint64_t pkt_limit,
                   std::promise<WorkerResult> *out, std::atomic<InputStats> *out_stats)
 {
    struct timespec start_cache;
@@ -60,10 +60,11 @@ void input_storage_worker(InputPlugin *plugin, StoragePlugin *cache, PacketBlock
    struct timespec end = {0, 0};
    struct timeval ts = {0, 0};
    bool timeout = false;
-   size_t i = 0;
    InputPlugin::Result ret;
    InputStats stats = {0, 0, 0, 0, 0};
    WorkerResult res = {false, ""};
+
+   PacketBlock block(queue_size);
 
 #ifdef __linux__
    const clockid_t clk_id = CLOCK_MONOTONIC_COARSE;
@@ -72,18 +73,17 @@ void input_storage_worker(InputPlugin *plugin, StoragePlugin *cache, PacketBlock
 #endif
 
    while (!terminate_input) {
-      PacketBlock *block = &pkts[i];
-      block->cnt = 0;
-      block->bytes = 0;
+      block.cnt = 0;
+      block.bytes = 0;
 
-      if (pkt_limit && plugin->m_parsed + block->size >= pkt_limit) {
+      if (pkt_limit && plugin->m_parsed + block.size >= pkt_limit) {
          if (plugin->m_parsed >= pkt_limit) {
             break;
          }
-         block->size = pkt_limit - plugin->m_parsed;
+         block.size = pkt_limit - plugin->m_parsed;
       }
       try {
-         ret = plugin->get(*block);
+         ret = plugin->get(block);
       } catch (PluginError &e) {
          res.error = true;
          res.msg = e.what();
@@ -107,13 +107,13 @@ void input_storage_worker(InputPlugin *plugin, StoragePlugin *cache, PacketBlock
          stats.packets = plugin->m_seen;
          stats.parsed = plugin->m_parsed;
          stats.dropped = plugin->m_dropped;
-         stats.bytes += block->bytes;
+         stats.bytes += block.bytes;
          clock_gettime(clk_id, &start_cache);
          try {
-            for (unsigned i = 0; i < block->cnt; i++) {
-               cache->put_pkt(block->pkts[i]);
+            for (unsigned i = 0; i < block.cnt; i++) {
+               cache->put_pkt(block.pkts[i]);
             }
-            ts = block->pkts[block->cnt - 1].ts;
+            ts = block.pkts[block.cnt - 1].ts;
          } catch (PluginError &e) {
             res.error = true;
             res.msg = e.what();
@@ -127,7 +127,6 @@ void input_storage_worker(InputPlugin *plugin, StoragePlugin *cache, PacketBlock
             time += 1000000000;
          }
          stats.qtime += time;
-         i = (i + 1) % block_cnt;
 
          out_stats->store(stats);
       } else if (ret == InputPlugin::Result::ERROR) {

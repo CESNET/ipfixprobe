@@ -66,7 +66,6 @@
 namespace ipxp {
 
 extern const uint32_t DEFAULT_IQUEUE_SIZE;
-extern const uint32_t DEFAULT_IQUEUE_BLOCK;
 extern const uint32_t DEFAULT_OQUEUE_SIZE;
 extern const uint32_t DEFAULT_FPS;
 
@@ -95,7 +94,6 @@ public:
    std::string m_pid;
    bool m_daemon;
    uint32_t m_iqueue;
-   uint32_t m_iqueue_block;
    uint32_t m_oqueue;
    uint32_t m_fps;
    uint32_t m_pkt_bufsize;
@@ -106,7 +104,7 @@ public:
 
    IpfixprobeOptParser() : OptionsParser("ipfixprobe", "flow exporter supporting various custom IPFIX elements"),
                            m_pid(""), m_daemon(false),
-                           m_iqueue(DEFAULT_IQUEUE_SIZE), m_iqueue_block(DEFAULT_IQUEUE_BLOCK), m_oqueue(DEFAULT_OQUEUE_SIZE), m_fps(DEFAULT_FPS),
+                           m_iqueue(DEFAULT_IQUEUE_SIZE), m_oqueue(DEFAULT_OQUEUE_SIZE), m_fps(DEFAULT_FPS),
                            m_pkt_bufsize(1600), m_max_pkts(0), m_help(false), m_help_str(""), m_version(false)
    {
       m_delim = ' ';
@@ -134,12 +132,6 @@ public:
       register_option("-q", "--iqueue", "SIZE", "Size of queue between input and storage plugins",
                       [this](const char *arg) {
                           try { m_iqueue = str2num<decltype(m_iqueue)>(arg); } catch (
-                                  std::invalid_argument &e) { return false; }
-                          return true;
-                      }, OptionFlags::RequiredArgument);
-      register_option("-b", "--iqueueb", "SIZE", "Size of input queue packet block",
-                      [this](const char *arg) {
-                          try { m_iqueue_block = str2num<decltype(m_iqueue_block)>(arg); } catch (
                                   std::invalid_argument &e) { return false; }
                           return true;
                       }, OptionFlags::RequiredArgument);
@@ -189,7 +181,6 @@ public:
 
 struct ipxp_conf_t {
    uint32_t iqueue_size;
-   uint32_t iqueue_block;
    uint32_t oqueue_size;
    uint32_t worker_cnt;
    uint32_t fps;
@@ -222,7 +213,7 @@ struct ipxp_conf_t {
    Packet *pkts;
    uint8_t *pkt_data;
 
-   ipxp_conf_t() : iqueue_size(DEFAULT_IQUEUE_SIZE), iqueue_block(DEFAULT_IQUEUE_BLOCK),
+   ipxp_conf_t() : iqueue_size(DEFAULT_IQUEUE_SIZE),
                    oqueue_size(DEFAULT_OQUEUE_SIZE),
                    worker_cnt(0), fps(0), max_pkts(0),
                    pkt_bufsize(1600), blocks_cnt(0), pkts_cnt(0), pkt_data_cnt(0), blocks(nullptr), pkts(nullptr), pkt_data(nullptr)
@@ -268,10 +259,6 @@ struct ipxp_conf_t {
       for (auto &it : output_stats) {
          delete it;
       }
-
-      delete[] pkts;
-      delete[] blocks;
-      delete[] pkt_data;
    }
 };
 

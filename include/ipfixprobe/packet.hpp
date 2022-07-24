@@ -126,9 +126,15 @@ struct PacketBlock {
    size_t bytes;
    size_t size;
 
-   PacketBlock() :
-      pkts(nullptr), cnt(0), bytes(0), size(0)
+   PacketBlock(size_t pkts_size) :
+      cnt(0), bytes(0), size(pkts_size)
    {
+      pkts = new Packet[pkts_size];
+   }
+
+   ~PacketBlock()
+   {
+      delete[] pkts;
    }
 };
 
