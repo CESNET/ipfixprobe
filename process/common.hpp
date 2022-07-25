@@ -48,6 +48,11 @@
 
 namespace ipxp {
 
+static inline bool check_payload_len(size_t payload_len, size_t required_len) noexcept
+{
+   return payload_len < required_len;
+}
+
 /**
  * \brief Returns a pointer to the first occurrence of str2 in str1,
  *        or a null pointer if str2 is not part of str1.
