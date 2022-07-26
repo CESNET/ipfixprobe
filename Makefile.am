@@ -89,6 +89,8 @@ ipfixprobe_process_src=\
 		process/sip.hpp \
 		process/tls.cpp \
 		process/tls.hpp \
+		process/tls_parser.cpp \
+		process/tls_parser.hpp \
 		process/smtp.cpp \
 		process/smtp.hpp \
 		process/dns-utils.hpp \
@@ -127,7 +129,10 @@ ipfixprobe_process_src=\
 if WITH_QUIC
 ipfixprobe_process_src+=\
 		process/quic.hpp \
-		process/quic.cpp
+		process/quic.cpp \
+		process/quic_parser.cpp \
+		process/quic_parser.hpp 
+
 endif
 
 if WITH_FLEXPROBE
