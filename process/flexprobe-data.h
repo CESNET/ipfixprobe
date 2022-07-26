@@ -83,8 +83,8 @@ namespace ipxp
 
         struct MpeData
         {
+            std::uint32_t difference;
             std::uint16_t expected_count;
-            std::uint16_t difference;
         };
 
         struct [[gnu::packed]] EncryptionData
