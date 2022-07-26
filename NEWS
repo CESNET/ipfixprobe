@@ -1,3 +1,44 @@
+2022-07-26 (OndrejSedlacek): SSDP Plugin: Fixed payload handling.
+2022-07-26 (Andrej Lukacovic): QUIC: parse_header variables changed to const, decrypt_header copies from original pkt payload
+2022-07-26 (Karel Hynek): Updated copyright and license in QUIC and TLS plugins/parsers
+2022-07-26 (Karel Hynek): Refactor: Fixed coding style in QUIC and TLS process plugins, parsers
+2022-07-26 (Karel Hynek): Refactor: NEW class TLS parser for QUIC and TLS plugins
+2022-07-26 (Andrej Lukacovic): QUIC: Refactor and updates in expand_label method
+2022-07-26 (Andrej Lukacovic): QUIC: changed copy whole packet payload to copy only header
+2022-07-26 (Pavel Siska): Quic: Fixed payload buffer overflow
+2022-07-26 (Andrej Lukacovic): QUIC: Version 2 added
+2022-07-26 (Andrej Lukacovic): QUIC: changed server side return value, quic_check_initial bool fixed
+2022-07-26 (Andrej Lukacovic): QUIC: remove unused vars, copy raw quic data into buffer
+2022-07-26 (Andrej Lukacovic): QUIC: moved version parsing
+2022-07-26 (Andrej Lukacovic): QUIC: comments/rfc links
+2022-07-26 (Andrej Lukacovic): QUIC: ack1,ack2,connection_close frames parsing added, refactor of supported implementation/versions (partially supported Qv2)
+2022-07-26 (Andrej Lukacovic): QUIC: refactor and checked decryption
+2022-07-26 (Andrej Lukacovic): QUIC: refactor, dynamic array removed
+2022-07-25 (Pavel Siska): ssdp: Check payload length during parsing.
+2022-07-25 (Pavel Siska): smtp: Check payload length during parsing.
+2022-07-25 (Pavel Siska): rtsp: Check payload length during parsing.
+2022-07-25 (Pavel Siska): http: Check payload length during parsing.
+2022-07-25 (Pavel Siska): common.hpp: Added payload length checker function.
+2022-07-25 (Pavel Siska): Added common.hpp file with strnstr function.
+2022-07-24 (Pavel Siska): STEM: changed number of packets to read from interface.
+2022-07-24 (Pavel Siska): RAW: changed number of packets to read from interface.
+2022-07-24 (Pavel Siska): PCAP: changed number of packets to read from interface.
+2022-07-24 (Pavel Siska): Changed allocation of PacketBlock structure.
+2022-07-24 (Pavel Siska): Removed memcpy of packet in parser.
+2022-07-11 (Tomas Cejka): deb: add config files to generate deb package
+2022-06-30 (Karel Hynek): FIXed unprotected string.erase() methods.
+2022-06-21 (Tomas Cejka): pcap: add support for DLT_LINUX_SLL2 datalink layer
+2022-05-21 (Pavel Siska): Merge input and storage workers thread.
+2022-05-19 (Tomas Cejka): doc: improve description/example for DPDK
+2022-05-19 (xsiska12): Remove std::future feature for workers terminations
+2022-05-18 (Roman Vrana): Added InterfaceIn for Flexprobe data
+2022-05-18 (Roman Vrana): Added DPDK run example
+2022-04-25 (Karel Hynek): xxhash update
+2022-04-19 (Roman Vrana): Added version check for MTU setting
+2022-04-19 (Roman Vrana): DPDK interface fix
+2022-03-24 (root): Fixed data type of active/inactive timeout in init config
+2022-03-05 (Štěpán Šimek): process/create_plugin.sh fix
+
 2022-03-11 (xsiska12): QUIC plugin: Updated coding style
 2022-03-11 (xsiska12): TLS plugin: Updated coding style
 2022-03-11 (xsiska12): QUIC plugin: Updated coding style
