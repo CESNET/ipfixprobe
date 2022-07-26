@@ -121,7 +121,8 @@ ipfixprobe_process_src=\
 		process/stats.cpp \
 		process/stats.hpp \
 		process/md5.hpp \
-		process/md5.cpp
+		process/md5.cpp \
+		process/common.hpp
 
 if WITH_QUIC
 ipfixprobe_process_src+=\
@@ -222,7 +223,10 @@ EXTRA_DIST=README.md \
 	pcaps/idpcontent.pcap \
 	pcaps/bstats.pcap \
 	pcaps/wg.pcap \
-	pcaps/quic_initial-sample.pcap
+	pcaps/quic_initial-sample.pcap \
+	debian/control debian/changelog debian/watch debian/copyright debian/patches debian/patches/series \
+	debian/source debian/source/format debian/source/local-options debian/source/include-binaries \
+	debian/rules debian/README.Debian debian/compat
 
 bashcompl_DATA=ipfixprobe.bash
 
@@ -283,3 +287,15 @@ else
 fields.h fields.c:
 	touch $@
 endif
+
+if MAKE_DEB
+.PHONY: deb-source
+deb-source:
+	make dist && make distdir && ln -fs ipfixprobe-@VERSION@.tar.gz ipfixprobe_@VERSION@ubuntu@RELEASE@.orig.tar.gz && cd ipfixprobe-@VERSION@ && debuild -S
+
+.PHONY: deb
+deb:
+	make dist && make distdir && ln -fs ipfixprobe-@VERSION@.tar.gz ipfixprobe_@VERSION@ubuntu@RELEASE@.orig.tar.gz && cd ipfixprobe-@VERSION@ && debuild
+else
+endif
+

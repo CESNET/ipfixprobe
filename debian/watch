@@ -1,0 +1,16 @@
+# watch control file for uscan
+
+# See uscan(1) for how to set this file properly
+#  * uupdate(1) for upgrade a source code package
+#  * gbp-import-orig(1) with --uscan for upgrade GIT repo
+
+# Uncomment to activate the configuration. Erase unused portions.
+# Line continuations are performed with the tailing \\
+
+# Many complications around package and version strings can be worked
+# around using the "opts=" prefix.  See PER-SITE OPTIONS in uscan(1).
+
+# Compulsory line, this is a version 3 file
+version=3
+
+https://github.com/CESNET/ipfixprobe/tags .*/v(\d[\d\.]*)\.(?:tar.gz|tar.bz2|tar.xz)

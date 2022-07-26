@@ -1,0 +1,21 @@
+Source: ipfixprobe
+Section: net
+Priority: standard
+Maintainer: Tomas Cejka <cejkat@cesnet.cz> 
+Build-Depends: autoconf (>=2.69), pkg-config, libtool, make (>=4.2.1), debhelper (>=9),
+	openssl, libpcap-dev, libpcap0.8, libssl-dev
+Standards-Version: 4.5.0
+Homepage: https://github.com/CESNET/ipfixprobe
+Vcs-Git: https://github.com/CESNET/ipfixprobe
+Vcs-Browser: https://github.com/CESNET/ipfixprobe
+
+Package: ipfixprobe
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}
+Description: IPFIX flow exporter is capable of capturing and online processing
+ network packets to compute an aggregated IP flow record. The exporter contains
+ several plugins that extend flow records with additional fields and
+ characteristics.
+
