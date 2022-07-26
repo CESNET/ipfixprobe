@@ -50,6 +50,8 @@
 
 namespace ipxp {
 
+// Read only 1 packet into packet block
+constexpr size_t STEM_PACKET_BLOCK_SIZE = 1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
@@ -168,7 +170,7 @@ InputPlugin::Result StemPacketReader::get(PacketBlock &packets)
 {
    packets.cnt = 0;
    packets.bytes = 0;
-   while (packets.cnt < packets.size) {
+   while (packets.cnt < STEM_PACKET_BLOCK_SIZE) {
       try {
          auto pkt = m_reader->next_packet();
          if (!pkt.has_value()) {

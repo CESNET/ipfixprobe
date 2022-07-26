@@ -86,7 +86,7 @@ struct OutputWorker {
    ipx_ring_t *queue;
 };
 
-void input_storage_worker(InputPlugin *plugin, StoragePlugin *cache, PacketBlock *pkts, size_t block_cnt, uint64_t pkt_limit, 
+void input_storage_worker(InputPlugin *plugin, StoragePlugin *cache, size_t queue_size, uint64_t pkt_limit, 
       std::promise<WorkerResult> *out, std::atomic<InputStats> *out_stats);
 void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<WorkerResult> *out, std::atomic<OutputStats> *out_stats,
       uint32_t fps);

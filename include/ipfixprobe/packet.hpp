@@ -84,17 +84,18 @@ struct Packet : public Record {
    uint32_t    tcp_seq;
    uint32_t    tcp_ack;
 
-   uint8_t     *packet; /**< Pointer to begin of packet, if available */
+   const uint8_t *packet; /**< Pointer to begin of packet, if available */
    uint16_t    packet_len; /**< Length of data in packet buffer, packet_len <= packet_len_wire */
    uint16_t    packet_len_wire; /**< Original packet length on wire */
 
-   uint8_t     *payload; /**< Pointer to begin of payload, if available */
+   const uint8_t *payload; /**< Pointer to begin of payload, if available */
    uint16_t    payload_len; /**< Length of data in payload buffer, payload_len <= payload_len_wire */
    uint16_t    payload_len_wire; /**< Original payload length computed from headers */
 
    uint8_t     *custom; /**< Pointer to begin of custom data, if available */
    uint16_t    custom_len; /**< Length of data in custom buffer */
 
+   // TODO REMOVE
    uint8_t     *buffer; /**< Buffer for packet, payload and custom data */
    uint16_t    buffer_size; /**< Size of buffer */
 
@@ -125,9 +126,15 @@ struct PacketBlock {
    size_t bytes;
    size_t size;
 
-   PacketBlock() :
-      pkts(nullptr), cnt(0), bytes(0), size(0)
+   PacketBlock(size_t pkts_size) :
+      cnt(0), bytes(0), size(pkts_size)
    {
+      pkts = new Packet[pkts_size];
+   }
+
+   ~PacketBlock()
+   {
+      delete[] pkts;
    }
 };
 

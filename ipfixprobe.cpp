@@ -73,7 +73,6 @@ volatile sig_atomic_t terminate_export = 0;
 volatile sig_atomic_t terminate_input = 0;
 
 const uint32_t DEFAULT_IQUEUE_SIZE = 64;
-const uint32_t DEFAULT_IQUEUE_BLOCK = 32;
 const uint32_t DEFAULT_OQUEUE_SIZE = 16536;
 const uint32_t DEFAULT_FPS = 0; // unlimited
 
@@ -156,29 +155,6 @@ void print_help(ipxp_conf_t &conf, const std::string &arg)
       parser->usage(std::cout);
       delete parser;
       delete p;
-   }
-}
-
-void init_packets(ipxp_conf_t &conf)
-{
-   // Reserve +1 more block as a "working block"
-   conf.blocks_cnt = static_cast<size_t>(conf.iqueue_size + 1U) * conf.worker_cnt;
-   conf.pkts_cnt = conf.blocks_cnt * conf.iqueue_block;
-   conf.pkt_data_cnt = conf.pkts_cnt * conf.pkt_bufsize;
-   conf.blocks = new PacketBlock[conf.blocks_cnt];
-   conf.pkts = new Packet[conf.pkts_cnt];
-   conf.pkt_data = new uint8_t[conf.pkt_data_cnt];
-
-   for (unsigned i = 0; i < conf.blocks_cnt; i++) {
-      size_t pkts_offset = static_cast<size_t>(i) * conf.iqueue_block; // offset in number of packets
-
-      conf.blocks[i].pkts = conf.pkts + pkts_offset;
-      conf.blocks[i].cnt = 0;
-      conf.blocks[i].size = conf.iqueue_block;
-      for (unsigned j = 0; j < conf.iqueue_block; j++) {
-         conf.blocks[i].pkts[j].buffer = static_cast<uint8_t *>(conf.pkt_data + conf.pkt_bufsize * (j + pkts_offset));
-         conf.blocks[i].pkts[j].buffer_size = conf.pkt_bufsize;
-      }
    }
 }
 
@@ -356,17 +332,17 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       conf.input_stats.push_back(input_stats);
 
       WorkPipeline tmp = {
-              {
-                      input_plugin,
-                      new std::thread(input_storage_worker, input_plugin, storage_plugin, &conf.blocks[pipeline_idx * (conf.iqueue_size + 1)],
-                                      conf.iqueue_size + 1, conf.max_pkts, input_res, input_stats),
-                      input_res,
-                      input_stats
-              },
-              {
-                      storage_plugin,
-                      storage_process_plugins
-              }
+         {
+            input_plugin,
+            new std::thread(input_storage_worker, input_plugin, storage_plugin, conf.iqueue_size, 
+               conf.max_pkts, input_res, input_stats),
+            input_res,
+            input_stats
+         },
+         {
+            storage_plugin,
+            storage_process_plugins
+         }
       };
       conf.pipelines.push_back(tmp);
       pipeline_idx++;
@@ -646,7 +622,6 @@ int run(int argc, char *argv[])
    }
 
    conf.worker_cnt = parser.m_input.size();
-   conf.iqueue_block = parser.m_iqueue_block;
    conf.iqueue_size = parser.m_iqueue;
    conf.oqueue_size = parser.m_oqueue;
    conf.fps = parser.m_fps;
@@ -654,7 +629,6 @@ int run(int argc, char *argv[])
    conf.max_pkts = parser.m_max_pkts;
 
    try {
-      init_packets(conf);
       if (process_plugin_args(conf, parser)) {
          goto EXIT;
       }
