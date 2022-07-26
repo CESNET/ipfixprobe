@@ -50,6 +50,7 @@
 #include <unirec/unirec.h>
 #endif
 
+#include "common.hpp"
 #include "http.hpp"
 
 namespace ipxp {
@@ -224,6 +225,7 @@ static uint32_t s_requests = 0, s_responses = 0;
 bool HTTPPlugin::parse_http_request(const char *data, int payload_len, RecordExtHTTP *rec)
 {
    char buffer[64];
+   size_t remaining;
    const char *begin, *end, *keyval_delimiter;
 
    total++;
@@ -247,14 +249,21 @@ bool HTTPPlugin::parse_http_request(const char *data, int payload_len, RecordExt
     */
 
    /* Find begin of URI. */
-   begin = strchr(data, ' ');
+   begin = static_cast<const char *>(memchr(data, ' ', payload_len));
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tnot a http request header\n");
       return false;
    }
 
    /* Find end of URI. */
-   end = strchr(begin + 1, ' ');
+   if (check_payload_len(payload_len, (begin + 1) - data)) {
+      DEBUG_MSG("Parser quits:\tpayload end\n");
+      return false;
+   }
+
+   remaining = payload_len - ((begin + 1) - data);
+   end = static_cast<const char *>(memchr(begin + 1, ' ', remaining));
+
    if (end == nullptr) {
       DEBUG_MSG("Parser quits:\trequest is fragmented\n");
       return false;
@@ -281,7 +290,12 @@ bool HTTPPlugin::parse_http_request(const char *data, int payload_len, RecordExt
    DEBUG_MSG("\tURI: %s\n",      rec->uri);
 
    /* Find begin of next line after request line. */
-   begin = strstr(end, HTTP_LINE_DELIMITER);
+   if (check_payload_len(payload_len, end - data)) {
+      DEBUG_MSG("Parser quits:\tpayload end\n");
+      return false;
+   }
+   remaining = payload_len - (end - data);
+   begin = ipxp::strnstr(end, HTTP_LINE_DELIMITER, remaining);
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tNo line delim after request line\n");
       return false;
@@ -302,8 +316,10 @@ bool HTTPPlugin::parse_http_request(const char *data, int payload_len, RecordExt
    rec->referer[0] = 0;
    /* Process headers. */
    while (begin - data < payload_len) {
-      end = strstr(begin, HTTP_LINE_DELIMITER);
-      keyval_delimiter = strchr(begin, HTTP_KEYVAL_DELIMITER);
+
+      remaining = payload_len - (begin - data);
+      end = ipxp::strnstr(begin, HTTP_LINE_DELIMITER, remaining);
+      keyval_delimiter = static_cast<const char *>(memchr(begin, HTTP_KEYVAL_DELIMITER, remaining));
 
       if (end == nullptr) {
          DEBUG_MSG("Parser quits:\theader is fragmented\n");
@@ -356,6 +372,7 @@ bool HTTPPlugin::parse_http_response(const char *data, int payload_len, RecordEx
 {
    char buffer[64];
    const char *begin, *end, *keyval_delimiter;
+   size_t remaining;
    int code;
 
    total++;
@@ -385,14 +402,19 @@ bool HTTPPlugin::parse_http_response(const char *data, int payload_len, RecordEx
     */
 
    /* Find begin of status code. */
-   begin = strchr(data, ' ');
+   begin = static_cast<const char *>(memchr(data, ' ', payload_len));
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tnot a http response header\n");
       return false;
    }
 
    /* Find end of status code. */
-   end = strchr(begin + 1, ' ');
+   if (check_payload_len(payload_len, (begin + 1) - data)) {
+      DEBUG_MSG("Parser quits:\tpayload end\n");
+      return false;
+   }
+   remaining = payload_len - ((begin + 1) - data);
+   end = static_cast<const char *>(memchr(begin + 1, ' ', remaining));
    if (end == nullptr) {
       DEBUG_MSG("Parser quits:\tresponse is fragmented\n");
       return false;
@@ -416,7 +438,12 @@ bool HTTPPlugin::parse_http_response(const char *data, int payload_len, RecordEx
    rec->code = code;
 
    /* Find begin of next line after request line. */
-   begin = strstr(end, HTTP_LINE_DELIMITER);
+   if (check_payload_len(payload_len, end - data)) {
+      DEBUG_MSG("Parser quits:\tpayload end\n");
+      return false;
+   }
+   remaining = payload_len - (end - data);
+   begin = ipxp::strnstr(end, HTTP_LINE_DELIMITER, remaining);
    if (begin == nullptr) {
       DEBUG_MSG("Parser quits:\tNo line delim after request line\n");
       return false;
@@ -435,8 +462,9 @@ bool HTTPPlugin::parse_http_response(const char *data, int payload_len, RecordEx
    rec->content_type[0] = 0;
    /* Process headers. */
    while (begin - data < payload_len) {
-      end = strstr(begin, HTTP_LINE_DELIMITER);
-      keyval_delimiter = strchr(begin, HTTP_KEYVAL_DELIMITER);
+      remaining = payload_len - (begin - data);
+      end = ipxp::strnstr(begin, HTTP_LINE_DELIMITER, remaining);
+      keyval_delimiter = static_cast<const char *>(memchr(begin, HTTP_KEYVAL_DELIMITER, remaining));
 
       if (end == nullptr) {
          DEBUG_MSG("Parser quits:\theader is fragmented\n");

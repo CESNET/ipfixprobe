@@ -219,7 +219,7 @@ private:
 
    uint16_t parse_loc_port(char *data, uint8_t ip_version);
    bool get_header_val(char **data, const char *header, const int len);
-   void parse_headers(char *data, header_parser_conf conf);
+   void parse_headers(char *data, size_t payload_len, header_parser_conf conf);
    void parse_ssdp_message(Flow &rec, const Packet &pkt);
    void append_value(char *curr_entry, unsigned entry_max, char *value);
 };
