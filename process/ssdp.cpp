@@ -142,21 +142,26 @@ void SSDPPlugin::finish(bool print_stats)
  * \param [in] ip_version IP version of the Location url being parsed.
  * \return Parsed port number on success, 0 otherwise.
  */
-uint16_t SSDPPlugin::parse_loc_port(char *data, uint8_t ip_version)
+uint16_t SSDPPlugin::parse_loc_port(const char *data, unsigned data_len, uint8_t ip_version)
 {
    uint16_t port;
    char *end_ptr = nullptr;
+   const void *data_mem = static_cast<const void *>(data);
 
    if (ip_version == IP::v6) {
-      data = strchr(data, ']');
+      data_mem = memchr(data_mem, ']', data_len);
    } else {
-      data = strchr(data, '.');
+      data_mem = memchr(data_mem, '.', data_len);
    }
-   data = strchr(data, ':');
+   if (data_mem == nullptr) {
+       return 0;
+   }
+   data_mem = memchr(data_mem, ':', data_len);
 
-   if (data == nullptr) {
+   if (data_mem == nullptr) {
       return 0;
    }
+   data = static_cast<const char *>(data_mem);
    data++;
 
    port = strtol(data, &end_ptr, 0);
@@ -174,7 +179,7 @@ uint16_t SSDPPlugin::parse_loc_port(char *data, uint8_t ip_version)
  * \param [in] len Lenght of the desired header.
  * \return True if the header is found, otherwise false.
  */
-bool SSDPPlugin::get_header_val(char **data, const char *header, const int len)
+bool SSDPPlugin::get_header_val(const char **data, const char *header, const int len)
 {
    if (strncasecmp(*data, header, len) == 0 && (*data)[len] == ':') {
       (*data) += len + 1;
@@ -193,15 +198,14 @@ bool SSDPPlugin::get_header_val(char **data, const char *header, const int len)
  * \param [in] payload_len Lenght of payload data
  * \param [in] conf Struct containing parser configuration.
  */
-void SSDPPlugin::parse_headers(char *data, size_t payload_len, header_parser_conf conf)
+void SSDPPlugin::parse_headers(const uint8_t *data, size_t payload_len, header_parser_conf conf)
 {
-   char *ptr = data;
-   char *old_ptr = ptr;
+   const char *ptr = (const char *)(data);
+   const char *old_ptr = ptr;
    size_t len = 0;
 
    while (*ptr != '\0' && len <= payload_len) {
       if (*ptr == '\n' && *(ptr - 1) == '\r') {
-         *(ptr - 1) = '\0';
          for (unsigned j = 0, i = 0; j < conf.select_cnt; j++) {
             i = conf.select[j];
             if (get_header_val(&old_ptr, conf.headers[i], strlen(conf.headers[i]))) {
@@ -209,18 +213,18 @@ void SSDPPlugin::parse_headers(char *data, size_t payload_len, header_parser_con
                case ST:
                   if (get_header_val(&old_ptr, "urn", strlen("urn"))) {
                      SSDP_DEBUG_MSG("%s\n", old_ptr);
-                     append_value(conf.ext->st, SSDP_URN_LEN, old_ptr);
+                     append_value(conf.ext->st, SSDP_URN_LEN, old_ptr, ptr-old_ptr);
                   }
                   break;
                case NT:
                   if (get_header_val(&old_ptr, "urn", strlen("urn"))) {
                      SSDP_DEBUG_MSG("%s\n", old_ptr);
-                     append_value(conf.ext->nt, SSDP_URN_LEN, old_ptr);
+                     append_value(conf.ext->nt, SSDP_URN_LEN, old_ptr, ptr-old_ptr);
                   }
                   break;
                case LOCATION:
                   {
-                     uint16_t port = parse_loc_port(old_ptr, conf.ip_version);
+                     uint16_t port = parse_loc_port(old_ptr, ptr-old_ptr,conf.ip_version);
 
                      if (port > 0) {
                         SSDP_DEBUG_MSG("%d <- %d\n", conf.ext->port, port);
@@ -230,11 +234,11 @@ void SSDPPlugin::parse_headers(char *data, size_t payload_len, header_parser_con
                   }
                case USER_AGENT:
                   SSDP_DEBUG_MSG("%s\n", old_ptr);
-                  append_value(conf.ext->user_agent, SSDP_USER_AGENT_LEN, old_ptr);
+                  append_value(conf.ext->user_agent, SSDP_USER_AGENT_LEN, old_ptr, ptr-old_ptr);
                   break;
                case SERVER:
                   SSDP_DEBUG_MSG("%s\n", old_ptr);
-                  append_value(conf.ext->server, SSDP_SERVER_LEN, old_ptr);
+                  append_value(conf.ext->server, SSDP_SERVER_LEN, old_ptr, ptr-old_ptr);
                   break;
                default:
                   break;
@@ -259,14 +263,22 @@ void SSDPPlugin::parse_headers(char *data, size_t payload_len, header_parser_con
  * \param [in] entry_max Maximum length if the entry.
  * \param [in] value String containing the new entry.
  */
-void SSDPPlugin::append_value(char *curr_entry, unsigned entry_max, char *value)
+void SSDPPlugin::append_value(char *curr_entry, unsigned entry_max, const char *value, unsigned value_len)
 {
-   if (strlen(curr_entry) + strlen(value) + 1 < entry_max) {
-      if (strstr(curr_entry, value) == nullptr) {
-         SSDP_DEBUG_MSG("New entry\n");
-         strcat(curr_entry, value);
-         strcat(curr_entry, ";");
+   if (strlen(curr_entry) + value_len + 1 < entry_max) {
+      // return if value already in curr_entry
+      for (unsigned i = 0; i < strlen(curr_entry) - value_len; i++) {
+          if (strlen(curr_entry) < value_len) {
+              break;
+          }
+          if (strncmp(&curr_entry[i], value, value_len) == 0) {
+              return;
+          }
       }
+
+      SSDP_DEBUG_MSG("New entry\n");
+      strncat(curr_entry, value, value_len);
+      strcat(curr_entry, ";");
    }
 }
 
@@ -285,24 +297,22 @@ void SSDPPlugin::parse_ssdp_message(Flow &rec, const Packet &pkt)
       rec.ip_version,
       static_cast<RecordExtSSDP *>(rec.get_extension(RecordExtSSDP::REGISTERED_ID))
    };
-   char *data = (char *) pkt.payload;
-   size_t payload_len = pkt.payload_len;
 
    total++;
-   if (data[0] == 'N') {
+   if (pkt.payload[0] == 'N') {
       notifies++;
       SSDP_DEBUG_MSG("Notify #%d\n", notifies);
       int notify_headers[] = { NT, LOCATION, SERVER };
       parse_conf.select = notify_headers;
       parse_conf.select_cnt = sizeof(notify_headers) / sizeof(notify_headers[0]);
-      parse_headers(data, payload_len, parse_conf);
-   } else if (data[0] == 'M') {
+      parse_headers(pkt.payload, pkt.payload_len, parse_conf);
+   } else if (pkt.payload[0] == 'M') {
       searches++;
       SSDP_DEBUG_MSG("M-search #%d\n", searches);
       int search_headers[] = { ST, USER_AGENT };
       parse_conf.select = search_headers;
       parse_conf.select_cnt = sizeof(search_headers) / sizeof(search_headers[0]);
-      parse_headers(data, payload_len, parse_conf);
+      parse_headers(pkt.payload, pkt.payload_len, parse_conf);
    }
    SSDP_DEBUG_MSG("\n");
 }

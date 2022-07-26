@@ -217,11 +217,11 @@ private:
    uint32_t searches;      /**< Total number of parsed SSDP m-searches. */
    uint32_t total;         /**< Total number of parsed SSDP packets. */
 
-   uint16_t parse_loc_port(char *data, uint8_t ip_version);
-   bool get_header_val(char **data, const char *header, const int len);
-   void parse_headers(char *data, size_t payload_len, header_parser_conf conf);
+   uint16_t parse_loc_port(const char *data, unsigned data_len, uint8_t ip_version);
+   bool get_header_val(const char **data, const char *header, const int len);
+   void parse_headers(const uint8_t *data, size_t payload_len, header_parser_conf conf);
    void parse_ssdp_message(Flow &rec, const Packet &pkt);
-   void append_value(char *curr_entry, unsigned entry_max, char *value);
+   void append_value(char *curr_entry, unsigned entry_max, const char *value, unsigned value_len);
 };
 
 }
