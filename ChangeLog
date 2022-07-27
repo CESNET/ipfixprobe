@@ -1,3 +1,10 @@
+2022-07-26 ipfixprobe-4.6.0
+	* QUIC: refactor plugin, version 2 added
+	* Zero-copy packet processing
+	* deb: add config files to generate deb package
+	* xxhash update
+	* Remove std::future feature for workers terminations
+	
 2022-03-11 ipfixprobe-4.5.0
     * Fixed variable-length IE IPFIX export (quic, http, tls)
 	* QUIC plugin: Export of new information elements in QUIC plugin
