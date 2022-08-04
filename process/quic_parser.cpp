@@ -660,7 +660,7 @@ inline void QUICParser::quic_skip_ack1(uint8_t *start, uint64_t &offset)
 
    quic_get_variable_length(start, offset);
 
-   for (uint x = 0; x < quic_ack_range_count; x++) {
+   for (uint64_t x = 0; x < quic_ack_range_count; x++) {
       quic_get_variable_length(start, offset);
       quic_get_variable_length(start, offset);
    }
@@ -677,7 +677,7 @@ inline void QUICParser::quic_skip_ack2(uint8_t *start, uint64_t &offset)
 
    quic_get_variable_length(start, offset);
 
-   for (uint x = 0; x < quic_ack_range_count; x++) {
+   for (uint64_t x = 0; x < quic_ack_range_count; x++) {
       quic_get_variable_length(start, offset);
       quic_get_variable_length(start, offset);
    }

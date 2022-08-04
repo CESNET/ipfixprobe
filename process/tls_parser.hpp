@@ -84,10 +84,10 @@ public:
    bool tls_skip_compression_met(TLSData&);
    bool tls_check_ext_len(TLSData&);
    bool tls_check_rec(TLSData&);
-   void tls_get_server_name(TLSData &, char *, uint);
-   void tls_get_alpn(TLSData &, char *, uint);
+   void tls_get_server_name(TLSData &, char *, size_t);
+   void tls_get_alpn(TLSData &, char *, size_t);
 
-   void tls_get_quic_user_agent(TLSData &, char *, uint);
+   void tls_get_quic_user_agent(TLSData &, char *, size_t);
    bool tls_check_handshake(TLSData&);
    bool tls_get_ja3_cipher_suites(std::string&, TLSData&);
 
