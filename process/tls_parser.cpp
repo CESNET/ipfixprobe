@@ -11,6 +11,7 @@
  */
 
 #include "tls_parser.hpp"
+#include <endian.h>
 
 namespace ipxp {
 TLSParser::TLSParser()
@@ -61,7 +62,7 @@ bool TLSParser::tls_is_grease_value(uint16_t val)
    return false;
 }
 
-void TLSParser::tls_get_quic_user_agent(TLSData &data, char *buffer, uint buffer_size)
+void TLSParser::tls_get_quic_user_agent(TLSData &data, char *buffer, size_t buffer_size)
 {
    // compute end of quic_transport_parameters
    const uint16_t quic_transport_params_len = ntohs(*(uint16_t *) data.start);
@@ -92,12 +93,12 @@ void TLSParser::tls_get_quic_user_agent(TLSData &data, char *buffer, uint buffer
    return;
 }
 
-void TLSParser::tls_get_server_name(TLSData &data, char *buffer, uint buffer_size)
+void TLSParser::tls_get_server_name(TLSData &data, char *buffer, size_t buffer_size)
 {
    uint16_t list_len       = ntohs(*(uint16_t *) data.start);
    uint16_t offset         = sizeof(list_len);
    const uint8_t *list_end = data.start + list_len + offset;
-   uint buff_offset        = 0;
+   size_t buff_offset      = 0;
 
    if (list_end > data.end) {
       // data.valid = false;
@@ -125,7 +126,7 @@ void TLSParser::tls_get_server_name(TLSData &data, char *buffer, uint buffer_siz
    return;
 }
 
-void TLSParser::tls_get_alpn(TLSData &data, char *buffer, uint buffer_size)
+void TLSParser::tls_get_alpn(TLSData &data, char *buffer, size_t buffer_size)
 {
    uint16_t list_len       = ntohs(*(uint16_t *) data.start);
    uint16_t offset         = sizeof(list_len);
