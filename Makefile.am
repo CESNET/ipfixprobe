@@ -10,8 +10,8 @@ bin_PROGRAMS=ipfixprobe ipfixprobe_stats
 DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)"
 
 ipfixprobe_LDFLAGS=-lpthread -ldl -latomic
-ipfixprobe_CFLAGS=-I$(srcdir)/include/
-ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/
+ipfixprobe_CFLAGS=-I$(srcdir)/include/ -fPIC
+ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/ -fPIC
 
 if OS_CYGWIN
 ipfixprobe_CXXFLAGS+=-Wl,--export-all-symbols
