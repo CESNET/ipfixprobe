@@ -66,9 +66,6 @@ namespace ipxp
         static constexpr unsigned DATA_OFFSET = 14; // size of preceeding header
 
         auto data_view = reinterpret_cast<const Flexprobe::FlexprobeData*>(rte_pktmbuf_mtod(mbuf, const uint8_t*) + DATA_OFFSET);
-        if (data_view->size() > pkt.buffer_size) {
-            return false;
-        }
 
         pkt.ts = {data_view->arrival_time.sec, data_view->arrival_time.nsec / 1000};
 
@@ -105,18 +102,16 @@ namespace ipxp
         pkt.tcp_seq = data_view->tcp_sequence_no;
         pkt.tcp_ack = data_view->tcp_acknowledge_no;
 
-        std::uint16_t datalen = (rte_pktmbuf_pkt_len(mbuf) > pkt.buffer_size ? pkt.buffer_size : rte_pktmbuf_pkt_len(mbuf)) - DATA_OFFSET;
+        std::uint16_t datalen = rte_pktmbuf_pkt_len(mbuf) - DATA_OFFSET;
+        pkt.packet = (uint8_t *)rte_pktmbuf_mtod(mbuf, const char*) + DATA_OFFSET;
 
-        memcpy(pkt.buffer, rte_pktmbuf_mtod(mbuf, const char*) + DATA_OFFSET, datalen);
-
-        pkt.packet = pkt.buffer;
         pkt.packet_len = 0;
         pkt.packet_len_wire = datalen;
 
-        pkt.custom = pkt.buffer;
+        pkt.custom = (uint8_t *)pkt.packet;
         pkt.custom_len = datalen;
 
-        pkt.payload = pkt.buffer + data_view->size();
+        pkt.payload = pkt.packet + data_view->size();
         pkt.payload_len = datalen < data_view->size() ? 0 : datalen - data_view->size();
         pkt.payload_len_wire = rte_pktmbuf_pkt_len(mbuf) - data_view->size();
 
