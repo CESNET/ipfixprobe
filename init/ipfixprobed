@@ -37,7 +37,11 @@ if [ -e "$CONFFILE" ]; then
    fi
    output="-o ipfix;host=${HOST:-127.0.0.1};port=${PORT:-4739};id=${LINK:-0};dir=${DIR:-0};${UDP_PARAM}"
 
-   exec /usr/bin/ipfixprobe $input $storage $process $output
+   if [ -n "$DPDKARGS" ]; then
+      exec /usr/bin/ipfixprobe $DPDKARGS -- $input $storage $process $output
+   else
+      exec /usr/bin/ipfixprobe $input $storage $process $output
+   fi
 else
    echo "Configuration file '$CONFFILE' does not exist, exitting." >&2
    exit 1

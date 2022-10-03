@@ -1,9 +1,24 @@
 # set up shell-like variables
 
+# Use DPDKARGS to specify DPDK related arguments (other ipfixprobe arguments
+# are passed after  "--")
+# WARNING - this does not work with non-DPDK version of ipfixprobe,
+# which does not know such arguments! So this should be commented out.
+
+# DDPKARGS="-c 0x1 -a 0000:00:06.1"
+
 # List of activated input plugins (arguments for -i parameter)
 #   Specify array of input plugins with arguments using INPUT[], indexes (subscripts) must be unique
 INPUT[0]="ndp;dev=/dev/nfb0:0"
 INPUT[1]="ndp;dev=/dev/nfb0:1"
+
+# Other examples:
+#
+# INPUT[0]="dpdk;p=0;q=16;i=0"
+
+# INPUT[0]="raw;i=wlo1"
+
+# INPUT[0]="pcap;i=wlo1"
 
 # or specify inputs using loop
 # for i in `seq 0 15`; do
