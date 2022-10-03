@@ -142,7 +142,11 @@ namespace ipxp
 
     void DpdkReader::global_init(uint16_t port_id, uint16_t nb_rx_queue)
     {
+#if RTE_VERSION >= RTE_VERSION_NUM(21,11,0,0)
         rte_eth_conf port_conf{.rxmode = {.mq_mode = ETH_MQ_RX_RSS, .mtu = RTE_ETHER_MAX_LEN}};
+#else
+        rte_eth_conf port_conf{.rxmode = {.mq_mode = ETH_MQ_RX_RSS, .max_rx_pkt_len = RTE_ETHER_MAX_LEN}};
+#endif
 
         if (!rte_eth_dev_is_valid_port(port_id)) {
             throw PluginError("Invalid DPDK port specified");
