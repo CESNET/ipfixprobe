@@ -62,6 +62,8 @@ namespace ipxp
         size_t pkt_buffer_size_;
         size_t pkt_mempool_size_;
         std::uint16_t port_num_;
+        uint16_t rx_queues_ = 1;
+        uint16_t id_;
     public:
         DpdkOptParser() : OptionsParser("dpdk", "Input plugin for reading packets using DPDK interface"), pkt_buffer_size_(DEFAULT_MBUF_BURST_SIZE), pkt_mempool_size_(DEFAULT_MBUF_POOL_SIZE)
         {
@@ -83,6 +85,18 @@ namespace ipxp
                             "Size of the memory pool for received packets. Default: " + std::to_string(DEFAULT_MBUF_POOL_SIZE),
                             [this](const char* arg){try{pkt_mempool_size_ = str2num<decltype(pkt_mempool_size_)>(arg);} catch (std::invalid_argument&){return false;} return true;},
                             RequiredArgument);
+            register_option("q",
+                            "queue",
+                            "COUNT",
+                            "Number of RX quues. Default: 1",
+                            [this](const char* arg){try{rx_queues_ = str2num<decltype(rx_queues_)>(arg);} catch (std::invalid_argument&){return false;} return true;},
+                            RequiredArgument);
+            register_option("i",
+                            "id",
+                            "ID",
+                            "queue ID.",
+                            [this](const char* arg){try{id_ = str2num<decltype(id_)>(arg);} catch (std::invalid_argument&){return false;} return true;},
+                            RequiredArgument);
         }
 
         size_t pkt_buffer_size() const { return pkt_buffer_size_; }
@@ -90,6 +104,10 @@ namespace ipxp
         size_t pkt_mempool_size() const { return pkt_mempool_size_; }
 
         std::uint16_t port_num() const { return port_num_; }
+
+        uint16_t rx_queues() const { return rx_queues_; }
+
+        uint16_t id() const { return id_; }
     };
 
     class DpdkReader : public InputPlugin
@@ -99,6 +117,14 @@ namespace ipxp
         rte_mempool* mpool_;
         std::vector<rte_mbuf*> mbufs_;
         std::uint16_t pkts_read_;
+        uint16_t rx_queue_id_;
+        uint16_t total_queues_cnt_;
+        int set_thread_affinity(uint16_t thread_id);
+        void set_rss_hash(uint16_t port_id);
+        void global_init(uint16_t port_id, uint16_t nb_rx_queue);
+        void global_post_init(uint16_t port_id);
+        static bool is_ifc_ready;
+
     public:
         Result get(PacketBlock& packets) override;
 
@@ -113,6 +139,9 @@ namespace ipxp
         {
             return "dpdk";
         }
+
+        ~DpdkReader();
+        DpdkReader();
     };
 }
 

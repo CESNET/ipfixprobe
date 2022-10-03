@@ -42,8 +42,10 @@
  */
 
 #include <cstring>
+#include <mutex>
 #include <rte_ethdev.h>
 #include <rte_version.h>
+#include <unistd.h>
 
 #include "dpdk.h"
 #include "parser.hpp"
@@ -119,50 +121,131 @@ namespace ipxp
     }
 #endif
 
+    bool DpdkReader::is_ifc_ready = false;
+
+    DpdkReader::DpdkReader()
+    {
+        pkts_read_ = 0;
+        mpool_ = nullptr;
+    }
+
+    DpdkReader::~DpdkReader()
+    {
+        /*
+        rte_mempool_free(mpool_);
+        if (total_queues_cnt_ - 1 == rx_queue_id_) {
+            rte_eth_dev_stop(port_id_);
+            rte_eth_dev_close(port_id_);
+        }
+        */
+    }
+
+    void DpdkReader::global_init(uint16_t port_id, uint16_t nb_rx_queue)
+    {
+        rte_eth_conf port_conf{.rxmode = {.mq_mode = ETH_MQ_RX_RSS, .mtu = RTE_ETHER_MAX_LEN}};
+
+        if (!rte_eth_dev_is_valid_port(port_id)) {
+            throw PluginError("Invalid DPDK port specified");
+        }
+
+        if (rte_eth_dev_configure(port_id, nb_rx_queue, 0, &port_conf) != 0) {
+            throw PluginError("Unable to configure interface");
+        }
+    }
+
+    void DpdkReader::set_rss_hash(uint16_t port_id)
+    {
+        constexpr size_t RSS_KEY_LEN = 40;
+        // biflow hash key
+        static uint8_t rss_key[RSS_KEY_LEN] = { 
+            0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 
+            0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 
+            0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 
+            0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A
+        };
+
+        struct rte_eth_rss_conf rss_conf = {
+            .rss_key = rss_key,
+            .rss_key_len = RSS_KEY_LEN,
+            .rss_hf = ETH_RSS_IP | ETH_RSS_TCP | ETH_RSS_UDP,
+        };
+
+        int ret = rte_eth_dev_rss_hash_update(port_id, &rss_conf);
+        if (ret) {
+            throw PluginError("Unable to set RSS hash");
+        }
+    }
+
+    void DpdkReader::global_post_init(uint16_t port_id)
+    {
+        set_rss_hash(port_id);
+
+        if (rte_eth_dev_start(port_id) < 0) {
+            throw PluginError("Unable to start DPDK port");
+        }
+
+        rte_eth_promiscuous_enable(port_id);
+        is_ifc_ready = true;
+    }
+
     void DpdkReader::init(const char *params)
     {
+        std::string mpool_name;
         DpdkOptParser parser;
-#if RTE_VERSION >= RTE_VERSION_NUM(21,11,0,0)
-        rte_eth_conf port_conf{.rxmode = {.mtu = RTE_ETHER_MAX_LEN}};
-#else
-        rte_eth_conf port_conf{.rxmode = {.max_rx_pkt_len = RTE_ETHER_MAX_LEN}};
-#endif
 
         try {
             parser.parse(params);
-            mpool_ = rte_pktmbuf_pool_create("IPFIXPROBE", parser.pkt_mempool_size(), 256, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
-            if (!mpool_) {
-                throw PluginError("Unable to create memory pool. " + std::string(rte_strerror(rte_errno)));
-            }
-            mbufs_.resize(parser.pkt_buffer_size());
         } catch (ParserError& e) {
             throw PluginError(e.what());
         }
 
-        // open DPDK interfaces
-        if (!rte_eth_dev_is_valid_port(parser.port_num())) {
-            throw PluginError("Invalid DPDK port specified");
-        }
-
         port_id_ = parser.port_num();
+        rx_queue_id_ = parser.id();
+        total_queues_cnt_ = parser.rx_queues();
 
-        if (rte_eth_dev_configure(port_id_, 1, 0, &port_conf) != 0) {
-            throw PluginError("Unable to configure interface");
+        if (rx_queue_id_ == 0) {
+            global_init(port_id_, parser.rx_queues());
         }
 
-        if (rte_eth_rx_queue_setup(port_id_, 0, mbufs_.size(), rte_eth_dev_socket_id(port_id_), nullptr, mpool_) < 0) {
+        mpool_name = "mbuf_pool_" + std::to_string(parser.id());
+        mpool_ = rte_pktmbuf_pool_create(mpool_name.c_str(), parser.pkt_mempool_size(), 256, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_lcore_to_socket_id(parser.id()));
+        if (!mpool_) {
+            throw PluginError("Unable to create memory pool. " + std::string(rte_strerror(rte_errno)));
+        }
+
+        try {
+            mbufs_.resize(parser.pkt_buffer_size());
+        } catch (const std::exception& e) {
+            throw PluginError(e.what());
+        }
+
+        if (rte_eth_rx_queue_setup(port_id_, parser.id(), mbufs_.size(), rte_eth_dev_socket_id(port_id_), nullptr, mpool_) < 0) {
             throw PluginError("Unable to set up RX queues");
         }
 
-        if (rte_eth_dev_start(port_id_) < 0) {
-            throw PluginError("Unable to start DPDK port");
-        }
+        set_thread_affinity(parser.id());
 
-        rte_eth_promiscuous_enable(port_id_);
+        if (parser.rx_queues() - 1 == rx_queue_id_) {
+            global_post_init(port_id_);
+        }
+    }
+
+    int DpdkReader::set_thread_affinity(uint16_t thread_id)
+    {
+        cpu_set_t cpuset;
+
+        CPU_ZERO(&cpuset);
+        CPU_SET(thread_id, &cpuset);
+
+        return pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
     }
 
     InputPlugin::Result DpdkReader::get(PacketBlock& packets)
     {
+        while (is_ifc_ready == false) {
+            usleep(1000);
+        }
+
 #ifndef WITH_FLEXPROBE
         parser_opt_t opt{&packets, false, false, DLT_EN10MB};
 #endif
@@ -170,8 +253,7 @@ namespace ipxp
         for (auto i = 0; i < pkts_read_; i++) {
             rte_pktmbuf_free(mbufs_[i]);
         }
-
-        pkts_read_ = rte_eth_rx_burst(port_id_, 0, mbufs_.data(), mbufs_.size());
+        pkts_read_ = rte_eth_rx_burst(port_id_, rx_queue_id_, mbufs_.data(), mbufs_.size());
         if (pkts_read_ == 0) {
             return Result::NOT_PARSED;
         }
@@ -194,6 +276,9 @@ namespace ipxp
                          rte_pktmbuf_mtod(mbufs_[i], const std::uint8_t *),
                          rte_pktmbuf_data_len(mbufs_[i]),
                          rte_pktmbuf_data_len(mbufs_[i]));
+            m_seen++;
+            m_parsed++;
+            packets.cnt++;
 #endif
         }
 
