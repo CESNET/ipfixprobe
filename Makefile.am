@@ -9,9 +9,11 @@ bin_PROGRAMS=ipfixprobe ipfixprobe_stats
 
 DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)"
 
+AM_CPPFLAGS=-I$(srcdir)/include/
+
 ipfixprobe_LDFLAGS=-lpthread -ldl -latomic
 ipfixprobe_CFLAGS=-I$(srcdir)/include/ -fPIC
-ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/ -fPIC
+ipfixprobe_CXXFLAGS=-Wno-write-strings -I$(srcdir)/include/ -fPIC
 
 if OS_CYGWIN
 ipfixprobe_CXXFLAGS+=-Wl,--export-all-symbols
@@ -32,6 +34,11 @@ ipfixprobe_input_src=\
 #example_la_SOURCES=example.cpp example.hpp
 #example_la_LDFLAGS=-module -shared -avoid-version
 
+if ENABLE_PCAP
+pkglib_LTLIBRARIES=input-pcap.la
+input_pcap_la_SOURCES= input/pcap.cpp input/pcap.hpp
+input_pcap_la_LDFLAGS=-module -shared -avoid-version -lpcap
+endif
 
 if WITH_NDP
 ipfixprobe_LDFLAGS+=-lnuma -lndpRI -L$(srcdir)/input/nfbCInterface/
@@ -39,6 +46,12 @@ ipfixprobe_CXXFLAGS+=-I$(srcdir)/input/nfbCInterface/include/
 ipfixprobe_input_src+=\
 		input/ndp.cpp \
 		input/ndp.hpp
+
+pkglib_LTLIBRARIES=input-ndp.la
+input_ndp_la_CXXFLAGS=-I$(srcdir)/input/nfbCInterface/include/
+input_ndp_la_SOURCES= input/ndp.cpp input/ndp.hpp
+input_ndp_la_LDFLAGS=-module -shared -avoid-version -lnuma -lndpRI -L$(srcdir)/input/nfbCInterface/
+
 endif
 
 if WITH_RAW
@@ -156,6 +169,12 @@ if WITH_DPDK
 ipfixprobe_input_src+=\
         input/dpdk.cpp \
         input/dpdk.h
+
+pkglib_LTLIBRARIES=input-dpdk.la
+input_dpdk_la_CFLAGS=-I$(srcdir)/include/ $(DPDK_CFLAGS)
+input_dpdk_la_CXXFLAGS=$(DPDK_CFLAGS)
+input_dpdk_la_SOURCES=input/dpdk.cpp input/dpdk.h
+input_dpdk_la_LDFLAGS=-module -shared -avoid-version $(DPDK_LIBS)
 endif
 
 ipfixprobe_headers_src=\
@@ -200,7 +219,7 @@ endif
 
 ipfixprobe_SOURCES=$(ipfixprobe_src) main.cpp
 
-ipfixprobe_stats_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/
+ipfixprobe_stats_CXXFLAGS=-Wno-write-strings
 ipfixprobe_stats_SOURCES=ipfixprobe_stats.cpp \
 		include/ipfixprobe/options.hpp \
 		include/ipfixprobe/utils.hpp \
@@ -268,6 +287,8 @@ srpm:
 	make ${AM_MAKEFLAGS} distdir='$(RPMDIR)/SOURCES/$(RPMFILENAME)' distdir
 	( cd "$(RPMDIR)/SOURCES/"; tar -z -c -f $(RPMFILENAME)-$(RELEASE).tar.gz $(RPMFILENAME); rm -rf $(RPMFILENAME); )
 	$(RPMBUILD) -bs $(PACKAGE_NAME).spec --define "_topdir `pwd`/$(RPMDIR)";
+	$(RPMBUILD) -bs $(PACKAGE_NAME)-dpdk.spec --define "_topdir `pwd`/$(RPMDIR)";
+	$(RPMBUILD) -bs $(PACKAGE_NAME)-ndp.spec --define "_topdir `pwd`/$(RPMDIR)";
 
 .PHONY: rpm
 rpm: srpm
@@ -279,7 +300,11 @@ rpm-nemea: srpm
 
 .PHONY: rpm-ndp
 rpm-ndp: srpm
-	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm --with ndp --with unwind;
+	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(PACKAGE_NAME)-ndp-$(VERSION)-$(RELEASE).src.rpm --with unwind;
+
+.PHONY: rpm-dpdk
+rpm-dpdk: srpm
+	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(PACKAGE_NAME)-dpdk-$(VERSION)-$(RELEASE).src.rpm --with unwind;
 else
 endif
 

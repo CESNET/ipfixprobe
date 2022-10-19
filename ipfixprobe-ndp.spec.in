@@ -1,15 +1,7 @@
-%bcond_with ndp
-%bcond_with pcap
 %bcond_without raw
 %bcond_with nemea
 %bcond_with unwind
 %bcond_with is_el7
-
-%if %{with ndp}
-%global compile_ndp yes
-%else
-%global compile_ndp no
-%endif
 
 %if %{with raw}
 %global compile_raw yes
@@ -35,28 +27,24 @@
 %global is_el7 no
 %endif
 
-Name: ipfixprobe
+Name: ipfixprobe-ndp
 Version: @PACKAGE_VERSION@
 Release: @RELEASE@
 URL: http://nemea.liberouter.org/
-Source: https://www.liberouter.org/repo/SOURCES/%{name}-%{version}-%{release}.tar.gz
+Source: https://www.liberouter.org/repo/SOURCES/ipfixprobe-%{version}-%{release}.tar.gz
 Group: Liberouter
 License: BSD
 Vendor: CESNET, z.s.p.o.
 Packager: @USERNAME@ <@USERMAIL@>
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}
-Summary: IPFIX flow exporter with various extending IPFIX elements exported by plugins.
+BuildRoot: %{_tmppath}/ipfixprobe-%{version}-%{release}
+Summary: IPFIX flow exporter with NDP support and various extending IPFIX elements exported by plugins.
 Requires: libatomic
 BuildRequires: gcc gcc-c++ make doxygen pkgconfig libatomic
 Provides: ipfixprobe
-
-%if %{with ndp}
 Requires: netcope-common
+Requires: numactl
 BuildRequires: netcope-common
-%else
-Requires: libpcap
-BuildRequires: libpcap-devel
-%endif
+BuildRequires: numactl-devel
 
 %if %{with nemea} || "@COPRRPM@" == "yes"
 Requires: libtrap
@@ -78,26 +66,28 @@ BuildRequires: openssl-devel
 %endif
 
 %description
-This package contains nemea flow exporter.
+This package contains IPFIX flow exporter with NDP support.
 
-%package input-pcap
+%package -n ipfixprobe-input-ndp
 Group: Liberouter
 License: BSD
 Vendor: CESNET, z.s.p.o.
 Packager: @USERNAME@ <@USERMAIL@>
-Summary: Libpcap input plugin for ipfixprobe IPFIX flow exporter.
-Requires: libpcap
-BuildRequires: libpcap-devel
-Provides: ipfixprobe-input-pcap
+Summary: NDP input plugin for ipfixprobe IPFIX flow exporter.
+Requires: netcope-common
+Requires: numactl
+BuildRequires: netcope-common
+BuildRequires: numactl-devel
+Provides: ipfixprobe-input-ndp
 
-%description input-pcap
-Input plugin to monitor network traffic on network interface using libpcap or to process packets stored in PCAP files.
+%description -n ipfixprobe-input-ndp
+Input plugin to monitor network traffic on network interface using NDP and HW acceleration cards.
 
 %prep
-%setup
+%setup -n ipfixprobe-%{version}
 
 %build
-./configure -q --enable-silent-rules --prefix=%{_prefix} --libdir=%{_libdir} --bindir=%{_bindir} --sysconfdir=%{_sysconfdir} --docdir=%{_docdir} --mandir=%{_mandir} --datadir=%{_datadir} --with-ndp=%{compile_ndp} --with-raw=%{compile_raw} --with-pcap=%{compile_pcap} --with-nemea=%{compile_nemea} --with-unwind=%{compile_unwind} --enable-legacy-ssl=%{is_el7};
+./configure -q --enable-silent-rules --prefix=%{_prefix} --libdir=%{_libdir} --bindir=%{_bindir} --sysconfdir=%{_sysconfdir} --docdir=%{_docdir} --mandir=%{_mandir} --datadir=%{_datadir} --with-raw=%{compile_raw} --with-nemea=%{compile_nemea} --with-unwind=%{compile_unwind} --enable-legacy-ssl=%{is_el7} --with-ndp --disable-pcap-plugin
 make clean
 make -j5
 
@@ -108,18 +98,6 @@ make -j5 DESTDIR=$RPM_BUILD_ROOT install
 test -x %{_bindir}/ipfixprobe && setcap "CAP_NET_RAW+eip" %{_bindir}/ipfixprobe || true
 ldconfig
 
-%if %{with ndp}
-%package devel
-Summary: Devel package of ipfixprobe containing header files of libndpRI interface and devel files.
-Group: Liberouter
-Requires: ipfixprobe = %{version}-%{release}
-Provides: ipfixprobe-devel
-
-%description devel
-This package contains header file for liburfilter.
-
-%endif
-
 %files
 %attr(0755, root, nemead) %{_bindir}/ipfixprobe
 %attr(0755, root, nemead) %{_bindir}/ipfixprobe_stats
@@ -127,23 +105,19 @@ This package contains header file for liburfilter.
 %{_sysconfdir}/bash_completion.d/ipfixprobe.bash
 %{_sysconfdir}/ipfixprobe/link0.conf.example
 %{_docdir}/ipfixprobe/README.md
-%if %{with ndp}
 %{_libdir}/libndpRI.so.0
 %{_libdir}/libndpRI.so.0.0.0
-%endif
-@systemdsystemunitdir@
-
-%if %{with ndp}
-%files devel
 %{_includedir}/ndpheader.h
 %{_includedir}/ndpreader.h
 %{_includedir}/ndpreader.hpp
 %{_libdir}/libndpRI.a
 %{_libdir}/libndpRI.la
 %{_libdir}/libndpRI.so
-%endif
+@systemdsystemunitdir@
 
-%files input-pcap
-%{_libdir}/ipfixprobe/input-pcap.so
-%{_libdir}/ipfixprobe/input-pcap.la
+%files -n ipfixprobe-input-ndp
+%{_libdir}/ipfixprobe/input-ndp.so
+%{_libdir}/ipfixprobe/input-ndp.la
+%{_libdir}/libndpRI.so.0
+%{_libdir}/libndpRI.so.0.0.0
 
