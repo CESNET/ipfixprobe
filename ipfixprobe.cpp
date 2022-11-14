@@ -54,11 +54,6 @@
 #include <signal.h>
 #include <poll.h>
 
-#ifdef WITH_DPDK
-#include <rte_eal.h>
-#include <rte_errno.h>
-#endif
-
 #include "ipfixprobe.hpp"
 #ifdef WITH_LIBUNWIND
 #include "stacktrace.hpp"
@@ -552,15 +547,6 @@ int run(int argc, char *argv[])
 
    register_handlers();
 
-#ifdef WITH_DPDK
-    int ret = rte_eal_init(argc, argv);
-    if (ret < 0) {
-        rte_exit(EXIT_FAILURE, "Cannot initialize RTE_EAL: %s\n", rte_strerror(rte_errno));
-    }
-    argc -= ret;
-    argv += ret;
-#endif
-
    try {
       parser.parse(argc - 1, const_cast<const char **>(argv) + 1);
    } catch (ParserError &e) {
@@ -648,10 +634,6 @@ int run(int argc, char *argv[])
    }
 
 EXIT:
-#ifdef WITH_DPDK
-    rte_eal_cleanup();
-#endif
-
    if (!parser.m_pid.empty()) {
       unlink(parser.m_pid.c_str());
    }
