@@ -147,9 +147,9 @@ Here are the examples of various plugins usage:
 ./ipfixprobe -i 'pcap;file=pcaps/http.pcap' -p http -p pstats -p idpcontent -p phists -o 'unirec;i=u:http:timeout=WAIT,u:stats:timeout=WAIT;p=http,(pstats,phists,idpcontent)'
 
 # Read packets using DPDK input interface and 1 DPDK queue, enable plugins for basic statistics, http and tls, output to IPFIX on a local machine
-# Note that parameters for the ipfixprobe application go AFTER the '--'. Parameters before are passed into the DPDK EAL
-# The application will run on a core 0 as defined with EAL parameter -c using mask 0x1
-For example: `./ipfixprobe -c 0x1 -a  "<[domain:]bus:devid.func>" -- -i "dpdk;p=0,q=1,i=0" -p http "-p" bstats -p tls -o "ipfix;h=127.0.0.1"`, where correct values for `-c` and `-a` must be specified.
+# DPDK EAL parameters are passed in `e, eal` parameters
+# DPDK plugin configuration has to be specified in the first input interface, others dpdk interfaces inherit configuration from the first interface
+For example: `./ipfixprobe -i "dpdk;p=0,q=1,e=-c 0x1 -a  <[domain:]bus:devid.func>" -p http "-p" bstats -p tls -o "ipfix;h=127.0.0.1"`
 ```
 
 ## Extension
