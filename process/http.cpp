@@ -180,10 +180,15 @@ void copy_str(char *dst, ssize_t size, const char *begin, const char *end)
    }
 
    memcpy(dst, begin, len);
-
-   if (len >= 2 && dst[len - 1] == '\n' && dst[len - 2] == '\r') {
-      len -= 2;
+   
+   if (len >= 1 && dst[len - 1] == '\n') {
+      len--;
    }
+
+   if (len >= 1 && dst[len - 1] == '\r') {
+      len--;
+   }
+
    dst[len] = 0;
 }
 
