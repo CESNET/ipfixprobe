@@ -124,7 +124,9 @@ ipfixprobe_process_src=\
 		process/stats.hpp \
 		process/md5.hpp \
 		process/md5.cpp \
-		process/common.hpp
+		process/common.hpp \
+		process/ssadetector.hpp \
+		process/ssadetector.cpp
 
 if WITH_QUIC
 ipfixprobe_process_src+=\
