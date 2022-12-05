@@ -382,8 +382,11 @@ inline uint16_t parse_tcp_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
       throw "Parser detected malformed packet";
    }
 
+
    pkt->src_port = ntohs(tcp->source);
    pkt->dst_port = ntohs(tcp->dest);
+   pkt->tcp_seq = ntohl(tcp->seq);
+   pkt->tcp_ack = ntohl(tcp->ack_seq); 
    pkt->tcp_flags = (uint8_t) *(data_ptr + 13) & 0xFF;
    pkt->tcp_window = ntohs(tcp->window);
 
