@@ -95,7 +95,7 @@ public:
             "q",
             "queue",
             "COUNT",
-            "Number of RX quues. Default: 1",
+            "Number of RX queues. Default: 1",
             [this](const char* arg) {try{rx_queues_ = str2num<decltype(rx_queues_)>(arg);} catch (std::invalid_argument&){return false;} return true; },
             RequiredArgument);
         register_option(
