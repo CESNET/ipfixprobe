@@ -148,8 +148,10 @@ Here are the examples of various plugins usage:
 
 # Read packets using DPDK input interface and 1 DPDK queue, enable plugins for basic statistics, http and tls, output to IPFIX on a local machine
 # DPDK EAL parameters are passed in `e, eal` parameters
-# DPDK plugin configuration has to be specified in the first input interface, others dpdk interfaces inherit configuration from the first interface
-For example: `./ipfixprobe -i "dpdk;p=0,q=1,e=-c 0x1 -a  <[domain:]bus:devid.func>" -p http "-p" bstats -p tls -o "ipfix;h=127.0.0.1"`
+# DPDK plugin configuration has to be specified in the first input interface.
+# The following `dpdk` interfaces are given without parameters; their configuration is inherited from the first one.
+# Example for the queue of 3 DPDK input plugins (`q=3`):
+`./ipfixprobe -i "dpdk;p=0,q=3,e=-c 0x1 -a  <[domain:]bus:devid.func>" -i dpdk -i dpdk -p http "-p" bstats -p tls -o "ipfix;h=127.0.0.1"`
 ```
 
 ## Extension
