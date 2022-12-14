@@ -1,3 +1,8 @@
+2022-12-12 ipfixprobe-4.7.1
+	* http: Removed trailing '\r' from HTTP exported fields
+	* tcp: fixed seq&ack tracking
+	* dpdk: reworked plugin
+
 2022-10-03 ipfixprobe-4.7.0
 	* dpdk: support for multi-queues
 	* dpdk: improved config file and init script
