@@ -197,7 +197,7 @@ void DpdkCore::configureRSS()
     struct rte_eth_rss_conf rssConfig = {
         .rss_key = rssKey,
         .rss_key_len = RSS_KEY_LEN,
-        .rss_hf = ETH_RSS_IP | ETH_RSS_TCP | ETH_RSS_UDP,
+        .rss_hf = ETH_RSS_IP,
     };
 
     if (rte_eth_dev_rss_hash_update(m_portId, &rssConfig)) {
