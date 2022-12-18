@@ -1,20 +1,125 @@
-# set up shell-like variables
+# Set up shell-like variables
+# Lines starting with '#' are comments.
 
-# List of activated input plugins (arguments for -i parameter)
-#   Specify array of input plugins with arguments using INPUT[], indexes (subscripts) must be unique
-INPUT[0]="ndp;dev=/dev/nfb0:0"
-INPUT[1]="ndp;dev=/dev/nfb0:1"
+# $$$$$$\                                 $$\
+# \_$$  _|                                $$ |
+#   $$ |  $$$$$$$\   $$$$$$\  $$\   $$\ $$$$$$\
+#   $$ |  $$  __$$\ $$  __$$\ $$ |  $$ |\_$$  _|
+#   $$ |  $$ |  $$ |$$ /  $$ |$$ |  $$ |  $$ |
+#   $$ |  $$ |  $$ |$$ |  $$ |$$ |  $$ |  $$ |$$\
+# $$$$$$\ $$ |  $$ |$$$$$$$  |\$$$$$$  |  \$$$$  |
+# \______|\__|  \__|$$  ____/  \______/    \____/
+#                   $$ |
+#                   $$ |
+#                   \__|
+#
+# Settings depend on type of input plugin.
+# For DPDK, skip to the related section and leave INPUT[*] array commented.
+#
+# For PCAP / NDP / raw, create a list of activated input plugins (arguments for -i parameter).
+#
+#   Specify the array of input plugins with arguments using INPUT[], indexes (subscripts) must be unique.
+#
+# See `ipfixprobe --help input` for more information
+
+# Example of PCAP:
+#
+#INPUT[0]="pcap;ifc=eno2"
+
+# Example of NDP:
+#
+#INPUT[0]="ndp;dev=/dev/nfb0:0"
+#INPUT[1]="ndp;dev=/dev/nfb0:1"
+
+# Example of raw:
+#
+#INPUT[0]="raw;ifc=eno2"
 
 # or specify inputs using loop
 # for i in `seq 0 15`; do
 # INPUT[$i]="ndp;dev=/dev/nfb0:$i"
 # done
 
+#===================================================
+# DPDK input plugin settings
+# --------------------------------------------------
+#
+# It is recommended to use either DPDK or NDP.
+#
+# Enable USE_DPDK input by setting USE_DPDK=1:
+
+#USE_DPDK=1
+
+# Set PCIe address in the format <[domain:]bus:devid.func> for example:
+
+#DPDK_DEVICE=0000:43:00.0
+
+# Set CPU mask:
+
+#DPDK_CPUMASK=0x1
+
+# Set network device port:
+
+#DPDK_PORT=0
+
+# Set number of parallel queues (RSS feature)
+
+#DPDK_QUEUES_COUNT=8
+
+#===================================================
+
+# $$$$$$$\                                                              $$\
+# $$  __$$\                                                             \__|
+# $$ |  $$ | $$$$$$\   $$$$$$\   $$$$$$$\  $$$$$$\   $$$$$$$\  $$$$$$$\ $$\ $$$$$$$\   $$$$$$\
+# $$$$$$$  |$$  __$$\ $$  __$$\ $$  _____|$$  __$$\ $$  _____|$$  _____|$$ |$$  __$$\ $$  __$$\
+# $$  ____/ $$ |  \__|$$ /  $$ |$$ /      $$$$$$$$ |\$$$$$$\  \$$$$$$\  $$ |$$ |  $$ |$$ /  $$ |
+# $$ |      $$ |      $$ |  $$ |$$ |      $$   ____| \____$$\  \____$$\ $$ |$$ |  $$ |$$ |  $$ |
+# $$ |      $$ |      \$$$$$$  |\$$$$$$$\ \$$$$$$$\ $$$$$$$  |$$$$$$$  |$$ |$$ |  $$ |\$$$$$$$ |
+# \__|      \__|       \______/  \_______| \_______|\_______/ \_______/ \__|\__|  \__| \____$$ |
+#                                                                                     $$\   $$ |
+#                                                                                     \$$$$$$  |
+#                                                                                      \______/
+#
 # List of activated process plugins (arguments for -p parameter), to skip plugins, use "basic" only:
 # PROCESS=(basic)
+#
+# See `ipfixprobe -h process` for the list of available plugins.
+#
 PROCESS=(pstats tls http ssdp "dnssd;txt")
 
+#
+# $$$$$$$$\ $$\                                $$$$$$\                      $$\
+# $$  _____|$$ |                              $$  __$$\                     $$ |
+# $$ |      $$ | $$$$$$\  $$\  $$\  $$\       $$ /  \__| $$$$$$\   $$$$$$$\ $$$$$$$\   $$$$$$\
+# $$$$$\    $$ |$$  __$$\ $$ | $$ | $$ |      $$ |       \____$$\ $$  _____|$$  __$$\ $$  __$$\
+# $$  __|   $$ |$$ /  $$ |$$ | $$ | $$ |      $$ |       $$$$$$$ |$$ /      $$ |  $$ |$$$$$$$$ |
+# $$ |      $$ |$$ |  $$ |$$ | $$ | $$ |      $$ |  $$\ $$  __$$ |$$ |      $$ |  $$ |$$   ____|
+# $$ |      $$ |\$$$$$$  |\$$$$$\$$$$  |      \$$$$$$  |\$$$$$$$ |\$$$$$$$\ $$ |  $$ |\$$$$$$$\
+# \__|      \__| \______/  \_____\____/        \______/  \_______| \_______|\__|  \__| \_______|
+#
+#
+# Size of flow cache, exponent to the power of two
+CACHE_SIZE=17
 
+# Active and inactive timeout in seconds
+ACTIVE_TIMEOUT=300
+INACTIVE_TIMEOUT=65
+
+#
+#  $$$$$$\              $$\                           $$\
+# $$  __$$\             $$ |                          $$ |
+# $$ /  $$ |$$\   $$\ $$$$$$\    $$$$$$\  $$\   $$\ $$$$$$\
+# $$ |  $$ |$$ |  $$ |\_$$  _|  $$  __$$\ $$ |  $$ |\_$$  _|
+# $$ |  $$ |$$ |  $$ |  $$ |    $$ /  $$ |$$ |  $$ |  $$ |
+# $$ |  $$ |$$ |  $$ |  $$ |$$\ $$ |  $$ |$$ |  $$ |  $$ |$$\
+#  $$$$$$  |\$$$$$$  |  \$$$$  |$$$$$$$  |\$$$$$$  |  \$$$$  |
+#  \______/  \______/    \____/ $$  ____/  \______/    \____/
+#                               $$ |
+#                               $$ |
+#                               \__|
+#
+# The following variables set IPFIX output.
+#
 # Link / ODID identifier
 LINK=0
 
@@ -28,9 +133,3 @@ PORT=4739
 # Use UDP yes/no? (instead of TCP)
 UDP=yes
 
-# Size of flow cache, exponent to the power of two
-CACHE_SIZE=17
-
-# Active and inactive timeout in seconds
-ACTIVE_TIMEOUT=300
-INACTIVE_TIMEOUT=65

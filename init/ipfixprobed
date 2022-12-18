@@ -5,6 +5,14 @@ CONFFILE="/etc/ipfixprobe/$1.conf"
 if [ -e "$CONFFILE" ]; then
    source "$CONFFILE"
    input=""
+   dpdkinput=""
+   if [ "$USE_DPDK" = "1" ]; then
+      # set up DPDK interface(s)
+      dpdkinput=("-i" "dpdk;p=$DPDK_PORT;q=$DPDK_QUEUES_COUNT;e=-c $DPDK_CPUMASK -a $DPDK_DEVICE")
+      for ((ifc=1; ifc<$DPDK_QUEUES_COUNT;ifc++)); do
+         dpdkinput+=("-i" "dpdk")
+      done
+   fi
    if `declare -p INPUT > /dev/null 2>/dev/null`; then
       # list of input plugins
       for ifc in "${!INPUT[@]}"; do
@@ -37,7 +45,7 @@ if [ -e "$CONFFILE" ]; then
    fi
    output="-o ipfix;host=${HOST:-127.0.0.1};port=${PORT:-4739};id=${LINK:-0};dir=${DIR:-0};${UDP_PARAM}"
 
-   exec /usr/bin/ipfixprobe $input $storage $process $output
+   exec /usr/bin/ipfixprobe "${dpdkinput[@]}" $input $storage $process $output
 else
    echo "Configuration file '$CONFFILE' does not exist, exitting." >&2
    exit 1
