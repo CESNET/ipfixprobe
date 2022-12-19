@@ -40,4 +40,5 @@ jobs:
         flags: tests # optional
         name: ipfixprobe # optional
         fail_ci_if_error: true # optional (default = false)
-        verbose: true # optional (default = false)
+        verbose: true
+        gcov: true
