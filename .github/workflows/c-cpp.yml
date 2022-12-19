@@ -35,10 +35,9 @@ jobs:
       run: ./configure --with-raw --with-pcap --with-nemea --with-gtest --enable-debug CXXFLAGS=-coverage CFLAGS=-coverage LDFLAGS=-lgcov
     - name: rebuild and check
       run: make clean; make check
-    - uses: codecov/codecov-action@v1
+    - uses: codecov/codecov-action@v3
       with:
         flags: tests # optional
         name: ipfixprobe # optional
         fail_ci_if_error: true # optional (default = false)
         verbose: true # optional (default = false)
-
