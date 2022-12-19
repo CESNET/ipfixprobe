@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 CONFFILE="/etc/ipfixprobe/$1.conf"
 
