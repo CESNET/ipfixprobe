@@ -35,6 +35,14 @@
 #
 #INPUT[0]="raw;ifc=eno2"
 
+# Other examples:
+#
+# INPUT[0]="dpdk;p=0;q=16;i=0"
+
+# INPUT[0]="raw;i=wlo1"
+
+# INPUT[0]="pcap;i=wlo1"
+
 # or specify inputs using loop
 # for i in `seq 0 15`; do
 # INPUT[$i]="ndp;dev=/dev/nfb0:$i"

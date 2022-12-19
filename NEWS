@@ -1,3 +1,26 @@
+2022-12-05 (Karel Hynek): Merge pull request #110 from CESNET/tcp_seq_ack_fix
+2022-12-05 (Tomas Cejka): Merge pull request #109 from CESNET/HTTPS_plugin_fix
+2022-12-05 (Karel Hynek): FIX: Parsing TCP SEQ and TCP ACK numbers
+2022-11-25 (Karel Hynek): BUGFIX: Removed trailing '\r' from HTTP exported fields
+2022-11-24 (SiskaPavel): Merge pull request #108 from CESNET/dpdk-rework
+2022-11-22 (xsiska12): dpdk: updated README
+2022-11-22 (xsiska12): dpdk - rework dpdk plugin
+2022-10-14 (Tomas Cejka): Merge pull request #105 from CESNET/dpdk-older-version-support
+2022-10-03 (xsiska12): dpdk: support dpdk version < 21.11
+2022-10-03 (SiskaPavel): Merge pull request #104 from CESNET/new_version
+
+2022-10-03 (Tomas Cejka): Merge pull request #103 from CESNET/dpdk-queues
+2022-10-03 (xsiska12): dpdk: Updated README.md
+2022-10-03 (xsiska12): dpdk: added DPDK into daemon wrapper and example config
+2022-10-03 (xsiska12): DPDK: added support of multi queues packets reading
+2022-09-13 (SiskaPavel): Merge pull request #102 from CESNET/flexprobe-zerocopy
+2022-09-12 (xsiska12): flexprobe: Changed flexprobe packet conversion to zero copy mode
+2022-09-02 (Karel Hynek): Merge pull request #100 from CESNET/bugfix_relocation
+2022-08-13 (Tomas Cejka): build: BUGFIX dangerous relocation
+2022-08-05 (Tomas Cejka): Merge pull request #99 from CESNET/openwrt-bugfix-quic
+2022-08-05 (Tomas Cejka): tls: BUGFIX replaced unknown uint with size_t, add missing header file
+2022-07-27 (Karel Hynek): Merge pull request #98 from CESNET/new_version
+
 2022-07-26 (OndrejSedlacek): SSDP Plugin: Fixed payload handling.
 2022-07-26 (Andrej Lukacovic): QUIC: parse_header variables changed to const, decrypt_header copies from original pkt payload
 2022-07-26 (Karel Hynek): Updated copyright and license in QUIC and TLS plugins/parsers

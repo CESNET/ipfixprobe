@@ -1,3 +1,15 @@
+2022-12-12 ipfixprobe-4.7.1
+	* http: Removed trailing '\r' from HTTP exported fields
+	* tcp: fixed seq&ack tracking
+	* dpdk: reworked plugin
+
+2022-10-03 ipfixprobe-4.7.0
+	* dpdk: support for multi-queues
+	* dpdk: improved config file and init script
+	* flexprobe: changed flexprobe packet conversion to zero-copy mode
+	* build: bugfix - fixed missing -PIC
+	* tls: bugfix - replaced bad data type
+
 2022-07-26 ipfixprobe-4.6.0
 	* QUIC: refactor plugin, version 2 added
 	* Zero-copy packet processing
