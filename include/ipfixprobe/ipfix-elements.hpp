@@ -92,7 +92,7 @@ namespace ipxp {
 #define FLOW_START_USEC(F)            F(0,      154,    8,   (temp = MK_NTP_TS(flow.time_first), &temp))
 #define FLOW_END_USEC(F)              F(0,      155,    8,   (temp = MK_NTP_TS(flow.time_last), &temp))
 #define OBSERVATION_MSEC(F)           F(0,      323,    8,   nullptr)
-#define INPUT_INTERFACE(F)            F(0,       10,    2,   &this->dir_bit_field)
+#define INPUT_INTERFACE(F)            F(0,       10,    4,   &this->dir_bit_field)
 #define OUTPUT_INTERFACE(F)           F(0,       14,    2,   nullptr)
 #define FLOW_END_REASON(F)            F(0,      136,    1,   &flow.end_reason)
 

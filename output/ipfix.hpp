@@ -74,7 +74,7 @@ public:
    uint16_t m_mtu;
    bool m_udp;
    uint64_t m_id;
-   uint8_t m_dir;
+   uint32_t m_dir;
    bool m_verbose;
 
    IpfixOptParser() : OptionsParser("ipfix", "Output plugin for ipfix export"),
@@ -268,7 +268,7 @@ private:
    uint32_t odid; /**< Observation Domain ID */
    uint32_t templateRefreshTime; /**< UDP template refresh time interval */
    uint32_t templateRefreshPackets; /**< UDP template refresh packet interval */
-   uint8_t dir_bit_field;     /**< Direction bit field value. */
+   uint32_t dir_bit_field;     /**< Direction bit field value. */
 
    uint16_t mtu; /**< Max size of packet payload sent */
    uint8_t *packetDataBuffer; /**< Data buffer to store packet */
