@@ -104,8 +104,15 @@ us.
 
 ### Output
 
-- For NEMEA, the output is in UniRec format using [https://nemea.liberouter.org/trap-ifcspec/](https://nemea.liberouter.org/trap-ifcspec/)
-- IPFIX [RFC 5101](https://tools.ietf.org/html/rfc5101)
+There are several currently available output plugins, such as:
+
+- `ipfix` standard IPFIX [RFC 5101](https://tools.ietf.org/html/rfc5101)
+- `unirec` data source for the [NEMEA system](https://nemea.liberouter.org), the output is in the UniRec format sent via a configurable interface using [https://nemea.liberouter.org/trap-ifcspec/](https://nemea.liberouter.org/trap-ifcspec/)
+- `text` output in human readable text format on standard output file descriptor (stdout)
+
+The output flow records are composed of information provided by the enabled plugins (using `-p` parameter, see [Flow Data Extension - Processing Plugins](./README.md#flow-data-extension---processing-plugins)).
+
+See `ipfixprobe -h output` for more information and complete list of output plugins and their parameters.
 
 ## Parameters
 ### Module specific parameters
@@ -154,11 +161,17 @@ Here are the examples of various plugins usage:
 `./ipfixprobe -i "dpdk;p=0;q=3;e=-c 0x1 -a  <[domain:]bus:devid.func>" -i dpdk -i dpdk -p http "-p" bstats -p tls -o "ipfix;h=127.0.0.1"`
 ```
 
-## Extension
+## Flow Data Extension - Processing Plugins
+
 `ipfixprobe` can be extended by new plugins for exporting various new information from flow.
 There are already some existing plugins that export e.g. `DNS`, `HTTP`, `SIP`, `NTP`, `PassiveDNS`.
 
+To enable a plugin, add `-p` option with argument (it can be used multiple times). Each plugin provides a set of information described in section Output data.
+
+See `ipfixprobe -h process` for more information and complete list of processing plugins and their parameters.
+
 ## Adding new plugin
+
 To create new plugin use [process/create_plugin.sh](process/create_plugin.sh) script. This interactive script will generate .cpp and .h
 file template and will also print `TODO` guide what needs to be done.
 
@@ -172,10 +185,16 @@ Turn off message buffering using `buffer=off` option and set `timeout=WAIT` on o
 ```
 
 ## Output data
+
+The following sections describe set of information fields provided by the processing plugins.
+The columns `Output field` and `Type` represent the name and type of UniRec elements (NEMEA output); however, the equivalent fields are exported in other output plugins as well --- e.g., in IPFIX format.
+
+Note: to lookup IPFIX enterprise id and element id have a look into [header file](https://github.com/CESNET/ipfixprobe/blob/master/include/ipfixprobe/ipfix-elements.hpp#L85) with the mapping to IPFIX elements.
+
 ### Basic
 Basic unirec fields exported on interface with basic (pseudo) plugin. These fields are also exported on interfaces where HTTP, DNS, SIP and NTP plugins are active.
 
-| UniRec field           | Type             | Description                                         |
+| Output field           | Type             | Description                                         |
 |:----------------------:|:----------------:|:---------------------------------------------------:|
 | DST_MAC                | macaddr          | destination MAC address                             |
 | SRC_MAC                | macaddr          | source MAC address                                  |
@@ -199,7 +218,7 @@ Basic unirec fields exported on interface with basic (pseudo) plugin. These fiel
 List of unirec fields exported together with basic flow fields on interface by basicplus plugin.
 Fields without `_REV` suffix are fields from source flow. Fields with `_REV` are from the opposite direction.
 
-| UniRec field | Type   | Description                 |
+| Output field | Type   | Description                 |
 |:------------:|:------:|:---------------------------:|
 | IP_TTL       | uint8  | IP TTL field                |
 | IP_TTL_REV   | uint8  | IP TTL field                |
@@ -216,7 +235,7 @@ Fields without `_REV` suffix are fields from source flow. Fields with `_REV` are
 ### HTTP
 List of unirec fields exported together with basic flow fields on interface by HTTP plugin.
 
-| UniRec field                 | Type   | Description                 |
+| Output field                 | Type   | Description                 |
 |:----------------------------:|:------:|:---------------------------:|
 | HTTP_REQUEST_METHOD          | string | HTTP request method         |
 | HTTP_REQUEST_HOST            | string | HTTP request host           |
@@ -229,7 +248,7 @@ List of unirec fields exported together with basic flow fields on interface by H
 ### RTSP
 List of unirec fields exported together with basic flow fields on interface by RTSP plugin.
 
-| UniRec field                 | Type   | Description                 |
+| Output field                 | Type   | Description                 |
 |:----------------------------:|:------:|:---------------------------:|
 | RTSP_REQUEST_METHOD          | string | RTSP request method name    |
 | RTSP_REQUEST_AGENT           | string | RTSP request user agent     |
@@ -241,7 +260,7 @@ List of unirec fields exported together with basic flow fields on interface by R
 ### TLS
 List of unirec fields exported together with basic flow fields on interface by TLS plugin.
 
-| UniRec field        | Type   | Description                                                   |
+| Output field        | Type   | Description                                                   |
 |:-------------------:|:------:|:-------------------------------------------------------------:|
 | TLS_SNI             | string | TLS server name indication field from client                  |
 | TLS_ALPN            | string | TLS application protocol layer negotiation field from server  |
@@ -251,7 +270,7 @@ List of unirec fields exported together with basic flow fields on interface by T
 ### DNS
 List of unirec fields exported together with basic flow fields on interface by DNS plugin.
 
-| UniRec field | Type   | Description                     |
+| Output field | Type   | Description                     |
 |:------------:|:------:|:-------------------------------:|
 | DNS_ID       | uint16 | transaction ID                  |
 | DNS_ANSWERS  | uint16 | number of DNS answer records    |
@@ -295,7 +314,7 @@ Same as [here](https://www.liberouter.org/technologies/exporter/dns-plugin/):
 ### PassiveDNS
 List of unirec fields exported together with basic flow fields on interface by PassiveDNS plugin.
 
-| UniRec field | Type   | Description                             |
+| Output field | Type   | Description                             |
 |:------------:|:------:|:---------------------------------------:|
 | DNS_ID       | uint16 | transaction ID                          |
 | DNS_ATYPE    | uint8  | response record type                    |
@@ -306,7 +325,7 @@ List of unirec fields exported together with basic flow fields on interface by P
 ### SIP
 List of unirec fields exported together with basic flow fields on interface by SIP plugin.
 
-| UniRec field      | Type   | Description                     |
+| Output field      | Type   | Description                     |
 |:-----------------:|:------:|:-------------------------------:|
 | SIP_MSG_TYPE      | uint16 | SIP message code                |
 | SIP_STATUS_CODE   | uint16 | status of the SIP request       |
@@ -321,7 +340,7 @@ List of unirec fields exported together with basic flow fields on interface by S
 ### NTP
 List of unirec fields exported together with basic flow fields on interface by NTP plugin.
 
-| UniRec field   | Type   | Description               |
+| Output field   | Type   | Description               |
 |:--------------:|:------:|:-------------------------:|
 | NTP_LEAP       | uint8  | NTP leap field            |
 | NTP_VERSION    | uint8  | NTP message version       |
@@ -340,7 +359,7 @@ List of unirec fields exported together with basic flow fields on interface by N
 ### SMTP
 List of unirec fields exported on interface by SMTP plugin
 
-| UniRec field              | Type   | Description                         |
+| Output field              | Type   | Description                         |
 |:-------------------------:|:------:|:-----------------------------------:|
 | SMTP_2XX_STAT_CODE_COUNT  | uint32 | number of 2XX status codes          |
 | SMTP_3XX_STAT_CODE_COUNT  | uint32 | number of 3XX status codes          |
@@ -408,9 +427,9 @@ The following table shows bit values of `SMTP\_STAT_CODE\_FLAGS` for each presen
 
 ### PSTATS
 List of unirec fields exported on interface by PSTATS plugin.  The plugin is compiled to gather statistics for the first `PSTATS_MAXELEMCOUNT` (30 by default) packets in the biflow record.
-Note: the following fields are UniRec arrays.
+Note: the following fields are UniRec arrays (or basicList in IPFIX).
 
-| UniRec field               | Type     | Description                            |
+| Output field               | Type     | Description                            |
 |:--------------------------:|:--------:|:--------------------------------------:|
 | PPI_PKT_LENGTHS            | uint16\* | sizes of the first packets             |
 | PPI_PKT_TIMES              | time\*   | timestamps of the first packets        |
@@ -429,7 +448,7 @@ ipfixprobe 'pcap;file=pcaps/http.pcap' -p "pstats;includezeros" -o 'unirec;i=u:s
 ### OSQUERY
 List of unirec fields exported together with basic flow fields on interface by OSQUERY plugin.
 
-| UniRec field               | Type     | Description                                         |
+| Output field               | Type     | Description                                         |
 |:--------------------------:|:--------:|:---------------------------------------------------:|
 | PROGRAM_NAME               | string   | The name of the program that handles the connection |
 | USERNAME                   | string   | The name of the user who starts the process         |
@@ -446,7 +465,7 @@ List of unirec fields exported together with basic flow fields on interface by O
 ### SSDP
 List of unirec fields exported together with basic flow fields on interface by SSDP plugin.
 
-| UniRec field       | Type   | Description                     |
+| Output field       | Type   | Description                     |
 |:------------------:|:------:|:-------------------------------:|
 | SSDP_LOCATION_PORT | uint16 | service port                    |
 | SSDP_NT            | string | list of advertised service urns |
@@ -459,7 +478,7 @@ All lists are semicolon separated.
 ### DNS-SD
 List of unirec fields exported together with basic flow fields on interface by DNS-SD plugin.
 
-| UniRec field    | Type   | Description                     |
+| Output field    | Type   | Description                     |
 |:---------------:|:------:|:-------------------------------:|
 | DNSSD_QUERIES   | string | list of queries for services    |
 | DNSSD_RESPONSES | string | list of advertised services     |
@@ -476,36 +495,36 @@ Format of DNSSD_RESPONSES: [service_instance_name;service_port;service_target;hi
 
 ### OVPN (OpenVPN)
 
-List of UniRec fields exported together with basic flow fields on interface by OVPN plugin.
+List of fields exported together with basic flow fields on interface by OVPN plugin.
 
-| UniRec field       | Type   | Description                     |
+| Output field       | Type   | Description                     |
 |:------------------:|:------:|:-------------------------------:|
 | OVPN_CONF_LEVEL    | uint8  | level of confidence that the flow record is an OpenVPN tunnel |
 
 
 ### IDPContent (Initial Data Packets Content)
 
-List of UniRec fields exported together with basic flow fields on the interface by IDPContent plugin.
+List of fields exported together with basic flow fields on the interface by IDPContent plugin.
 The plugin is compiled to export `IDPCONTENT_SIZE` (100 by default) bytes from the first data packet in SRC -> DST direction,
 and the first data packet in DST -> SRC direction.
 
-| UniRec field       | Type   | Description                     |
+| Output field       | Type   | Description                     |
 |:------------------:|:------:|:-------------------------------:|
 | IDP_CONTENT        | bytes  | Content of first data packet from SRC -> DST|
 | IDP_CONTENT_REV    | bytes  | Content of first data packet from DST -> SRC|
 
 ### NetBIOS
 
-List of UniRec fields exported together with basic flow fields on interface by NetBIOS plugin.
+List of fields exported together with basic flow fields on interface by NetBIOS plugin.
 
-| UniRec field  | Type   | Description                 |
+| Output field  | Type   | Description                 |
 |:-------------:|:------:|:---------------------------:|
 | NB_NAME       | string | NetBIOS Name Service name   |
 | NB_SUFFIX     | uint8  | NetBIOS Name Service suffix |
 
 ### PHISTS
 
-List of UniRec fields exported together with basic flow fields on the interface by PHISTS plugin.
+List of fields exported together with basic flow fields on the interface by PHISTS plugin.
 The plugin exports the histograms of Payload sizes and Inter-Packet-Times for each direction. The
 histograms bins are scaled logarithmicaly and are shown in following table:
 
@@ -522,7 +541,7 @@ histograms bins are scaled logarithmicaly and are shown in following table:
 
 The exported unirec fields and IPFIX basiclists is shown in following table:
 
-| UniRec field        | Type    | Description                             |
+| Output field        | Type    | Description                             |
 |:-------------------:|:-------:|:---------------------------------------:|
 | D_PHISTS_IPT        | uint32\*| DST->SRC: Histogram of interpacket times|
 | D_PHISTS_SIZES      | uint32\*| DST->SRC: Histogram of packet sizes     |
@@ -538,11 +557,11 @@ ipfixprobe 'pcap;file=pcaps/http.pcap' -p "phists;includezeros" -o 'unirec;i=u:h
 ```
 ### BSTATS
 
-List of UniRec fields exported together with basic flow fields on the interface by BSTATS plugin.
+List of fields exported together with basic flow fields on the interface by BSTATS plugin.
 The plugin is compiled to export the first `BSTATS_MAXELENCOUNT` (15 by default) burst in each direction.
 The bursts are computed separately for each direction. Burst is defined by `MINIMAL_PACKETS_IN_BURST` (3 by default) and by `MAXIMAL_INTERPKT_TIME` (1000 ms by default) between packets to be included in a burst.
 
-| UniRec field        | Type    | Description                                                     |
+| Output field        | Type    | Description                                                     |
 |:-------------------:|:-------:|:---------------------------------------------------------------:|
 | SBI_BRST_PACKETS    | uint32\* | SRC->DST: Number of packets transmitted in i<sup>th</sup> burst|
 | SBI_BRST_BYTES      | uint32\* | SRC->DST: Number of bytes transmitted in i<sup>th</sup> burst  |
@@ -555,9 +574,9 @@ The bursts are computed separately for each direction. Burst is defined by `MINI
 
 ### WG (WireGuard)
 
-List of UniRec fields exported together with basic flow fields on interface by WG plugin.
+List of fields exported together with basic flow fields on interface by WG plugin.
 
-| UniRec field       | Type   | Description                     |
+| Output field       | Type   | Description                     |
 |:------------------:|:------:|:-------------------------------:|
 | WG_CONF_LEVEL      | uint8  | level of confidence that the flow record is a WireGuard tunnel|
 | WG_SRC_PEER        | uint32 | ephemeral SRC peer identifier                                 |
@@ -565,9 +584,9 @@ List of UniRec fields exported together with basic flow fields on interface by W
 
 ### QUIC
 
-List of UniRec fields exported together with basic flow fields on interface by quic plugin.
+List of fields exported together with basic flow fields on interface by quic plugin.
 
-| UniRec field       | Type   | Description                     |
+| Output field       | Type   | Description                     |
 |:------------------:|:------:|:-------------------------------:|
 | QUIC_SNI           | string | Decrypted server name           |
 
