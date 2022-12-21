@@ -445,7 +445,6 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
             rte_pktmbuf_data_len(mbufs_[i]));
         m_seen++;
         m_parsed++;
-        packets.cnt++;
 #endif
     }
 
