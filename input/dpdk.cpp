@@ -263,7 +263,8 @@ bool DpdkCore::isNfbDpdkDriver()
 
 std::vector<char *> DpdkCore::convertStringToArgvFormat(const std::string& ealParams)
 {
-    std::vector<char *> args;
+    // set first value as program name (argv[0])
+    std::vector<char *> args = {"ipfixprobe"};
     std::istringstream iss(ealParams);
     std::string token;
 
