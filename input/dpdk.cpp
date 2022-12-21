@@ -422,7 +422,7 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
     }
     pkts_read_ = rte_eth_rx_burst(m_portId, m_rxQueueId, mbufs_.data(), mbufs_.size());
     if (pkts_read_ == 0) {
-        return Result::NOT_PARSED;
+        return Result::TIMEOUT;
     }
 
     for (auto i = 0; i < pkts_read_; i++) {
