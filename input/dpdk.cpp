@@ -403,7 +403,7 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
     }
 
 #ifndef WITH_FLEXPROBE
-    parser_opt_t opt { &packets, false, false, DLT_EN10MB };
+    parser_opt_t opt {&packets, false, false, 0};
 #endif
     packets.cnt = 0;
     for (auto i = 0; i < pkts_read_; i++) {
