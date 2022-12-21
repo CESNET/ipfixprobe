@@ -263,7 +263,8 @@ bool DpdkCore::isNfbDpdkDriver()
 
 std::vector<char *> DpdkCore::convertStringToArgvFormat(const std::string& ealParams)
 {
-    std::vector<char *> args;
+    // set first value as program name (argv[0])
+    std::vector<char *> args = {"ipfixprobe"};
     std::istringstream iss(ealParams);
     std::string token;
 
@@ -327,7 +328,6 @@ void DpdkReader::init(const char* params)
     createRteMempool(m_dpdkCore.parser.pkt_mempool_size());
     createRteMbufs(m_dpdkCore.parser.pkt_buffer_size());
     setupRxQueue();   
-    set_thread_affinity(m_rxQueueId);
 
     m_dpdkCore.startIfReady();
 }
@@ -370,16 +370,6 @@ void DpdkReader::setupRxQueue()
     }
 }
 
-int DpdkReader::set_thread_affinity(uint16_t thread_id)
-{
-    cpu_set_t cpuset;
-
-    CPU_ZERO(&cpuset);
-    CPU_SET(thread_id, &cpuset);
-
-    return pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
-}
-
 struct timeval DpdkReader::getTimestamp(rte_mbuf* mbuf)
 {
 	struct timeval tv;
@@ -413,7 +403,7 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
     }
 
 #ifndef WITH_FLEXPROBE
-    parser_opt_t opt { &packets, false, false, DLT_EN10MB };
+    parser_opt_t opt {&packets, false, false, 0};
 #endif
     packets.cnt = 0;
     for (auto i = 0; i < pkts_read_; i++) {
@@ -421,7 +411,7 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
     }
     pkts_read_ = rte_eth_rx_burst(m_portId, m_rxQueueId, mbufs_.data(), mbufs_.size());
     if (pkts_read_ == 0) {
-        return Result::NOT_PARSED;
+        return Result::TIMEOUT;
     }
 
     for (auto i = 0; i < pkts_read_; i++) {
@@ -444,7 +434,6 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
             rte_pktmbuf_data_len(mbufs_[i]));
         m_seen++;
         m_parsed++;
-        packets.cnt++;
 #endif
     }
 

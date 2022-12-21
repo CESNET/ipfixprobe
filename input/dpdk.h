@@ -218,7 +218,6 @@ private:
     void createRteMempool(uint16_t mempoolSize);
     void createRteMbufs(uint16_t mbufsSize);
     void setupRxQueue();
-    int set_thread_affinity(uint16_t thread_id);
     struct timeval getTimestamp(rte_mbuf* mbuf);
 
     DpdkCore& m_dpdkCore;
