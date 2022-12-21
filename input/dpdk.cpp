@@ -328,7 +328,6 @@ void DpdkReader::init(const char* params)
     createRteMempool(m_dpdkCore.parser.pkt_mempool_size());
     createRteMbufs(m_dpdkCore.parser.pkt_buffer_size());
     setupRxQueue();   
-    set_thread_affinity(m_rxQueueId);
 
     m_dpdkCore.startIfReady();
 }
@@ -369,16 +368,6 @@ void DpdkReader::setupRxQueue()
     if (ret < 0) {
         throw PluginError("Unable to set up RX queues");
     }
-}
-
-int DpdkReader::set_thread_affinity(uint16_t thread_id)
-{
-    cpu_set_t cpuset;
-
-    CPU_ZERO(&cpuset);
-    CPU_SET(thread_id, &cpuset);
-
-    return pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
 }
 
 struct timeval DpdkReader::getTimestamp(rte_mbuf* mbuf)
