@@ -166,13 +166,26 @@ void DpdkCore::validatePort()
 
 struct rte_eth_conf DpdkCore::createPortConfig()
 {
+    if (m_rxQueueCount > 1 && !m_supportedRSS) {
+        std::cerr << "RSS is not supported by card, multiple queues will not work as expected." << std::endl;
+        throw PluginError("Required RSS for q>1 is not supported.");
+    }
+
 #if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
     rte_eth_conf portConfig {.rxmode = {.mtu = RTE_ETHER_MAX_LEN}};
 #else
     rte_eth_conf portConfig {.rxmode = {.max_rx_pkt_len = RTE_ETHER_MAX_LEN}};
 #endif
-    portConfig.rxmode.mq_mode = ETH_MQ_RX_RSS;
-    portConfig.rxmode.offloads |= RTE_ETH_RX_OFFLOAD_TIMESTAMP;
+
+    if (m_supportedRSS) {
+        portConfig.rxmode.mq_mode = ETH_MQ_RX_RSS;
+    } else {
+        portConfig.rxmode.mq_mode = RTE_ETH_MQ_RX_NONE;
+    }
+
+    if (m_supportedHWTimestamp) {
+        portConfig.rxmode.offloads |= RTE_ETH_RX_OFFLOAD_TIMESTAMP;
+    }
     return portConfig;
 }
 
@@ -185,6 +198,11 @@ void DpdkCore::configurePort(const struct rte_eth_conf& portConfig)
 
 void DpdkCore::configureRSS()
 {
+    if (!m_supportedRSS) {
+        std::cerr << "SKipped RSS hash setting for port " << m_portId << "." << std::endl;
+        return;
+    }
+
     constexpr size_t RSS_KEY_LEN = 40;
     // biflow hash key
     static uint8_t rssKey[RSS_KEY_LEN] = {
@@ -201,7 +219,7 @@ void DpdkCore::configureRSS()
     };
 
     if (rte_eth_dev_rss_hash_update(m_portId, &rssConfig)) {
-        throw PluginError("Unable to set RSS hash");
+        std::cerr << "Setting RSS hash for port " << m_portId << "." << std::endl;
     }
 }
 
@@ -239,9 +257,11 @@ void DpdkCore::configure(const char* params)
     m_portId = parser.port_num();
     m_rxQueueCount = parser.rx_queues();
     configureEal(parser.eal_params());
+
+    /* recognize NIC driver and check capabilities */
+    recognizeDriver();
     registerRxTimestamp();
     initInterface();
-    recognizeDriver();
     isConfigured = true;
 }
 
@@ -251,9 +271,26 @@ void DpdkCore::recognizeDriver()
     if (rte_eth_dev_info_get(m_portId, &rteDevInfo)) {
         throw PluginError("Unable to get rte dev info");
     }
+
     if (std::strcmp(rteDevInfo.driver_name, "net_nfb") == 0) {
         m_isNfbDpdkDriver = true;
     }
+
+    std::cerr << "Capabilities of the port " << m_portId << " with driver " << rteDevInfo.driver_name << ":" << std::endl;
+    std::cerr << "\tRX offload: " << rteDevInfo.rx_offload_capa << std::endl;
+    std::cerr << "\tflow type RSS offloads: " << rteDevInfo.flow_type_rss_offloads << std::endl;
+
+    /* Check if RSS hashing is supported in NIC */
+    m_supportedRSS = (rteDevInfo.flow_type_rss_offloads & RTE_ETH_RSS_IP) != 0;
+    std::cerr << "\tDetected RSS offload capability: " << (m_supportedRSS ? "yes" : "no") << std::endl;
+
+    /* Check if HW timestamps are supported, we support NFB cards only */
+    if (m_isNfbDpdkDriver) {
+        m_supportedHWTimestamp = (rteDevInfo.flow_type_rss_offloads & RTE_ETH_RX_OFFLOAD_TIMESTAMP) != 0;
+    } else {
+        m_supportedHWTimestamp = false;
+    }
+    std::cerr << "\tDetected HW timestamp capability: " << (m_supportedHWTimestamp ? "yes" : "no") << std::endl;
 }
 
 bool DpdkCore::isNfbDpdkDriver()
@@ -297,6 +334,8 @@ void DpdkCore::startIfReady()
         configureRSS();
         enablePort();
         is_ifc_ready = true;
+
+        std::cerr << "DPDK input at port " << m_portId << " started." << std::endl;
     }
 }
 
