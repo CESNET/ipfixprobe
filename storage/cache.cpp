@@ -428,6 +428,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
 #endif /* FLOW_CACHE_STATS */
       }
    } else {
+      /* Check if flow record is expired (inactive timeout). */
       if (pkt.ts.tv_sec - flow->m_flow.time_last.tv_sec >= m_inactive) {
          m_flow_table[flow_index]->m_flow.end_reason = get_export_reason(flow->m_flow);
          plugins_pre_export(flow->m_flow);
@@ -437,6 +438,18 @@ int NHTFlowCache::put_pkt(Packet &pkt)
    #endif /* FLOW_CACHE_STATS */
          return put_pkt(pkt);
       }
+
+      /* Check if flow record is expired (active timeout). */
+      if (pkt.ts.tv_sec - flow->m_flow.time_first.tv_sec >= m_active) {
+         m_flow_table[flow_index]->m_flow.end_reason = FLOW_END_ACTIVE;
+         plugins_pre_export(flow->m_flow);
+         export_flow(flow_index);
+#ifdef FLOW_CACHE_STATS
+         m_expired++;
+#endif /* FLOW_CACHE_STATS */
+         return put_pkt(pkt);
+      }
+
       ret = plugins_pre_update(flow->m_flow, pkt);
       if (ret & FLOW_FLUSH) {
          flush(pkt, flow_index, ret, source_flow);
@@ -449,16 +462,6 @@ int NHTFlowCache::put_pkt(Packet &pkt)
             flush(pkt, flow_index, ret, source_flow);
             return 0;
          }
-      }
-
-      /* Check if flow record is expired. */
-      if (pkt.ts.tv_sec - flow->m_flow.time_first.tv_sec >= m_active) {
-         m_flow_table[flow_index]->m_flow.end_reason = FLOW_END_ACTIVE;
-         plugins_pre_export(flow->m_flow);
-         export_flow(flow_index);
-#ifdef FLOW_CACHE_STATS
-         m_expired++;
-#endif /* FLOW_CACHE_STATS */
       }
    }
 
