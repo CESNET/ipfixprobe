@@ -177,6 +177,8 @@ private:
     uint16_t m_currentRxId;
     int m_rxTimestampOffset;
     bool m_isNfbDpdkDriver;
+    bool m_supportedRSS;
+    bool m_supportedHWTimestamp;
     
     bool isConfigured = false;
     static DpdkCore* m_instance;
