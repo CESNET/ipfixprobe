@@ -286,7 +286,7 @@ void DpdkCore::recognizeDriver()
 
     /* Check if HW timestamps are supported, we support NFB cards only */
     if (m_isNfbDpdkDriver) {
-        m_supportedHWTimestamp = (rteDevInfo.flow_type_rss_offloads & RTE_ETH_RX_OFFLOAD_TIMESTAMP) != 0;
+        m_supportedHWTimestamp = (rteDevInfo.rx_offload_capa & RTE_ETH_RX_OFFLOAD_TIMESTAMP) != 0;
     } else {
         m_supportedHWTimestamp = false;
     }
