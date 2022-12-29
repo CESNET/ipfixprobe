@@ -1,3 +1,9 @@
+2022-12-29 ipfixprobe-4.7.2
+	* rpm hotfix: disable automatic setting of hardening flags
+	* dpdk: bugfixes
+	* dpdk: changed RSS setting to use IP only
+	* improved ipfixprobed
+
 2022-12-12 ipfixprobe-4.7.1
 	* http: Removed trailing '\r' from HTTP exported fields
 	* tcp: fixed seq&ack tracking

@@ -1,3 +1,34 @@
+2022-12-29 (Tomas Cejka): rpm: hotfix - disable automatic setting of hardening flags
+2022-12-24 (Tomas Cejka): Merge pull request #133 from CESNET/dpdk-check-caps
+2022-12-22 (Tomas Cejka): dpdk: bugfix HW timestamp capability check
+2022-12-22 (Tomas Cejka): Merge pull request #132 from CESNET/dpdk-check-caps
+2022-12-22 (SiskaPavel): Merge pull request #131 from CESNET/active-timeout-overtime-#123
+2022-12-22 (Tomas Cejka): dpdk: check capabilities and skip unsupported features
+2022-12-21 (xsiska12): Cache: fixed export of flow with longer duration than active timeout
+2022-12-21 (SiskaPavel): Merge pull request #129 from CESNET/dpdk-update
+2022-12-21 (xsiska12): Dpdk: set Dpdk datalink to zero
+2022-12-21 (xsiska12): Dpdk: removed setting of lcore thread affinity
+2022-12-21 (xsiska12): Dpdk: Removed invalid packet block indexing
+2022-12-21 (xsiska12): Dpdk: return Result::TIMEOUT when no packets are read
+2022-12-21 (xsiska12): Dpdk: set first argument of rte_eal_init() function to program name (argv[0])
+2022-12-20 (Tomas Cejka): Merge pull request #127 from CESNET/ipfix_dir_bit_field
+2022-12-20 (xsiska12): ipfix: Changed data type of dir_bit_field to uint32_t
+2022-12-19 (Tomas Cejka): Merge pull request #116 from CESNET/cejkato2-patch-1 codecov action fixed
+2022-12-19 (Tomas Cejka): Update c-cpp.yml
+2022-12-19 (Tomas Cejka): codecov: update version of gh action
+2022-12-19 (Tomas Cejka): Update ipfixprobed
+2022-12-19 (Tomas Cejka): Merge pull request #115 from CESNET/dpdkinit
+2022-12-19 (Tomas Cejka): Merge branch 'master' into dpdkinit
+2022-12-18 (Tomas Cejka): init: add DPDK variables and improve ipfixprobed script
+2022-12-16 (Tomas Cejka): Merge pull request #114 from CESNET/dpdk-rss
+2022-12-16 (Tomas Cejka): Merge pull request #113 from CESNET/doc-fix-example
+2022-12-16 (xsiska12): dpdk: changed input of RSS to IP addresses only
+2022-12-16 (Tomas Cejka): Update README.md
+2022-12-14 (Tomas Cejka): Merge pull request #112 from CESNET/dpdkhelp_fixtypo
+2022-12-14 (Karel Hynek): Merge pull request #111 from CESNET/release
+2022-12-13 (Tomas Cejka): doc: improved readme - DPDK example
+2022-12-13 (Tomas Cejka): dpdk: fixed typo in help
+
 2022-12-05 (Karel Hynek): Merge pull request #110 from CESNET/tcp_seq_ack_fix
 2022-12-05 (Tomas Cejka): Merge pull request #109 from CESNET/HTTPS_plugin_fix
 2022-12-05 (Karel Hynek): FIX: Parsing TCP SEQ and TCP ACK numbers
