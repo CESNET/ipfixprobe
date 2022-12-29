@@ -41,6 +41,11 @@
 %global is_el7 no
 %endif
 
+# Hotfix to allow RPM build on fedora36+
+# There is a problem in configure autodetection when
+# LDFLAGS=-specs=/usr/lib/rpm/redhat/redhat-hardened-ld
+%undefine _auto_set_build_flags
+
 Name: ipfixprobe
 Version: @PACKAGE_VERSION@
 Release: @RELEASE@
