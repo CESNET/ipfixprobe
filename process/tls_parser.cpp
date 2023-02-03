@@ -119,7 +119,7 @@ void TLSParser::tls_get_server_name(TLSData &data, char *buffer, size_t buffer_s
       memcpy(buffer + buff_offset, data.start + offset, sni_len);
 
       buff_offset += sni_len + 1;
-      buffer[sni_len + buff_offset] = 0;
+      buffer[buff_offset - 1] = 0;
       data.obejcts_parsed++;
       offset += ntohs(tmp_sni->length);
    }
