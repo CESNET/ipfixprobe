@@ -1,3 +1,7 @@
+2023-02-13 (Pavel Siska): Specify Output plugin bytes stats to L4 layer size.
+2023-02-13 (Pavel Siska): Added total counter to Input plugin statistics which sumarize values over all input plugins
+2023-02-02 (Pavel Siska): Tls - fix buffer overflow when parsing TLS SNI field
+
 2022-12-29 (Tomas Cejka): rpm: hotfix - disable automatic setting of hardening flags
 2022-12-24 (Tomas Cejka): Merge pull request #133 from CESNET/dpdk-check-caps
 2022-12-22 (Tomas Cejka): dpdk: bugfix HW timestamp capability check

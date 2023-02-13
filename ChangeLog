@@ -1,3 +1,7 @@
+2023-02-13 ipfixprobe-4.7.3
+	* Stats: Improve Input & Output pugin stats
+	* Tls: fix buffer overflow error (causes crashing)
+
 2022-12-29 ipfixprobe-4.7.2
 	* rpm hotfix: disable automatic setting of hardening flags
 	* dpdk: bugfixes
