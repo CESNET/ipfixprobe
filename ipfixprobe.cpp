@@ -425,10 +425,10 @@ void finish(ipxp_conf_t &conf)
 
    std::cout << "Output stats:" << std::endl <<
       std::setw(3) << "#" <<
-      std::setw(10) << "biflows" <<
-      std::setw(10) << "packets" <<
-      std::setw(16) << "bytes" <<
-      std::setw(10) << "dropped" <<
+      std::setw(13) << "biflows" <<
+      std::setw(13) << "packets" <<
+      std::setw(20) << "bytes (L4)" <<
+      std::setw(13) << "dropped" <<
       std::setw(7) << "status" << std::endl;
 
    idx = 0;
@@ -442,10 +442,10 @@ void finish(ipxp_conf_t &conf)
       OutputStats stats = conf.output_stats[idx]->load();
       std::cout <<
          std::setw(3) << idx++ << " " <<
-         std::setw(9) << stats.biflows << " " <<
-         std::setw(9) << stats.packets << " " <<
-         std::setw(15) << stats.bytes << " " <<
-         std::setw(9) << stats.dropped << " " <<
+         std::setw(12) << stats.biflows << " " <<
+         std::setw(12) << stats.packets << " " <<
+         std::setw(19) << stats.bytes << " " <<
+         std::setw(12) << stats.dropped << " " <<
          std::setw(6) << status << std::endl;
    }
 
