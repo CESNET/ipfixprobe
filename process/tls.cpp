@@ -121,7 +121,11 @@ bool TLSPlugin::obtain_tls_data(TLSData &payload, RecordExtTLS *rec, std::string
       } else if (hs_type == TLS_HANDSHAKE_SERVER_HELLO) {
          if (type == TLS_EXT_ALPN) {
             tls_parser.tls_get_alpn(payload, rec->alpn, BUFF_SIZE);
-            return true;
+            // not sure, but probably don`t return yet, as 
+            // this is not only field we want to parse
+            //return true;
+         } else if (type == TLS_EXT_SUPPORTED_VER){
+            tls_parser.tls_get_supp_ver(payload, rec->version);
          }
       }
       payload.start += length;
@@ -159,7 +163,7 @@ bool TLSPlugin::parse_tls(const uint8_t *data, uint16_t payload_len, RecordExtTL
    }
    tls_handshake tls_hs = tls_parser.tls_get_handshake();
 
-   rec->version = ((uint16_t) tls_hs.version.major << 8) | tls_hs.version.minor;
+   rec->version = (rec->version == 0)?(((uint16_t) tls_hs.version.major << 8) | tls_hs.version.minor) : rec->version;
    ja3 += std::to_string((uint16_t) tls_hs.version.version) + ',';
 
    if (!tls_parser.tls_skip_random(payload)) {

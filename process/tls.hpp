@@ -144,6 +144,7 @@ struct RecordExtTLS : public RecordExt {
 #define TLS_EXT_ECLIPTIC_CURVES  10 // AKA supported_groups
 #define TLS_EXT_EC_POINT_FORMATS 11
 #define TLS_EXT_ALPN             16
+#define TLS_EXT_SUPPORTED_VER    43
 
 
 /**
