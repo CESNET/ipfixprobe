@@ -83,7 +83,7 @@ int TLSPlugin::pre_update(Flow &rec, Packet &pkt)
    RecordExtTLS *ext = static_cast<RecordExtTLS *>(rec.get_extension(RecordExtTLS::REGISTERED_ID));
 
    if (ext != nullptr) {
-      if (ext->alpn[0] == 0) {
+      if (ext->server_hello_parsed == false) {
          // Add ALPN from server packet
          parse_tls(pkt.payload, pkt.payload_len, ext);
       }
@@ -119,6 +119,7 @@ bool TLSPlugin::obtain_tls_data(TLSData &payload, RecordExtTLS *rec, std::string
             ec_point_formats = tls_parser.tls_get_ja3_ec_point_formats(payload);
          }
       } else if (hs_type == TLS_HANDSHAKE_SERVER_HELLO) {
+         rec->server_hello_parsed = true;
          if (type == TLS_EXT_ALPN) {
             tls_parser.tls_get_alpn(payload, rec->alpn, BUFF_SIZE);
             // not sure, but probably don`t return yet, as 
