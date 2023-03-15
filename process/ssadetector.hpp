@@ -64,6 +64,11 @@ UR_FIELDS (
    uint8 SSA_CONF_LEVEL
 )
 
+#define SYN_RECORDS_NUM 100
+#define PKT_TABLE_SIZE 91
+#define MIN_PKT_SIZE 60
+#define MAX_PKT_SIZE 150
+#define MAX_TIME_WINDOW 3000000 // in microseconds
 using dir_t = uint8_t;
 /**
  * \brief Flow record extension header for storing parsed SSADETECTOR data.
@@ -83,6 +88,22 @@ struct RecordExtSSADetector : public RecordExt {
       
    };
 
+
+   struct pkt_table
+   {
+      public:
+      pkt_entry table_[PKT_TABLE_SIZE];
+
+      void reset();
+
+      bool check_range_for_presence(uint16_t len, uint8_t down_by, dir_t dir, const timeval& ts_to_compare);
+      void update_entry(uint16_t len, dir_t dir, timeval ts);
+
+      private:
+      static inline int8_t get_idx_from_len(uint16_t len);
+      static inline bool time_in_window(const timeval& ts_now, const timeval& ts_old);
+      inline bool entry_is_present(int8_t idx, dir_t dir, const timeval& ts_to_compare);
+   };
    RecordExtSSADetector() : RecordExt(REGISTERED_ID)
    {
       possible_vpn = 0;
