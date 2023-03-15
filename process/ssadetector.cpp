@@ -57,8 +57,10 @@ __attribute__((constructor)) static void register_this_plugin()
    RecordExtSSADetector::REGISTERED_ID = register_extension();
 }
 
+
 SSADetectorPlugin::SSADetectorPlugin()
 {
+   close();
 }
 
 SSADetectorPlugin::~SSADetectorPlugin()
@@ -97,25 +99,133 @@ inline bool transition_from_syn_ack(RecordExtSSADetector *record,
 {
    return record->syn_table.check_range_for_presence(len, 12, !dir, ts);
 }
+
+void SSADetectorPlugin::update_record(RecordExtSSADetector *record, const Packet &pkt)
+{ 
+   /**
+    * 0 - client -> server
+    * 1 - server -> client
+    */
+   uint8_t dir = pkt.source_pkt ? 0 : 1;
+   uint16_t len = pkt.payload_len;
+   timeval ts = pkt.ts;
+
+   if ( !(MIN_PKT_SIZE <= len && len <= MAX_PKT_SIZE) ) {
+      return;
+   }
+
+   bool reached_end_state = transition_from_syn_ack(record, len, ts, dir);
+
+   if (reached_end_state) {
+      record->reset();
+      if (record->syn_pkts_idx < SYN_RECORDS_NUM) {
+         record->syn_pkts[record->syn_pkts_idx] = len;
+         record->syn_pkts_idx += 1;
+      }
+      record->suspects += 1;
+      return;
+   }
+
+   transition_from_syn(record, len, ts, dir);
+   transition_from_init(record, len, ts, dir);
 }
 
 int SSADetectorPlugin::post_create(Flow &rec, const Packet &pkt)
 {
-   return 0;
-}
+   RecordExtSSADetector *record = new RecordExtSSADetector();
+   rec.add_extension(record);
 
-int SSADetectorPlugin::pre_update(Flow &rec, Packet &pkt)
-{
+   update_record(record, pkt);
    return 0;
 }
 
 int SSADetectorPlugin::post_update(Flow &rec, const Packet &pkt)
 {
+   RecordExtSSADetector *record = (RecordExtSSADetector *) rec.get_extension(RecordExtSSADetector::REGISTERED_ID);
+   update_record(record, pkt);
    return 0;
+}
+
+double classes_ratio(uint8_t* syn_pkts, uint8_t size)
+{
+   uint8_t unique_members = 0;
+   bool marked[size];
+   for (uint8_t i = 0; i < size; ++i) marked[i] = false;
+   for (uint8_t i = 0; i < size; ++i) {
+      if (marked[i]) {
+         continue;
+      }
+      uint8_t akt_pkt_size = syn_pkts[i];
+      unique_members++;
+      marked[i] = true;
+      for (uint8_t j = i + 1; j < size; ++j) {
+         if (marked[j]) {
+            continue;
+         }
+         if (syn_pkts[j] == akt_pkt_size) {
+            marked[j] = true;
+         }
+      }
+   }
+
+   return double(unique_members) / double(size); 
 }
 
 void SSADetectorPlugin::pre_export(Flow &rec)
 {
+      //do not export for small packets flows
+   uint32_t packets = rec.src_packets + rec.dst_packets;
+   if (packets <= 30) {
+      rec.remove_extension(RecordExtSSADetector::REGISTERED_ID);
+      return;
+   }
+
+   RecordExtSSADetector *record = (RecordExtSSADetector *) rec.get_extension(RecordExtSSADetector::REGISTERED_ID);
+   const auto& suspects = record->suspects; 
+   if (suspects < 3) {
+      return;
+   }
+   if (double(packets)/double(suspects) > 2500) {
+      return;
+   }
+   if (suspects < 15) {
+      if (classes_ratio(record->syn_pkts, record->syn_pkts_idx) > 0.6) {
+         return;
+      }
+   } else if (suspects < 40) {
+      if (classes_ratio(record->syn_pkts, record->syn_pkts_idx) > 0.4) {
+         return;
+      }
+   } else {
+      if (classes_ratio(record->syn_pkts, record->syn_pkts_idx) > 0.2) {
+         return;
+      }
+   }
+
+   record->possible_vpn = 1;
+}
+
+void SSADetectorPlugin::transition_from_init(RecordExtSSADetector *record, 
+                                             uint16_t len, const timeval& ts, uint8_t dir)
+{
+   record->syn_table.update_entry(len, dir, ts);
+}
+
+void SSADetectorPlugin::transition_from_syn(RecordExtSSADetector *record, 
+                                            uint16_t len, const timeval& ts, uint8_t dir)
+{
+   bool can_transit = record->syn_table.check_range_for_presence(len, 10, !dir, ts);
+   if (can_transit) {
+      record->syn_ack_table.update_entry(len, dir, ts);
+   } 
+}
+
+bool SSADetectorPlugin::transition_from_syn_ack(RecordExtSSADetector *record, uint16_t len, 
+                                           const timeval& ts, uint8_t dir)
+{
+   return record->syn_table.check_range_for_presence(len, 12, !dir, ts);
+}
+
 //--------------------RecordExtSSADetector::pkt_entry-------------------------------
 void RecordExtSSADetector::pkt_entry::reset() 
 {

@@ -179,11 +179,10 @@ public:
    RecordExt *get_ext() const { return new RecordExtSSADetector(); }
    ProcessPlugin *copy();
 
-   int pre_create(Packet &pkt);
    int post_create(Flow &rec, const Packet &pkt);
-   int pre_update(Flow &rec, Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
    void pre_export(Flow &rec);
+   void update_record(RecordExtSSADetector *record, const Packet &pkt);
    static inline void transition_from_init(RecordExtSSADetector *record, uint16_t len, 
                                            const timeval& ts, uint8_t dir);
    static inline void transition_from_syn(RecordExtSSADetector *record, uint16_t len, 
