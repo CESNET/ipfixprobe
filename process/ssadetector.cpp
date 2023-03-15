@@ -100,6 +100,24 @@ int SSADetectorPlugin::post_update(Flow &rec, const Packet &pkt)
 
 void SSADetectorPlugin::pre_export(Flow &rec)
 {
+//--------------------RecordExtSSADetector::pkt_entry-------------------------------
+void RecordExtSSADetector::pkt_entry::reset() 
+{
+      ts_dir1.tv_sec = 0;
+      ts_dir1.tv_usec = 0;
+      ts_dir2.tv_sec = 0;
+      ts_dir2.tv_usec = 0;
+}
+
+timeval& RecordExtSSADetector::pkt_entry::get_time(dir_t dir)
+{
+   return (dir == 1)? ts_dir1 : ts_dir2;
+}
+
+RecordExtSSADetector::pkt_entry::pkt_entry()
+{
+   reset();
+}
 }
 
 }

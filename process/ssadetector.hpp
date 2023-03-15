@@ -64,13 +64,24 @@ UR_FIELDS (
    uint8 SSA_CONF_LEVEL
 )
 
+using dir_t = uint8_t;
 /**
  * \brief Flow record extension header for storing parsed SSADETECTOR data.
  */
 struct RecordExtSSADetector : public RecordExt {
    static int REGISTERED_ID;
 
-   uint8_t possible_vpn;
+
+   struct pkt_entry 
+   {
+      pkt_entry();
+      void reset();
+      timeval& get_time(dir_t dir);
+
+      timeval ts_dir1;
+      timeval ts_dir2;
+      
+   };
 
    RecordExtSSADetector() : RecordExt(REGISTERED_ID)
    {
