@@ -184,6 +184,13 @@ public:
    int pre_update(Flow &rec, Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
    void pre_export(Flow &rec);
+   static inline void transition_from_init(RecordExtSSADetector *record, uint16_t len, 
+                                           const timeval& ts, uint8_t dir);
+   static inline void transition_from_syn(RecordExtSSADetector *record, uint16_t len, 
+                                          const timeval& ts, uint8_t dir);
+   static inline bool transition_from_syn_ack(RecordExtSSADetector *record, uint16_t len, 
+                                              const timeval& ts, uint8_t dir);
+
 };
 
 }

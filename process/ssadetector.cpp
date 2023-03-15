@@ -78,9 +78,25 @@ ProcessPlugin *SSADetectorPlugin::copy()
    return new SSADetectorPlugin(*this);
 }
 
-int SSADetectorPlugin::pre_create(Packet &pkt)
+inline void transition_from_init(RecordExtSSADetector *record, uint16_t len, 
+                                 const timeval& ts, uint8_t dir)
 {
-   return 0;
+   record->syn_table.update_entry(len, dir, ts);
+}
+inline void transition_from_syn(RecordExtSSADetector *record, uint16_t len, 
+                                const timeval& ts, uint8_t dir)
+{
+   bool can_transit = record->syn_table.check_range_for_presence(len, 10, !dir, ts);
+   if (can_transit) {
+      record->syn_ack_table.update_entry(len, dir, ts);
+   } 
+}
+
+inline bool transition_from_syn_ack(RecordExtSSADetector *record, 
+                                    uint16_t len, const timeval& ts, uint8_t dir)
+{
+   return record->syn_table.check_range_for_presence(len, 12, !dir, ts);
+}
 }
 
 int SSADetectorPlugin::post_create(Flow &rec, const Packet &pkt)
