@@ -102,4 +102,10 @@ tests/*.log
 tests/*.trs
 tests/output/
 
+# Mac Finder metafile
+**/.DS_Store
+
+# vscode settings files
+.vscode
+
 
