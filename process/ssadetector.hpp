@@ -46,6 +46,7 @@
 #define IPXP_SSADETECTOR_HPP
 
 #include <cstring>
+#include <sstream>
 
 #ifdef WITH_NEMEA
   #include "fields.h"
@@ -70,12 +71,12 @@ UR_FIELDS (
 #define MAX_PKT_SIZE 150
 #define MAX_TIME_WINDOW 3000000 // in microseconds
 using dir_t = uint8_t;
+
 /**
  * \brief Flow record extension header for storing parsed SSADETECTOR data.
  */
 struct RecordExtSSADetector : public RecordExt {
    static int REGISTERED_ID;
-
 
    struct pkt_entry 
    {
@@ -87,7 +88,6 @@ struct RecordExtSSADetector : public RecordExt {
       timeval ts_dir2;
       
    };
-
 
    struct pkt_table
    {
@@ -104,9 +104,24 @@ struct RecordExtSSADetector : public RecordExt {
       static inline bool time_in_window(const timeval& ts_now, const timeval& ts_old);
       inline bool entry_is_present(int8_t idx, dir_t dir, const timeval& ts_to_compare);
    };
+
+
+   uint8_t possible_vpn {0}; // fidelity of this flow beint vpn
+   uint64_t suspects {0};
+   uint8_t syn_pkts_idx {0};
+   uint8_t syn_pkts[SYN_RECORDS_NUM];
+
+   pkt_table syn_table{};
+   pkt_table syn_ack_table{};
+
    RecordExtSSADetector() : RecordExt(REGISTERED_ID)
    {
-      possible_vpn = 0;
+   }
+
+   void reset ()
+   {
+      syn_table.reset();
+      syn_ack_table.reset();
    }
 
 #ifdef WITH_NEMEA
@@ -137,6 +152,13 @@ struct RecordExtSSADetector : public RecordExt {
          NULL
       };
       return ipfix_template;
+   }
+
+   std::string get_text() const 
+   {
+      std::ostringstream out; 
+      out << "SSA=" << (int)possible_vpn;
+      return out.str();
    }
 };
 
