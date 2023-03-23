@@ -58,6 +58,7 @@ struct RecordExtTLS : public RecordExt {
    char        ja3_hash[33]     = { 0 };
    uint8_t     ja3_hash_bin[16] = { 0 };
    std::string ja3;
+   bool        server_hello_parsed;
 
    /**
     * \brief Constructor.
@@ -67,6 +68,7 @@ struct RecordExtTLS : public RecordExt {
       alpn[0]     = 0;
       sni[0]      = 0;
       ja3_hash[0] = 0;
+      server_hello_parsed = false;
    }
 
    #ifdef WITH_NEMEA
@@ -144,6 +146,7 @@ struct RecordExtTLS : public RecordExt {
 #define TLS_EXT_ECLIPTIC_CURVES  10 // AKA supported_groups
 #define TLS_EXT_EC_POINT_FORMATS 11
 #define TLS_EXT_ALPN             16
+#define TLS_EXT_SUPPORTED_VER    43
 
 
 /**

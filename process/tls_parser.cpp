@@ -126,6 +126,13 @@ void TLSParser::tls_get_server_name(TLSData &data, char *buffer, size_t buffer_s
    return;
 }
 
+void TLSParser::tls_get_supp_ver(TLSData &data, uint16_t &version)
+{
+   tls_version* ext_ver = (tls_version *) data.start;
+   version = ((uint16_t) ext_ver->major << 8) | ext_ver->minor;
+   return;
+}
+
 void TLSParser::tls_get_alpn(TLSData &data, char *buffer, size_t buffer_size)
 {
    uint16_t list_len       = ntohs(*(uint16_t *) data.start);

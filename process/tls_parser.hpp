@@ -86,6 +86,7 @@ public:
    bool tls_check_rec(TLSData&);
    void tls_get_server_name(TLSData &, char *, size_t);
    void tls_get_alpn(TLSData &, char *, size_t);
+   void tls_get_supp_ver(TLSData &, uint16_t &);
 
    void tls_get_quic_user_agent(TLSData &, char *, size_t);
    bool tls_check_handshake(TLSData&);
