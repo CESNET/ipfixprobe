@@ -534,6 +534,10 @@ bool HTTPPlugin::valid_http_method(const char *method) const
  */
 bool HTTPPlugin::invalid_http_method(const char *data, int payload_len) const
 {
+   // arbitrary value, if the method is longer it propably isnt http request
+   // so don't look further
+   const int MAX_METHOD_LENGTH = 32;
+
    // METHOD URI HTTP/VERSION
    // |     |   |
    // |     |   +---- uri_end
@@ -541,7 +545,7 @@ bool HTTPPlugin::invalid_http_method(const char *data, int payload_len) const
    // +---- data
 
    // check if there is space in the first HTTP_MAX_METHOD_LENGTH chars
-   int len = std::min(payload_len, HTTP_MAX_METHOD_LENGTH);
+   int len = std::min(payload_len, MAX_METHOD_LENGTH);
    auto method_end = static_cast<const char *>(memchr(data, ' ', len));
    if (method_end == nullptr)
       return false;

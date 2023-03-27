@@ -65,9 +65,6 @@ namespace ipxp {
 
 #define HTTP_UNIREC_TEMPLATE  "HTTP_REQUEST_METHOD,HTTP_REQUEST_HOST,HTTP_REQUEST_URL,HTTP_REQUEST_AGENT,HTTP_REQUEST_REFERER,HTTP_RESPONSE_STATUS_CODE,HTTP_RESPONSE_CONTENT_TYPE"
 
-// maximum supported length for http method (includes the null terminating char)
-#define HTTP_MAX_METHOD_LENGTH 16
-
 UR_FIELDS (
    string HTTP_REQUEST_METHOD,
    string HTTP_REQUEST_HOST,
@@ -90,7 +87,7 @@ struct RecordExtHTTP : public RecordExt {
    bool req;
    bool resp;
 
-   char method[HTTP_MAX_METHOD_LENGTH];
+   char method[10];
    char host[64];
    char uri[128];
    char user_agent[128];
