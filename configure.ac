@@ -20,16 +20,17 @@ RPM_BUILDREQ=
 
 AC_CONFIG_MACRO_DIR([m4])
 # Must be checked before default -g -O2 is set:
+CXXFLAGS=" -std=gnu++11 "
 AC_ARG_ENABLE([debug],
         AC_HELP_STRING([--enable-debug],
         [Enable build with debug symbols and without optimizations.]),
         [if test "$enableval" = "yes"; then
-              CXXFLAGS="-Wall -g -O0 $CXXFLAGS"
+              CXXFLAGS+="-Wall -g -O0 $CXXFLAGS"
               CFLAGS="-Wall -g -O0 $CFLAGS"
          else
-              CXXFLAGS="-Wall -g -O3 $CXXFLAGS"
+              CXXFLAGS+="-Wall -g -O3 $CXXFLAGS"
               CFLAGS="-Wall -g -O3 $CFLAGS"
-        fi], [CXXFLAGS="-Wall -g -O3 $CXXFLAGS"
+        fi], [CXXFLAGS+="-Wall -g -O3 $CXXFLAGS"
               CPPFLAGS="-DNDEBUG=1 $CPPFLAGS"
               CFLAGS="-Wall -g -O3"])
 AM_CONDITIONAL(DEBUG, test x"$debug" = x"true")
@@ -80,6 +81,9 @@ AC_ARG_WITH([defaultsocketdir],
 
 AC_SUBST([defaultsocketdir], [$with_defaultsocketdir])
 AC_DEFINE_DIR([DEFAULTSOCKETDIR], [defaultsocketdir], [Default path to socket directory])
+
+pkglibdir=$libdir/ipfixprobe
+AC_DEFINE_DIR([PLUGINDIR], [pkglibdir], [Path to loadable plugins])
 
 AC_CHECK_LIB(atomic, __atomic_store, [libatomic=yes], AC_MSG_ERROR([libatomic not found]))
 
@@ -206,7 +210,7 @@ if test x${withndp} = xyes; then
         ), AC_MSG_ERROR([nfb/nfb.h not found. Try installing netcope-common-devel]))
 fi
 
-AM_CONDITIONAL(WITH_NDP,  test x${libnfb} = xyes && test x${withndp} = xyes)
+AM_CONDITIONAL(WITH_NDP,  test x${libnfb} = xyes -a x${withndp} = xyes)
 if [[ -z "$WITH_NDP_TRUE" ]]; then
    AC_DEFINE([WITH_NDP], [1], [Define to 1 if the ndp is available])
    CPPFLAGS="$CPPFLAGS -DIPXP_FLOW_CACHE_SIZE=19 -DIPXP_FLOW_LINE_SIZE=2" # 524288 cache records, 4 record per line
@@ -225,30 +229,46 @@ AC_ARG_WITH([pcap],
       fi
         ], [withpcap="no"]
 )
+AC_ARG_ENABLE([pcap-plugin],
+        AC_HELP_STRING([--disable-pcap-plugin],
+        [Disable build of input-pcap plugin.]),
+        [if test "$enableval" = "yes"; then
+              disablepcapplugin=no
+         else
+              disablepcapplugin=yes
+         fi], [disablepcapplugin=no])
+AM_CONDITIONAL(DISABLE_PCAP_MODULE, test x"$disablepcapplugin" = x"yes")
 
-if test x${withpcap} = xyes; then
-   AC_CHECK_HEADER(pcap.h,
-              AC_CHECK_LIB(pcap, pcap_open_live, [libpcap=yes],
-                           AC_CHECK_LIB(wpcap, pcap_open_live, [libwpcap=yes], AC_MSG_ERROR([libpcap not found. Try installing libpcap]))),
-                           AC_MSG_ERROR([pcap.h not found. Try installing libpcap-devel or libwpcap-devel]))
+BACKUPLIBS=$LIBS
+AC_CHECK_HEADER(pcap.h,
+           AC_CHECK_LIB(pcap, pcap_open_live, [libpcap=yes
+           have_pcap=yes],
+                        AC_CHECK_LIB(wpcap, pcap_open_live, [libwpcap=yes
+                        have_pcap=yes], [AC_MSG_WARN([libpcap not found. Try installing libpcap])
+                        have_pcap=no])),
+                        [AC_MSG_WARN([pcap.h not found. Try installing libpcap-devel or libwpcap-devel])
+                        have_pcap=no])
+
+if test x${withpcap} = xyes -a x${have_pcap} = xno; then
+   AC_MSG_ERROR([Cannot compile pcap plugin that was enabled by --with-pcap.])
 fi
 
-AM_CONDITIONAL(WITH_PCAP, test x${withpcap} && (test x${libpcap} = xyes || test x${libwpcap} = xyes))
-if [[ -z "$WITH_PCAP_TRUE" ]]; then
+AM_CONDITIONAL(ENABLE_PCAP, test x${have_pcap} = xyes -a x${disablepcapplugin} = xno)
+AM_CONDITIONAL(WITH_PCAP, test x${withpcap} = xyes -a x${have_pcap} = xyes)
+if test x${withpcap} = xyes -a x${have_pcap} = xyes; then
    AC_DEFINE([WITH_PCAP], [1], [Define to 1 if the libpcap is available])
-   if [[ -z "$WITH_PCAP_TRUE" ]]; then
-      if test x${libpcap} = xyes; then
-         LIBS="-lpcap $LIBS"
-         RPM_REQUIRES+=" libpcap"
-         RPM_BUILDREQ+=" libpcap-devel"
-      else
-         LIBS="-lwpcap $LIBS"
-         RPM_REQUIRES+=" libwpcap"
-         RPM_BUILDREQ+=" libwpcap-devel"
-      fi
+   if test x${libpcap} = xyes; then
+      LIBS="-lpcap $LIBS"
+      RPM_REQUIRES+=" libpcap"
+      RPM_BUILDREQ+=" libpcap-devel"
+   else
+      LIBS="-lwpcap $LIBS"
+      RPM_REQUIRES+=" libwpcap"
+      RPM_BUILDREQ+=" libwpcap-devel"
    fi
+else
+   LIBS=$BACKUPLIBS
 fi
-
 
 AC_ARG_WITH([unwind],
         AC_HELP_STRING([--with-unwind],[Compile ipfixprobe with libunwind to print stack on crash]),
@@ -375,7 +395,7 @@ AM_CONDITIONAL(WITH_STEM, test x${withstem} = xyes)
 if [[ -z "$WITH_STEM_TRUE" ]]; then
    AC_DEFINE([WITH_STEM], [1], [Define to 1 to use flexprobe testing interface])
    CFLAGS="-I/usr/local/include/Stem $CFLAGS"
-   CXXFLAGS="-I/usr/local/include/Stem -std=gnu++17 -g -Wno-write-strings $CXXFLAGS"
+   CXXFLAGS="-I/usr/local/include/Stem -g -Wno-write-strings $CXXFLAGS"
    LIBS="-lstem $LIBS"
 fi
 
@@ -436,6 +456,8 @@ fi
 
 AC_CONFIG_FILES([Makefile
                  ipfixprobe.spec
+                 ipfixprobe-dpdk.spec
+                 ipfixprobe-ndp.spec
                  ipfixprobe.bash
                  input/nfbCInterface/Makefile
                  init/Makefile
@@ -472,6 +494,12 @@ echo "  LIBS...................: $LIBS"
 echo "Enforced NEMEA (for copr): $COPRRPM"
 echo "FlexProbe Data Interface.: $withflexprobe"
 echo "DPDK Interface...........: $withdpdk"
+echo "pcap Interface...........: $withpcap"
+if test -n "$ENABLE_PCAP_TRUE"; then
+echo "   pcap module...........: no"
+else
+echo "   pcap module...........: yes"
+fi
 echo
 echo "Installation.............: make install (as root if needed, with 'su' or 'sudo')"
 echo "  prefix.................: $prefix"

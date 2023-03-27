@@ -1,0 +1,109 @@
+%bcond_without raw
+%bcond_with nemea
+%bcond_with unwind
+%bcond_with is_el7
+
+%if %{with raw}
+%global compile_raw yes
+%else
+%global compile_raw no
+%endif
+
+%if %{with nemea}
+%global compile_nemea yes
+%else
+%global compile_nemea @COPRRPM@
+%endif
+
+%if %{with unwind}
+%global compile_unwind yes
+%else
+%global compile_unwind @COPRRPM@
+%endif
+
+%if "%{dist}" == ".el7"
+%global is_el7 yes
+%else
+%global is_el7 no
+%endif
+
+Name: ipfixprobe-dpdk
+Version: @PACKAGE_VERSION@
+Release: @RELEASE@
+URL: http://nemea.liberouter.org/
+Source: https://www.liberouter.org/repo/SOURCES/ipfixprobe-%{version}-%{release}.tar.gz
+Group: Liberouter
+License: BSD
+Vendor: CESNET, z.s.p.o.
+Packager: @USERNAME@ <@USERMAIL@>
+BuildRoot: %{_tmppath}/ipfixprobe-%{version}-%{release}
+Summary: IPFIX flow exporter with DPDK support and various extending IPFIX elements exported by plugins.
+Requires: libatomic
+BuildRequires: gcc gcc-c++ make doxygen pkgconfig libatomic
+Provides: ipfixprobe
+Requires: dpdk
+BuildRequires: dpdk-devel
+
+%if %{with nemea} || "@COPRRPM@" == "yes"
+Requires: libtrap
+BuildRequires: libtrap-devel
+BuildRequires: unirec
+%endif
+
+%if %{with unwind} || "@COPRRPM@" == "yes"
+Requires: libunwind
+BuildRequires: libunwind-devel
+%endif
+
+%if "%{is_el7}" == "yes"
+Requires: openssl11
+BuildRequires: openssl11-devel
+%else
+Requires: openssl
+BuildRequires: openssl-devel
+%endif
+
+%description
+This package contains IPFIX flow exporter with DPDK support.
+
+%package -n ipfixprobe-input-dpdk
+Group: Liberouter
+License: BSD
+Vendor: CESNET, z.s.p.o.
+Packager: @USERNAME@ <@USERMAIL@>
+Summary: NDP input plugin for ipfixprobe IPFIX flow exporter.
+Requires: dpdk
+BuildRequires: dpdk-devel
+Provides: ipfixprobe-input-dpdk
+
+%description -n ipfixprobe-input-dpdk
+Input plugin to monitor network traffic on network interface using DPDK and HW acceleration cards.
+
+%prep
+%setup -n ipfixprobe-%{version}
+
+%build
+./configure -q --enable-silent-rules --prefix=%{_prefix} --libdir=%{_libdir} --bindir=%{_bindir} --sysconfdir=%{_sysconfdir} --docdir=%{_docdir} --mandir=%{_mandir} --datadir=%{_datadir} --with-raw=%{compile_raw} --with-nemea=%{compile_nemea} --with-unwind=%{compile_unwind} --enable-legacy-ssl=%{is_el7} --with-dpdk --disable-pcap-plugin
+make clean
+make -j5
+
+%install
+make -j5 DESTDIR=$RPM_BUILD_ROOT install
+
+%post
+test -x %{_bindir}/ipfixprobe && setcap "CAP_NET_RAW+eip" %{_bindir}/ipfixprobe || true
+ldconfig
+
+%files
+%attr(0755, root, nemead) %{_bindir}/ipfixprobe
+%attr(0755, root, nemead) %{_bindir}/ipfixprobe_stats
+%attr(0755, root, nemead) %{_bindir}/ipfixprobed
+%{_sysconfdir}/bash_completion.d/ipfixprobe.bash
+%{_sysconfdir}/ipfixprobe/link0.conf.example
+%{_docdir}/ipfixprobe/README.md
+@systemdsystemunitdir@
+
+%files -n ipfixprobe-input-dpdk
+%{_libdir}/ipfixprobe/input-dpdk.so
+%{_libdir}/ipfixprobe/input-dpdk.la
+

@@ -41,6 +41,8 @@
  *
  */
 
+#include <config.h>
+
 #include <dlfcn.h>
 
 #include "pluginmgr.hpp"
@@ -111,9 +113,22 @@ std::vector<Plugin *> PluginManager::get() const
 Plugin *PluginManager::load(const std::string &name)
 {
    dlerror();
+
    void *handle = dlopen(name.c_str(), RTLD_LAZY);
    if (handle == nullptr) {
-      return nullptr;
+      std::string filename = std::string(PLUGINDIR) + "/input-" + name + ".so";
+      handle = dlopen(filename.c_str(), RTLD_LAZY);
+      if (handle == nullptr) {
+         filename = std::string(PLUGINDIR) + "/output-" + name + ".so";
+         handle = dlopen(filename.c_str(), RTLD_LAZY);
+         if (handle == nullptr) {
+            filename = std::string(PLUGINDIR) + "/process-" + name + ".so";
+            handle = dlopen(filename.c_str(), RTLD_LAZY);
+            if (handle == nullptr) {
+               return nullptr;
+            }
+         }
+      }
    }
    if (m_last_rec == nullptr || m_last_rec->m_next == nullptr) {
       dlclose(handle);
