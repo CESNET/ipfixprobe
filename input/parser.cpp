@@ -307,6 +307,13 @@ uint16_t skip_ipv6_ext_hdrs(const u_char *data_ptr, uint16_t data_len, Packet *p
          hdrs_len += (ext->ip6e_len << 2) - 2;
       } else if (next_hdr == IPPROTO_FRAGMENT) {
          hdrs_len += 8;
+      } else if (next_hdr == IPPROTO_MH) {
+         hdrs_len += (ext->ip6e_len << 3) + 8;
+         // Mobility header can't have payload now but may have it in the future
+         if (ext->ip6e_nxt == IPPROTO_NONE) {
+            pkt->ip_proto = ext->ip6e_nxt;
+            break;
+         }
       } else {
          break;
       }
@@ -386,7 +393,7 @@ inline uint16_t parse_tcp_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
    pkt->src_port = ntohs(tcp->source);
    pkt->dst_port = ntohs(tcp->dest);
    pkt->tcp_seq = ntohl(tcp->seq);
-   pkt->tcp_ack = ntohl(tcp->ack_seq); 
+   pkt->tcp_ack = ntohl(tcp->ack_seq);
    pkt->tcp_flags = (uint8_t) *(data_ptr + 13) & 0xFF;
    pkt->tcp_window = ntohs(tcp->window);
 
