@@ -1,3 +1,11 @@
+2023-03-20 (Jakub Antonín Štigler): Skip ipv6 mobility header
+2023-03-15 (Karel Hynek): Updated .gitignore
+2023-03-13 (Karel Hynek): tls: Updated tls test reference
+2023-03-13 (Karel Hynek): tls: Updated test pcap to contain tls 1.3
+2023-03-13 (Karel Hynek): TLS: Updated Recognition of Server Hello stage
+2023-03-10 (Andrej Lukacovic): Support of extracting TLS version from handshake extension
+2022-12-20 (Tomas Cejka): Improved description of output
+
 2023-02-13 (Pavel Siska): Specify Output plugin bytes stats to L4 layer size.
 2023-02-13 (Pavel Siska): Added total counter to Input plugin statistics which sumarize values over all input plugins
 2023-02-02 (Pavel Siska): Tls - fix buffer overflow when parsing TLS SNI field

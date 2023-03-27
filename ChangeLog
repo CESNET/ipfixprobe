@@ -1,3 +1,8 @@
+2023-03-27 ipfixprobe-4.7.4
+	* Support parsing of ipv6 mobility header
+	* Support TLS v1.3
+	* Support of extracting TLS version from handshake extension
+
 2023-02-13 ipfixprobe-4.7.3
 	* Stats: Improve Input & Output pugin stats
 	* Tls: fix buffer overflow error (causes crashing)
