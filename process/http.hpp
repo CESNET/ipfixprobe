@@ -87,7 +87,7 @@ struct RecordExtHTTP : public RecordExt {
    bool req;
    bool resp;
 
-   char method[10];
+   char method[16];
    char host[64];
    char uri[128];
    char user_agent[128];
