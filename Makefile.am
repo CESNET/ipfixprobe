@@ -126,14 +126,16 @@ ipfixprobe_process_src=\
 		process/md5.cpp \
 		process/common.hpp \
 		process/ssadetector.hpp \
-		process/ssadetector.cpp
+		process/ssadetector.cpp \
+		process/icmp.hpp \
+		process/icmp.cpp
 
 if WITH_QUIC
 ipfixprobe_process_src+=\
 		process/quic.hpp \
 		process/quic.cpp \
 		process/quic_parser.cpp \
-		process/quic_parser.hpp 
+		process/quic_parser.hpp
 
 endif
 
