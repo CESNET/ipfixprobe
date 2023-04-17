@@ -45,6 +45,8 @@
 
 #include "icmp.hpp"
 
+#include "../input/headers.hpp"
+
 namespace ipxp {
 
 int RecordExtICMP::REGISTERED_ID = -1;
@@ -56,49 +58,27 @@ __attribute__((constructor)) static void register_this_plugin()
    RecordExtICMP::REGISTERED_ID = register_extension();
 }
 
-ICMPPlugin::ICMPPlugin()
-{
-}
-
-ICMPPlugin::~ICMPPlugin()
-{
-}
-
-void ICMPPlugin::init(const char *params)
-{
-}
-
-void ICMPPlugin::close()
-{
-}
-
 ProcessPlugin *ICMPPlugin::copy()
 {
    return new ICMPPlugin(*this);
 }
 
-int ICMPPlugin::pre_create(Packet &pkt)
-{
-   return 0;
-}
-
 int ICMPPlugin::post_create(Flow &rec, const Packet &pkt)
 {
-   return 0;
-}
+   if (pkt.ip_proto == IPPROTO_ICMP ||
+       pkt.ip_proto == IPPROTO_ICMPV6) {
+      if (pkt.payload_len < 2)
+         return 0;
 
-int ICMPPlugin::pre_update(Flow &rec, Packet &pkt)
-{
-   return 0;
-}
+      auto ext = new RecordExtICMP();
 
-int ICMPPlugin::post_update(Flow &rec, const Packet &pkt)
-{
-   return 0;
-}
+      // the type and code are the first two bytes, type on MSB and code on LSB
+      // in the network byte order
+      ext->type_code = *reinterpret_cast<const uint16_t *>(pkt.payload);
 
-void ICMPPlugin::pre_export(Flow &rec)
-{
+      rec.add_extension(ext);
+   }
+   return 0;
 }
 
 }

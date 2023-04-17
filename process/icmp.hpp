@@ -50,6 +50,8 @@
   #include "fields.h"
 #endif
 
+#include <sstream>
+
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
@@ -57,11 +59,10 @@
 
 namespace ipxp {
 
-#define ICMP_UNIREC_TEMPLATE "ICMP_TYPE,ICMP_CODE"
+#define ICMP_UNIREC_TEMPLATE "L4_ICMP_TYPE_CODE"
 
 UR_FIELDS (
-   uint8 ICMP_TYPE,
-   uint8 ICMP_CODE
+   uint16 L4_ICMP_TYPE_CODE
 )
 
 /**
@@ -70,8 +71,11 @@ UR_FIELDS (
 struct RecordExtICMP : public RecordExt {
    static int REGISTERED_ID;
 
+   uint16_t type_code;
+
    RecordExtICMP() : RecordExt(REGISTERED_ID)
    {
+      type_code = 0;
    }
 
 #ifdef WITH_NEMEA
@@ -98,6 +102,18 @@ struct RecordExtICMP : public RecordExt {
       };
       return ipfix_template;
    }
+
+   std::string get_text() const
+   {
+      // type is on the first byte, code is on the second byte
+      auto *type_code = reinterpret_cast<const uint8_t *>(&this->type_code);
+
+      std::ostringstream out;
+      out << "type=\"" << (int)type_code[0] << '"'
+         << ",code=\"" << (int)type_code[1] << '"';
+
+      return out.str();
+   }
 };
 
 /**
@@ -106,20 +122,12 @@ struct RecordExtICMP : public RecordExt {
 class ICMPPlugin : public ProcessPlugin
 {
 public:
-   ICMPPlugin();
-   ~ICMPPlugin();
-   void init(const char *params);
-   void close();
    OptionsParser *get_parser() const { return new OptionsParser("icmp", "Parse ICMP traffic"); }
    std::string get_name() const { return "icmp"; }
    RecordExt *get_ext() const { return new RecordExtICMP(); }
    ProcessPlugin *copy();
 
-   int pre_create(Packet &pkt);
    int post_create(Flow &rec, const Packet &pkt);
-   int pre_update(Flow &rec, Packet &pkt);
-   int post_update(Flow &rec, const Packet &pkt);
-   void pre_export(Flow &rec);
 };
 
 }
