@@ -16,7 +16,8 @@ TESTS=basic.sh \
 	idpcontent.sh \
 	bstats.sh \
 	phists.sh \
-	wg.sh
+	wg.sh \
+	ssadetector.sh
 
 if WITH_QUIC
 TESTS+=\
@@ -44,6 +45,7 @@ EXTRA_DIST=common.sh \
 	phists.sh \
 	wg.sh \
 	quic.sh \
+	ssadetector.sh \
 	reference/basic \
 	reference/basicplus \
 	reference/pstats \
@@ -63,7 +65,8 @@ EXTRA_DIST=common.sh \
 	reference/bstats \
 	reference/phists \
 	reference/wg \
-	reference/quic
+	reference/quic \
+	reference/ssadetector
 
 clean-local:
 	rm -rf output
