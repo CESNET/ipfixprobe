@@ -52,6 +52,8 @@
 
 #include <sstream>
 
+#include <ipfixprobe/utils.hpp>
+
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
@@ -81,6 +83,7 @@ struct RecordExtICMP : public RecordExt {
 #ifdef WITH_NEMEA
    virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
+      ur_set(tmplt, record, F_L4_ICMP_TYPE_CODE, type_code);
    }
 
    const char *get_unirec_tmplt() const
@@ -91,7 +94,15 @@ struct RecordExtICMP : public RecordExt {
 
    virtual int fill_ipfix(uint8_t *buffer, int size)
    {
-      return 0;
+      const int LEN = 2;
+
+      if (size < LEN) {
+         return -1;
+      }
+
+      *reinterpret_cast<uint16_t *>(buffer) = ntohs(type_code);
+
+      return LEN;
    }
 
    const char **get_ipfix_tmplt() const
