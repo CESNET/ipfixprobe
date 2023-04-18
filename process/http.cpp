@@ -180,7 +180,7 @@ void copy_str(char *dst, ssize_t size, const char *begin, const char *end)
    }
 
    memcpy(dst, begin, len);
-   
+
    if (len >= 1 && dst[len - 1] == '\n') {
       len--;
    }
@@ -201,7 +201,11 @@ bool HTTPPlugin::is_request(const char *data, int payload_len)
    }
    memcpy(chars, data, 4);
    chars[4] = 0;
-   return valid_http_method(chars);
+
+   // 'valid_http_method' can quicky confirm valid http methods.
+   // 'invalid_http_method' is slower but can check if it is http request even
+   // if the method is invalid.
+   return valid_http_method(chars) || invalid_http_method(data, payload_len);
 }
 
 bool HTTPPlugin::is_response(const char *data, int payload_len)
@@ -519,6 +523,46 @@ bool HTTPPlugin::valid_http_method(const char *method) const
            !strcmp(method, "DELE") || !strcmp(method, "TRAC") ||
            !strcmp(method, "OPTI") || !strcmp(method, "CONN") ||
            !strcmp(method, "PATC"));
+}
+
+/**
+ * @brief Check if the payload is http request even with invalid method.
+ *
+ * @param [in] payload Packet payload data.
+ * @param payload_len Length packet payload.
+ * @return True if the packet is http request.
+ */
+bool HTTPPlugin::invalid_http_method(const char *data, int payload_len) const
+{
+   // arbitrary value, if the method is longer it propably isnt http request
+   // so don't look further
+   const int MAX_METHOD_LENGTH = 32;
+
+   // METHOD URI HTTP/VERSION
+   // |     |   |
+   // |     |   +---- uri_end
+   // |     +---- method_end
+   // +---- data
+
+   // check if there is space in the first HTTP_MAX_METHOD_LENGTH chars
+   int len = std::min(payload_len, MAX_METHOD_LENGTH);
+   auto method_end = static_cast<const char *>(memchr(data, ' ', len));
+   if (method_end == nullptr)
+      return false;
+
+   payload_len -= method_end - data - 1;
+   if (payload_len <= 0)
+      return false;
+
+   auto uri_end = static_cast<const char *>(memchr(method_end + 1, ' ', payload_len));
+   if (method_end == nullptr)
+      return false;
+
+   payload_len -= uri_end - method_end;
+   if (payload_len <= 4)
+      return false;
+
+   return memcmp(uri_end + 1, "HTTP", 4) == 0;
 }
 
 /**

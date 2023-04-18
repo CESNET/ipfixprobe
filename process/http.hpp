@@ -87,7 +87,7 @@ struct RecordExtHTTP : public RecordExt {
    bool req;
    bool resp;
 
-   char method[10];
+   char method[16];
    char host[64];
    char uri[128];
    char user_agent[128];
@@ -228,6 +228,7 @@ private:
    void add_ext_http_request(const char *data, int payload_len, Flow &flow);
    void add_ext_http_response(const char *data, int payload_len, Flow &flow);
    bool valid_http_method(const char *method) const;
+   bool invalid_http_method(const char *payload, int payload_len) const;
 
    RecordExtHTTP *recPrealloc;/**< Preallocated extension. */
    bool flow_flush;           /**< Tell storage plugin to flush current Flow. */
