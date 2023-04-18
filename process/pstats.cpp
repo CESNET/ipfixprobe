@@ -133,7 +133,7 @@ void PSTATSPlugin::update_record(RecordExtPSTATS *pstats_data, const Packet &pkt
    pstats_data->tcp_len[dir] = pkt.payload_len;
    pstats_data->tcp_flg[dir] = pkt.tcp_flags;
 
-   if (pkt.payload_len == 0 && use_zeros == false) {
+   if (pkt.payload_len_wire == 0 && use_zeros == false) {
       return;
    }
 
