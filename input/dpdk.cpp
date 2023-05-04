@@ -48,6 +48,7 @@
 #include <unistd.h>
 #include <rte_eal.h>
 #include <rte_errno.h>
+#include <rte_branch_prediction.h>
 
 #include "dpdk.h"
 #include "parser.hpp"
@@ -57,6 +58,14 @@
 #endif
 
 #define MEMPOOL_CACHE_SIZE 256
+
+/**
+ * @brief Count of cache lines to prefetch to boost access
+ * to the most packet headers that are usually inspected.
+ */
+#define PKT_PREFETCH_COUNT_MOST_HEADERS 2
+
+
 
 namespace ipxp {
 __attribute__((constructor)) static void register_this_plugin()
@@ -178,7 +187,7 @@ struct rte_eth_conf DpdkCore::createPortConfig()
 #endif
 
     if (m_supportedRSS) {
-        portConfig.rxmode.mq_mode = ETH_MQ_RX_RSS;
+        portConfig.rxmode.mq_mode = RTE_ETH_MQ_RX_RSS;
     } else {
         portConfig.rxmode.mq_mode = RTE_ETH_MQ_RX_NONE;
     }
@@ -215,7 +224,7 @@ void DpdkCore::configureRSS()
     struct rte_eth_rss_conf rssConfig = {
         .rss_key = rssKey,
         .rss_key_len = RSS_KEY_LEN,
-        .rss_hf = ETH_RSS_IP,
+        .rss_hf = RTE_ETH_RSS_IP,
     };
 
     if (rte_eth_dev_rss_hash_update(m_portId, &rssConfig)) {
@@ -449,6 +458,7 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
         rte_pktmbuf_free(mbufs_[i]);
     }
     pkts_read_ = rte_eth_rx_burst(m_portId, m_rxQueueId, mbufs_.data(), mbufs_.size());
+
     if (pkts_read_ == 0) {
         return Result::TIMEOUT;
     }
@@ -466,6 +476,10 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
         m_parsed++;
         packets.cnt++;
 #else
+        // prefetch of the next packet before parse the current one
+        if(i+1 < pkts_read_) {
+           pkt_prefetch0_data(mbufs_[i+1], PKT_PREFETCH_COUNT_MOST_HEADERS);
+        }
         parse_packet(&opt,
             getTimestamp(mbufs_[i]),
             rte_pktmbuf_mtod(mbufs_[i], const std::uint8_t*),

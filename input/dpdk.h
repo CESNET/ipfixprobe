@@ -221,6 +221,13 @@ private:
     void createRteMbufs(uint16_t mbufsSize);
     void setupRxQueue();
     struct timeval getTimestamp(rte_mbuf* mbuf);
+    static inline void pkt_prefetch0_data(rte_mbuf *pkt, const unsigned int count) {
+        void *data = rte_pktmbuf_mtod(pkt, void*);
+        for (unsigned int i = 0; i < count; ++i) {
+            rte_prefetch0(data);
+            data = RTE_PTR_ADD(data, RTE_CACHE_LINE_SIZE);
+        }
+    }
 
     DpdkCore& m_dpdkCore;
 };
