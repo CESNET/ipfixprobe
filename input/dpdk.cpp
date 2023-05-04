@@ -178,7 +178,11 @@ struct rte_eth_conf DpdkCore::createPortConfig()
 #endif
 
     if (m_supportedRSS) {
+#if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
+        portConfig.rxmode.mq_mode = RTE_ETH_MQ_RX_RSS;
+#else
         portConfig.rxmode.mq_mode = ETH_MQ_RX_RSS;
+#endif	
     } else {
         portConfig.rxmode.mq_mode = RTE_ETH_MQ_RX_NONE;
     }
@@ -215,7 +219,11 @@ void DpdkCore::configureRSS()
     struct rte_eth_rss_conf rssConfig = {
         .rss_key = rssKey,
         .rss_key_len = RSS_KEY_LEN,
+#if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
+        .rss_hf = RTE_ETH_RSS_IP,
+#else
         .rss_hf = ETH_RSS_IP,
+#endif
     };
 
     if (rte_eth_dev_rss_hash_update(m_portId, &rssConfig)) {
