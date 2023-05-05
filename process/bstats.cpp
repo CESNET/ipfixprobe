@@ -172,6 +172,12 @@ int BSTATSPlugin::post_update(Flow &rec, const Packet &pkt)
 
 void BSTATSPlugin::pre_export(Flow &rec)
 {
+   uint32_t packets = rec.src_packets + rec.dst_packets;
+   if (packets <= MINIMAL_PACKETS_IN_BURST ) {
+      rec.remove_extension(RecordExtBSTATS::REGISTERED_ID);
+      return;
+   }
+
    RecordExtBSTATS *bstats_record = static_cast<RecordExtBSTATS *>(rec.get_extension(RecordExtBSTATS::REGISTERED_ID));
 
    for (int direction = 0; direction < 2; direction++){
