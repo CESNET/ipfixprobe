@@ -178,7 +178,11 @@ struct rte_eth_conf DpdkCore::createPortConfig()
 #endif
 
     if (m_supportedRSS) {
+#if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
+        portConfig.rxmode.mq_mode = RTE_ETH_MQ_RX_RSS;
+#else
         portConfig.rxmode.mq_mode = ETH_MQ_RX_RSS;
+#endif	
     } else {
         portConfig.rxmode.mq_mode = RTE_ETH_MQ_RX_NONE;
     }
@@ -215,7 +219,11 @@ void DpdkCore::configureRSS()
     struct rte_eth_rss_conf rssConfig = {
         .rss_key = rssKey,
         .rss_key_len = RSS_KEY_LEN,
+#if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
+        .rss_hf = RTE_ETH_RSS_IP,
+#else
         .rss_hf = ETH_RSS_IP,
+#endif
     };
 
     if (rte_eth_dev_rss_hash_update(m_portId, &rssConfig)) {
@@ -344,6 +352,11 @@ int DpdkCore::getRxTimestampOffset()
     return m_rxTimestampOffset;
 }
 
+int DpdkCore::getRxTimestampDynflag()
+{
+    return RTE_BIT64(rte_mbuf_dynflag_lookup(RTE_MBUF_DYNFLAG_RX_TIMESTAMP_NAME, NULL));
+}
+
 DpdkReader::DpdkReader()
     : m_dpdkCore(DpdkCore::getInstance())
 {
@@ -362,6 +375,7 @@ void DpdkReader::init(const char* params)
     m_rxQueueId = m_dpdkCore.getRxQueueId();
     m_portId = m_dpdkCore.parser.port_num();
     m_rxTimestampOffset = m_dpdkCore.getRxTimestampOffset();
+    m_rxTimestampDynflag = m_dpdkCore.getRxTimestampDynflag();
     m_useHwRxTimestamp = m_dpdkCore.isNfbDpdkDriver();
 
     createRteMempool(m_dpdkCore.parser.pkt_mempool_size());
@@ -412,7 +426,7 @@ void DpdkReader::setupRxQueue()
 struct timeval DpdkReader::getTimestamp(rte_mbuf* mbuf)
 {
 	struct timeval tv;
-    if (m_useHwRxTimestamp) {
+    if (m_useHwRxTimestamp && (mbuf->ol_flags & m_rxTimestampDynflag)) {
         static constexpr time_t nanosecInSec = 1000000000;
         static constexpr time_t nsecInUsec = 1000;
         
