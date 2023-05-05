@@ -166,7 +166,9 @@ void OVPNPlugin::update_record(RecordExtOVPN* vpn_data, const Packet &pkt)
             vpn_data->status = status_data;
             vpn_data->invalid_pkt_cnt = -1;
          }
-         vpn_data->data_pkt_cnt++;
+         if(pkt.payload_len_wire > c_min_data_packet_size) {
+            vpn_data->data_pkt_cnt++;
+         }
          break;
 
          //no opcode

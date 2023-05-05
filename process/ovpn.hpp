@@ -152,6 +152,7 @@ public:
       udp = 17
    } e_ip_proto_nbr;
 
+   static const uint32_t c_min_data_packet_size = 500;
    static const uint32_t c_udp_opcode_index = 0;
    static const uint32_t c_tcp_opcode_index = 2;
    static const uint32_t min_pckt_treshold = 20;
