@@ -590,6 +590,15 @@ List of fields exported together with basic flow fields on interface by quic plu
 |:------------------:|:------:|:-------------------------------:|
 | QUIC_SNI           | string | Decrypted server name           |
 
+### SSADetector
+
+List of fields exported together with basic flow fields on interface by ssadetector plugin.
+The detector search for the SYN SYN-ACK ACK pattern in packet lengths. Multiple occurrences of this pattern suggest a tunneled connection.
+
+| Output field       | Type   | Description                             |
+|:------------------:|:------:|:---------------------------------------:|
+| SSA_CONF_LEVEL     | uint8  | 1 if SSA sequence detected, 0 otherwise |
+
 ## Simplified function diagram
 Diagram below shows how `ipfixprobe` works.
 
