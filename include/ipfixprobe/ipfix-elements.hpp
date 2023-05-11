@@ -273,6 +273,67 @@ namespace ipxp {
 #define WG_SRC_PEER(F)                F(8057,    1101,   4,   nullptr)
 #define WG_DST_PEER(F)                F(8057,    1102,   4,   nullptr)
 
+//timeseries plugin
+#define    TS_MEAN(F)    F(4668 , 900 , 4 , nullptr)
+#define    TS_STDEV(F)    F(4668 , 901 , 4 , nullptr)
+#define    TS_VAR(F)    F(4668 , 902 , 4 , nullptr)
+#define    TS_BURSTINESS(F)    F(4668 , 903 , 4 , nullptr)
+#define    TS_Q1(F)    F(4668 , 904 , 2 , nullptr)
+#define    TS_MEDIAN(F)    F(4668 , 905 , 2 , nullptr)
+#define    TS_Q3(F)    F(4668 , 906 , 2 , nullptr)
+#define    TS_MIN(F)    F(4668 , 907 , 2 , nullptr)
+#define    TS_MAX(F)    F(4668 , 908 , 2 , nullptr)
+#define    TS_MODE(F)    F(4668 , 909 , 2 , nullptr)
+#define    TS_COEFFICIENT_OF_VARIATION(F)    F(4668 , 910 , 4 , nullptr)
+#define    TS_AVERAGE_DISPERSION(F)    F(4668 , 911 , 4 , nullptr)
+#define    TS_PERCENT_DEVIATION(F)    F(4668 , 912 , 4 , nullptr)
+#define    TS_ROOT_MEAN_SQUARE(F)    F(4668 , 913 , 4 , nullptr)
+#define    TS_PERCENT_BELOW_MEAN(F)    F(4668 , 914 , 4 , nullptr)
+#define    TS_PERCENT_ABOVE_MEAN(F)    F(4668 , 915 , 4 , nullptr)
+#define    TS_PEARSON_SK1_SKEWNESS(F)    F(4668 , 916 , 4 , nullptr)
+#define    TS_PEARSON_SK2_SKEWNESS(F)    F(4668 , 917 , 4 , nullptr)
+#define    TS_FISHER_MI_3_SKEWNESS(F)    F(4668 , 918 , 4 , nullptr)
+#define    TS_GALTON_SKEWNESS(F)    F(4668 , 919 , 4 , nullptr)
+#define    TS_KURTOSIS(F)    F(4668 , 920 , 4 , nullptr)
+#define    TS_ENTROPY(F)    F(4668 , 921 , 4 , nullptr)
+#define    TS_SCALED_ENTROPY(F)    F(4668 , 922 , 4 , nullptr)
+#define    TS_P_BENFORD(F)    F(4668 , 923 , 4 , nullptr)
+#define    TS_MEAN_SCALED_TIME(F)    F(4668 , 924 , 4 , nullptr)
+#define    TS_MEDIAN_SCALED_TIME(F)    F(4668 , 925 , 4 , nullptr)
+#define    TS_Q1_SCALED_TIME(F)    F(4668 , 926 , 4 , nullptr)
+#define    TS_Q3_SCALED_TIME(F)    F(4668 , 927 , 4 , nullptr)
+#define    TS_DURATION(F)    F(4668 , 928 , 4 , nullptr)
+#define    TS_MIN_DIFFTIMES(F)    F(4668 , 929 , 4 , nullptr)
+#define    TS_MAX_DIFFTIMES(F)    F(4668 , 930 , 4 , nullptr)
+#define    TS_MEAN_DIFFTIMES(F)    F(4668 , 931 , 4 , nullptr)
+#define    TS_MEDIAN_DIFFTIMES(F)    F(4668 , 932 , 4 , nullptr)
+#define    TS_DIFFTIMES_SKEWNESS(F)    F(4668 , 933 , 4 , nullptr)
+#define    TS_DIFFTIMES_KURTOSIS(F)    F(4668 , 934 , 4 , nullptr)
+#define    TS_TIME_DISTRIBUTION(F)    F(4668 , 935 , 4 , nullptr)
+#define    TS_HURST_EXPONENT(F)    F(4668 , 936 , 4 , nullptr)
+#define    TS_SWITCHING_METRIC(F)    F(4668 , 937 , 4 , nullptr)
+#define    TS_DIRECTIONS(F)    F(4668 , 938 , 4 , nullptr)
+#define    TS_PERIODICITY_TIME(F)    F(4668 , 939 , 4 , nullptr)
+#define    TS_PERIODICITY_VAL(F)    F(4668 , 940 , 2 , nullptr)
+#define    TS_MIN_POWER(F)    F(4668 , 941 , 4 , nullptr)
+#define    TS_MAX_POWER(F)    F(4668 , 942 , 4 , nullptr)
+#define    TS_MIN_POWER_FREQ(F)    F(4668 , 943 , 4 , nullptr)
+#define    TS_MAX_POWER_FREQ(F)    F(4668 , 944 , 4 , nullptr)
+#define    TS_SPECTRAL_ENERGY(F)    F(4668 , 945 , 4 , nullptr)
+#define    TS_SPECTRAL_ENTROPY(F)    F(4668 , 946 , 4 , nullptr)
+#define    TS_SPECTRAL_KURTOSIS(F)    F(4668 , 947 , 4 , nullptr)
+#define    TS_SPECTRAL_SKEWNESS(F)    F(4668 , 948 , 4 , nullptr)
+#define    TS_SPECTRAL_ROLLOFF(F)    F(4668 , 949 , 4 , nullptr)
+#define    TS_SPECTRAL_CENTROID(F)    F(4668 , 950 , 4 , nullptr)
+#define    TS_SPECTRAL_SPREAD(F)    F(4668 , 951 , 4 , nullptr)
+#define    TS_SPECTRAL_SLOPE(F)    F(4668 , 952 , 4 , nullptr)
+#define    TS_SPECTRAL_CREST(F)    F(4668 , 953 , 4 , nullptr)
+#define    TS_SPECTRAL_FLUX(F)    F(4668 , 954 , 4 , nullptr)
+#define    TS_SPECTRAL_BANDWIDTH(F)    F(4668 , 955 , 4 , nullptr)
+#define    TS_POWER_MEAN(F)    F(4668 , 956 , 4 , nullptr)
+#define    TS_POWER_STD(F)    F(4668 , 957 , 4 , nullptr)
+#define    TS_PERIODICITY_SCDF(F)    F(4668 , 958 , 4 , nullptr)
+
 /**
  * IPFIX Templates - list of elements
  *
@@ -502,6 +563,77 @@ namespace ipxp {
    F(OSQUERY_KERNEL_VERSION) \
    F(OSQUERY_SYSTEM_HOSTNAME)
 
+
+
+
+#define IPFIX_TIMESERIES_STATISTICS_TEMPLATE(F) \
+   F(TS_MEAN) \
+   F(TS_STDEV) \
+   F(TS_VAR) \
+   F(TS_BURSTINESS) \
+   F(TS_Q1) \
+   F(TS_MEDIAN) \
+   F(TS_Q3) \
+   F(TS_MIN) \
+   F(TS_MAX) \
+   F(TS_MODE) \
+   F(TS_COEFFICIENT_OF_VARIATION) \
+   F(TS_AVERAGE_DISPERSION) \
+   F(TS_PERCENT_DEVIATION) \
+   F(TS_ROOT_MEAN_SQUARE) \
+   F(TS_PERCENT_BELOW_MEAN) \
+   F(TS_PERCENT_ABOVE_MEAN) \
+   F(TS_PEARSON_SK1_SKEWNESS) \
+   F(TS_PEARSON_SK2_SKEWNESS) \
+   F(TS_FISHER_MI_3_SKEWNESS) \
+   F(TS_GALTON_SKEWNESS) \
+   F(TS_KURTOSIS) \
+   F(TS_ENTROPY) \
+   F(TS_SCALED_ENTROPY) \
+   F(TS_P_BENFORD)
+
+#define IPFIX_TIMESERIES_TIME_TEMPLATE(F) \
+   F(TS_MEAN_SCALED_TIME) \
+   F(TS_MEDIAN_SCALED_TIME) \
+   F(TS_Q1_SCALED_TIME) \
+   F(TS_Q3_SCALED_TIME) \
+   F(TS_DURATION) \
+   F(TS_MIN_DIFFTIMES) \
+   F(TS_MAX_DIFFTIMES) \
+   F(TS_MEAN_DIFFTIMES) \
+   F(TS_MEDIAN_DIFFTIMES) \
+   F(TS_DIFFTIMES_SKEWNESS) \
+   F(TS_DIFFTIMES_KURTOSIS) \
+   F(TS_TIME_DISTRIBUTION)
+
+#define IPFIX_TIMESERIES_BEHAVIOR_TEMPLATE(F) \
+   F(TS_HURST_EXPONENT) \
+   F(TS_SWITCHING_METRIC) \
+   F(TS_DIRECTIONS) \
+   F(TS_PERIODICITY_VAL) \
+   F(TS_PERIODICITY_TIME)
+
+#define IPFIX_TIMESERIES_FREQUENCY_TEMPLATE(F) \
+   F(TS_MIN_POWER) \
+   F(TS_MAX_POWER) \
+   F(TS_MIN_POWER_FREQ) \
+   F(TS_MAX_POWER_FREQ) \
+   F(TS_SPECTRAL_ENERGY) \
+   F(TS_SPECTRAL_ENTROPY) \
+   F(TS_SPECTRAL_KURTOSIS) \
+   F(TS_SPECTRAL_SKEWNESS) \
+   F(TS_SPECTRAL_ROLLOFF) \
+   F(TS_SPECTRAL_CENTROID) \
+   F(TS_SPECTRAL_SPREAD) \
+   F(TS_SPECTRAL_SLOPE) \
+   F(TS_SPECTRAL_CREST) \
+   F(TS_SPECTRAL_FLUX) \
+   F(TS_SPECTRAL_BANDWIDTH) \
+   F(TS_POWER_MEAN) \
+   F(TS_POWER_STD) \
+   F(TS_PERIODICITY_SCDF)
+
+
 #ifdef WITH_FLEXPROBE
 #define IPFIX_FLEXPROBE_DATA_TEMPLATE(F) F(FX_FRAME_SIGNATURE) F(FX_INPUT_INTERFACE)
 #define IPFIX_FLEXPROBE_TCP_TEMPLATE(F) F(FX_TCP_TRACKING)
@@ -544,7 +676,11 @@ namespace ipxp {
    IPFIX_FLEXPROBE_DATA_TEMPLATE(F) \
    IPFIX_FLEXPROBE_TCP_TEMPLATE(F) \
    IPFIX_FLEXPROBE_ENCR_TEMPLATE(F) \
-   IPFIX_SSADETECTOR_TEMPLATE(F)
+   IPFIX_SSADETECTOR_TEMPLATE(F) \
+   IPFIX_TIMESERIES_STATISTICS_TEMPLATE(F) \
+   IPFIX_TIMESERIES_TIME_TEMPLATE(F) \
+   IPFIX_TIMESERIES_BEHAVIOR_TEMPLATE(F) \
+   IPFIX_TIMESERIES_FREQUENCY_TEMPLATE(F)
 
 /**
  * Helper macro, convert FIELD into its name as a C literal.

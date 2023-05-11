@@ -401,6 +401,13 @@ AC_ARG_WITH([msects],
        ]
 )
 
+AC_ARG_WITH([timeseries],
+       AC_HELP_STRING([--with-timeseries],[Compile ipfixprobe with plugin TimeSeries ]),
+         [withtimeseries="yes"],
+         [withtimeseries="no"]
+)
+
+AM_CONDITIONAL(WITH_TIMESERIES, test x$withtimeseries = xyes )
 
 AM_CONDITIONAL(MAKE_RPMS, test x$RPMBUILD != x)
 

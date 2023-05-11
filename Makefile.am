@@ -137,6 +137,13 @@ ipfixprobe_process_src+=\
 
 endif
 
+if WITH_TIMESERIES
+ipfixprobe_LDFLAGS+=-lnfft3 -lfftw3 -lm 
+ipfixprobe_process_src+=\
+		process/timeseries.hpp \
+		process/timeseries.cpp
+endif
+
 if WITH_FLEXPROBE
 ipfixprobe_process_src+=\
 		process/flexprobe-data.h \
