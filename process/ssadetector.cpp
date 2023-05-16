@@ -133,19 +133,20 @@ void SSADetectorPlugin::update_record(RecordExtSSADetector* record, const Packet
    transition_from_init(record, len, ts, dir);
 }
 
-int SSADetectorPlugin::post_create(Flow& rec, const Packet& pkt)
-{
-   RecordExtSSADetector* record = new RecordExtSSADetector();
-   rec.add_extension(record);
-
-   update_record(record, pkt);
-   return 0;
-}
 
 int SSADetectorPlugin::post_update(Flow& rec, const Packet& pkt)
 {
-   RecordExtSSADetector* record
-       = (RecordExtSSADetector*) rec.get_extension(RecordExtSSADetector::REGISTERED_ID);
+   RecordExtSSADetector *record = nullptr;
+   if (rec.src_packets + rec.dst_packets < MIN_PKT_IN_FLOW) {
+      return 0;
+   }
+
+   record = (RecordExtSSADetector *) rec.get_extension(RecordExtSSADetector::REGISTERED_ID);
+   if (record == nullptr) {
+      record = new RecordExtSSADetector();
+      rec.add_extension(record);   
+   }
+   
    update_record(record, pkt);
    return 0;
 }
