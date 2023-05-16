@@ -1,3 +1,23 @@
+2023-05-05 (SiskaPavel): Merge pull request #148 from CESNET/dpdk-version
+2023-05-05 (Pavel Siska): dpdk - support HW timestamp only when metadata are available
+2023-05-04 (Pavel Siska): Dpdk - support different constant names acros dpdk versions
+2023-04-18 (SiskaPavel): Merge pull request #146 from CESNET/ssadetector_plugin
+2023-04-18 (SiskaPavel): Merge pull request #143 from BonnyAD9/http-invalid-method
+2023-04-18 (Karel Hynek): Merge pull request #145 from CESNET/pstats_zerolen_fix
+2023-04-18 (Karel Hynek): SSADetector: Updated coding style, Removed unnamed constants
+2023-04-17 (Karel Hynek): PSTATS BUGFIX: Fixed zero-len packets recognition
+2023-04-04 (Jakub Antonín Štigler): Increase the method field size in http
+2023-03-27 (Jakub Antonín Štigler): Set back the default size of http method
+2023-03-27 (Jakub Antonín Štigler): parse http requests with invalid header
+2023-03-27 (SiskaPavel): Merge pull request #142 from CESNET/new_version
+2023-03-15 (Karel Hynek): SSADetector: Added functional tests
+2023-03-15 (Karel Hynek): SSADetector: Added ext record modification methods
+2023-03-15 (Karel Hynek): SSADetector: Added transition functions to detection automaton
+2023-03-15 (Karel Hynek): SSADetector: SSADetectorRecord EXT completely defined
+2023-03-15 (Karel Hynek): SSADetector: Added pkt table structure
+2023-03-15 (Karel Hynek): SSADetector: Added pkt entry structure
+2023-03-15 (jirakja7): SSADetector plugin: initial files.
+
 2023-03-20 (Jakub Antonín Štigler): Skip ipv6 mobility header
 2023-03-15 (Karel Hynek): Updated .gitignore
 2023-03-13 (Karel Hynek): tls: Updated tls test reference
