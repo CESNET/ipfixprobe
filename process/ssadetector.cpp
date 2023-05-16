@@ -136,7 +136,7 @@ void SSADetectorPlugin::update_record(RecordExtSSADetector* record, const Packet
 
 int SSADetectorPlugin::post_update(Flow& rec, const Packet& pkt)
 {
-   RecordExtSSADetector* record = nullptr;
+   RecordExtSSADetector *record = nullptr;
    if (rec.src_packets + rec.dst_packets < MIN_PKT_IN_FLOW) {
       return 0;
    }
