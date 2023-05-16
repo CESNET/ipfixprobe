@@ -141,7 +141,7 @@ int SSADetectorPlugin::post_update(Flow& rec, const Packet& pkt)
       return 0;
    }
 
-   record = (RecordExtSSADetector*) rec.get_extension(RecordExtSSADetector::REGISTERED_ID);
+   record = (RecordExtSSADetector *) rec.get_extension(RecordExtSSADetector::REGISTERED_ID);
    if (record == nullptr) {
       record = new RecordExtSSADetector();
       rec.add_extension(record);   
