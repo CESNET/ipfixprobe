@@ -258,6 +258,21 @@ namespace ipxp {
 #define WG_SRC_PEER(F)                F(8057,    1101,   4,   nullptr)
 #define WG_DST_PEER(F)                F(8057,    1102,   4,   nullptr)
 
+#define MEAN(F)                       F(0,       901,  -1,   nullptr)
+#define MIN(F)                        F(0,       902,  -1,   nullptr)
+#define MAX(F)                        F(0,       903,  -1,   nullptr)
+#define STDEV(F)                      F(0,       904,  -1,   nullptr)
+#define KURTOSIS(F)                   F(0,       905,  -1,   nullptr)
+#define ROOT_MEAN_SQUARE(F)           F(0,       906,  -1,   nullptr)
+#define AVERAGE_DISPERSION(F)         F(0,       907,  -1,   nullptr)
+#define MEAN_SCALED_TIME(F)           F(0,       908,  -1,   nullptr)
+#define MEAN_DIFFTIMES(F)             F(0,       909,  -1,   nullptr)
+#define MAX_DIFFTIMES(F)              F(0,       910,  -1,   nullptr)
+#define MIN_DIFFTIMES(F)              F(0,       911,  -1,   nullptr)
+#define TIME_DISTRIBUTION(F)          F(0,       912,  -1,   nullptr)
+#define SWITCHING_METRIC(F)           F(0,       913,  -1,   nullptr)
+#define DIRECTIONS(F)                 F(0,       914,  -1,   nullptr)
+
 /**
  * IPFIX Templates - list of elements
  *
@@ -487,6 +502,22 @@ namespace ipxp {
    F(OSQUERY_KERNEL_VERSION) \
    F(OSQUERY_SYSTEM_HOSTNAME)
 
+#define IPFIX_NETTISA_TEMPLATE(F) \
+  F(MEAN) \
+  F(MIN) \
+  F(MAX) \
+  F(STDEV) \
+  F(KURTOSIS) \
+  F(ROOT_MEAN_SQUARE) \
+  F(AVERAGE_DISPERSION) \
+  F(MEAN_SCALED_TIME) \
+  F(MEAN_DIFFTIMES) \
+  F(MAX_DIFFTIMES) \
+  F(MIN_DIFFTIMES) \
+  F(TIME_DISTRIBUTION) \
+  F(SWITCHING_METRIC) \
+  F(DIRECTIONS) \
+
 #ifdef WITH_FLEXPROBE
 #define IPFIX_FLEXPROBE_DATA_TEMPLATE(F) F(FX_FRAME_SIGNATURE) F(FX_INPUT_INTERFACE)
 #define IPFIX_FLEXPROBE_TCP_TEMPLATE(F) F(FX_TCP_TRACKING)
@@ -529,7 +560,8 @@ namespace ipxp {
    IPFIX_FLEXPROBE_DATA_TEMPLATE(F) \
    IPFIX_FLEXPROBE_TCP_TEMPLATE(F) \
    IPFIX_FLEXPROBE_ENCR_TEMPLATE(F) \
-   IPFIX_SSADETECTOR_TEMPLATE(F)
+   IPFIX_SSADETECTOR_TEMPLATE(F) \
+   IPFIX_NETTISA_TEMPLATE(F)
 
 /**
  * Helper macro, convert FIELD into its name as a C literal.
