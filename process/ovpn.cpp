@@ -209,7 +209,7 @@ void OVPNPlugin::pre_export(Flow &rec)
 
    //do not export ovpn for short flows, usually port scans
    uint32_t packets = rec.src_packets + rec.dst_packets;
-   if (packets <= 5) { 
+   if (packets <= min_pckt_export_treshold) { 
       rec.remove_extension(RecordExtOVPN::REGISTERED_ID);
       return;
    }
