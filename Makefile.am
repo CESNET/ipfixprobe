@@ -157,7 +157,9 @@ endif
 if WITH_DPDK
 ipfixprobe_input_src+=\
         input/dpdk.cpp \
-        input/dpdk.h
+        input/dpdk.h \
+	input/dpdk-ring.cpp \
+	input/dpdk-ring.h
 endif
 
 ipfixprobe_headers_src=\
