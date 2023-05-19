@@ -270,8 +270,7 @@ namespace ipxp {
 #define MAX_DIFFTIMES(F)              F(0,       910,  -1,   nullptr)
 #define MIN_DIFFTIMES(F)              F(0,       911,  -1,   nullptr)
 #define TIME_DISTRIBUTION(F)          F(0,       912,  -1,   nullptr)
-#define SWITCHING_METRIC(F)           F(0,       913,  -1,   nullptr)
-#define DIRECTIONS(F)                 F(0,       914,  -1,   nullptr)
+#define SWITCHING_RATIO(F)           F(0,       913,  -1,   nullptr)
 
 /**
  * IPFIX Templates - list of elements
@@ -515,9 +514,8 @@ namespace ipxp {
   F(MAX_DIFFTIMES) \
   F(MIN_DIFFTIMES) \
   F(TIME_DISTRIBUTION) \
-  F(SWITCHING_METRIC) \
-  F(DIRECTIONS) \
-
+  F(SWITCHING_RATIO) \
+  
 #ifdef WITH_FLEXPROBE
 #define IPFIX_FLEXPROBE_DATA_TEMPLATE(F) F(FX_FRAME_SIGNATURE) F(FX_INPUT_INTERFACE)
 #define IPFIX_FLEXPROBE_TCP_TEMPLATE(F) F(FX_TCP_TRACKING)
