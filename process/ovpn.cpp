@@ -151,7 +151,9 @@ void OVPNPlugin::update_record(RecordExtOVPN* vpn_data, const Packet &pkt)
             vpn_data->status = status_data;
             vpn_data->invalid_pkt_cnt = -1;
          }
-         vpn_data->data_pkt_cnt++;
+         if (pkt.payload_len_wire > c_min_data_packet_size) {
+            vpn_data->data_pkt_cnt++;
+         }
          break;
 
          //no opcode
@@ -189,6 +191,14 @@ int OVPNPlugin::pre_update(Flow &rec, Packet &pkt)
 void OVPNPlugin::pre_export(Flow &rec)
 {
    RecordExtOVPN *vpn_data = (RecordExtOVPN *) rec.get_extension(RecordExtOVPN::REGISTERED_ID);
+
+   //do not export ovpn for short flows, usually port scans
+   uint32_t packets = rec.src_packets + rec.dst_packets;
+   if (packets <= min_pckt_export_treshold) { 
+      rec.remove_extension(RecordExtOVPN::REGISTERED_ID);
+      return;
+   }
+
    if (vpn_data->pkt_cnt > min_pckt_treshold && vpn_data->status == status_data) {
       vpn_data->possible_vpn = 100;
    } else if (vpn_data->pkt_cnt > min_pckt_treshold && ((double) vpn_data->data_pkt_cnt / (double) vpn_data->pkt_cnt) >= data_pckt_treshold) {
