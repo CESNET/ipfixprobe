@@ -41,9 +41,9 @@ __attribute__((constructor)) static void register_this_plugin()
     register_plugin(&rec);
 }
 
-DpdkRingCore* DpdkRingCore::m_instance = nullptr;
+DpdkRingCore *DpdkRingCore::m_instance = nullptr;
 
-DpdkRingCore& DpdkRingCore::getInstance()
+DpdkRingCore &DpdkRingCore::getInstance()
 {
     if (!m_instance) {
         m_instance = new DpdkRingCore();
@@ -145,7 +145,7 @@ void DpdkRingReader::init(const char* params)
 
 struct timeval DpdkRingReader::getTimestamp(rte_mbuf* mbuf)
 {
-	struct timeval tv;
+    struct timeval tv;
     auto now = std::chrono::system_clock::now();
     auto now_t = std::chrono::system_clock::to_time_t(now);
 

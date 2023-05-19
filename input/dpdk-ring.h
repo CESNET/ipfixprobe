@@ -87,27 +87,27 @@ public:
      * 
      * @param eal_params DPDK EAL parameters.
     */
-   void configure(const char* params);
+   void configure(const char *params);
 
     /**
      * @brief Get the singleton dpdk core instance
      */
-    static DpdkRingCore& getInstance();
+    static DpdkRingCore &getInstance();
     void deinit();
 
     DpdkRingOptParser parser;
 
 private:
-    std::vector<char *> convertStringToArgvFormat(const std::string& ealParams);
-    void configureEal(const std::string& ealParams);
+    std::vector<char *> convertStringToArgvFormat(const std::string &ealParams);
+    void configureEal(const std::string &ealParams);
     ~DpdkRingCore();
     bool isConfigured = false;
-    static DpdkRingCore* m_instance;
+    static DpdkRingCore *m_instance;
 };
 
 class DpdkRingReader : public InputPlugin {
 public:
-    Result get(PacketBlock& packets) override;
+    Result get(PacketBlock &packets) override;
 
     void init(const char* params) override;
 
@@ -124,13 +124,13 @@ public:
     ~DpdkRingReader();
     DpdkRingReader();
 private:
-    std::vector<rte_mbuf*> mbufs_;
+    std::vector<rte_mbuf *> mbufs_;
     std::uint16_t pkts_read_;
 
     void createRteMbufs(uint16_t mbufsSize);
-    struct timeval getTimestamp(rte_mbuf* mbuf);
-    DpdkRingCore& m_dpdkRingCore;
-    rte_ring* m_ring;
+    struct timeval getTimestamp(rte_mbuf *mbuf);
+    DpdkRingCore &m_dpdkRingCore;
+    rte_ring *m_ring;
     bool is_reader_ready = false;
 
 
