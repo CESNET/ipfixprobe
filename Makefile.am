@@ -137,6 +137,12 @@ ipfixprobe_process_src+=\
 
 endif
 
+if WITH_NETTISA
+ipfixprobe_process_src+=\
+		process/nettisa.hpp \
+		process/nettisa.cpp
+endif
+
 if WITH_FLEXPROBE
 ipfixprobe_process_src+=\
 		process/flexprobe-data.h \

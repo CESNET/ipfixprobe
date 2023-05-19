@@ -138,6 +138,12 @@ AC_ARG_WITH([quic],
         ], [withquic="yes"]
 )
 
+AC_ARG_WITH([nettisa],
+       AC_HELP_STRING([--with-nettisa],[Compile ipfixprobe with plugin NetTiSA]),
+         [withnettisa="yes"],
+         [withnettisa="no"]
+)
+
 if test x${withquic} = xyes; then
    if test x"${legacyssl}" = xyes; then
       LIBS="-l:libcrypto.so.1.1 $LIBS"
