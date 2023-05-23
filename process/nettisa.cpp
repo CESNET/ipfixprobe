@@ -51,7 +51,6 @@ void NETTISAPlugin::update_record(RecordExtNETTISA *nettisa_data, const Packet &
    nettisa_data->prev_time = pkt.ts.tv_usec;
    // MEAN
    nettisa_data->mean += (variation_from_mean) / n;
-   variation_from_mean = pkt.payload_len_wire - nettisa_data->mean;
    // MIN
    if(nettisa_data->min > pkt.payload_len_wire)
       nettisa_data->min = pkt.payload_len_wire;
