@@ -258,19 +258,19 @@ namespace ipxp {
 #define WG_SRC_PEER(F)                F(8057,    1101,   4,   nullptr)
 #define WG_DST_PEER(F)                F(8057,    1102,   4,   nullptr)
 
-#define NTS_MEAN(F)                       F(0,       901,  4,   nullptr)
-#define NTS_MIN(F)                        F(0,       902,  4,   nullptr)
-#define NTS_MAX(F)                        F(0,       903,  4,   nullptr)
-#define NTS_STDEV(F)                      F(0,       904,  4,   nullptr)
-#define NTS_KURTOSIS(F)                   F(0,       905,  4,   nullptr)
-#define NTS_ROOT_MEAN_SQUARE(F)           F(0,       906,  4,   nullptr)
-#define NTS_AVERAGE_DISPERSION(F)         F(0,       907,  4,   nullptr)
-#define NTS_MEAN_SCALED_TIME(F)           F(0,       908,  4,   nullptr)
-#define NTS_MEAN_DIFFTIMES(F)             F(0,       909,  4,   nullptr)
-#define NTS_MAX_DIFFTIMES(F)              F(0,       910,  4,   nullptr)
-#define NTS_MIN_DIFFTIMES(F)              F(0,       911,  4,   nullptr)
-#define NTS_TIME_DISTRIBUTION(F)          F(0,       912,  4,   nullptr)
-#define NTS_SWITCHING_RATIO(F)            F(0,       913,  4,   nullptr)
+#define NTS_MEAN(F)                   F(8057,    1020,  4,    nullptr)
+#define NTS_MIN(F)                    F(8057,    1021,  4,    nullptr)
+#define NTS_MAX(F)                    F(8057,    1022,  4,    nullptr)
+#define NTS_STDEV(F)                  F(8057,    1023,  4,    nullptr)
+#define NTS_KURTOSIS(F)               F(8057,    1024,  4,    nullptr)
+#define NTS_ROOT_MEAN_SQUARE(F)       F(8057,    1025,  4,    nullptr)
+#define NTS_AVERAGE_DISPERSION(F)     F(8057,    1026,  4,    nullptr)
+#define NTS_MEAN_SCALED_TIME(F)       F(8057,    1027,  4,    nullptr)
+#define NTS_MEAN_DIFFTIMES(F)         F(8057,    1028,  4,    nullptr)
+#define NTS_MIN_DIFFTIMES(F)          F(8057,    1029,  4,    nullptr)
+#define NTS_MAX_DIFFTIMES(F)          F(8057,    1030,  4,    nullptr)
+#define NTS_TIME_DISTRIBUTION(F)      F(8057,    1031,  4,    nullptr)
+#define NTS_SWITCHING_RATIO(F)        F(8057,    1032,  4,    nullptr)
 
 
 /**
@@ -512,10 +512,10 @@ namespace ipxp {
   F(NTS_AVERAGE_DISPERSION) \
   F(NTS_MEAN_SCALED_TIME) \
   F(NTS_MEAN_DIFFTIMES) \
-  F(NTS_MAX_DIFFTIMES) \
   F(NTS_MIN_DIFFTIMES) \
+  F(NTS_MAX_DIFFTIMES) \
   F(NTS_TIME_DISTRIBUTION) \
-  F(NTS_SWITCHING_RATIO) \
+  F(NTS_SWITCHING_RATIO)
   
 #ifdef WITH_FLEXPROBE
 #define IPFIX_FLEXPROBE_DATA_TEMPLATE(F) F(FX_FRAME_SIGNATURE) F(FX_INPUT_INTERFACE)
