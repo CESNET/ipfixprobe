@@ -28,22 +28,22 @@
 
 namespace ipxp {
 
-#define NETTISA_UNIREC_TEMPLATE "MEAN,MIN,MAX,STDEV,KURTOSIS,ROOT_MEAN_SQUARE,AVERAGE_DISPERSION,MEAN_SCALED_TIME,MEAN_DIFFTIMES,MIN_DIFFTIMES,MAX_DIFFTIMES,TIME_DISTRIBUTION,SWITCHING_RATIO"
+#define NETTISA_UNIREC_TEMPLATE "NTS_MEAN,NTS_MIN,NTS_MAX,NTS_STDEV,NTS_KURTOSIS,NTS_ROOT_MEAN_SQUARE,NTS_AVERAGE_DISPERSION,NTS_MEAN_SCALED_TIME,NTS_MEAN_DIFFTIMES,NTS_MIN_DIFFTIMES,NTS_MAX_DIFFTIMES,NTS_TIME_DISTRIBUTION,NTS_SWITCHING_RATIO"
 
 UR_FIELDS (
-   float MEAN,
-   uint16_t MIN,
-   uint16_t MAX,
-   float STDEV,
-   float KURTOSIS,
-   float ROOT_MEAN_SQUARE,
-   float AVERAGE_DISPERSION,
-   float MEAN_SCALED_TIME,
-   float MEAN_DIFFTIMES,
-   float MIN_DIFFTIMES,
-   float MAX_DIFFTIMES,
-   float TIME_DISTRIBUTION,
-   float SWITCHING_RATIO,
+   float NTS_MEAN,
+   uint16_t NTS_MIN,
+   uint16_t NTS_MAX,
+   float NTS_STDEV,
+   float NTS_KURTOSIS,
+   float NTS_ROOT_MEAN_SQUARE,
+   float NTS_AVERAGE_DISPERSION,
+   float NTS_MEAN_SCALED_TIME,
+   float NTS_MEAN_DIFFTIMES,
+   float NTS_MIN_DIFFTIMES,
+   float NTS_MAX_DIFFTIMES,
+   float NTS_TIME_DISTRIBUTION,
+   float NTS_SWITCHING_RATIO,
 )
 
 /**
@@ -92,19 +92,19 @@ struct RecordExtNETTISA : public RecordExt {
 #ifdef WITH_NEMEA
    virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
-      ur_set(tmplt, record, MEAN, mean);
-      ur_set(tmplt, record, MIN, min);
-      ur_set(tmplt, record, MAX, max);
-      ur_set(tmplt, record, STDEV, stdev);
-      ur_set(tmplt, record, KURTOSIS, kurtosis);
-      ur_set(tmplt, record, ROOT_MEAN_SQUARE, root_mean_square);
-      ur_set(tmplt, record, AVERAGE_DISPERSION, average_dispersion);
-      ur_set(tmplt, record, MEAN_SCALED_TIME, mean_scaled_time);
-      ur_set(tmplt, record, MEAN_DIFFTIMES, mean_difftimes);
-      ur_set(tmplt, record, MIN_DIFFTIMES, min_difftimes);
-      ur_set(tmplt, record, MAX_DIFFTIMES, max_difftimes);
-      ur_set(tmplt, record, TIME_DISTRIBUTION, time_distribution);
-      ur_set(tmplt, record, SWITCHING_RATIO, switching_ratio);
+      ur_set(tmplt, record, NTS_MEAN, mean);
+      ur_set(tmplt, record, NTS_MIN, min);
+      ur_set(tmplt, record, NTS_MAX, max);
+      ur_set(tmplt, record, NTS_STDEV, stdev);
+      ur_set(tmplt, record, NTS_KURTOSIS, kurtosis);
+      ur_set(tmplt, record, NTS_ROOT_MEAN_SQUARE, root_mean_square);
+      ur_set(tmplt, record, NTS_AVERAGE_DISPERSION, average_dispersion);
+      ur_set(tmplt, record, NTS_MEAN_SCALED_TIME, mean_scaled_time);
+      ur_set(tmplt, record, NTS_MEAN_DIFFTIMES, mean_difftimes);
+      ur_set(tmplt, record, NTS_MIN_DIFFTIMES, min_difftimes);
+      ur_set(tmplt, record, NTS_MAX_DIFFTIMES, max_difftimes);
+      ur_set(tmplt, record, NTS_TIME_DISTRIBUTION, time_distribution);
+      ur_set(tmplt, record, NTS_SWITCHING_RATIO, switching_ratio);
    }
 
    const char *get_unirec_tmplt() const

@@ -258,19 +258,20 @@ namespace ipxp {
 #define WG_SRC_PEER(F)                F(8057,    1101,   4,   nullptr)
 #define WG_DST_PEER(F)                F(8057,    1102,   4,   nullptr)
 
-#define MEAN(F)                       F(0,       901,  4,   nullptr)
-#define MIN(F)                        F(0,       902,  4,   nullptr)
-#define MAX(F)                        F(0,       903,  4,   nullptr)
-#define STDEV(F)                      F(0,       904,  4,   nullptr)
-#define KURTOSIS(F)                   F(0,       905,  4,   nullptr)
-#define ROOT_MEAN_SQUARE(F)           F(0,       906,  4,   nullptr)
-#define AVERAGE_DISPERSION(F)         F(0,       907,  4,   nullptr)
-#define MEAN_SCALED_TIME(F)           F(0,       908,  4,   nullptr)
-#define MEAN_DIFFTIMES(F)             F(0,       909,  4,   nullptr)
-#define MAX_DIFFTIMES(F)              F(0,       910,  4,   nullptr)
-#define MIN_DIFFTIMES(F)              F(0,       911,  4,   nullptr)
-#define TIME_DISTRIBUTION(F)          F(0,       912,  4,   nullptr)
-#define SWITCHING_RATIO(F)            F(0,       913,  4,   nullptr)
+#define NTS_MEAN(F)                       F(0,       901,  4,   nullptr)
+#define NTS_MIN(F)                        F(0,       902,  4,   nullptr)
+#define NTS_MAX(F)                        F(0,       903,  4,   nullptr)
+#define NTS_STDEV(F)                      F(0,       904,  4,   nullptr)
+#define NTS_KURTOSIS(F)                   F(0,       905,  4,   nullptr)
+#define NTS_ROOT_MEAN_SQUARE(F)           F(0,       906,  4,   nullptr)
+#define NTS_AVERAGE_DISPERSION(F)         F(0,       907,  4,   nullptr)
+#define NTS_MEAN_SCALED_TIME(F)           F(0,       908,  4,   nullptr)
+#define NTS_MEAN_DIFFTIMES(F)             F(0,       909,  4,   nullptr)
+#define NTS_MAX_DIFFTIMES(F)              F(0,       910,  4,   nullptr)
+#define NTS_MIN_DIFFTIMES(F)              F(0,       911,  4,   nullptr)
+#define NTS_TIME_DISTRIBUTION(F)          F(0,       912,  4,   nullptr)
+#define NTS_SWITCHING_RATIO(F)            F(0,       913,  4,   nullptr)
+
 
 /**
  * IPFIX Templates - list of elements
@@ -502,19 +503,19 @@ namespace ipxp {
    F(OSQUERY_SYSTEM_HOSTNAME)
 
 #define IPFIX_NETTISA_TEMPLATE(F) \
-  F(MEAN) \
-  F(MIN) \
-  F(MAX) \
-  F(STDEV) \
-  F(KURTOSIS) \
-  F(ROOT_MEAN_SQUARE) \
-  F(AVERAGE_DISPERSION) \
-  F(MEAN_SCALED_TIME) \
-  F(MEAN_DIFFTIMES) \
-  F(MAX_DIFFTIMES) \
-  F(MIN_DIFFTIMES) \
-  F(TIME_DISTRIBUTION) \
-  F(SWITCHING_RATIO) \
+  F(NTS_MEAN) \
+  F(NTS_MIN) \
+  F(NTS_MAX) \
+  F(NTS_STDEV) \
+  F(NTS_KURTOSIS) \
+  F(NTS_ROOT_MEAN_SQUARE) \
+  F(NTS_AVERAGE_DISPERSION) \
+  F(NTS_MEAN_SCALED_TIME) \
+  F(NTS_MEAN_DIFFTIMES) \
+  F(NTS_MAX_DIFFTIMES) \
+  F(NTS_MIN_DIFFTIMES) \
+  F(NTS_TIME_DISTRIBUTION) \
+  F(NTS_SWITCHING_RATIO) \
   
 #ifdef WITH_FLEXPROBE
 #define IPFIX_FLEXPROBE_DATA_TEMPLATE(F) F(FX_FRAME_SIGNATURE) F(FX_INPUT_INTERFACE)
