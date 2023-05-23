@@ -186,7 +186,7 @@ public:
    ~NETTISAPlugin();
    void init(const char *params);
    void close();
-   OptionsParser *get_parser() const { return new OptionsParser("nettisa", "Parse NerTiSA flow"); }
+   OptionsParser *get_parser() const { return new OptionsParser("nettisa", "Parse NetTiSA flow"); }
    std::string get_name() const { return "nettisa"; }
    RecordExt *get_ext() const { return new RecordExtNETTISA(); }
    ProcessPlugin *copy();
