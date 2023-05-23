@@ -120,8 +120,8 @@ struct RecordExtICMP : public RecordExt {
       auto *type_code = reinterpret_cast<const uint8_t *>(&this->type_code);
 
       std::ostringstream out;
-      out << "type=\"" << (int)type_code[0] << '"'
-         << ",code=\"" << (int)type_code[1] << '"';
+      out << "type=\"" << static_cast<int>(type_code[0]) << '"'
+         << ",code=\"" << static_cast<int>(type_code[1]) << '"';
 
       return out.str();
    }

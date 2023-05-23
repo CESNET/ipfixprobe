@@ -67,7 +67,7 @@ int ICMPPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.ip_proto == IPPROTO_ICMP ||
        pkt.ip_proto == IPPROTO_ICMPV6) {
-      if (pkt.payload_len < 2)
+      if (pkt.payload_len < sizeof(RecordExtICMP::type_code))
          return 0;
 
       auto ext = new RecordExtICMP();
