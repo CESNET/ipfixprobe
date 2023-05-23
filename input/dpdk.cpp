@@ -22,22 +22,7 @@
  *    may be used to endorse or promote products derived from this
  *    software without specific prior written permission.
  *
- * ALTERNATIVELY, provided that this notice is retained in full, this
- * product may be distributed under the terms of the GNU General Public
- * License (GPL) version 2 or later, in which case the provisions
- * of the GPL apply INSTEAD OF those given above.
  *
- * This software is provided ``as is'', and any express or implied
- * warranties, including, but not limited to, the implied warranties of
- * merchantability and fitness for a particular purpose are disclaimed.
- * In no event shall the company or contributors be liable for any
- * direct, indirect, incidental, special, exemplary, or consequential
- * damages (including, but not limited to, procurement of substitute
- * goods or services; loss of use, data, or profits; or business
- * interruption) however caused and on any theory of liability, whether
- * in contract, strict liability, or tort (including negligence or
- * otherwise) arising in any way out of the use of this software, even
- * if advised of the possibility of such damage.
  *
  */
 
@@ -178,7 +163,11 @@ struct rte_eth_conf DpdkCore::createPortConfig()
 #endif
 
     if (m_supportedRSS) {
+#if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
+        portConfig.rxmode.mq_mode = RTE_ETH_MQ_RX_RSS;
+#else
         portConfig.rxmode.mq_mode = ETH_MQ_RX_RSS;
+#endif	
     } else {
         portConfig.rxmode.mq_mode = RTE_ETH_MQ_RX_NONE;
     }
@@ -215,7 +204,11 @@ void DpdkCore::configureRSS()
     struct rte_eth_rss_conf rssConfig = {
         .rss_key = rssKey,
         .rss_key_len = RSS_KEY_LEN,
+#if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
+        .rss_hf = RTE_ETH_RSS_IP,
+#else
         .rss_hf = ETH_RSS_IP,
+#endif
     };
 
     if (rte_eth_dev_rss_hash_update(m_portId, &rssConfig)) {
@@ -344,6 +337,11 @@ int DpdkCore::getRxTimestampOffset()
     return m_rxTimestampOffset;
 }
 
+int DpdkCore::getRxTimestampDynflag()
+{
+    return RTE_BIT64(rte_mbuf_dynflag_lookup(RTE_MBUF_DYNFLAG_RX_TIMESTAMP_NAME, NULL));
+}
+
 DpdkReader::DpdkReader()
     : m_dpdkCore(DpdkCore::getInstance())
 {
@@ -362,6 +360,7 @@ void DpdkReader::init(const char* params)
     m_rxQueueId = m_dpdkCore.getRxQueueId();
     m_portId = m_dpdkCore.parser.port_num();
     m_rxTimestampOffset = m_dpdkCore.getRxTimestampOffset();
+    m_rxTimestampDynflag = m_dpdkCore.getRxTimestampDynflag();
     m_useHwRxTimestamp = m_dpdkCore.isNfbDpdkDriver();
 
     createRteMempool(m_dpdkCore.parser.pkt_mempool_size());
@@ -412,7 +411,7 @@ void DpdkReader::setupRxQueue()
 struct timeval DpdkReader::getTimestamp(rte_mbuf* mbuf)
 {
 	struct timeval tv;
-    if (m_useHwRxTimestamp) {
+    if (m_useHwRxTimestamp && (mbuf->ol_flags & m_rxTimestampDynflag)) {
         static constexpr time_t nanosecInSec = 1000000000;
         static constexpr time_t nsecInUsec = 1000;
         

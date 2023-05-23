@@ -23,22 +23,7 @@
  *    may be used to endorse or promote products derived from this
  *    software without specific prior written permission.
  *
- * ALTERNATIVELY, provided that this notice is retained in full, this
- * product may be distributed under the terms of the GNU General Public
- * License (GPL) version 2 or later, in which case the provisions
- * of the GPL apply INSTEAD OF those given above.
  *
- * This software is provided as is'', and any express or implied
- * warranties, including, but not limited to, the implied warranties of
- * merchantability and fitness for a particular purpose are disclaimed.
- * In no event shall the company or contributors be liable for any
- * direct, indirect, incidental, special, exemplary, or consequential
- * damages (including, but not limited to, procurement of substitute
- * goods or services; loss of use, data, or profits; or business
- * interruption) however caused and on any theory of liability, whether
- * in contract, strict liability, or tort (including negligence or
- * otherwise) arising in any way out of the use of this software, even
- * if advised of the possibility of such damage.
  *
  */
 
@@ -152,9 +137,11 @@ public:
       udp = 17
    } e_ip_proto_nbr;
 
+   static const uint32_t c_min_data_packet_size = 500;
    static const uint32_t c_udp_opcode_index = 0;
    static const uint32_t c_tcp_opcode_index = 2;
    static const uint32_t min_pckt_treshold = 20;
+   static const uint32_t min_pckt_export_treshold = 5;
    static constexpr float data_pckt_treshold = 0.6f;
    static const int32_t invalid_pckt_treshold = 4;
    static const uint32_t min_opcode = 1;

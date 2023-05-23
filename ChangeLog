@@ -1,3 +1,9 @@
+2023-05-16 ipfixprobe-4.8.0
+	* DPDK: bugfix of HW timestamps
+	* DPDK: compliance, different constant names
+	* pstats: bugfix of recognition of zero length packets
+	* SSADetector: add new plugin to detect possible SYN-SYNACK-ACK
+
 2023-03-27 ipfixprobe-4.7.4
 	* Support parsing of ipv6 mobility header
 	* Support TLS v1.3

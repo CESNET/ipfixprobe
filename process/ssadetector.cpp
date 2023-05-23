@@ -23,22 +23,7 @@
  *    may be used to endorse or promote products derived from this
  *    software without specific prior written permission.
  *
- * ALTERNATIVELY, provided that this notice is retained in full, this
- * product may be distributed under the terms of the GNU General Public
- * License (GPL) version 2 or later, in which case the provisions
- * of the GPL apply INSTEAD OF those given above.
  *
- * This software is provided as is'', and any express or implied
- * warranties, including, but not limited to, the implied warranties of
- * merchantability and fitness for a particular purpose are disclaimed.
- * In no event shall the company or contributors be liable for any
- * direct, indirect, incidental, special, exemplary, or consequential
- * damages (including, but not limited to, procurement of substitute
- * goods or services; loss of use, data, or profits; or business
- * interruption) however caused and on any theory of liability, whether
- * in contract, strict liability, or tort (including negligence or
- * otherwise) arising in any way out of the use of this software, even
- * if advised of the possibility of such damage.
  *
  */
 
@@ -133,19 +118,20 @@ void SSADetectorPlugin::update_record(RecordExtSSADetector* record, const Packet
    transition_from_init(record, len, ts, dir);
 }
 
-int SSADetectorPlugin::post_create(Flow& rec, const Packet& pkt)
-{
-   RecordExtSSADetector* record = new RecordExtSSADetector();
-   rec.add_extension(record);
-
-   update_record(record, pkt);
-   return 0;
-}
 
 int SSADetectorPlugin::post_update(Flow& rec, const Packet& pkt)
 {
-   RecordExtSSADetector* record
-       = (RecordExtSSADetector*) rec.get_extension(RecordExtSSADetector::REGISTERED_ID);
+   RecordExtSSADetector *record = nullptr;
+   if (rec.src_packets + rec.dst_packets < MIN_PKT_IN_FLOW) {
+      return 0;
+   }
+
+   record = (RecordExtSSADetector *) rec.get_extension(RecordExtSSADetector::REGISTERED_ID);
+   if (record == nullptr) {
+      record = new RecordExtSSADetector();
+      rec.add_extension(record);   
+   }
+   
    update_record(record, pkt);
    return 0;
 }

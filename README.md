@@ -159,6 +159,9 @@ Here are the examples of various plugins usage:
 # The following `dpdk` interfaces are given without parameters; their configuration is inherited from the first one.
 # Example for the queue of 3 DPDK input plugins (q=3):
 `./ipfixprobe -i "dpdk;p=0;q=3;e=-c 0x1 -a  <[domain:]bus:devid.func>" -i dpdk -i dpdk -p http "-p" bstats -p tls -o "ipfix;h=127.0.0.1"`
+
+# Read packets using DPDK input interface as secondary process with shared memory (DPDK rings) - in this case, 4 DPDK rings are used
+`./ipfixprobe -i 'dpdk-ring;r=rx_ipfixprobe_0;e= --proc-type=secondary' -i 'dpdk-ring;r=rx_ipfixprobe_1' -i 'dpdk-ring;r=rx_ipfixprobe_2' -i 'dpdk-ring;r=rx_ipfixprobe_3' -o 'text'`
 ```
 
 ## Flow Data Extension - Processing Plugins
@@ -559,7 +562,7 @@ ipfixprobe 'pcap;file=pcaps/http.pcap' -p "phists;includezeros" -o 'unirec;i=u:h
 
 List of fields exported together with basic flow fields on the interface by BSTATS plugin.
 The plugin is compiled to export the first `BSTATS_MAXELENCOUNT` (15 by default) burst in each direction.
-The bursts are computed separately for each direction. Burst is defined by `MINIMAL_PACKETS_IN_BURST` (3 by default) and by `MAXIMAL_INTERPKT_TIME` (1000 ms by default) between packets to be included in a burst.
+The bursts are computed separately for each direction. Burst is defined by `MINIMAL_PACKETS_IN_BURST` (3 by default) and by `MAXIMAL_INTERPKT_TIME` (1000 ms by default) between packets to be included in a burst. When the flow contains less then `MINIMAL_PACKETS_IN_BURST` packets, the fields are not exported to reduce output bandwidth.
 
 | Output field        | Type    | Description                                                     |
 |:-------------------:|:-------:|:---------------------------------------------------------------:|
@@ -597,6 +600,15 @@ List of fields exported together with basic flow fields on interface by icmp plu
 | Output field       | Type   | Description                     |
 |:------------------:|:------:|:-------------------------------:|
 | L4_ICMP_TYPE_CODE  | uint16 | ICMP type (MSB) and code (LSB)  |
+
+### SSADetector
+
+List of fields exported together with basic flow fields on interface by ssadetector plugin.
+The detector search for the SYN SYN-ACK ACK pattern in packet lengths. Multiple occurrences of this pattern suggest a tunneled connection.
+
+| Output field       | Type   | Description                             |
+|:------------------:|:------:|:---------------------------------------:|
+| SSA_CONF_LEVEL     | uint8  | 1 if SSA sequence detected, 0 otherwise |
 
 ## Simplified function diagram
 Diagram below shows how `ipfixprobe` works.
