@@ -88,15 +88,23 @@ inline uint16_t parse_eth_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
    memcpy(pkt->dst_mac, eth->h_dest, 6);
    memcpy(pkt->src_mac, eth->h_source, 6);
 
-   if (ethertype == ETH_P_8021AD) {
+   // set the default value in case there is no VLAN ID
+   pkt->vlan_id = 0;
+
+   if (ethertype == ETH_P_8021AD || ethertype == ETH_P_8021Q) {
       if (4 > data_len - hdr_len) {
          throw "Parser detected malformed packet";
       }
-      DEBUG_CODE(uint16_t vlan = ntohs(*(uint16_t *) (data_ptr + hdr_len)));
-      DEBUG_MSG("\t802.1ad field:\n");
+
+      // only the most outer vlan id is extracted
+      uint16_t vlan = ntohs(*(uint16_t *) (data_ptr + hdr_len));
+      // VLAN ID is the 12 LSb
+      pkt->vlan_id = vlan & 0x0FFF;
+
+      DEBUG_MSG("\t%s field:\n", (ethertype == ETH_P_8021AD ? "802.1ad" : "802.1q"));
       DEBUG_MSG("\t\tPriority:\t%u\n",    ((vlan & 0xE000) >> 12));
       DEBUG_MSG("\t\tCFI:\t\t%u\n",       ((vlan & 0x1000) >> 11));
-      DEBUG_MSG("\t\tVLAN:\t\t%u\n",      (vlan & 0x0FFF));
+      DEBUG_MSG("\t\tVLAN:\t\t%u\n",      (pkt->vlan_id));
 
       hdr_len += 4;
       ethertype = ntohs(*(uint16_t *) (data_ptr + hdr_len - 2));
