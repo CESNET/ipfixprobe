@@ -48,6 +48,7 @@ struct __attribute__((packed)) flow_key_v4_t {
    uint8_t ip_version;
    uint32_t src_ip;
    uint32_t dst_ip;
+   uint16_t vlan_id;
 };
 
 struct __attribute__((packed)) flow_key_v6_t {
@@ -57,6 +58,7 @@ struct __attribute__((packed)) flow_key_v6_t {
    uint8_t ip_version;
    uint8_t src_ip[16];
    uint8_t dst_ip[16];
+   uint16_t vlan_id;
 };
 
 #define MAX_KEY_LENGTH (max<size_t>(sizeof(flow_key_v4_t), sizeof(flow_key_v6_t)))
