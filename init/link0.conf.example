@@ -62,6 +62,10 @@
 
 #DPDK_DEVICE=0000:43:00.0
 
+# Set mapping of DPDK lcores to threads:
+
+#DPDK_LCORES="(0-7)@(0-7)"
+
 # Set network device port:
 
 #DPDK_PORT=0
