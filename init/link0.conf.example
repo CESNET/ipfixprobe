@@ -62,10 +62,6 @@
 
 #DPDK_DEVICE=0000:43:00.0
 
-# Set CPU mask:
-
-#DPDK_CPUMASK=0x1
-
 # Set network device port:
 
 #DPDK_PORT=0
