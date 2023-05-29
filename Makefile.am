@@ -158,6 +158,8 @@ if WITH_DPDK
 ipfixprobe_input_src+=\
 		input/dpdk/dpdkMbuf.hpp \
 		input/dpdk/dpdkMbuf.cpp \
+		input/dpdk/dpdkDevice.hpp \
+		input/dpdk/dpdkDevice.cpp \
         input/dpdk.cpp \
         input/dpdk.h \
 	input/dpdk-ring.cpp \
