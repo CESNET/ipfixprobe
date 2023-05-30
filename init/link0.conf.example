@@ -62,9 +62,9 @@
 
 #DPDK_DEVICE=0000:43:00.0
 
-# Set CPU mask:
+# Set mapping of DPDK lcores to threads:
 
-#DPDK_CPUMASK=0x1
+#DPDK_LCORES="(0-7)@(0-7)"
 
 # Set network device port:
 

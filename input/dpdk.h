@@ -21,15 +21,16 @@
  * 3. Neither the name of the Company nor the names of its contributors
  *    may be used to endorse or promote products derived from this
  *    software without specific prior written permission.
- *
- *
- *
  */
+ 
 #include <config.h>
+
 #ifdef WITH_DPDK
 
 #ifndef IPXP_DPDK_READER_H
 #define IPXP_DPDK_READER_H
+
+#include "dpdk/dpdkDevice.hpp"
 
 #include <ipfixprobe/input.hpp>
 #include <ipfixprobe/utils.hpp>
@@ -39,15 +40,40 @@
 #include <sstream>
 
 namespace ipxp {
+
 class DpdkOptParser : public OptionsParser {
 private:
     static constexpr size_t DEFAULT_MBUF_BURST_SIZE = 256;
     static constexpr size_t DEFAULT_MBUF_POOL_SIZE = 16384;
     size_t pkt_buffer_size_;
     size_t pkt_mempool_size_;
-    std::uint16_t port_num_;
+    std::vector<uint16_t> port_numbers_;
     uint16_t rx_queues_ = 1;
     std::string eal_;
+
+    std::vector<uint16_t> parsePortNumbers(std::string arg)
+    {
+        std::string delimiter = ",";
+
+        size_t pos = 0;
+        std::string token;
+        while ((pos = arg.find(delimiter)) != std::string::npos) {
+            std::stringstream ss;
+            token = arg.substr(0, pos);
+            ss << token;
+            uint16_t portId;
+            ss >> portId;
+            port_numbers_.emplace_back(portId);
+            arg.erase(0, pos + delimiter.length());
+        }
+
+        std::stringstream ss;
+        ss << arg;
+        uint16_t portId;
+        ss >> portId;
+        port_numbers_.emplace_back(portId);
+        return port_numbers_;
+    }
 
 public:
     DpdkOptParser()
@@ -67,7 +93,7 @@ public:
             "port",
             "PORT",
             "DPDK port to be used as an input interface",
-            [this](const char* arg) {try{port_num_ = str2num<decltype(port_num_)>(arg);} catch (std::invalid_argument&){return false;} return true; },
+            [this](const char* arg) {try{ port_numbers_ = parsePortNumbers(arg);} catch (std::invalid_argument&){return false;} return true; },
             RequiredArgument);
         register_option(
             "m",
@@ -96,7 +122,7 @@ public:
 
     size_t pkt_mempool_size() const { return pkt_mempool_size_; }
 
-    std::uint16_t port_num() const { return port_num_; }
+    std::vector<uint16_t> port_numbers() const { return port_numbers_; }
 
     std::string eal_params() const { return eal_; }
 
@@ -117,29 +143,16 @@ public:
      * 
      * @return uint16_t rx queue id
      */
-    uint16_t getRxQueueId();
-
-    int getRxTimestampOffset();
+    uint16_t getRxQueueId() noexcept;
 
     /**
-     * @brief Get the Rx Timestamp mbuf Dynflag for RTE_MBUF_DYNFLAG_RX_TIMESTAMP_NAME
+     * @brief Get the  Mbufs count to use
      * 
-     * @return int RTE_BIT64 value
+     * @return uint16_t Mbufs count
      */
-    int getRxTimestampDynflag();
-
-    bool isNfbDpdkDriver();
-
-    /**
-     * @brief Start receiving on port when all lcores are ready
-     * 
-     */
-    void startIfReady();
+    uint16_t getMbufsCount() const noexcept;
 
     void deinit();
-
-    // ready flag
-    bool is_ifc_ready;
 
     /**
      * @brief Get the singleton dpdk core instance
@@ -148,32 +161,30 @@ public:
 
     DpdkOptParser parser;
 
+    DpdkDevice& getDpdkDevice(size_t deviceIndex)
+    {
+        return m_dpdkDevices[deviceIndex];
+    }
+
+    size_t getDpdkDeviceCount() const noexcept
+    {
+        return m_dpdkDevices.size();
+    }
     
 private:
-    void initInterface();
-    void validatePort();
-    struct rte_eth_conf createPortConfig();
-    void configurePort(const struct rte_eth_conf& portConfig);
-    void configureRSS();
-    void registerRxTimestamp();
-    void enablePort();
     std::vector<char *> convertStringToArgvFormat(const std::string& ealParams);
-    void recognizeDriver();
     void configureEal(const std::string& ealParams);
 
     ~DpdkCore();
 
-    uint16_t m_portId;
-    uint16_t m_rxQueueCount;
-    uint16_t m_txQueueCount;
-    uint16_t m_currentRxId;
-    int m_rxTimestampOffset;
-    bool m_isNfbDpdkDriver;
-    bool m_supportedRSS;
-    bool m_supportedHWTimestamp;
-    
+    std::vector<DpdkDevice> m_dpdkDevices;
+    std::vector<uint16_t> m_portIds;
+    uint16_t m_mBufsCount = 0;
+    uint16_t m_currentRxId = 0;
     bool isConfigured = false;
     static DpdkCore* m_instance;
+
+
 };
 
 class DpdkReader : public InputPlugin {
@@ -196,27 +207,13 @@ public:
     DpdkReader();
 
 private:
-    rte_mempool* rteMempool;
-    std::vector<rte_mbuf*> mbufs_;
-    
-    std::uint16_t pkts_read_;
-    uint16_t rx_queue_id_;
-    uint16_t total_queues_cnt_;
-
+    size_t m_dpdkDeviceCount;
+    uint64_t m_dpdkDeviceIndex = 0;
     uint16_t m_rxQueueId;
-    uint16_t m_portId;
-    int m_rxTimestampOffset;
-    uint64_t m_rxTimestampDynflag;
-
-    bool m_useHwRxTimestamp;
-
-    void createRteMempool(uint16_t mempoolSize);
-    void createRteMbufs(uint16_t mbufsSize);
-    void setupRxQueue();
-    struct timeval getTimestamp(rte_mbuf* mbuf);
-
     DpdkCore& m_dpdkCore;
+    DpdkMbuf mBufs;
 };
+
 }
 
 #endif // IPXP_DPDK_READER_H

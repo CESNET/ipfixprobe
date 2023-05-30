@@ -8,7 +8,7 @@ if [ -e "$CONFFILE" ]; then
    dpdkinput=""
    if [ "$USE_DPDK" = "1" ]; then
       # set up DPDK interface(s)
-      dpdkinput=("-i" "dpdk;p=$DPDK_PORT;q=$DPDK_QUEUES_COUNT;e=-c $DPDK_CPUMASK -a $DPDK_DEVICE")
+      dpdkinput=("-i" "dpdk;p=$DPDK_PORT;q=$DPDK_QUEUES_COUNT;e=--lcores $DPDK_LCORES -a $DPDK_DEVICE")
       for ((ifc=1; ifc<$DPDK_QUEUES_COUNT;ifc++)); do
          dpdkinput+=("-i" "dpdk")
       done
