@@ -1,3 +1,12 @@
+2023-06-01 ipfixprobe-4.9.0
+	* flow cache: add VLAN ID to the flow key
+	* SSADetector: detect SYN-SYNACK-ACK sequence to detect VPN within exiting connection
+	* ovpn: enhanced algorithm to minimize false positives
+	* optimization: do not export some additional info for short flows
+	* dpdk: allow running as a secondary DPDK process, reading from mring
+	* dpdk: allow reading from multiple port of the network interface
+	* init: improve config & service to set `lcores`
+
 2023-05-16 ipfixprobe-4.8.0
 	* DPDK: bugfix of HW timestamps
 	* DPDK: compliance, different constant names
