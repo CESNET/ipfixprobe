@@ -191,9 +191,7 @@ public:
    RecordExt *get_ext() const { return new RecordExtNETTISA(); }
    ProcessPlugin *copy();
 
-   int pre_create(Packet &pkt);
    int post_create(Flow &rec, const Packet &pkt);
-   int pre_update(Flow &rec, Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
    void update_record(RecordExtNETTISA *nettisa_data, const Packet &pkt, const Flow &rec);
    void pre_export(Flow &rec);
