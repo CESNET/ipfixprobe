@@ -104,8 +104,8 @@ void NETTISAPlugin::pre_export(Flow &rec)
 {
    RecordExtNETTISA *nettisa_data = (RecordExtNETTISA *) rec.get_extension(RecordExtNETTISA::REGISTERED_ID);
    uint32_t n = rec.src_packets + rec.dst_packets;
-   nettisa_data->switching_ratio = nettisa_data->switching_ratio / ((n - 1) / 2)
-   nettisa_data->stdev = pow((nettisa_data->root_mean_square / n) - pow(rec.src_bytes + rec.dst_bytes / n, 2), 0.5);;
+   nettisa_data->switching_ratio = nettisa_data->switching_ratio / ((n - 1) / 2);
+   nettisa_data->stdev = pow((nettisa_data->root_mean_square / n) - pow(rec.src_bytes + rec.dst_bytes / n, 2), 0.5);
    nettisa_data->root_mean_square = pow(nettisa_data->root_mean_square / n, 0.5);
    nettisa_data->average_dispersion = nettisa_data->average_dispersion / n;
    nettisa_data->kurtosis = nettisa_data->kurtosis / (n * pow(nettisa_data->stdev, 4));
