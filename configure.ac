@@ -165,6 +165,10 @@ if [[ -z "$WITH_QUIC_TRUE" ]]; then
    AC_DEFINE([WITH_QUIC], [1], [Define to 1 if compile with quic plugin])
 fi
 
+AM_CONDITIONAL(WITH_NETTISA,  test x${withnettisa} = xyes)
+if [[ -z "$WITH_NETTISA_TRUE" ]]; then
+   AC_DEFINE([WITH_NETTISA], [1], [Define to 1 if compile with quic plugin])
+fi
 
 AM_CONDITIONAL(OS_CYGWIN, test x${host_os} = xcygwin)
 
