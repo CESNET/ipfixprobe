@@ -32,8 +32,8 @@ namespace ipxp {
 
 UR_FIELDS (
    float NTS_MEAN,
-   uint16_t NTS_MIN,
-   uint16_t NTS_MAX,
+   float NTS_MIN,
+   float NTS_MAX,
    float NTS_STDEV,
    float NTS_KURTOSIS,
    float NTS_ROOT_MEAN_SQUARE,
@@ -53,8 +53,8 @@ struct RecordExtNETTISA : public RecordExt {
    static int REGISTERED_ID;
 
    float mean;
-   uint16_t min;
-   uint16_t max;
+   float min;
+   float max;
    float stdev;
    float kurtosis;
    float root_mean_square;
@@ -92,26 +92,26 @@ struct RecordExtNETTISA : public RecordExt {
 #ifdef WITH_NEMEA
    virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
-      ur_set(tmplt, record, NTS_MEAN, mean);
-      ur_set(tmplt, record, NTS_MIN, min);
-      ur_set(tmplt, record, NTS_MAX, max);
-      ur_set(tmplt, record, NTS_STDEV, stdev);
-      ur_set(tmplt, record, NTS_KURTOSIS, kurtosis);
-      ur_set(tmplt, record, NTS_ROOT_MEAN_SQUARE, root_mean_square);
-      ur_set(tmplt, record, NTS_AVERAGE_DISPERSION, average_dispersion);
-      ur_set(tmplt, record, NTS_MEAN_SCALED_TIME, mean_scaled_time);
-      ur_set(tmplt, record, NTS_MEAN_DIFFTIMES, mean_difftimes);
-      ur_set(tmplt, record, NTS_MIN_DIFFTIMES, min_difftimes);
-      ur_set(tmplt, record, NTS_MAX_DIFFTIMES, max_difftimes);
-      ur_set(tmplt, record, NTS_TIME_DISTRIBUTION, time_distribution);
-      ur_set(tmplt, record, NTS_SWITCHING_RATIO, switching_ratio);
+      ur_set(tmplt, record, F_NTS_MEAN, mean);
+      ur_set(tmplt, record, F_NTS_MIN, min);
+      ur_set(tmplt, record, F_NTS_MAX, max);
+      ur_set(tmplt, record, F_NTS_STDEV, stdev);
+      ur_set(tmplt, record, F_NTS_KURTOSIS, kurtosis);
+      ur_set(tmplt, record, F_NTS_ROOT_MEAN_SQUARE, root_mean_square);
+      ur_set(tmplt, record, F_NTS_AVERAGE_DISPERSION, average_dispersion);
+      ur_set(tmplt, record, F_NTS_MEAN_SCALED_TIME, mean_scaled_time);
+      ur_set(tmplt, record, F_NTS_MEAN_DIFFTIMES, mean_difftimes);
+      ur_set(tmplt, record, F_NTS_MIN_DIFFTIMES, min_difftimes);
+      ur_set(tmplt, record, F_NTS_MAX_DIFFTIMES, max_difftimes);
+      ur_set(tmplt, record, F_NTS_TIME_DISTRIBUTION, time_distribution);
+      ur_set(tmplt, record, F_NTS_SWITCHING_RATIO, switching_ratio);
    }
 
    const char *get_unirec_tmplt() const
    {
       return NETTISA_UNIREC_TEMPLATE;
    }
-#endif
+#endif // ifdef WITH_NEMEA
 
    virtual int fill_ipfix(uint8_t *buffer, int size)
    {
