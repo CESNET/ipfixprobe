@@ -126,7 +126,9 @@ ipfixprobe_process_src=\
 		process/md5.cpp \
 		process/common.hpp \
 		process/ssadetector.hpp \
-		process/ssadetector.cpp
+		process/ssadetector.cpp \
+		process/nettisa.hpp \
+		process/nettisa.cpp
 
 if WITH_QUIC
 ipfixprobe_process_src+=\
@@ -135,12 +137,6 @@ ipfixprobe_process_src+=\
 		process/quic_parser.cpp \
 		process/quic_parser.hpp 
 
-endif
-
-if WITH_NETTISA
-ipfixprobe_process_src+=\
-		process/nettisa.hpp \
-		process/nettisa.cpp
 endif
 
 if WITH_FLEXPROBE
