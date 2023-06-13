@@ -597,6 +597,14 @@ List of fields exported together with basic flow fields on interface by quic plu
 |:------------------:|:------:|:-------------------------------:|
 | QUIC_SNI           | string | Decrypted server name           |
 
+### ICMP
+
+List of fields exported together with basic flow fields on interface by icmp plugin.
+
+| Output field       | Type   | Description                     |
+|:------------------:|:------:|:-------------------------------:|
+| L4_ICMP_TYPE_CODE  | uint16 | ICMP type (MSB) and code (LSB)  |
+
 ### SSADetector
 
 List of fields exported together with basic flow fields on interface by ssadetector plugin.

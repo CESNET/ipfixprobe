@@ -468,54 +468,6 @@ inline uint16_t parse_udp_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
 }
 
 /**
- * \brief Parse specific fields from ICMP header.
- * \param [in] data_ptr Pointer to begin of header.
- * \param [in] data_len Length of packet data in `data_ptr`.
- * \param [out] pkt Pointer to Packet structure where parsed fields will be stored.
- * \return Size of header in bytes.
- */
-inline uint16_t parse_icmp_hdr(const u_char *data_ptr, uint16_t data_len, Packet *pkt)
-{
-   struct icmphdr *icmp = (struct icmphdr *) data_ptr;
-   if (sizeof(struct icmphdr) > data_len) {
-      throw "Parser detected malformed packet";
-   }
-   pkt->dst_port = icmp->type * 256 + icmp->code;
-
-   DEBUG_MSG("ICMP header:\n");
-   DEBUG_MSG("\tType:\t\t%u\n",     icmp->type);
-   DEBUG_MSG("\tCode:\t\t%u\n",     icmp->code);
-   DEBUG_MSG("\tChecksum:\t%#06x\n",ntohs(icmp->checksum));
-   DEBUG_MSG("\tRest:\t\t%#06x\n",  ntohl(*(uint32_t *) &icmp->un));
-
-   return 0;
-}
-
-/**
- * \brief Parse specific fields from ICMPv6 header.
- * \param [in] data_ptr Pointer to begin of header.
- * \param [in] data_len Length of packet data in `data_ptr`.
- * \param [out] pkt Pointer to Packet structure where parsed fields will be stored.
- * \return Size of header in bytes.
- */
-inline uint16_t parse_icmpv6_hdr(const u_char *data_ptr, uint16_t data_len, Packet *pkt)
-{
-   struct icmp6_hdr *icmp6 = (struct icmp6_hdr *) data_ptr;
-   if (sizeof(struct icmp6_hdr) > data_len) {
-      throw "Parser detected malformed packet";
-   }
-   pkt->dst_port = icmp6->icmp6_type * 256 + icmp6->icmp6_code;
-
-   DEBUG_MSG("ICMPv6 header:\n");
-   DEBUG_MSG("\tType:\t\t%u\n",     icmp6->icmp6_type);
-   DEBUG_MSG("\tCode:\t\t%u\n",     icmp6->icmp6_code);
-   DEBUG_MSG("\tChecksum:\t%#x\n",  ntohs(icmp6->icmp6_cksum));
-   DEBUG_MSG("\tBody:\t\t%#x\n",    ntohs(*(uint32_t *) &icmp6->icmp6_dataun));
-
-   return 0;
-}
-
-/**
  * \brief Skip MPLS stack.
  * \param [in] data_ptr Pointer to begin of header.
  * \param [in] data_len Length of packet data in `data_ptr`.
@@ -689,10 +641,6 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
          data_offset += parse_tcp_hdr(data + data_offset, caplen - data_offset, pkt);
       } else if (pkt->ip_proto == IPPROTO_UDP) {
          data_offset += parse_udp_hdr(data + data_offset, caplen - data_offset, pkt);
-      } else if (pkt->ip_proto == IPPROTO_ICMP) {
-         data_offset += parse_icmp_hdr(data + data_offset, caplen - data_offset, pkt);
-      } else if (pkt->ip_proto == IPPROTO_ICMPV6) {
-         data_offset += parse_icmpv6_hdr(data + data_offset, caplen - data_offset, pkt);
       }
    } catch (const char *err) {
       DEBUG_MSG("%s\n", err);
