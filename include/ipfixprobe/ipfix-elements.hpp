@@ -83,6 +83,8 @@ namespace ipxp {
 
 #define ETHERTYPE(F)                  F(0,      256,    2,   nullptr)
 
+#define VLAN_ID(F)                    F(0,       58,    2,   nullptr)
+
 #define L2_SRC_MAC(F)                 F(0,       56,    6,   flow.src_mac)
 #define L2_DST_MAC(F)                 F(0,       80,    6,   flow.dst_mac)
 
@@ -489,6 +491,9 @@ namespace ipxp {
 
 #define IPFIX_ICMP_TEMPLATE(F) \
    F(L4_ICMP_TYPE_CODE)
+
+#define IPFIX_VLAN_TEMPLATE(F) \
+   F(VLAN_ID)
 
 #ifdef WITH_FLEXPROBE
 #define IPFIX_FLEXPROBE_DATA_TEMPLATE(F) F(FX_FRAME_SIGNATURE) F(FX_INPUT_INTERFACE)
