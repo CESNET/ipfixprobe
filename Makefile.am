@@ -128,7 +128,9 @@ ipfixprobe_process_src=\
 		process/ssadetector.hpp \
 		process/ssadetector.cpp \
 		process/icmp.hpp \
-		process/icmp.cpp
+		process/icmp.cpp \
+		process/nettisa.hpp \
+		process/nettisa.cpp
 
 if WITH_QUIC
 ipfixprobe_process_src+=\
