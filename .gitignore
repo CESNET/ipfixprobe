@@ -99,9 +99,16 @@ ipfixprobe_stats
 ipfixprobe-*.tar.gz
 
 # Test Outputs
-tests/*.log
-tests/*.trs
+tests/*/*.log
+tests/*/*.trs
 tests/output/
+tests/functional/output
+# Unit test binaries
+tests/unit/byte_utils
+tests/unit/flowifc
+tests/unit/options
+tests/unit/unirec
+tests/unit/utils
 
 # Mac Finder metafile
 **/.DS_Store

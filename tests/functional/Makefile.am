@@ -17,7 +17,8 @@ TESTS=basic.sh \
 	bstats.sh \
 	phists.sh \
 	wg.sh \
-	ssadetector.sh
+	ssadetector.sh \
+	vlan.sh
 
 if WITH_QUIC
 TESTS+=\
@@ -46,6 +47,7 @@ EXTRA_DIST=common.sh \
 	wg.sh \
 	quic.sh \
 	ssadetector.sh \
+	vlan.sh \
 	reference/basic \
 	reference/basicplus \
 	reference/pstats \
@@ -66,7 +68,8 @@ EXTRA_DIST=common.sh \
 	reference/phists \
 	reference/wg \
 	reference/quic \
-	reference/ssadetector
+	reference/ssadetector \
+	reference/vlan
 
 clean-local:
 	rm -rf output
