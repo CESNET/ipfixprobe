@@ -614,6 +614,14 @@ The detector search for the SYN SYN-ACK ACK pattern in packet lengths. Multiple 
 |:------------------:|:------:|:---------------------------------------:|
 | SSA_CONF_LEVEL     | uint8  | 1 if SSA sequence detected, 0 otherwise |
 
+### VLAN
+
+List of fields exported together with basic flow fields on the interface by VLAN plugin.
+
+| Output field | Type   | Description                |
+|:------------:|:------:|:--------------------------:|
+| VLAN_ID      | uint16 | Vlan ID (used in flow key) |
+
 ## Simplified function diagram
 Diagram below shows how `ipfixprobe` works.
 
