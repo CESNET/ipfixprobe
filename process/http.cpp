@@ -67,6 +67,8 @@ __attribute__((constructor)) static void register_this_plugin()
 
 #define HTTP_LINE_DELIMITER   "\r\n"
 #define HTTP_KEYVAL_DELIMITER ':'
+#define HTTP_SETCOOKIE_NAME_DELIMITER "="
+#define STRING_DELIMITER ";"
 
 HTTPPlugin::HTTPPlugin() : recPrealloc(nullptr), flow_flush(false), requests(0), responses(0), total(0)
 {
@@ -175,6 +177,51 @@ void copy_str(char *dst, ssize_t size, const char *begin, const char *end)
    }
 
    dst[len] = 0;
+}
+
+/**
+ * \brief Add delimiter and string at the end of destination buffer if is it empty add only string and append \0 character.
+ * NOTE: function removes any CR chars at the end of string.
+ * \param [in] dst Destination buffer.
+ * \param [in] size Size of destination buffer.
+ * \param [in] begin Ptr to begin of source string.
+ * \param [in] end Ptr to end of source string.
+ * \param [in] delimiter delimiter string
+ */
+void add_str(char *dst, ssize_t size, const char *begin, const char *end, const char* delimiter)
+{
+   ssize_t len_of_dst = strlen(dst);
+   ssize_t len_of_delimiter = strlen(delimiter);
+   ssize_t len = end - begin;
+   if (len_of_dst > 0){
+      if (len_of_dst + len_of_delimiter + 1 >= size){
+         return;
+      }
+      if (len + len_of_dst + len_of_delimiter >= size){
+         len = size - len_of_dst - len_of_delimiter - 1;
+      }
+      dst = strcat(dst,delimiter);
+      
+      dst[len_of_dst + len_of_delimiter] = 0;
+   }
+   else if (len + len_of_dst > size){
+      len = size - len_of_dst - 1;
+   }
+   char src[len+1];
+   memcpy(src, begin, len);
+   src[len] = 0;
+   strcat(dst,src);
+   if (len >= 1 && dst[len - 1] == '\n') {
+      len--;
+   }
+
+   if (len >= 1 && dst[len - 1] == '\r') {
+      len--;
+   }
+   if(len_of_dst > 0)
+      dst[len + len_of_dst + len_of_delimiter] = 0;
+   else
+      dst[len] = 0;
 }
 
 bool HTTPPlugin::is_request(const char *data, int payload_len)
@@ -365,7 +412,7 @@ bool HTTPPlugin::parse_http_request(const char *data, int payload_len, RecordExt
 bool HTTPPlugin::parse_http_response(const char *data, int payload_len, RecordExtHTTP *rec)
 {
    char buffer[64];
-   const char *begin, *end, *keyval_delimiter;
+   const char *begin, *end, *keyval_delimiter, *cookie_name_end;
    size_t remaining;
    int code;
 
@@ -454,6 +501,9 @@ bool HTTPPlugin::parse_http_response(const char *data, int payload_len, RecordEx
     */
 
    rec->content_type[0] = 0;
+   rec->server[0] = 0;
+   rec->set_cookie[0] = 0;
+
    /* Process headers. */
    while (begin - data < payload_len) {
       remaining = payload_len - (begin - data);
@@ -484,6 +534,13 @@ bool HTTPPlugin::parse_http_response(const char *data, int payload_len, RecordEx
       /* Copy interesting field values. */
       if (!strcmp(buffer, "Content-Type")) {
          copy_str(rec->content_type, sizeof(rec->content_type), keyval_delimiter + 2, end);
+      }
+      else if (!strcmp(buffer, "Server")) {
+         copy_str(rec->server, sizeof(rec->server), keyval_delimiter + 2, end);
+      }
+      else if (!strcmp(buffer, "Set-Cookie")) {
+         cookie_name_end = ipxp::strnstr(begin, HTTP_SETCOOKIE_NAME_DELIMITER, size_t(end - begin));
+         add_str(rec->set_cookie, sizeof(rec->set_cookie), keyval_delimiter + 2, cookie_name_end, STRING_DELIMITER);
       }
 
       /* Go to next line. */

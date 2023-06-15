@@ -124,6 +124,8 @@ namespace ipxp {
 #define HTTP_STATUS(F)                F(39499,   12,    2,   nullptr)
 #define HTTP_USERAGENT(F)             F(39499,   20,   -1,   nullptr)
 #define HTTP_METHOD(F)                F(8057,   200,   -1,   nullptr)
+#define HTTP_SERVER(F)                F(8057,   201,   -1,   nullptr)
+#define HTTP_SET_COOKIE_NAMES(F)      F(8057,   202,   -1,   nullptr)
 
 #define RTSP_METHOD(F)                F(16982,  600,   -1,   nullptr)
 #define RTSP_USERAGENT(F)             F(16982,  601,   -1,   nullptr)
@@ -325,7 +327,9 @@ namespace ipxp {
    F(HTTP_REFERER) \
    F(HTTP_URI) \
    F(HTTP_CONTENT_TYPE) \
-   F(HTTP_STATUS)
+   F(HTTP_STATUS) \
+   F(HTTP_SERVER) \
+   F(HTTP_SET_COOKIE_NAMES)
 
 #define IPFIX_RTSP_TEMPLATE(F) \
    F(RTSP_METHOD) \
