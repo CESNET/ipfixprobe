@@ -258,6 +258,9 @@ namespace ipxp {
 #define WG_SRC_PEER(F)                F(8057,    1101,   4,   nullptr)
 #define WG_DST_PEER(F)                F(8057,    1102,   4,   nullptr)
 
+#define SCITAG_EXPERIMENT_ID(F)       F(8057,    1200,   2,   nullptr)
+#define SCITAG_EXPERIMENT_ACTIVITY(F) F(8057,    1201,   1,   nullptr)
+
 /**
  * IPFIX Templates - list of elements
  *
@@ -490,6 +493,10 @@ namespace ipxp {
 #define IPFIX_ICMP_TEMPLATE(F) \
    F(L4_ICMP_TYPE_CODE)
 
+#define IPFIX_SCITAGS_TEMPLATE(F) \
+   F(SCITAG_EXPERIMENT_ID) \
+   F(SCITAG_EXPERIMENT_ACTIVITY)
+
 #ifdef WITH_FLEXPROBE
 #define IPFIX_FLEXPROBE_DATA_TEMPLATE(F) F(FX_FRAME_SIGNATURE) F(FX_INPUT_INTERFACE)
 #define IPFIX_FLEXPROBE_TCP_TEMPLATE(F) F(FX_TCP_TRACKING)
@@ -533,7 +540,8 @@ namespace ipxp {
    IPFIX_FLEXPROBE_TCP_TEMPLATE(F) \
    IPFIX_FLEXPROBE_ENCR_TEMPLATE(F) \
    IPFIX_SSADETECTOR_TEMPLATE(F) \
-   IPFIX_ICMP_TEMPLATE(F)
+   IPFIX_ICMP_TEMPLATE(F) \
+   IPFIX_SCITAGS_TEMPLATE(F)
 
 /**
  * Helper macro, convert FIELD into its name as a C literal.
