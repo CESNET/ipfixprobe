@@ -1,0 +1,28 @@
+---
+Language: Cpp
+BasedOnStyle: WebKit
+
+AlwaysBreakBeforeMultilineStrings: true
+AlignAfterOpenBracket: AlwaysBreak
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortFunctionsOnASingleLine: Inline
+AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: false
+BinPackParameters: false
+BreakInheritanceList: BeforeComma
+ColumnLimit: 100
+Cpp11BracedListStyle: true
+FixNamespaceComments: true
+IndentGotoLabels: false
+KeepEmptyLinesAtTheStartOfBlocks: false
+NamespaceIndentation: None
+ShortNamespaceLines: 0
+SpaceAfterCStyleCast: true
+SpaceAfterTemplateKeyword: false
+SpaceInEmptyBlock: false
+SpacesInContainerLiterals: false
+PointerAlignment: Left
+UseTab: false
+IndentWidth: 4
+...
