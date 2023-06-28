@@ -339,6 +339,7 @@ inline uint16_t parse_ipv6_hdr(const u_char *data_ptr, uint16_t data_len, Packet
 
    pkt->ip_version = IP::v6;
    pkt->ip_tos = (ntohl(ip6->ip6_ctlun.ip6_un1.ip6_un1_flow) & 0x0ff00000) >> 20;
+   pkt->ipv6_flowlabel = ntohl(ip6->ip6_ctlun.ip6_un1.ip6_un1_flow) & 0x000fffff;
    pkt->ip_proto = ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt;
    pkt->ip_ttl = ip6->ip6_ctlun.ip6_un1.ip6_un1_hlim;
    pkt->ip_flags = 0;
@@ -351,7 +352,7 @@ inline uint16_t parse_ipv6_hdr(const u_char *data_ptr, uint16_t data_len, Packet
    DEBUG_MSG("IPv6 header:\n");
    DEBUG_MSG("\tVersion:\t%u\n",       (ntohl(ip6->ip6_ctlun.ip6_un1.ip6_un1_flow) & 0xf0000000) >> 28);
    DEBUG_MSG("\tClass:\t\t%u\n",       (ntohl(ip6->ip6_ctlun.ip6_un1.ip6_un1_flow) & 0x0ff00000) >> 20);
-   DEBUG_MSG("\tFlow:\t\t%#x\n",       (ntohl(ip6->ip6_ctlun.ip6_un1.ip6_un1_flow) & 0x000fffff));
+   DEBUG_MSG("\tFlow:\t\t%#x\n",       (ntohl(ip6->ip6_ctlun.ip6_un1.ip6_un1_flow) & 0x000fffff)); // last 20 bits of first 32-bit word in ipv6 header
    DEBUG_MSG("\tLength:\t\t%u\n",      ntohs(ip6->ip6_ctlun.ip6_un1.ip6_un1_plen));
    DEBUG_MSG("\tProtocol:\t%u\n",      ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt);
    DEBUG_MSG("\tHop limit:\t%u\n",     ip6->ip6_ctlun.ip6_un1.ip6_un1_hlim);
