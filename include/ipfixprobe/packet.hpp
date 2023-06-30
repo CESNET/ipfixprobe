@@ -59,7 +59,10 @@ struct Packet : public Record {
    uint8_t     ip_flags;
    ipaddr_t    src_ip;
    ipaddr_t    dst_ip;
-   uint32_t    vlan_id;
+   uint16_t    vlan_id;
+   uint32_t    frag_id;
+   uint16_t    frag_off;
+   bool        more_fragments;
 
    uint16_t    src_port;
    uint16_t    dst_port;

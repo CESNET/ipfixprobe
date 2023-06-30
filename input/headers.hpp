@@ -46,6 +46,17 @@
 
 namespace ipxp {
 
+
+struct ip6_frag {
+   uint8_t ip_proto;
+   uint8_t reserved;
+   uint16_t frag_off;
+// this is value in octets, so it doesn't need to be shifted
+#define IPV6_FRAGMENT_OFFSET 0xFFF8
+#define IPV6_MORE_FRAGMENTS 0x1
+   uint32_t frag_id;
+} __attribute__((packed));
+
 // Copied protocol headers from netinet/* files, which may not be present on other platforms
 
 struct ethhdr {

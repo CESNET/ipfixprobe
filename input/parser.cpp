@@ -51,6 +51,10 @@ static uint32_t s_total_pkts = 0;
 #define DEBUG_CODE(code)
 #endif
 
+// masks for iphdr::frag_off
+#define IPV4_MORE_FRAGMENTS 0x2000
+#define IPV4_FRAGMENT_OFFSET 0x1FFF
+
 /**
  * \brief Parse specific fields from ETHERNET frame header.
  * \param [in] data_ptr Pointer to begin of header.
@@ -254,6 +258,9 @@ inline uint16_t parse_ipv4_hdr(const u_char *data_ptr, uint16_t data_len, Packet
    pkt->ip_flags = (ntohs(ip->frag_off) & 0xE000) >> 13;
    pkt->src_ip.v4 = ip->saddr;
    pkt->dst_ip.v4 = ip->daddr;
+   pkt->frag_id = ntohs(ip->id);
+   pkt->frag_off = ntohs(ip->frag_off) & IPV4_FRAGMENT_OFFSET;
+   pkt->more_fragments = ntohs(ip->frag_off) & IPV4_MORE_FRAGMENTS;
 
    DEBUG_MSG("IPv4 header:\n");
    DEBUG_MSG("\tHDR version:\t%u\n",   ip->version);
@@ -273,7 +280,7 @@ inline uint16_t parse_ipv4_hdr(const u_char *data_ptr, uint16_t data_len, Packet
 }
 
 /**
- * \brief Skip IPv6 extension headers.
+ * \brief Skip/parse IPv6 extension headers.
  * \param [in] data_ptr Pointer to begin of header.
  * \param [in] data_len Length of packet data in `data_ptr`.
  * \param [out] pkt Pointer to Packet structure where parsed fields will be stored.
@@ -285,7 +292,7 @@ uint16_t skip_ipv6_ext_hdrs(const u_char *data_ptr, uint16_t data_len, Packet *p
    uint8_t next_hdr = pkt->ip_proto;
    uint16_t hdrs_len = 0;
 
-   /* Skip extension headers... */
+   /* Skip/parse extension headers... */
    while (1) {
       if ((int)sizeof(struct ip6_ext) > data_len - hdrs_len) {
          throw "Parser detected malformed packet";
@@ -299,7 +306,13 @@ uint16_t skip_ipv6_ext_hdrs(const u_char *data_ptr, uint16_t data_len, Packet *p
       } else if (next_hdr == IPPROTO_AH) {
          hdrs_len += (ext->ip6e_len << 2) - 2;
       } else if (next_hdr == IPPROTO_FRAGMENT) {
-         hdrs_len += 8;
+         // extract the fragmentation info
+         auto *frag = reinterpret_cast<const ip6_frag *>(data_ptr + hdrs_len);
+         pkt->frag_id = ntohl(frag->frag_id);
+         pkt->frag_off = ntohs(frag->frag_off) & IPV6_FRAGMENT_OFFSET;
+         pkt->more_fragments = ntohs(frag->frag_off) & IPV6_MORE_FRAGMENTS;
+
+         hdrs_len += sizeof(ip6_frag);
       } else if (next_hdr == IPPROTO_MH) {
          hdrs_len += (ext->ip6e_len << 3) + 8;
          // Mobility header can't have payload now but may have it in the future
