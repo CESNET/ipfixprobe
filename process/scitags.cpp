@@ -56,13 +56,21 @@ ProcessPlugin* SCITAGSPlugin::copy()
 
 void SCITAGSPlugin::update_record(RecordExtSCITAGS* record, const Packet& pkt)
 {
-    if (record->flow_label_set == false) {
+    if ((record->flow_label_set == false) & pkt.source_pkt) {
         record->flow_label = pkt.ipv6_flowlabel;
         record->flow_label_set = true;
         return;
+    } 
+    
+    if ((record->flow_label_rev_set == false) & !pkt.source_pkt) {
+        record->flow_label_rev = pkt.ipv6_flowlabel;
+        record->flow_label_rev_set = true;
+        return;
     }
 
-    if (ntohl(pkt.ipv6_flowlabel) != record->flow_label) {
+    bool non_constant_flowlabel = pkt.source_pkt && pkt.ipv6_flowlabel != record->flow_label;
+    bool non_constatn_flowlabel_rev = !pkt.source_pkt && pkt.ipv6_flowlabel != record->flow_label_rev;
+    if (non_constant_flowlabel || non_constatn_flowlabel_rev) {
         // non constant value across the flow, set to 0
         record->non_constant_flow_label = true;
     }
@@ -123,9 +131,19 @@ void SCITAGSPlugin::pre_export(Flow& rec)
     }
     // Experiment identifier is encoded in 9 bits 14-22 (MSB is bit 0)
     //(bits are in reversed order to allow for possible future adjustments)
-    record->experiment_id = bit_reverse((record->flow_label & 0x0003FE00) >> 9, 9);
-    // Activity identifier is encoded in 6 bits in position 24-29 (MSB is bit 0)
-    record->experiment_activity = (record->flow_label & 0x000000FC) >> 2;
+    uint16_t source_exp_id = bit_reverse((record->flow_label & 0x0003FE00) >> 9, 9);
+    uint16_t dest_exp_id = bit_reverse((record->flow_label_rev & 0x0003FE00) >> 9, 9);
+
+    if (source_exp_id < dest_exp_id && source_exp_id != 0) {
+        record->experiment_id = source_exp_id;
+        // Activity identifier is encoded in 6 bits in position 24-29 (MSB is bit 0)
+        record->experiment_activity = (record->flow_label & 0x000000FC) >> 2;
+    } else {
+        record->experiment_id = dest_exp_id;
+        // Activity identifier is encoded in 6 bits in position 24-29 (MSB is bit 0)
+        record->experiment_activity = (record->flow_label_rev & 0x000000FC) >> 2;
+    }
+    return;
 }
 
 } // namespace ipxp

@@ -59,7 +59,9 @@ struct RecordExtSCITAGS : public RecordExt {
    uint16_t experiment_id;
    uint8_t  experiment_activity;
    uint32_t flow_label;
+   uint32_t flow_label_rev;
    bool     flow_label_set;
+   bool     flow_label_rev_set;
    bool     non_constant_flow_label;
 
    RecordExtSCITAGS() : RecordExt(REGISTERED_ID),
