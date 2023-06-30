@@ -37,6 +37,7 @@
 #include <utility>
 #include <algorithm>
 #include <stdexcept>
+#include <cstdint>
 
 namespace ipxp {
 
