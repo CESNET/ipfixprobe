@@ -39,6 +39,8 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/utils.hpp>
 
+#include "fragmentationCache/fragmentCache.hpp"
+
 namespace ipxp {
 
 struct __attribute__((packed)) flow_key_v4_t {
@@ -182,6 +184,7 @@ private:
    char m_key_inv[MAX_KEY_LENGTH];
    FlowRecord **m_flow_table;
    FlowRecord *m_flow_records;
+   FragmentCache fragments;
 
    void flush(Packet &pkt, size_t flow_index, int ret, bool source_flow);
    bool create_hash_key(Packet &pkt);

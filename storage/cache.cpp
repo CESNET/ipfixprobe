@@ -163,7 +163,8 @@ void FlowRecord::update(const Packet &pkt, bool src)
 NHTFlowCache::NHTFlowCache() :
    m_cache_size(0), m_line_size(0), m_line_mask(0), m_line_new_idx(0),
    m_qsize(0), m_qidx(0), m_timeout_idx(0), m_active(0), m_inactive(0),
-   m_split_biflow(false), m_keylen(0), m_key(), m_key_inv(), m_flow_table(nullptr), m_flow_records(nullptr)
+   m_split_biflow(false), m_keylen(0), m_key(), m_key_inv(), m_flow_table(nullptr), m_flow_records(nullptr),
+   fragments()
 {
 }
 
@@ -299,6 +300,8 @@ void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int ret, bool source_fl
 int NHTFlowCache::put_pkt(Packet &pkt)
 {
    int ret = plugins_pre_create(pkt);
+
+   fragments.cache_packet(pkt);
 
    if (!create_hash_key(pkt)) { // saves key value and key length into attributes NHTFlowCache::key and NHTFlowCache::m_keylen
       return 0;
