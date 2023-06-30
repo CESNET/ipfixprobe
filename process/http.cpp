@@ -597,7 +597,7 @@ bool HTTPPlugin::invalid_http_method(const char *data, int payload_len) const
       return false;
 
    auto uri_end = static_cast<const char *>(memchr(method_end + 1, ' ', payload_len));
-   if (method_end == nullptr)
+   if (uri_end == nullptr)
       return false;
 
    payload_len -= uri_end - method_end;
