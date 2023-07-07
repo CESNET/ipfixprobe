@@ -540,6 +540,9 @@ bool HTTPPlugin::parse_http_response(const char* data, int payload_len, RecordEx
 		} else if (!strcmp(buffer, "Set-Cookie")) {
 			cookie_name_end
 				= ipxp::strnstr(begin, HTTP_SETCOOKIE_NAME_DELIMITER, size_t(end - begin));
+			if (cookie_name_end == nullptr) {
+				break;
+			}
 			add_str(
 				rec->set_cookie,
 				sizeof(rec->set_cookie),
