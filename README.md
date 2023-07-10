@@ -242,15 +242,17 @@ Fields without `_REV` suffix are fields from source flow. Fields with `_REV` are
 ### HTTP
 List of unirec fields exported together with basic flow fields on interface by HTTP plugin.
 
-| Output field                 | Type   | Description                 |
-|:----------------------------:|:------:|:---------------------------:|
-| HTTP_REQUEST_METHOD          | string | HTTP request method         |
-| HTTP_REQUEST_HOST            | string | HTTP request host           |
-| HTTP_REQUEST_URL             | string | HTTP request url            |
-| HTTP_REQUEST_AGENT           | string | HTTP request user agent     |
-| HTTP_REQUEST_REFERER         | string | HTTP request referer        |
-| HTTP_RESPONSE_STATUS_CODE    | uint16 | HTTP response code          |
-| HTTP_RESPONSE_CONTENT_TYPE   | string | HTTP response content type  |
+| Output field                   | Type   | Description                                                 |
+|:------------------------------:|:------:|:-----------------------------------------------------------:|
+| HTTP_REQUEST_METHOD            | string | HTTP request method                                         |
+| HTTP_REQUEST_HOST              | string | HTTP request host                                           |
+| HTTP_REQUEST_URL               | string | HTTP request url                                            |
+| HTTP_REQUEST_AGENT             | string | HTTP request user agent                                     |
+| HTTP_REQUEST_REFERER           | string | HTTP request referer                                        |
+| HTTP_RESPONSE_STATUS_CODE      | uint16 | HTTP response code                                          |
+| HTTP_RESPONSE_CONTENT_TYPE     | string | HTTP response content type                                  |
+| HTTP_RESPONSE_SERVER           | string | HTTP response server                                        |
+| HTTP_RESPONSE_SET_COOKIE_NAMES | string | HTTP response all set-cookie names separated by a delimiter |
 
 ### RTSP
 List of unirec fields exported together with basic flow fields on interface by RTSP plugin.
