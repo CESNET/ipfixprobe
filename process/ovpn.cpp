@@ -86,6 +86,8 @@ void OVPNPlugin::update_record(RecordExtOVPN* vpn_data, const Packet &pkt)
          break;
    }
 
+   
+
    switch (opcode) {
       //p_control_hard_reset_client
       case p_control_hard_reset_client_v1:
@@ -151,6 +153,7 @@ void OVPNPlugin::update_record(RecordExtOVPN* vpn_data, const Packet &pkt)
             vpn_data->status = status_data;
             vpn_data->invalid_pkt_cnt = -1;
          }
+
          if (pkt.payload_len_wire > c_min_data_packet_size) {
             vpn_data->data_pkt_cnt++;
          }
@@ -161,7 +164,9 @@ void OVPNPlugin::update_record(RecordExtOVPN* vpn_data, const Packet &pkt)
          break;
    }
 
-   vpn_data->pkt_cnt++;
+   if (pkt.payload_len_wire > c_min_data_packet_size) {
+            vpn_data->large_pkt_cnt++;
+      }
 
    //packets that did not make a valid transition
    if (vpn_data->invalid_pkt_cnt >= invalid_pckt_treshold) {
@@ -198,11 +203,10 @@ void OVPNPlugin::pre_export(Flow &rec)
       rec.remove_extension(RecordExtOVPN::REGISTERED_ID);
       return;
    }
-
-   if (vpn_data->pkt_cnt > min_pckt_treshold && vpn_data->status == status_data) {
+   if ((rec.src_packets + rec.dst_packets) > min_pckt_treshold && vpn_data->status == status_data) {
       vpn_data->possible_vpn = 100;
-   } else if (vpn_data->pkt_cnt > min_pckt_treshold && ((double) vpn_data->data_pkt_cnt / (double) vpn_data->pkt_cnt) >= data_pckt_treshold) {
-      vpn_data->possible_vpn = (uint8_t) ((vpn_data->data_pkt_cnt / (double) vpn_data->pkt_cnt) * 80);
+   } else if (vpn_data->large_pkt_cnt > min_pckt_treshold && ((double) vpn_data->data_pkt_cnt / (double) vpn_data->large_pkt_cnt) >= data_pckt_treshold) {
+      vpn_data->possible_vpn = (uint8_t) ((vpn_data->data_pkt_cnt / (double) vpn_data->large_pkt_cnt) * 80);
    }
    return;
 }

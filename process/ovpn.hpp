@@ -58,7 +58,7 @@ struct RecordExtOVPN : RecordExt
    static int REGISTERED_ID;
 
    uint8_t possible_vpn;
-   uint32_t pkt_cnt;
+   uint32_t large_pkt_cnt;
    uint32_t data_pkt_cnt;
    int32_t invalid_pkt_cnt;
    uint32_t status;
@@ -67,7 +67,7 @@ struct RecordExtOVPN : RecordExt
    RecordExtOVPN() : RecordExt(REGISTERED_ID)
    {
       possible_vpn = 0;
-      pkt_cnt = 0;
+      large_pkt_cnt = 0;
       data_pkt_cnt = 0;
       invalid_pkt_cnt = 0;
       status = 0;
