@@ -182,7 +182,8 @@ ipfixprobe_headers_src=\
 		include/ipfixprobe/packet.hpp \
 		include/ipfixprobe/ring.h \
 		include/ipfixprobe/byte-utils.hpp \
-		include/ipfixprobe/ipfix-elements.hpp
+		include/ipfixprobe/ipfix-elements.hpp \
+		include/ipfixprobe/rtp.hpp
 
 ipfixprobe_src=\
 		$(ipfixprobe_input_src) \
