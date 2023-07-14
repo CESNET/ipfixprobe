@@ -164,11 +164,13 @@ public:
    static const uint32_t status_server_hello = 5;
    static const uint32_t status_control_ack = 6;
    static const uint32_t status_data = 7;
+   static const uint32_t rtp_header_minimum_size = 12;
 
 private:
    bool compare_ip(ipaddr_t ip_1, ipaddr_t ip_2, uint8_t ip_version);
    bool check_ssl_client_hello(const Packet &pkt, uint8_t opcodeindex);
    bool check_ssl_server_hello(const Packet &pkt, uint8_t opcodeindex);
+   bool check_valid_rtp_header(const Packet &pkt);
 };
 
 }

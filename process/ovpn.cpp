@@ -31,6 +31,7 @@
 #include <cstring>
 
 #include "ovpn.hpp"
+#include "ipfixprobe/rtp.hpp"
 
 namespace ipxp {
 
@@ -239,6 +240,25 @@ bool OVPNPlugin::check_ssl_server_hello(const Packet &pkt, uint8_t opcodeindex)
       return 1;
    }
    return 0;
+}
+
+bool OVPNPlugin::check_valid_rtp_header(const Packet &pkt)
+{
+   if (pkt.ip_proto != IPPROTO_UDP)
+      return false;
+
+   if (pkt.payload_len < rtp_header_minimum_size)
+      return false;
+
+   struct rtp_header *rtp_header = (struct rtp_header *) pkt.payload;
+
+   if (rtp_header->version != 2)
+      return false;
+
+   if (rtp_header->payload_type >= 72 && rtp_header->payload_type <= 95)
+      return false;
+
+   return true;
 }
 
 }
