@@ -155,7 +155,7 @@ void OVPNPlugin::update_record(RecordExtOVPN* vpn_data, const Packet &pkt)
             vpn_data->invalid_pkt_cnt = -1;
          }
 
-         if (pkt.payload_len_wire > c_min_data_packet_size) {
+         if (pkt.payload_len_wire > c_min_data_packet_size && !check_valid_rtp_header(pkt)) {
             vpn_data->data_pkt_cnt++;
          }
          break;
@@ -165,7 +165,7 @@ void OVPNPlugin::update_record(RecordExtOVPN* vpn_data, const Packet &pkt)
          break;
    }
 
-   if (pkt.payload_len_wire > c_min_data_packet_size) {
+   if (pkt.payload_len_wire > c_min_data_packet_size && !check_valid_rtp_header(pkt)) {
             vpn_data->large_pkt_cnt++;
       }
 
