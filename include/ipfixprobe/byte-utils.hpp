@@ -32,8 +32,8 @@
 #define IPXP_BYTE_UTILS_HPP
 
 #include <arpa/inet.h>
-#include <stdint.h>
 #include <endian.h>
+#include <stdint.h>
 
 namespace ipxp {
 
@@ -45,21 +45,21 @@ namespace ipxp {
 #if defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN
 static inline uint64_t swap_uint64(uint64_t value)
 {
-   return value;
+    return value;
 }
 #elif defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
 static inline uint64_t swap_uint64(uint64_t value)
 {
-   value = ((value << 8) & 0xFF00FF00FF00FF00ULL ) | ((value >> 8) & 0x00FF00FF00FF00FFULL );
-   value = ((value << 16) & 0xFFFF0000FFFF0000ULL ) | ((value >> 16) & 0x0000FFFF0000FFFFULL );
-   return (value << 32) | (value >> 32);
+    value = ((value << 8) & 0xFF00FF00FF00FF00ULL) | ((value >> 8) & 0x00FF00FF00FF00FFULL);
+    value = ((value << 16) & 0xFFFF0000FFFF0000ULL) | ((value >> 16) & 0x0000FFFF0000FFFFULL);
+    return (value << 32) | (value >> 32);
 }
-# else
-#  error  "Please fix <endian.h>"
-# endif
+#else
+#error "Please fix <endian.h>"
+#endif
 
-void phton64(uint8_t *p, uint64_t v);
-uint64_t pntoh64(const void *p);
+void phton64(uint8_t* p, uint64_t v);
+uint64_t pntoh64(const void* p);
 
 /**
  * \brief Swaps byte order of float value.
@@ -68,6 +68,6 @@ uint64_t pntoh64(const void *p);
  */
 uint32_t htonf(float value);
 
-}
+} // namespace ipxp
 
 #endif /* IPXP_BYTE_UTILS_HPP */
