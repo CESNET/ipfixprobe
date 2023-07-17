@@ -31,6 +31,7 @@
 #ifndef IPXP_BYTE_UTILS_HPP
 #define IPXP_BYTE_UTILS_HPP
 
+#include <arpa/inet.h>
 #include <stdint.h>
 #include <endian.h>
 
@@ -60,5 +61,13 @@ static inline uint64_t swap_uint64(uint64_t value)
 void phton64(uint8_t *p, uint64_t v);
 uint64_t pntoh64(const void *p);
 
+/**
+ * \brief Swaps byte order of float value.
+ * @param value Value to swap
+ * @return Swapped value
+ */
+uint32_t htonf(float value);
+
 }
+
 #endif /* IPXP_BYTE_UTILS_HPP */

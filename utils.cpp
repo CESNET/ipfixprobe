@@ -101,6 +101,19 @@ uint64_t pntoh64(const void *p)
    return buffer;
 }
 
+uint32_t htonf(float value)
+{
+    union castHelper {
+        uint32_t uint32;
+        float float32;
+    } helper;
+
+    static_assert(sizeof(uint32_t) == sizeof(float));
+
+    helper.float32 = value;
+    return htonl(helper.uint32);
+}
+
 
 uint32_t variable2ipfix_buffer(uint8_t* buffer2write, uint8_t* buffer2read, uint16_t len)
 {
