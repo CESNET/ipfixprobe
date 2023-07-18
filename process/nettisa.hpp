@@ -68,7 +68,7 @@ struct RecordExtNETTISA : public RecordExt {
     float switching_ratio;
 
     uint16_t prev_payload;
-    long prev_time;
+    uint64_t prev_time;
 
     RecordExtNETTISA()
         : RecordExt(REGISTERED_ID)
@@ -169,10 +169,6 @@ struct RecordExtNETTISA : public RecordExt {
  */
 class NETTISAPlugin : public ProcessPlugin {
 public:
-    NETTISAPlugin();
-    ~NETTISAPlugin();
-    void init(const char* params);
-    void close();
     OptionsParser* get_parser() const { return new OptionsParser("nettisa", "Parse NetTiSA flow"); }
     std::string get_name() const { return "nettisa"; }
     RecordExt* get_ext() const { return new RecordExtNETTISA(); }

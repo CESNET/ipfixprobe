@@ -9,6 +9,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <ipfixprobe/utils.hpp>
 
 namespace ipxp {
 
@@ -20,14 +21,6 @@ __attribute__((constructor)) static void register_this_plugin()
     register_plugin(&rec);
     RecordExtNETTISA::REGISTERED_ID = register_extension();
 }
-
-NETTISAPlugin::NETTISAPlugin() {}
-
-NETTISAPlugin::~NETTISAPlugin() {}
-
-void NETTISAPlugin::init(const char* params) {}
-
-void NETTISAPlugin::close() {}
 
 ProcessPlugin* NETTISAPlugin::copy()
 {
@@ -41,8 +34,10 @@ void NETTISAPlugin::update_record(
 {
     float variation_from_mean = pkt.payload_len_wire - nettisa_data->mean;
     uint32_t n = rec.dst_packets + rec.src_packets;
-    long diff_time = pkt.ts.tv_usec - nettisa_data->prev_time;
-    nettisa_data->prev_time = pkt.ts.tv_usec;
+    uint64_t packet_time = timeval2usec(pkt.ts);
+    uint64_t record_time = timeval2usec(rec.time_first);
+    float diff_time = fmax(packet_time - nettisa_data->prev_time, 0);
+    nettisa_data->prev_time = packet_time;
     // MEAN
     nettisa_data->mean += (variation_from_mean) / n;
     // MIN
@@ -57,7 +52,7 @@ void NETTISAPlugin::update_record(
     nettisa_data->kurtosis += pow(variation_from_mean, 4);
     // MEAN SCALED TIME
     nettisa_data->mean_scaled_time
-        += (pkt.ts.tv_usec - rec.time_first.tv_usec - nettisa_data->mean_scaled_time) / n;
+        += (packet_time - record_time - nettisa_data->mean_scaled_time) / n;
     // MEAN TIME DIFFERENCES
     nettisa_data->mean_difftimes += (diff_time - nettisa_data->mean_difftimes) / n;
     // MIN
@@ -78,7 +73,7 @@ int NETTISAPlugin::post_create(Flow& rec, const Packet& pkt)
     RecordExtNETTISA* nettisa_data = new RecordExtNETTISA();
     rec.add_extension(nettisa_data);
 
-    nettisa_data->prev_time = pkt.ts.tv_usec;
+    nettisa_data->prev_time = timeval2usec(pkt.ts);
 
     update_record(nettisa_data, pkt, rec);
     return 0;
