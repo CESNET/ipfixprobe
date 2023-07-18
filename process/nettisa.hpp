@@ -112,7 +112,7 @@ struct RecordExtNETTISA : public RecordExt {
     const char* get_unirec_tmplt() const { return NETTISA_UNIREC_TEMPLATE; }
 #endif // ifdef WITH_NEMEA
 
-    constexpr int get_ipfix_size() const noexcept
+    int get_ipfix_size() const noexcept
     {
         return sizeof(mean) + sizeof(min) + sizeof(max) + sizeof(stdev) + sizeof(kurtosis)
             + sizeof(root_mean_square) + sizeof(average_dispersion) + sizeof(mean_scaled_time)

@@ -41,7 +41,7 @@ void NETTISAPlugin::update_record(
 {
     float variation_from_mean = pkt.payload_len_wire - nettisa_data->mean;
     uint32_t n = rec.dst_packets + rec.src_packets;
-    long diff_time = pkt.ts.tv_usec - nettisa_data->prev_time;
+    long diff_time = fmax(pkt.ts.tv_usec - nettisa_data->prev_time, 0);
     nettisa_data->prev_time = pkt.ts.tv_usec;
     // MEAN
     nettisa_data->mean += (variation_from_mean) / n;
@@ -57,7 +57,7 @@ void NETTISAPlugin::update_record(
     nettisa_data->kurtosis += pow(variation_from_mean, 4);
     // MEAN SCALED TIME
     nettisa_data->mean_scaled_time
-        += (pkt.ts.tv_usec - rec.time_first.tv_usec - nettisa_data->mean_scaled_time) / n;
+        += (pkt.ts.tv_usec - fmin(pkt.ts.tv_usec, rec.time_first.tv_usec) - nettisa_data->mean_scaled_time) / n;
     // MEAN TIME DIFFERENCES
     nettisa_data->mean_difftimes += (diff_time - nettisa_data->mean_difftimes) / n;
     // MIN
