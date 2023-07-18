@@ -112,7 +112,7 @@ uint32_t htonf(float value)
         float float32;
     } helper;
 
-    static_assert(sizeof(uint32_t) == sizeof(float));
+    static_assert(sizeof(uint32_t) == sizeof(float), "sizeof(uint32_t) != sizeof(float)");
 
     helper.float32 = value;
     return htonl(helper.uint32);
