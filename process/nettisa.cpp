@@ -37,6 +37,7 @@ void NETTISAPlugin::update_record(
     uint64_t packet_time = timeval2usec(pkt.ts);
     uint64_t record_time = timeval2usec(rec.time_first);
     float diff_time = fmax(packet_time - nettisa_data->prev_time, 0);
+    nettisa_data->sum_payload += pkt.payload_len_wire;
     nettisa_data->prev_time = packet_time;
     // MEAN
     nettisa_data->mean += (variation_from_mean) / n;
@@ -83,6 +84,7 @@ int NETTISAPlugin::post_update(Flow& rec, const Packet& pkt)
 {
     RecordExtNETTISA* nettisa_data
         = (RecordExtNETTISA*) rec.get_extension(RecordExtNETTISA::REGISTERED_ID);
+
     update_record(nettisa_data, pkt, rec);
     return 0;
 }
@@ -92,15 +94,26 @@ void NETTISAPlugin::pre_export(Flow& rec)
     RecordExtNETTISA* nettisa_data
         = (RecordExtNETTISA*) rec.get_extension(RecordExtNETTISA::REGISTERED_ID);
     uint32_t n = rec.src_packets + rec.dst_packets;
-    nettisa_data->switching_ratio = nettisa_data->switching_ratio / ((n - 1) / 2);
-    nettisa_data->stdev = pow(
-        (nettisa_data->root_mean_square / n) - pow((rec.src_bytes + rec.dst_bytes) / n, 2),
-        0.5);
+    if (n == 1) {
+        nettisa_data->switching_ratio = 0;
+        nettisa_data->stdev = 0;
+        nettisa_data->kurtosis = 0;
+        nettisa_data->time_distribution = 0;
+    } else {
+        nettisa_data->switching_ratio = nettisa_data->switching_ratio / n;
+        nettisa_data->stdev = pow(
+            (nettisa_data->root_mean_square / n) - pow(nettisa_data->sum_payload / n, 2),
+            0.5);
+        if (nettisa_data->stdev == 0) {
+            nettisa_data->kurtosis = 0;
+        } else {
+            nettisa_data->kurtosis = nettisa_data->kurtosis / (n * pow(nettisa_data->stdev, 4));
+        }
+        nettisa_data->time_distribution = (nettisa_data->time_distribution / (n - 1))
+            / (nettisa_data->max_difftimes - nettisa_data->min);
+    }
     nettisa_data->root_mean_square = pow(nettisa_data->root_mean_square / n, 0.5);
     nettisa_data->average_dispersion = nettisa_data->average_dispersion / n;
-    nettisa_data->kurtosis = nettisa_data->kurtosis / (n * pow(nettisa_data->stdev, 4));
-    nettisa_data->time_distribution = (nettisa_data->time_distribution / (n - 1))
-        / (nettisa_data->max_difftimes - nettisa_data->min);
 }
 
 } // namespace ipxp
