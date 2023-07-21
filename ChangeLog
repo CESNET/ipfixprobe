@@ -1,3 +1,6 @@
+2023-07-21 ipfixprobe-4.9.2
+	* NetTiSA: Fix time comparison, handle Nan values
+
 2023-07-18 ipfixprobe-4.9.1
 	* NetTiSA: Add new NetTisa process plugin
 	* OVPN: Imporovments (Added rtp header validation function, Improve detection)
