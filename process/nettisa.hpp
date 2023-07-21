@@ -27,8 +27,10 @@
 namespace ipxp {
 
 #define NETTISA_UNIREC_TEMPLATE                                                                    \
-    "NTS_MEAN,NTS_MIN,NTS_MAX,NTS_STDEV,NTS_KURTOSIS,NTS_ROOT_MEAN_SQUARE,NTS_AVERAGE_DISPERSION," \
-    "NTS_MEAN_SCALED_TIME,NTS_MEAN_DIFFTIMES,NTS_MIN_DIFFTIMES,NTS_MAX_DIFFTIMES,NTS_TIME_"        \
+    "NTS_MEAN,NTS_MIN,NTS_MAX,NTS_STDEV,NTS_KURTOSIS,NTS_ROOT_MEAN_SQUARE,NTS_"                    \
+    "AVERAGE_DISPERSION,"                                                                          \
+    "NTS_MEAN_SCALED_TIME,NTS_MEAN_DIFFTIMES,NTS_MIN_DIFFTIMES,NTS_MAX_"                           \
+    "DIFFTIMES,NTS_TIME_"                                                                          \
     "DISTRIBUTION,"                                                                                \
     "NTS_SWITCHING_RATIO"
 
@@ -68,7 +70,8 @@ struct RecordExtNETTISA : public RecordExt {
     float switching_ratio;
 
     uint16_t prev_payload;
-    long prev_time;
+    uint64_t prev_time;
+    uint64_t sum_payload;
 
     RecordExtNETTISA()
         : RecordExt(REGISTERED_ID)
@@ -89,6 +92,7 @@ struct RecordExtNETTISA : public RecordExt {
 
         prev_payload = 0;
         prev_time = 0;
+        sum_payload = 0;
     }
 
 #ifdef WITH_NEMEA
@@ -112,7 +116,7 @@ struct RecordExtNETTISA : public RecordExt {
     const char* get_unirec_tmplt() const { return NETTISA_UNIREC_TEMPLATE; }
 #endif // ifdef WITH_NEMEA
 
-    constexpr int get_ipfix_size() const noexcept
+    int get_ipfix_size() const noexcept
     {
         return sizeof(mean) + sizeof(min) + sizeof(max) + sizeof(stdev) + sizeof(kurtosis)
             + sizeof(root_mean_square) + sizeof(average_dispersion) + sizeof(mean_scaled_time)
@@ -169,10 +173,6 @@ struct RecordExtNETTISA : public RecordExt {
  */
 class NETTISAPlugin : public ProcessPlugin {
 public:
-    NETTISAPlugin();
-    ~NETTISAPlugin();
-    void init(const char* params);
-    void close();
     OptionsParser* get_parser() const { return new OptionsParser("nettisa", "Parse NetTiSA flow"); }
     std::string get_name() const { return "nettisa"; }
     RecordExt* get_ext() const { return new RecordExtNETTISA(); }

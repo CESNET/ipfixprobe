@@ -132,4 +132,10 @@ uint32_t variable2ipfix_buffer(uint8_t* buffer2write, uint8_t* buffer2read, uint
     return ptr + len;
 }
 
+uint64_t timeval2usec(const struct timeval& tv)
+{
+   constexpr size_t usec_in_sec = 1000000;
+   return tv.tv_sec * usec_in_sec + tv.tv_usec;
+}
+
 } // namespace ipxp

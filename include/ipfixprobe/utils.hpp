@@ -145,5 +145,11 @@ T str2num(std::string str, typename std::enable_if<is_uint<T>()>::type * = nullp
    return static_cast<T>(tmp);
 }
 
+/**
+ * @brief Convert struct Timeval to microseconds
+ */
+uint64_t timeval2usec(const struct timeval& tv);
+
 }
+
 #endif /* IPXP_UTILS_HPP */
