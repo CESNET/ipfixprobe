@@ -1,3 +1,8 @@
+2023-07-20 (Josef Koumar): NetTiSA: Handle NaN values
+2023-07-18 (Pavel Siska): Nettisa - fix invalid time conversion
+2023-07-18 (Pavel Siska): utils - add function that convert struct timeval to microseconds
+2023-07-18 (Pavel Siska): utils - fix static_assert function to c++11 standard
+
 2023-07-17 (Pavel Siska): NetTiSA: Add NetTiSA into README.md
 2023-07-17 (Pavel Siska): NetTiSA: Add NetTiSA to Makefile
 2023-07-17 (Pavel Siska): NetTiSA: Add NetTiSA plugin
