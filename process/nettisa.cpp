@@ -95,10 +95,8 @@ void NETTISAPlugin::pre_export(Flow& rec)
         = (RecordExtNETTISA*) rec.get_extension(RecordExtNETTISA::REGISTERED_ID);
     uint32_t n = rec.src_packets + rec.dst_packets;
     if (n == 1) {
-        nettisa_data->switching_ratio = 0;
-        nettisa_data->stdev = 0;
-        nettisa_data->kurtosis = 0;
-        nettisa_data->time_distribution = 0;
+        rec.remove_extension(RecordExtNETTISA::REGISTERED_ID);
+        return;
     } else {
         nettisa_data->switching_ratio = nettisa_data->switching_ratio / n;
         nettisa_data->stdev = pow(
