@@ -17,7 +17,8 @@ TESTS=basic.sh \
 	bstats.sh \
 	phists.sh \
 	wg.sh \
-	ssadetector.sh
+	ssadetector.sh \
+	nettisa.sh
 
 if WITH_QUIC
 TESTS+=\
@@ -45,6 +46,7 @@ EXTRA_DIST=common.sh \
 	phists.sh \
 	wg.sh \
 	quic.sh \
+	nettisa.sh \
 	ssadetector.sh \
 	reference/basic \
 	reference/basicplus \
@@ -66,7 +68,8 @@ EXTRA_DIST=common.sh \
 	reference/phists \
 	reference/wg \
 	reference/quic \
-	reference/ssadetector
+	reference/ssadetector \
+	reference/nettisa
 
 clean-local:
 	rm -rf output
