@@ -305,11 +305,21 @@ inline uint16_t parse_ipv4_hdr(const u_char *data_ptr, uint16_t data_len, Packet
       throw "Parser detected malformed packet";
    }
 
+   const int ihl = ip->ihl << 2;
+
+   if (ip->protocol == IPPROTO_GRE) {
+      DEBUG_MSG("Parse GRE in ipv4 header\n");
+      if (data_len < ihl) {
+          throw "Parser detected malformed packet";
+      }
+      return parse_gre(data_ptr + ihl, data_len - ihl, pkt) + ihl;
+   }
+
    pkt->ip_version = IP::v4;
    pkt->ip_proto = ip->protocol;
    pkt->ip_tos = ip->tos;
    pkt->ip_len = ntohs(ip->tot_len);
-   pkt->ip_payload_len = pkt->ip_len - (ip->ihl << 2);
+   pkt->ip_payload_len = pkt->ip_len - ihl;
    pkt->ip_ttl = ip->ttl;
    pkt->ip_flags = (ntohs(ip->frag_off) & 0xE000) >> 13;
    pkt->src_ip.v4 = ip->saddr;
@@ -329,7 +339,7 @@ inline uint16_t parse_ipv4_hdr(const u_char *data_ptr, uint16_t data_len, Packet
    DEBUG_MSG("\tSrc addr:\t%s\n",      inet_ntoa(*(struct in_addr *) (&ip->saddr)));
    DEBUG_MSG("\tDest addr:\t%s\n",     inet_ntoa(*(struct in_addr *) (&ip->daddr)));
 
-   return (ip->ihl << 2);
+   return ihl;
 }
 
 /**
