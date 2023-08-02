@@ -34,6 +34,9 @@
 
 #define MSG_MAGIC 0xBEEFFEEB
 
+#include <cstdint>
+#include <string>
+
 namespace ipxp
 {
 

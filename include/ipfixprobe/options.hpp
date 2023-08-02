@@ -35,6 +35,7 @@
 #include <stdexcept>
 #include <string>
 #include <iostream>
+#include <cstdint>
 
 namespace ipxp {
 

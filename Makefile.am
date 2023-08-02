@@ -129,6 +129,8 @@ ipfixprobe_process_src=\
 		process/ssadetector.cpp \
 		process/icmp.hpp \
 		process/icmp.cpp \
+		process/vlan.hpp \
+		process/vlan.cpp \
 		process/nettisa.hpp \
 		process/nettisa.cpp
 
