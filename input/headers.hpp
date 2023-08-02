@@ -50,8 +50,20 @@ namespace ipxp {
 struct ip6_frag {
    uint8_t ip_proto;
    uint8_t reserved;
+// contents of 'frag_off' in BE byte-order where MSb is 15 and LSb is 0:
+// +--------------------------------------+------+---+
+// | 15-3                                 | 2-1  | 0 |
+// +--------------------------------------+------+---+
+// | fragment offset                      | Res  | M |
+// +--------------------------------------+------+---+
+// Res - reserved
+// M   - more fragments
+//
+// The fragment offset is in octets so to get the value in bytes you only need
+// to mask with 'IPV6_FRAGMENT_OFFSET' because:
+//     To get the value in octets you would shift right by 3 and to get it
+//     in bytes you would shift left by 3. The two shifts cancel.
    uint16_t frag_off;
-// this is value in octets, so it doesn't need to be shifted
 #define IPV6_FRAGMENT_OFFSET 0xFFF8
 #define IPV6_MORE_FRAGMENTS 0x1
    uint32_t frag_id;

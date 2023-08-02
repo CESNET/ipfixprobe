@@ -93,29 +93,18 @@ static constexpr bool operator==(const timeval &a, const timeval &b)
 
 FragmentCache::Key FragmentCache::Key::from_packet(Packet &pkt)
 {
-    return (Key) {
-        .ipv = pkt.ip_version,
-        .vlan_id = pkt.vlan_id,
-        .frag_id = pkt.frag_id,
-        .src_ip = pkt.src_ip,
-        .dst_ip = pkt.dst_ip
+    return Key {
+        pkt.ip_version,
+        pkt.vlan_id,
+        pkt.frag_id,
+        pkt.src_ip,
+        pkt.dst_ip,
     };
 }
 
 bool FragmentCache::Key::Equal::operator()(const Key &a, const Key &b) const
 {
-    if (a.ipv != b.ipv
-        || a.vlan_id != b.vlan_id
-        || a.frag_id != b.frag_id)
-    {
-        return false;
-    }
-
-    if (a.ipv == IP::v4) {
-        return a.src_ip.v4 == b.src_ip.v4 && a.dst_ip.v4 == b.dst_ip.v4;
-    }
-    return memcmp(a.src_ip.v6, b.src_ip.v6, sizeof(a.src_ip.v6)) == 0
-        && memcmp(a.dst_ip.v6, b.dst_ip.v6, sizeof(a.src_ip.v6)) == 0;
+    return memcmp(&a, &b, sizeof(Key)) == 0;
 }
 
 uint64_t FragmentCache::Key::Hash::operator()(const Key &key) const
@@ -125,10 +114,10 @@ uint64_t FragmentCache::Key::Hash::operator()(const Key &key) const
 
 FragmentCache::Value FragmentCache::Value::from_packet(Packet &pkt)
 {
-    return (Value) {
-        .src_port = pkt.src_port,
-        .dst_port = pkt.dst_port,
-        .timestamp = pkt.ts,
+    return Value {
+        pkt.src_port,
+        pkt.dst_port,
+        pkt.ts,
     };
 }
 
