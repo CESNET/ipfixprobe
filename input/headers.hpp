@@ -61,6 +61,14 @@
 
 namespace ipxp {
 
+struct grehdr {
+   uint16_t flags;
+#define GRE_CHECKSUM 0x8000
+#define GRE_KEY      0x2000
+#define GRE_SEQNUM   0x1000
+   uint16_t type;
+};
+
 // Copied protocol headers from netinet/* files, which may not be present on other platforms
 
 struct ethhdr {
