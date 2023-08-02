@@ -239,18 +239,39 @@ Fields without `_REV` suffix are fields from source flow. Fields with `_REV` are
 | TCP_MSS_REV  | uint32 | TCP maximum segment size    |
 | TCP_SYN_SIZE | uint16 | TCP SYN packet size         |
 
+### NetTiSA
+List of unirec fields exported together with NetTiSA flow fields on interface by nettisa plugin.
+
+| Output field | Type   | Description                 |
+|:------------:|:------:|:---------------------------:|
+| NTS_MEAN               | float   |  The mean of the payload lengths of packets                                   |
+| NTS_MIN                | uint16   |  Minimal value from all packet payload lengths                |
+| NTS_MAX                | uint16   |  Maximum value from all packet payload lengths                    |
+| NTS_STDEV              | float   |  Represents a switching ratio between different values of the sequence of observation.                    |
+| NTS_KURTOSIS           | float  |  The standard deviation is measure of the variation of data from the mean.             |
+| NTS_ROOT_MEAN_SQUARE   | float  |  The measure of the magnitude of payload lengths of packets.             |
+| NTS_AVERAGE_DISPERSION | float  |  The average absolute difference between each payload length of packet and the mean value.        |
+| NTS_MEAN_SCALED_TIME   | float  |  The kurtosis is the measure describing the extent to which the tails of a distribution differ from the tails of a normal distribution.   |
+| NTS_MEAN_DIFFTIMES     | float  | The scaled times is defined as sequence $\{st\} = \{ t_1 - t_1, t_2 - t_1, \dots, t_n - t_1 \}$. We compute the mean of the value with same method as for feature \textit{Mean}.     |
+| NTS_MIN_DIFFTIMES      | float  | The time differences is defined as sequence $ \{dt\} = \{ t_j - t_i \| j = i + 1, i \in \{1, 2, \dots, n - 1\}\}$. We compute the mean of the value with same method as for feature \textit{Mean}.     |
+| NTS_MAX_DIFFTIMES      | float  | Minimal value from all time differences, i.e., min space between packets.          |
+| NTS_TIME_DISTRIBUTION  | float  | Maximum value from all time differences, i.e., max space between packets.          |
+| NTS_SWITCHING_RATIO    | float  | Describes the distribution of time differences between individual packets.          |
+
 ### HTTP
 List of unirec fields exported together with basic flow fields on interface by HTTP plugin.
 
-| Output field                 | Type   | Description                 |
-|:----------------------------:|:------:|:---------------------------:|
-| HTTP_REQUEST_METHOD          | string | HTTP request method         |
-| HTTP_REQUEST_HOST            | string | HTTP request host           |
-| HTTP_REQUEST_URL             | string | HTTP request url            |
-| HTTP_REQUEST_AGENT           | string | HTTP request user agent     |
-| HTTP_REQUEST_REFERER         | string | HTTP request referer        |
-| HTTP_RESPONSE_STATUS_CODE    | uint16 | HTTP response code          |
-| HTTP_RESPONSE_CONTENT_TYPE   | string | HTTP response content type  |
+| Output field                   | Type   | Description                                                 |
+|:------------------------------:|:------:|:-----------------------------------------------------------:|
+| HTTP_REQUEST_METHOD            | string | HTTP request method                                         |
+| HTTP_REQUEST_HOST              | string | HTTP request host                                           |
+| HTTP_REQUEST_URL               | string | HTTP request url                                            |
+| HTTP_REQUEST_AGENT             | string | HTTP request user agent                                     |
+| HTTP_REQUEST_REFERER           | string | HTTP request referer                                        |
+| HTTP_RESPONSE_STATUS_CODE      | uint16 | HTTP response code                                          |
+| HTTP_RESPONSE_CONTENT_TYPE     | string | HTTP response content type                                  |
+| HTTP_RESPONSE_SERVER           | string | HTTP response server                                        |
+| HTTP_RESPONSE_SET_COOKIE_NAMES | string | HTTP response all set-cookie names separated by a delimiter |
 
 ### RTSP
 List of unirec fields exported together with basic flow fields on interface by RTSP plugin.

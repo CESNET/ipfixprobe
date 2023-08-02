@@ -126,6 +126,8 @@ namespace ipxp {
 #define HTTP_STATUS(F)                F(39499,   12,    2,   nullptr)
 #define HTTP_USERAGENT(F)             F(39499,   20,   -1,   nullptr)
 #define HTTP_METHOD(F)                F(8057,   200,   -1,   nullptr)
+#define HTTP_SERVER(F)                F(8057,   201,   -1,   nullptr)
+#define HTTP_SET_COOKIE_NAMES(F)      F(8057,   202,   -1,   nullptr)
 
 #define RTSP_METHOD(F)                F(16982,  600,   -1,   nullptr)
 #define RTSP_USERAGENT(F)             F(16982,  601,   -1,   nullptr)
@@ -260,6 +262,21 @@ namespace ipxp {
 #define WG_SRC_PEER(F)                F(8057,    1101,   4,   nullptr)
 #define WG_DST_PEER(F)                F(8057,    1102,   4,   nullptr)
 
+#define NTS_MEAN(F)                   F(8057,    1020,  4,    nullptr)
+#define NTS_MIN(F)                    F(8057,    1021,  2,    nullptr)
+#define NTS_MAX(F)                    F(8057,    1022,  2,    nullptr)
+#define NTS_STDEV(F)                  F(8057,    1023,  4,    nullptr)
+#define NTS_KURTOSIS(F)               F(8057,    1024,  4,    nullptr)
+#define NTS_ROOT_MEAN_SQUARE(F)       F(8057,    1025,  4,    nullptr)
+#define NTS_AVERAGE_DISPERSION(F)     F(8057,    1026,  4,    nullptr)
+#define NTS_MEAN_SCALED_TIME(F)       F(8057,    1027,  4,    nullptr)
+#define NTS_MEAN_DIFFTIMES(F)         F(8057,    1028,  4,    nullptr)
+#define NTS_MIN_DIFFTIMES(F)          F(8057,    1029,  4,    nullptr)
+#define NTS_MAX_DIFFTIMES(F)          F(8057,    1030,  4,    nullptr)
+#define NTS_TIME_DISTRIBUTION(F)      F(8057,    1031,  4,    nullptr)
+#define NTS_SWITCHING_RATIO(F)        F(8057,    1032,  4,    nullptr)
+
+
 /**
  * IPFIX Templates - list of elements
  *
@@ -327,7 +344,9 @@ namespace ipxp {
    F(HTTP_REFERER) \
    F(HTTP_URI) \
    F(HTTP_CONTENT_TYPE) \
-   F(HTTP_STATUS)
+   F(HTTP_SERVER) \
+   F(HTTP_SET_COOKIE_NAMES) \
+   F(HTTP_STATUS) 
 
 #define IPFIX_RTSP_TEMPLATE(F) \
    F(RTSP_METHOD) \
@@ -495,6 +514,21 @@ namespace ipxp {
 #define IPFIX_VLAN_TEMPLATE(F) \
    F(VLAN_ID)
 
+#define IPFIX_NETTISA_TEMPLATE(F) \
+  F(NTS_MEAN) \
+  F(NTS_MIN) \
+  F(NTS_MAX) \
+  F(NTS_STDEV) \
+  F(NTS_KURTOSIS) \
+  F(NTS_ROOT_MEAN_SQUARE) \
+  F(NTS_AVERAGE_DISPERSION) \
+  F(NTS_MEAN_SCALED_TIME) \
+  F(NTS_MEAN_DIFFTIMES) \
+  F(NTS_MIN_DIFFTIMES) \
+  F(NTS_MAX_DIFFTIMES) \
+  F(NTS_TIME_DISTRIBUTION) \
+  F(NTS_SWITCHING_RATIO)
+
 #ifdef WITH_FLEXPROBE
 #define IPFIX_FLEXPROBE_DATA_TEMPLATE(F) F(FX_FRAME_SIGNATURE) F(FX_INPUT_INTERFACE)
 #define IPFIX_FLEXPROBE_TCP_TEMPLATE(F) F(FX_TCP_TRACKING)
@@ -538,7 +572,8 @@ namespace ipxp {
    IPFIX_FLEXPROBE_TCP_TEMPLATE(F) \
    IPFIX_FLEXPROBE_ENCR_TEMPLATE(F) \
    IPFIX_SSADETECTOR_TEMPLATE(F) \
-   IPFIX_ICMP_TEMPLATE(F)
+   IPFIX_ICMP_TEMPLATE(F) \
+   IPFIX_NETTISA_TEMPLATE(F)
 
 /**
  * Helper macro, convert FIELD into its name as a C literal.

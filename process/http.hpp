@@ -48,7 +48,7 @@
 
 namespace ipxp {
 
-#define HTTP_UNIREC_TEMPLATE  "HTTP_REQUEST_METHOD,HTTP_REQUEST_HOST,HTTP_REQUEST_URL,HTTP_REQUEST_AGENT,HTTP_REQUEST_REFERER,HTTP_RESPONSE_STATUS_CODE,HTTP_RESPONSE_CONTENT_TYPE"
+#define HTTP_UNIREC_TEMPLATE  "HTTP_REQUEST_METHOD,HTTP_REQUEST_HOST,HTTP_REQUEST_URL,HTTP_REQUEST_AGENT,HTTP_REQUEST_REFERER,HTTP_RESPONSE_STATUS_CODE,HTTP_RESPONSE_CONTENT_TYPE,HTTP_RESPONSE_SERVER,HTTP_RESPONSE_SET_COOKIE_NAMES"
 
 UR_FIELDS (
    string HTTP_REQUEST_METHOD,
@@ -58,10 +58,13 @@ UR_FIELDS (
    string HTTP_REQUEST_REFERER,
 
    uint16 HTTP_RESPONSE_STATUS_CODE,
-   string HTTP_RESPONSE_CONTENT_TYPE
+   string HTTP_RESPONSE_CONTENT_TYPE,
+   string HTTP_RESPONSE_SERVER,
+   string HTTP_RESPONSE_SET_COOKIE_NAMES
 )
 
 void copy_str(char *dst, ssize_t size, const char *begin, const char *end);
+void add_str(char *dst, ssize_t size, const char *begin, const char *end, const char* delimiter);
 
 /**
  * \brief Flow record extension header for storing HTTP requests.
@@ -81,6 +84,8 @@ struct RecordExtHTTP : public RecordExt {
    uint16_t code;
    char content_type[32];
 
+   char server[128];
+   char set_cookie[512];
 
    /**
     * \brief Constructor.
@@ -96,6 +101,8 @@ struct RecordExtHTTP : public RecordExt {
       referer[0] = 0;
       code = 0;
       content_type[0] = 0;
+      server[0] = 0;
+      set_cookie[0] = 0;
    }
 
 #ifdef WITH_NEMEA
@@ -108,6 +115,8 @@ struct RecordExtHTTP : public RecordExt {
       ur_set_string(tmplt, record, F_HTTP_REQUEST_REFERER, referer);
       ur_set_string(tmplt, record, F_HTTP_RESPONSE_CONTENT_TYPE, content_type);
       ur_set(tmplt, record, F_HTTP_RESPONSE_STATUS_CODE, code);
+      ur_set_string(tmplt, record, F_HTTP_RESPONSE_SERVER, server);
+      ur_set_string(tmplt, record, F_HTTP_RESPONSE_SET_COOKIE_NAMES, set_cookie);
    }
 
    const char *get_unirec_tmplt() const
@@ -157,6 +166,18 @@ struct RecordExtHTTP : public RecordExt {
       }
       total_length += variable2ipfix_buffer(buffer + total_length, (uint8_t*) content_type, length);
 
+      length = strlen(server);
+      if (total_length + length + 3 > (uint32_t) size) {
+         return -1;
+      }
+      total_length += variable2ipfix_buffer(buffer + total_length, (uint8_t*) server, length);
+
+      length = strlen(set_cookie);
+      if (total_length + length + 3 > (uint32_t) size) {
+         return -1;
+      }
+      total_length += variable2ipfix_buffer(buffer + total_length, (uint8_t*) set_cookie, length);
+
       *(uint16_t *) (buffer + total_length) = ntohs(code);
       total_length += 2;
 
@@ -181,7 +202,9 @@ struct RecordExtHTTP : public RecordExt {
          << ",agent=\"" << user_agent << "\""
          << ",referer=\"" << referer << "\""
          << ",content=\"" << content_type << "\""
-         << ",status=" << code;
+         << ",status=" << code
+         << ",server=\"" << server << "\""
+         << ",set-cookie=\"" << set_cookie << "\"";
       return out.str();
    }
 };

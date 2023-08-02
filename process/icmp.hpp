@@ -83,7 +83,7 @@ struct RecordExtICMP : public RecordExt {
 #ifdef WITH_NEMEA
    virtual void fill_unirec(ur_template_t *tmplt, void *record)
    {
-      ur_set(tmplt, record, F_L4_ICMP_TYPE_CODE, type_code);
+      ur_set(tmplt, record, F_L4_ICMP_TYPE_CODE, ntohs(type_code));
    }
 
    const char *get_unirec_tmplt() const
@@ -100,7 +100,7 @@ struct RecordExtICMP : public RecordExt {
          return -1;
       }
 
-      *reinterpret_cast<uint16_t *>(buffer) = ntohs(type_code);
+      *reinterpret_cast<uint16_t *>(buffer) = type_code;
 
       return LEN;
    }

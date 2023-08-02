@@ -1,3 +1,37 @@
+2023-07-20 (Josef Koumar): NetTiSA: Handle NaN values
+2023-07-18 (Pavel Siska): Nettisa - fix invalid time conversion
+2023-07-18 (Pavel Siska): utils - add function that convert struct timeval to microseconds
+2023-07-18 (Pavel Siska): utils - fix static_assert function to c++11 standard
+
+2023-07-17 (Pavel Siska): NetTiSA: Add NetTiSA into README.md
+2023-07-17 (Pavel Siska): NetTiSA: Add NetTiSA to Makefile
+2023-07-17 (Pavel Siska): NetTiSA: Add NetTiSA plugin
+2023-07-17 (Pavel Siska): NetTiSA: Add NetTiSA IPFIX elements
+2023-07-17 (Pavel Siska): utils - format code with clang-format
+2023-07-17 (Pavel Siska): Byte-utils - introduce htonf() function to convert float to network order
+2023-07-14 (Karel Hynek): OVPN: Code reformat
+2023-07-14 (Karel Hynek): OVPN: checking datapackets for RTP validity to reduce false positives
+2023-07-14 (Karel Hynek): OVPN: Added rtp header validation function
+2023-07-14 (Karel Hynek): OVPN plugin: Improve detection for flows with large small number packets
+2023-07-07 (Jakub Magda): Add new HTTP fields to README.md
+2023-07-07 (Karel Hynek): HTTP: Updated functional tests
+2023-07-07 (Karel Hynek): HTTP: Added missing pointer check
+2023-07-07 (Karel Hynek): HTTP: Code reformat
+2023-07-07 (Karel Hynek): HTTP: FIXED invalid pointer check
+2023-06-28 (Karel Hynek): Changing uncrustify to clang format
+2023-06-17 (Tomas Cejka): actions: update to actions/checkout@v3
+2023-06-17 (Tomas Cejka): coverity: update to actions/checkout@v3
+2023-06-15 (Jakub Magda): Add parsing HTTP response headers server and set-cookie names
+2023-06-06 (Jakub Antoní Stigler): Update functional test references
+2023-06-01 (jaroslavpesek): dpdk - updated README.md for multiport read
+2023-05-23 (Jakub Antoní Stigler): improve readablility
+2023-04-25 (Jakub Antoní Stigler): Add icmp to README
+2023-04-25 (Jakub Antoní Stigler): remove icmp from parser
+2023-04-25 (Jakub Antoní Stigler): Implement fill functions in icmp
+2023-04-25 (Jakub Antoní Stigler): Add binaries to gitignore
+2023-04-25 (Jakub Antoní Stigler): Implement ICMP plugin
+2023-04-25 (Jakub Antoní Stigler): generate empty icmp plugin
+
 2023-05-30 (jaroslavpesek): Merge pull request #157 from CESNET/dpdk-port
 2023-05-29 (Pavel Siska): Ipfixprobed - support dpdk option `lcores`
 2023-05-29 (Pavel Siska): Ipfixprobed - remove dpdk option `cpu_mask`
