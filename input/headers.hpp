@@ -59,10 +59,10 @@ struct ip6_frag {
 // Res - reserved
 // M   - more fragments
 //
-// The fragment offset is in octets so to get the value in bytes you only need
-// to mask with 'IPV6_FRAGMENT_OFFSET' because:
-//     To get the value in octets you would shift right by 3 and to get it
-//     in bytes you would shift left by 3. The two shifts cancel.
+// The fragment offset is in 8-byte units so to get the value in bytes you
+// only need to mask with 'IPV6_FRAGMENT_OFFSET' because:
+//     To get the value in 8-byte units you would shift right by 3 and to get
+//     it in bytes you would shift left by 3. The two shifts cancel.
    uint16_t frag_off;
 #define IPV6_FRAGMENT_OFFSET 0xFFF8
 #define IPV6_MORE_FRAGMENTS 0x1
