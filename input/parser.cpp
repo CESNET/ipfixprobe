@@ -242,7 +242,6 @@ inline uint16_t parse_gre(const u_char *data_ptr, uint16_t data_len, Packet *pkt
    if (data_len < gre_len) {
        throw "Parser detected malformed packet";
    }
-      throw "Parser detected malformed packet";
 
    auto gre = (struct grehdr *)data_ptr;
    auto flags = ntohs(gre->flags);
