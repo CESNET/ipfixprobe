@@ -80,6 +80,7 @@ namespace ipxp {
 #define INPUT_INTERFACE(F)            F(0,       10,    4,   &this->dir_bit_field)
 #define OUTPUT_INTERFACE(F)           F(0,       14,    2,   nullptr)
 #define FLOW_END_REASON(F)            F(0,      136,    1,   &flow.end_reason)
+#define FLOW_ID(F)                    F(0,      148,    8,   &flow.flow_hash)
 
 #define ETHERTYPE(F)                  F(0,      256,    2,   nullptr)
 
@@ -346,7 +347,7 @@ namespace ipxp {
    F(HTTP_CONTENT_TYPE) \
    F(HTTP_SERVER) \
    F(HTTP_SET_COOKIE_NAMES) \
-   F(HTTP_STATUS) 
+   F(HTTP_STATUS)
 
 #define IPFIX_RTSP_TEMPLATE(F) \
    F(RTSP_METHOD) \
@@ -529,6 +530,10 @@ namespace ipxp {
   F(NTS_TIME_DISTRIBUTION) \
   F(NTS_SWITCHING_RATIO)
 
+
+#define IPFIX_FLOW_HASH_TEMPLATE(F) \
+   F(FLOW_ID)
+
 #ifdef WITH_FLEXPROBE
 #define IPFIX_FLEXPROBE_DATA_TEMPLATE(F) F(FX_FRAME_SIGNATURE) F(FX_INPUT_INTERFACE)
 #define IPFIX_FLEXPROBE_TCP_TEMPLATE(F) F(FX_TCP_TRACKING)
@@ -573,7 +578,8 @@ namespace ipxp {
    IPFIX_FLEXPROBE_ENCR_TEMPLATE(F) \
    IPFIX_SSADETECTOR_TEMPLATE(F) \
    IPFIX_ICMP_TEMPLATE(F) \
-   IPFIX_NETTISA_TEMPLATE(F)
+   IPFIX_NETTISA_TEMPLATE(F) \
+   IPFIX_FLOW_HASH_TEMPLATE(F)
 
 /**
  * Helper macro, convert FIELD into its name as a C literal.
