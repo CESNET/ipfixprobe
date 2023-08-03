@@ -643,6 +643,14 @@ List of fields exported together with basic flow fields on the interface by VLAN
 |:------------:|:------:|:--------------------------:|
 | VLAN_ID      | uint16 | Vlan ID (used in flow key) |
 
+### Flow Hash
+
+List of fields exported together with basic flow fields on interface by flow_hash plugin.
+
+| Output field       | Type   | Description                       |
+|:------------------:|:------:|:---------------------------------:|
+| FLOW_ID            | uint64 | Hash of the flow - unique flow id |
+
 ## Simplified function diagram
 Diagram below shows how `ipfixprobe` works.
 
