@@ -1,3 +1,57 @@
+ipfixprobe (4.9.2ubuntu1) focal; urgency=medium
+
+  * Changes in 4.9.2:
+    - NetTiSA: Fix time comparison, handle Nan values
+  * Changes in 4.9.1
+    - NetTiSA: Add new NetTisa process plugin
+    - OVPN: Imporovments (Added rtp header validation function, Improve detection)
+    - HTTP: Add parsing HTTP response headers server and set-cookie names
+    - ICMP: Add new ICMP process plugin
+    - Code format: Changing uncrustify to clang format
+  * Changes in 4.9.0
+    - flow cache: add VLAN ID to the flow key
+    - SSADetector: detect SYN-SYNACK-ACK sequence to detect VPN within exiting connection
+    - ovpn: enhanced algorithm to minimize false positives
+    - optimization: do not export some additional info for short flows
+    - dpdk: allow running as a secondary DPDK process, reading from mring
+    - dpdk: allow reading from multiple port of the network interface
+    - init: improve config & service to set `lcores`
+  * Changes in 4.8.0
+     - DPDK: bugfix of HW timestamps
+     - DPDK: compliance, different constant names
+     - pstats: bugfix of recognition of zero length packets
+     - SSADetector: add new plugin to detect possible SYN-SYNACK-ACK
+  * Changes in 4.7.4
+     - Support parsing of ipv6 mobility header
+     - Support TLS v1.3
+     - Support of extracting TLS version from handshake extension
+  * Changes in 4.7.3
+     - Stats: Improve Input & Output pugin stats
+     - Tls: fix buffer overflow error (causes crashing)
+  * Changes in 4.7.2
+     - rpm hotfix: disable automatic setting of hardening flags
+     - dpdk: bugfixes
+     - dpdk: changed RSS setting to use IP only
+     - improved ipfixprobed
+  * Changes in 4.7.1
+     - http: Removed trailing '\r' from HTTP exported fields
+     - tcp: fixed seq&ack tracking
+     - dpdk: reworked plugin
+  * Changes in 4.7.0
+     - dpdk: support for multi-queues
+     - dpdk: improved config file and init script
+     - flexprobe: changed flexprobe packet conversion to zero-copy mode
+     - build: bugfix - fixed missing -PIC
+     - tls: bugfix - replaced bad data type
+  * Changes in 4.6.0
+     - QUIC: refactor plugin, version 2 added
+     - Zero-copy packet processing
+     - deb: add config files to generate deb package
+     - xxhash update
+     - Remove std::future feature for workers terminations
+
+ -- Tomas Cejka <cejkat@cesnet.cz>  Mon, 07 Aug 2023 15:19:28 +0000
+
 ipfixprobe (4.5.0ubuntu1) focal; urgency=medium
 
   * Initial release. New architecture and new plugins
