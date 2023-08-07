@@ -83,6 +83,11 @@ AC_DEFINE_DIR([DEFAULTSOCKETDIR], [defaultsocketdir], [Default path to socket di
 
 AC_CHECK_LIB(atomic, __atomic_store, [libatomic=yes], AC_MSG_ERROR([libatomic not found]))
 
+PKG_CHECK_MODULES([LIBLZ4], [liblz4])
+CFLAGS="$LIBLZ4_CFLAGS $CFLAGS"
+CXXFLAGS="$LIBLZ4_CFLAGS $CXXFLAGS"
+LIBS="$LIBLZ4_LIBS $LIBS"
+
 ### gtest
 AC_ARG_WITH([gtest],
         AC_HELP_STRING([--with-gtest],[Compile ipfixprobe with gtest framework]),
