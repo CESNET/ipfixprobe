@@ -246,6 +246,8 @@ struct Record {
  * \brief Flow record struct constaining basic flow record data and extension headers.
  */
 struct Flow : public Record {
+   uint64_t flow_hash;
+
    struct timeval time_first;
    struct timeval time_last;
    uint64_t src_bytes;

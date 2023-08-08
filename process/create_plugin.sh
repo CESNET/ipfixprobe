@@ -78,7 +78,7 @@ struct RecordExt${PLUGIN_UPPER} : public RecordExt {
    }
 
 #ifdef WITH_NEMEA
-   virtual void fill_unirec(ur_template_t *tmplt, void *record)
+   void fill_unirec(ur_template_t *tmplt, void *record) override
    {
    }
 
@@ -88,7 +88,7 @@ struct RecordExt${PLUGIN_UPPER} : public RecordExt {
    }
 #endif
 
-   virtual int fill_ipfix(uint8_t *buffer, int size)
+   int fill_ipfix(uint8_t *buffer, int size) override
    {
       return 0;
    }
