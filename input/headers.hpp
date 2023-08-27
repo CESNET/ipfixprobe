@@ -46,6 +46,15 @@
 
 namespace ipxp {
 
+struct ip6_frag {
+   uint8_t ip_proto;
+   uint8_t reserved;
+   uint16_t frag_off;
+#define IPV6_FRAGMENT_OFFSET 0xFFF8
+#define IPV6_MORE_FRAGMENTS 0x1
+   uint32_t frag_id;
+} __attribute__((packed));
+
 struct grehdr {
    uint16_t flags;
 #define GRE_CHECKSUM 0x8000
