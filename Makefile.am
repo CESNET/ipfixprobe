@@ -60,6 +60,7 @@ ipfixprobe_input_src+=\
 endif
 
 ipfixprobe_storage_src=\
+		storage/fragmentationCache/ringBuffer.hpp \
 		storage/cache.cpp \
 		storage/cache.hpp \
 		storage/xxhash.c \
