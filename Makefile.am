@@ -65,6 +65,8 @@ ipfixprobe_storage_src=\
 		storage/fragmentationCache/fragmentationKeyData.hpp \
 		storage/fragmentationCache/fragmentationTable.hpp \
 		storage/fragmentationCache/fragmentationTable.cpp \
+		storage/fragmentationCache/fragmentationCache.hpp \
+		storage/fragmentationCache/fragmentationCache.cpp \
 		storage/cache.cpp \
 		storage/cache.hpp \
 		storage/xxhash.c \
