@@ -75,11 +75,13 @@ bool QUICParser::quic_check_pointer_pos(const uint8_t *current, const uint8_t *e
 
 uint64_t QUICParser::quic_get_variable_length(const uint8_t *start, uint64_t &offset)
 {
-   // find out length of parameter field (and load parameter, then move offset) , defined in:
-   // https://www.rfc-editor.org/rfc/rfc9000.html#name-summary-of-integer-encoding
-   // this approach is used also in length field , and other QUIC defined fields.
-   uint64_t tmp = 0;
 
+   uint64_t tmp = 0;
+   if (offset >= CURRENT_BUFFER_SIZE - 1) {
+      DEBUG_MSG("Error, buffer overflow\n");
+      offset++;
+      return 0;
+   }
    uint8_t two_bits = *(start + offset) & 0xC0;
 
    switch (two_bits) {
@@ -88,14 +90,29 @@ uint64_t QUICParser::quic_get_variable_length(const uint8_t *start, uint64_t &of
       offset += sizeof(uint8_t);
       return tmp;
    case 64:
+      if (offset >= CURRENT_BUFFER_SIZE - 2) {
+      DEBUG_MSG("Error, buffer overflow\n");
+      offset+=2;
+      return 0;
+      }
       tmp     = be16toh(*(uint16_t *) (start + offset)) & 0x3FFF;
       offset += sizeof(uint16_t);
       return tmp;
    case 128:
+      if (offset >= CURRENT_BUFFER_SIZE - 4) {
+      DEBUG_MSG("Error, buffer overflow\n");
+      offset+=4;
+      return 0;
+   }
       tmp     = be32toh(*(uint32_t *) (start + offset)) & 0x3FFFFFFF;
       offset += sizeof(uint32_t);
       return tmp;
    case 192:
+      if (offset >= CURRENT_BUFFER_SIZE - 8) {
+      DEBUG_MSG("Error, buffer overflow\n");
+      offset+=8;
+      return 0;
+   }
       tmp     = be64toh(*(uint64_t *) (start + offset)) & 0x3FFFFFFFFFFFFFFF;
       offset += sizeof(uint64_t);
       return tmp;
@@ -660,7 +677,7 @@ inline void QUICParser::quic_skip_ack1(uint8_t *start, uint64_t &offset)
 
    quic_get_variable_length(start, offset);
 
-   for (uint64_t x = 0; x < quic_ack_range_count; x++) {
+   for (uint64_t x = 0; x < quic_ack_range_count && offset < CURRENT_BUFFER_SIZE; x++) {
       quic_get_variable_length(start, offset);
       quic_get_variable_length(start, offset);
    }
@@ -677,7 +694,7 @@ inline void QUICParser::quic_skip_ack2(uint8_t *start, uint64_t &offset)
 
    quic_get_variable_length(start, offset);
 
-   for (uint64_t x = 0; x < quic_ack_range_count; x++) {
+   for (uint64_t x = 0; x < quic_ack_range_count && offset < CURRENT_BUFFER_SIZE; x++) {
       quic_get_variable_length(start, offset);
       quic_get_variable_length(start, offset);
    }
@@ -716,6 +733,9 @@ inline void QUICParser::quic_copy_crypto(uint8_t *start, uint64_t &offset)
    uint16_t frame_offset = quic_get_variable_length(start, offset);
    uint16_t frame_length = quic_get_variable_length(start, offset);
 
+   frame_offset = std::min(frame_offset, (uint16_t)(CURRENT_BUFFER_SIZE-1));
+   frame_length = std::min((uint16_t)(CURRENT_BUFFER_SIZE-1-frame_offset), frame_length);
+
    memcpy(assembled_payload + frame_offset, start + offset, frame_length);
    if (frame_offset < quic_crypto_start) {
       quic_crypto_start = frame_offset;
@@ -733,6 +753,11 @@ bool QUICParser::quic_reassemble_frames()
    uint64_t offset      = 0;
    uint8_t *payload_end = decrypted_payload + payload_len;
    uint8_t *current     = decrypted_payload + offset;
+   
+   if (payload_len > CURRENT_BUFFER_SIZE) {
+      DEBUG_MSG("Payload length too long\n");
+      return false;
+   }
 
    while (quic_check_pointer_pos(current, payload_end)) {
       // https://www.rfc-editor.org/rfc/rfc9000.html#name-frames-and-frame-types
@@ -742,7 +767,7 @@ bool QUICParser::quic_reassemble_frames()
       } else if (quic_check_frame_type(current, ACK1)) {
          quic_skip_ack1(decrypted_payload, offset);
       } else if (quic_check_frame_type(current, ACK2)) {
-         quic_skip_ack1(decrypted_payload, offset);
+         quic_skip_ack2(decrypted_payload, offset);
       } else if (quic_check_frame_type(current, CONNECTION_CLOSE1)) {
          quic_skip_connection_close1(decrypted_payload, offset);
       } else if (quic_check_frame_type(current, CONNECTION_CLOSE2)) {
