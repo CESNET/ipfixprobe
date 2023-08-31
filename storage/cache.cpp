@@ -138,6 +138,9 @@ void FlowRecord::create(const Packet &pkt, uint64_t hash)
       m_flow.src_port = pkt.src_port;
       m_flow.dst_port = pkt.dst_port;
    }
+
+   m_flow.dst_tcp_flags = pkt.export_dir;
+   m_flow.odid = pkt.export_id;
 }
 
 void FlowRecord::update(const Packet &pkt, bool src)
