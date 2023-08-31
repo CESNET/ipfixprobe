@@ -87,6 +87,9 @@ struct Packet : public Record {
 
    bool        source_pkt; /**< Direction of packet from flow point of view */
 
+   uint64_t export_id;
+   uint32_t export_dir;
+
    /**
     * \brief Constructor.
     */
