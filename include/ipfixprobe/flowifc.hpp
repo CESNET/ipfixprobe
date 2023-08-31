@@ -268,6 +268,9 @@ struct Flow : public Record {
    uint8_t src_mac[6];
    uint8_t dst_mac[6];
    uint8_t end_reason;
+
+   uint32_t dir_bit_field;     /**< Direction bit field value. */
+   uint32_t odid; /**< Observation Domain ID */
 };
 
 }
