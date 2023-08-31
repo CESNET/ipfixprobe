@@ -60,24 +60,16 @@ public:
    bool m_odid;
    bool m_eof;
    bool m_help;
-   uint64_t m_id;
-   uint8_t m_dir;
    int m_verbose;
 
    UnirecOptParser() : OptionsParser("unirec", "Output plugin for unirec export"),
-      m_ifc(""), m_odid(false), m_eof(false), m_help(false), m_id(DEFAULT_EXPORTER_ID), m_dir(0), m_verbose(0)
+      m_ifc(""), m_odid(false), m_eof(false), m_help(false), m_verbose(0)
    {
       register_option("i", "ifc", "SPEC", "libtrap interface specifier", [this](const char *arg){m_ifc = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("p", "plugins", "PLUGINS", "Specify plugin-interface mapping. Plugins can be grouped like '(p1,p2,p3),p4,(p5,p6)'",
          [this](const char *arg){try {m_ifc_map = parse_ifc_map(arg);} catch(ParserError &e) {return false;} return true;}, OptionFlags::RequiredArgument);
       register_option("o", "odid", "", "Export ODID field", [this](const char *arg){m_odid = true; return true;}, OptionFlags::NoArgument);
       register_option("e", "eof", "", "Send EOF message on exit", [this](const char *arg){m_eof = true; return true;}, OptionFlags::NoArgument);
-      register_option("I", "id", "NUM", "Exporter identification number",
-         [this](const char *arg){try {m_id = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
-      register_option("d", "dir", "NUM", "Dir bit field value",
-         [this](const char *arg){try {m_dir = str2num<decltype(m_dir)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
       register_option("h", "help", "", "Print libtrap help", [this](const char *arg){m_help = true; return true;}, OptionFlags::NoArgument);
       register_option("v", "verbose", "", "Increase verbosity", [this](const char *arg){m_verbose++; return true;}, OptionFlags::NoArgument);
    }
@@ -191,8 +183,6 @@ private:
 
    bool m_eof;                  /**< Send eof when module exits. */
    bool m_odid;            /**< Export ODID field instead of LINK_BIT_FIELD. */
-   uint64_t m_link_bit_field;   /**< Link bit field value. */
-   uint8_t m_dir_bit_field;     /**< Direction bit field value. */
 };
 
 }

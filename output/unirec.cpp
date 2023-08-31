@@ -81,8 +81,7 @@ UR_FIELDS (
  */
 UnirecExporter::UnirecExporter() : m_basic_idx(-1), m_ext_cnt(0),
    m_ifc_map(nullptr), m_tmplts(nullptr), m_records(nullptr), m_ifc_cnt(0),
-   m_ext_id_flgs(nullptr), m_eof(false), m_odid(false), m_link_bit_field(0),
-   m_dir_bit_field(0)
+   m_ext_id_flgs(nullptr), m_eof(false), m_odid(false)
 {
 }
 
@@ -166,8 +165,6 @@ void UnirecExporter::init(const char *params)
    }
    m_odid = parser.m_odid;
    m_eof = parser.m_eof;
-   m_link_bit_field = parser.m_id;
-   m_dir_bit_field = parser.m_dir;
    m_group_map = parser.m_ifc_map;
    m_ifc_cnt = init_trap(parser.m_ifc, parser.m_verbose);
    m_ext_cnt = get_extension_cnt();
@@ -412,11 +409,11 @@ void UnirecExporter::fill_basic_flow(const Flow &flow, ur_template_t *tmplt_ptr,
    ur_set(tmplt_ptr, record_ptr, F_TIME_LAST, tmp_time);
 
    if (m_odid) {
-      ur_set(tmplt_ptr, record_ptr, F_ODID, m_link_bit_field);
+      ur_set(tmplt_ptr, record_ptr, F_ODID, flow.odid);
    } else {
-      ur_set(tmplt_ptr, record_ptr, F_LINK_BIT_FIELD, m_link_bit_field);
+      ur_set(tmplt_ptr, record_ptr, F_LINK_BIT_FIELD, flow.odid);
    }
-   ur_set(tmplt_ptr, record_ptr, F_DIR_BIT_FIELD, m_dir_bit_field);
+   ur_set(tmplt_ptr, record_ptr, F_DIR_BIT_FIELD, flow.dir_bit_field);
    ur_set(tmplt_ptr, record_ptr, F_PROTOCOL, flow.ip_proto);
    ur_set(tmplt_ptr, record_ptr, F_SRC_PORT, flow.src_port);
    ur_set(tmplt_ptr, record_ptr, F_DST_PORT, flow.dst_port);
