@@ -22,7 +22,6 @@
  *    may be used to endorse or promote products derived from this
  *    software without specific prior written permission.
  */
- 
 #include <config.h>
 
 #ifdef WITH_DPDK
@@ -34,6 +33,7 @@
 
 #include <ipfixprobe/input.hpp>
 #include <ipfixprobe/utils.hpp>
+#include <ipfixprobe/output.hpp>
 
 #include <memory>
 #include <rte_mbuf.h>
@@ -76,10 +76,15 @@ private:
     }
 
 public:
+    uint64_t m_id;
+    uint32_t m_dir;
+
     DpdkOptParser()
         : OptionsParser("dpdk", "Input plugin for reading packets using DPDK interface")
         , pkt_buffer_size_(DEFAULT_MBUF_BURST_SIZE)
         , pkt_mempool_size_(DEFAULT_MBUF_POOL_SIZE)
+        , m_id(DEFAULT_EXPORTER_ID)
+        , m_dir(0)
     {
         register_option(
             "b",
@@ -110,11 +115,25 @@ public:
             [this](const char* arg) {try{rx_queues_ = str2num<decltype(rx_queues_)>(arg);} catch (std::invalid_argument&){return false;} return true; },
             RequiredArgument);
         register_option(
-            "e", 
-            "eal", 
-            "EAL", 
-            "DPDK eal", 
-            [this](const char *arg){eal_ = arg; return true;}, 
+            "e",
+            "eal",
+            "EAL",
+            "DPDK eal",
+            [this](const char *arg){eal_ = arg; return true;},
+            OptionFlags::RequiredArgument);
+        register_option(
+            "I",
+            "id",
+            "NUM",
+            "Exporter identification",
+            [this](const char *arg){try {m_id = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
+            OptionFlags::RequiredArgument);
+        register_option(
+            "d",
+            "dir",
+            "NUM",
+            "Dir bit field value",
+            [this](const char *arg){try {m_dir = str2num<decltype(m_dir)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
             OptionFlags::RequiredArgument);
     }
 
@@ -133,21 +152,21 @@ class DpdkCore {
 public:
     /**
      * @brief Configure dpdk port using user parameters
-     * 
+     *
      * @param params user paramameters
      */
     void configure(const char* params);
 
     /**
-     * @brief Get the DpdkReader Queue Id 
-     * 
+     * @brief Get the DpdkReader Queue Id
+     *
      * @return uint16_t rx queue id
      */
     uint16_t getRxQueueId() noexcept;
 
     /**
      * @brief Get the  Mbufs count to use
-     * 
+     *
      * @return uint16_t Mbufs count
      */
     uint16_t getMbufsCount() const noexcept;
@@ -170,7 +189,7 @@ public:
     {
         return m_dpdkDevices.size();
     }
-    
+
 private:
     std::vector<char *> convertStringToArgvFormat(const std::string& ealParams);
     void configureEal(const std::string& ealParams);
@@ -212,6 +231,9 @@ private:
     uint16_t m_rxQueueId;
     DpdkCore& m_dpdkCore;
     DpdkMbuf mBufs;
+
+    uint64_t m_id;
+    uint32_t m_dir;
 };
 
 }

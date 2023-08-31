@@ -246,9 +246,13 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
             rte_pktmbuf_mtod(mBufs[packetID], const std::uint8_t*),
             rte_pktmbuf_data_len(mBufs[packetID]),
             rte_pktmbuf_data_len(mBufs[packetID]));
+
         m_seen++;
         m_parsed++;
 #endif
+        auto& pkt = packets.pkts[packets.cnt - 1];
+        pkt.export_id = m_id;
+        pkt.export_dir = m_dir;
     }
 
     return Result::PARSED;
