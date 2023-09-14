@@ -568,6 +568,7 @@ uint16_t process_mpls_stack(const u_char *data_ptr, uint16_t data_len)
 uint16_t process_mpls(const u_char *data_ptr, uint16_t data_len, Packet *pkt)
 {
    Packet tmp;
+   pkt->mplsTop = ntohl(*reinterpret_cast<const uint32_t *>(data_ptr));
    uint16_t length = process_mpls_stack(data_ptr, data_len);
    uint8_t next_hdr = (*(data_ptr + length) & 0xF0) >> 4;
 
@@ -656,6 +657,7 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
    pkt->tcp_window = 0;
    pkt->tcp_options = 0;
    pkt->tcp_mss = 0;
+   pkt->mplsTop = 0;
 
    uint32_t l3_hdr_offset = 0;
    uint32_t l4_hdr_offset = 0;
