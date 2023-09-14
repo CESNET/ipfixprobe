@@ -134,7 +134,9 @@ ipfixprobe_process_src=\
 		process/nettisa.hpp \
 		process/nettisa.cpp \
 		process/flow_hash.hpp \
-		process/flow_hash.cpp
+		process/flow_hash.cpp \
+		process/mpls.hpp \
+		process/mpls.cpp
 
 if WITH_QUIC
 ipfixprobe_process_src+=\
