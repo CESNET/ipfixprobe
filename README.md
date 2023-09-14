@@ -651,6 +651,14 @@ List of fields exported together with basic flow fields on interface by flow_has
 |:------------------:|:------:|:---------------------------------:|
 | FLOW_ID            | uint64 | Hash of the flow - unique flow id |
 
+### MPLS
+
+List of fields exported together with basic flow fields on interface by mpls plugin.
+
+| Output field                 | Type  | Description                                      |
+|:----------------------------:|:-----:|:------------------------------------------------:|
+| MPLS_TOP_LABEL_STACK_SECTION | bytes | MPLS label section (without TTL), always 3 bytes |
+
 ## Simplified function diagram
 Diagram below shows how `ipfixprobe` works.
 
