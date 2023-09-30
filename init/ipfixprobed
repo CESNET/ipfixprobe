@@ -7,11 +7,38 @@ if [ -e "$CONFFILE" ]; then
    input=""
    dpdkinput=""
    if [ "$USE_DPDK" = "1" ]; then
+      # check
+      if [ -z "$DPDK_QUEUES_COUNT" ]; then
+         echo "Missing DPDK_QUEUES_COUNT in configuration of DPDK mode."
+         exit 1
+      fi
+
       # set up DPDK interface(s)
-      dpdkinput=("-i" "dpdk;p=$DPDK_PORT;q=$DPDK_QUEUES_COUNT;e=--lcores $DPDK_LCORES -a $DPDK_DEVICE")
-      for ((ifc=1; ifc<$DPDK_QUEUES_COUNT;ifc++)); do
-         dpdkinput+=("-i" "dpdk")
-      done
+      if [ "$DPDK_RING" = "1" ]; then
+         # checks
+         if [ -z "$DPDK_RING_PATTERN" ]; then
+            echo "Missing DPDK_RING_PATTERN in configuration of DPDK_RING mode."
+            exit 1
+         fi
+         if [ -z "$DPDK_RING_STARTIDX" ]; then
+            echo "Missing DPDK_RING_STARTIDX in configuration of DPDK_RING mode, using 0."
+            DPDK_RING_STARTIDX=0
+         fi
+         # mring interfaces
+         dpdkinput=("-i" "dpdk-ring;r=$(printf "$DPDK_RING_PATTERN" "$DPDK_RING_STARTIDX");e=--lcores $DPDK_LCORES $DPDK_EXTRA_EAL")
+         for ((ifc=($DPDK_RING_STARTIDX+1); ifc<($DPDK_RING_STARTIDX + $DPDK_QUEUES_COUNT);ifc++)); do
+            dpdkinput+=("-i" "dpdk-ring;r=$(printf "$DPDK_RING_PATTERN" "$ifc")")
+         done
+      else
+         # DPDK port interface
+         if [ -n "$DPDK_PORTOPTS" -a "${DPDK_PORTOPTS:0:1}" != ";" ]; then
+            DPDK_PORTOPTS=";$DPDK_PORTOPTS"
+         fi
+         dpdkinput=("-i" "dpdk;p=${DPDK_PORT}${DPDK_PORTOPTS};q=$DPDK_QUEUES_COUNT;e=--lcores $DPDK_LCORES $DPDK_EXTRA_EAL -a $DPDK_DEVICE")
+         for ((ifc=1; ifc<$DPDK_QUEUES_COUNT;ifc++)); do
+            dpdkinput+=("-i" "dpdk")
+         done
+      fi
    fi
    if `declare -p INPUT > /dev/null 2>/dev/null`; then
       # list of input plugins

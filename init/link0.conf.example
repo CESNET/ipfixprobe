@@ -58,21 +58,54 @@
 
 #USE_DPDK=1
 
-# Set PCIe address in the format <[domain:]bus:devid.func> for example:
-
-#DPDK_DEVICE=0000:43:00.0
+# Required: Set number of parallel queues (RSS feature):
+#DPDK_QUEUES_COUNT=8
 
 # Set mapping of DPDK lcores to threads:
+#DPDK_LCORES="(0-7)@(0,2,4,6,8,10,12,14)"
 
-#DPDK_LCORES="(0-7)@(0-7)"
+# Extra options for DPDK EAL, passed to e= option of `dpdk` or `dpdk-ring` plugin.
+# * Use --file-prefix to separate DPDK application into new namespace.
+# * Use --proc-type=secondary for Option B) to receive packets via mrings created
+#   by some other primary DPDK application.
+#DPDK_EXTRA_EAL="--file-prefix 0000:17:00.0_0 --proc-type=secondary"
 
-# Set network device port:
+# Additional options of DPDK plugin separated by `;`
+#    m ~ Size of the memory pool for received packets (only for Option A)
+#    b ~ Size of the MBUF packet buffer
+#DPDK_OPTS="m=2000;b=2048"
 
+#----------------------------------------
+# Option A) DPDK direct device
+#----------------------------------------
+
+# Required: Set PCIe address in the format <[domain:]bus:devid.func> for example:
+#DPDK_DEVICE="0000:43:00.0"
+
+# Note that DPDK_DEVICE can be extended by driver-specific parameters, e.g.:
+#
+#DPDK_DEVICE=0000:17:00.0,rxhdr_dynfield=1,reta_index_global=1,queue_driver=native
+#
+# this example shows parameters for FPGA firmware by CESNET:
+#  rxhdr_dynfield=1 ~ memory allocation
+#  reta_index_global=1 ~ enable redirection table to enhance RSS among multiple ports
+#  queue_driver=native ~ DPDK driver mode
+
+# Required: Set network device port, can be a list separated by comma:
 #DPDK_PORT=0
 
-# Set number of parallel queues (RSS feature)
+#----------------------------------------
+# Option B) DPDK mring input instead of DPDK_DEVICE
+#----------------------------------------
 
-#DPDK_QUEUES_COUNT=8
+# Enable option B) instead of A), receive packets via DPDK mrings
+#DPDK_RING=1
+
+# Required: set pattern to generate mring identifiers, use %i of printf format to place index:
+#DPDK_RING_PATTERN="rx_ipfixprobe_%i"
+
+# set starting index to generate mring identifiers (e.g., startidx=8 with DPDK_QUEUES_COUNT=4 makes indexes 8, 9, 10, 11)
+#DPDK_RING_STARTIDX=0
 
 #===================================================
 
