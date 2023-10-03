@@ -1,3 +1,26 @@
+2023-09-30 (Tomas Cejka): dpdk: propose new variables to control init by ipfixprobed
+2023-09-25 (Pavel Siska): ipfix-elements - add missing vlan plugin ipfix template
+2023-09-21 (Pavel Siska): stats - add missing include
+2023-09-13 (Karel Hynek): QUIC: Code reformat
+2023-09-13 (Karel Hynek): QUIC: Added buffer overflow checks
+2023-08-08 (Jakub Antonín Štigler): Plugin template - fix method specifiers
+2023-08-08 (Jakub Antonín Štigler): Flow Hash - update readme
+2023-08-08 (Jakub Antonín Štigler): Flow Hash - implement plugin
+2023-08-07 (Tomas Cejka): update debian package version
+2023-08-03 (Jakub Antonín Štigler): GRE - remove wrong throw in parser
+2023-08-03 (Jakub Antonín Štigler): Flow cache - export hash to flow
+2023-08-03 (Jakub Antonín Štigler): Flow - Add hash field
+2023-08-02 (Jakub Antonín Štigler): GRE: integrate into parser
+2023-08-02 (Jakub Antonín Štigler): GRE: parse gre protocol
+2023-08-01 (Jakub Antonín Štigler): VLAN: Update readme
+2023-08-01 (Jakub Antonín Štigler): VLAN: Update tests
+2023-08-01 (Jakub Antonín Štigler): VLAN: Implement plugin
+2023-07-27 (Karel Hynek): HTTP: Bugfix in IPFIX template.
+2023-07-25 (Karel Hynek): Nettisa: Added functional tests
+2023-07-24 (Karel Hynek): Nettisa: Removing one-packet nettisa flow export
+2023-07-12 (Jakub Antonín Štigler): icmp: fix byte order
+2023-06-15 (Jakub Antonín Štigler): VLAN: Add includes
+
 2023-07-20 (Josef Koumar): NetTiSA: Handle NaN values
 2023-07-18 (Pavel Siska): Nettisa - fix invalid time conversion
 2023-07-18 (Pavel Siska): utils - add function that convert struct timeval to microseconds

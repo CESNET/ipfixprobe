@@ -1,3 +1,12 @@
+2023-10-03 ipfixprobe-4.9.3
+	* dpdk: propose new variables to control init by ipfixprobed
+	* QUIC: bugfixes, code reformat
+	* update debian package version
+	* GRE: support parse GRE protocol
+	* HTTP: Bugfix in IPFIX template.
+	* Flow Hash: Added Flow Hash plugin which export flow hash value
+	* VLAN: Added Vlan plugin which export Vlan ID
+
 2023-07-21 ipfixprobe-4.9.2
 	* NetTiSA: Fix time comparison, handle Nan values
 
