@@ -1,3 +1,40 @@
+2023-10-03 (Tomas Cejka): Merge pull request #185 from CESNET/dpdkinit
+2023-09-30 (Tomas Cejka): dpdk: propose new variables to control init by ipfixprobed
+2023-09-25 (SiskaPavel): Merge pull request #184 from CESNET/vlan_plugin_ipfix_fix
+2023-09-25 (Pavel Siska): ipfix-elements - add missing vlan plugin ipfix template
+2023-09-21 (Tomas Cejka): Merge pull request #183 from CESNET/fix-build-fedora38+
+2023-09-21 (Pavel Siska): stats - add missing include
+2023-09-19 (Karel Hynek): Merge pull request #181 from CESNET/quic_fix
+2023-09-13 (Karel Hynek): QUIC: Code reformat
+2023-09-13 (Karel Hynek): QUIC: Added buffer overflow checks
+2023-08-08 (SiskaPavel): Merge pull request #176 from CESNET/flow-hash-plugin
+2023-08-08 (Jakub Antonín Štigler): Plugin template - fix method specifiers
+2023-08-08 (Jakub Antonín Štigler): Flow Hash - update readme
+2023-08-08 (Jakub Antonín Štigler): Flow Hash - implement plugin
+2023-08-07 (Tomas Cejka): Merge pull request #178 from CESNET/debupdate
+2023-08-07 (Tomas Cejka): update debian package version
+2023-08-04 (Tomas Cejka): Merge pull request #177 from CESNET/parse-gre
+2023-08-03 (Jakub Antonín Štigler): GRE - remove wrong throw in parser
+2023-08-03 (Jakub Antonín Štigler): Flow cache - export hash to flow
+2023-08-03 (Jakub Antonín Štigler): Flow - Add hash field
+2023-08-02 (SiskaPavel): Merge pull request #144 from BonnyAD9/support-gre-protocol
+2023-08-02 (SiskaPavel): Merge pull request #162 from BonnyAD9/export-vlan-id
+2023-08-02 (Jakub Antonín Štigler): Merge branch 'master' into export-vlan-id
+2023-08-02 (Jakub Antonín Štigler): GRE: integrate into parser
+2023-08-02 (Jakub Antonín Štigler): GRE: parse gre protocol
+2023-08-01 (Jakub Antonín Štigler): VLAN: Update readme
+2023-08-01 (Jakub Antonín Štigler): VLAN: Update tests
+2023-08-01 (Jakub Antonín Štigler): VLAN: Implement plugin
+2023-08-01 (SiskaPavel): Merge pull request #165 from BonnyAD9/icmp-plugin
+2023-07-27 (Karel Hynek): Merge pull request #175 from CESNET/http_ipfixtemplate_bugfix
+2023-07-27 (Karel Hynek): HTTP: Bugfix in IPFIX template.
+2023-07-25 (Karel Hynek): Merge pull request #174 from CESNET/nettisa_improvment
+2023-07-25 (Karel Hynek): Nettisa: Added functional tests
+2023-07-24 (Karel Hynek): Nettisa: Removing one-packet nettisa flow export
+2023-07-21 (SiskaPavel): Merge pull request #173 from CESNET/new_version
+2023-07-12 (Jakub Antonín Štigler): icmp: fix byte order
+2023-06-15 (Jakub Antonín Štigler): VLAN: Add includes
+
 2023-07-20 (Josef Koumar): NetTiSA: Handle NaN values
 2023-07-18 (Pavel Siska): Nettisa - fix invalid time conversion
 2023-07-18 (Pavel Siska): utils - add function that convert struct timeval to microseconds
