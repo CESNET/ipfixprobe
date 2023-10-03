@@ -124,6 +124,8 @@ This package contains header file for liburfilter.
 %attr(0755, root, nemead) %{_bindir}/ipfixprobed
 %{_sysconfdir}/bash_completion.d/ipfixprobe.bash
 %{_sysconfdir}/ipfixprobe/link0.conf.example
+%{_sysconfdir}/ipfixprobe/dpdk_direct.conf.example
+%{_sysconfdir}/ipfixprobe/dpdk_mring.conf.example
 %{_docdir}/ipfixprobe/README.md
 %if %{with ndp}
 %{_libdir}/libndpRI.so.0

@@ -1,0 +1,21 @@
+# See link0.conf.example for description of the options
+#######################################################
+
+USE_DPDK=1
+DPDK_RING=1
+DPDK_QUEUES_COUNT=8
+DPDK_LCORES="(0-7)@(0,2,4,6,8,10,12,14)"
+DPDK_EXTRA_EAL="--proc-type=secondary"
+DPDK_OPTS="b=2048"
+DPDK_RING_PATTERN="ipfixprobe_in_%i"
+DPDK_RING_STARTIDX=0
+PROCESS=(basicplus pstats tls quic http")
+CACHE_SIZE=17
+ACTIVE_TIMEOUT=300
+INACTIVE_TIMEOUT=65
+LINK=0
+DIR=0
+HOST=127.0.0.1
+PORT=4739
+UDP=yes
+
