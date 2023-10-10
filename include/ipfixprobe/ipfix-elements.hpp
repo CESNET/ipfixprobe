@@ -277,6 +277,8 @@ namespace ipxp {
 #define NTS_TIME_DISTRIBUTION(F)      F(8057,    1031,  4,    nullptr)
 #define NTS_SWITCHING_RATIO(F)        F(8057,    1032,  4,    nullptr)
 
+#define MPLS_TOP_LABEL_STACK_SECTION  F(0,         70,  -1,    nullptr)
+
 
 /**
  * IPFIX Templates - list of elements
@@ -533,6 +535,9 @@ namespace ipxp {
 
 #define IPFIX_FLOW_HASH_TEMPLATE(F) \
    F(FLOW_ID)
+
+#define IPFIX_MPLS_TEMPLATE(F) \
+   F(MPLS_TOP_LABEL_STACK_SECTION)
 
 #ifdef WITH_FLEXPROBE
 #define IPFIX_FLEXPROBE_DATA_TEMPLATE(F) F(FX_FRAME_SIGNATURE) F(FX_INPUT_INTERFACE)
