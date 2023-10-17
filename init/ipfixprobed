@@ -70,7 +70,7 @@ if [ -e "$CONFFILE" ]; then
    if [[ $UDP == "yes" ]]; then
         UDP_PARAM="udp";
    fi
-   output="-o ipfix;host=${HOST:-127.0.0.1};port=${PORT:-4739};id=${LINK:-0};dir=${DIR:-0};${UDP_PARAM}"
+   output="-o ipfix;host=${HOST:-127.0.0.1};port=${PORT:-4739};id=${LINK:-0};dir=${DIR:-0};${UDP_PARAM};template=${TEMPLATE_REFRESH_RATE:-300}"
 
    exec /usr/bin/ipfixprobe "${dpdkinput[@]}" $input $storage $process $output
 else
