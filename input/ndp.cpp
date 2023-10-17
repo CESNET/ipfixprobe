@@ -72,7 +72,11 @@ void NdpPacketReader::init(const char *params)
    if (parser.m_dev.empty()) {
       throw PluginError("specify device path");
    }
+
    init_ifc(parser.m_dev);
+
+   m_id = parser.m_id;
+   m_dir = parser.m_dir;
 }
 
 void NdpPacketReader::close()
@@ -107,6 +111,10 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
          // Error occured.
          throw PluginError(ndpReader.error_msg);
       }
+
+      packets.pkts[i].export_id = m_id;
+      packets.pkts[i].export_dir = m_dir;
+
       read_pkts++;
       packet_ndp_handler(&opt, ndp_packet, ndp_header);
    }

@@ -139,10 +139,9 @@ IPFIXExporter::IPFIXExporter() :
    fd(-1), addrinfo(nullptr),
    host(""), port(4739), protocol(IPPROTO_TCP),
    ip(AF_UNSPEC), flags(0),
-   reconnectTimeout(RECONNECT_TIMEOUT), lastReconnect(0), odid(0),
+   reconnectTimeout(RECONNECT_TIMEOUT), lastReconnect(0),
    templateRefreshTime(TEMPLATE_REFRESH_TIME),
    templateRefreshPackets(TEMPLATE_REFRESH_PACKETS),
-   dir_bit_field(0),
    mtu(DEFAULT_MTU), packetDataBuffer(nullptr),
    tmpltMaxBufferSize(mtu - IPFIX_HEADER_SIZE)
 {
@@ -168,9 +167,7 @@ void IPFIXExporter::init(const char *params)
 
    host = parser.m_host;
    port = parser.m_port;
-   odid = parser.m_id;
    mtu = parser.m_mtu;
-   dir_bit_field = parser.m_dir;
 
    if (parser.m_udp) {
       protocol = IPPROTO_UDP;
@@ -299,8 +296,8 @@ template_t *IPFIXExporter::get_template(const Flow &flow)
       }
       all_fields.push_back(nullptr);
 
-      tmpltMap[TMPLT_IDX_V4][tmpltIdx] = create_template(basic_tmplt_v4, all_fields.data());
-      tmpltMap[TMPLT_IDX_V6][tmpltIdx] = create_template(basic_tmplt_v6, all_fields.data());
+      tmpltMap[TMPLT_IDX_V4][tmpltIdx] = create_template(basic_tmplt_v4, all_fields.data(), flow);
+      tmpltMap[TMPLT_IDX_V6][tmpltIdx] = create_template(basic_tmplt_v6, all_fields.data(), flow);
    }
 
    return tmpltMap[ipTmpltIdx][tmpltIdx];
@@ -441,9 +438,10 @@ void IPFIXExporter::check_template_lifetime(template_t *tmpl)
  *
  * @param ptr Pointer to memory to fill. Should be at least 16 bytes long
  * @param size Size of the IPFIX packet not including the header.
+ * @param odid Obseravation domain id
  * @return Returns size of the header
  */
-int IPFIXExporter::fill_ipfix_header(uint8_t *ptr, uint16_t size)
+int IPFIXExporter::fill_ipfix_header(uint8_t *ptr, uint16_t size, uint32_t odid)
 {
    ipfix_header_t *header = (ipfix_header_t *)ptr;
 
@@ -511,7 +509,7 @@ void IPFIXExporter::expire_templates()
  * @param ext Template extension fields string
  * @return Created template on success, nullptr otherwise
  */
-template_t *IPFIXExporter::create_template(const char **tmplt, const char **ext)
+template_t *IPFIXExporter::create_template(const char **tmplt, const char **ext, const Flow &flow)
 {
    uint16_t maxID = FIRST_TEMPLATE_ID;
    uint16_t len;
@@ -525,6 +523,8 @@ template_t *IPFIXExporter::create_template(const char **tmplt, const char **ext)
       fprintf(stderr, "Error: Not enough memory for IPFIX template.\n");
       return nullptr;
    }
+
+   newTemplate->odid = flow.odid;
 
    newTemplate->fieldCount = 0;
    newTemplate->recordCount = 0;
@@ -668,7 +668,7 @@ uint16_t IPFIXExporter::create_template_packet(ipfix_packet_t *packet)
    ptr = packet->data;
 
    /* Create ipfix message header */
-   ptr += fill_ipfix_header(ptr, totalSize);
+   ptr += fill_ipfix_header(ptr, totalSize, templates->odid);
    /* Create template set header */
    ptr += fill_template_set_header(ptr, totalSize - IPFIX_HEADER_SIZE);
 
@@ -743,7 +743,7 @@ uint16_t IPFIXExporter::create_data_packet(ipfix_packet_t *packet)
    }
 
    /* Create ipfix message header at the beginning */
-   fill_ipfix_header(packet->data, totalSize);
+   fill_ipfix_header(packet->data, totalSize, templates->odid);
 
    /* Fill number of flows and size of the packet */
    packet->flows = deltaSequenceNum;

@@ -73,12 +73,10 @@ public:
    uint16_t m_port;
    uint16_t m_mtu;
    bool m_udp;
-   uint64_t m_id;
-   uint32_t m_dir;
    bool m_verbose;
 
    IpfixOptParser() : OptionsParser("ipfix", "Output plugin for ipfix export"),
-      m_host("127.0.0.1"), m_port(4739), m_mtu(DEFAULT_MTU), m_udp(false), m_id(DEFAULT_EXPORTER_ID), m_dir(0), m_verbose(false)
+      m_host("127.0.0.1"), m_port(4739), m_mtu(DEFAULT_MTU), m_udp(false), m_verbose(false)
    {
       register_option("h", "host", "ADDR", "Remote collector address", [this](const char *arg){m_host = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("p", "port", "PORT", "Remote collector port",
@@ -88,12 +86,6 @@ public:
          [this](const char *arg){try {m_mtu = str2num<decltype(m_mtu)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);
       register_option("u", "udp", "", "Use UDP protocol", [this](const char *arg){m_udp = true; return true;}, OptionFlags::NoArgument);
-      register_option("I", "id", "NUM", "Exporter identification",
-         [this](const char *arg){try {m_id = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
-      register_option("d", "dir", "NUM", "Dir bit field value",
-         [this](const char *arg){try {m_dir = str2num<decltype(m_dir)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
       register_option("v", "verbose", "", "Enable verbose mode", [this](const char *arg){m_verbose = true; return true;}, OptionFlags::NoArgument);
    }
 };
@@ -119,6 +111,7 @@ typedef struct template_t {
 	uint8_t exported; /**< 1 indicates that the template was exported to collector*/
 	time_t exportTime; /**< Time when the template was last exported */
 	uint64_t exportPacket; /**< Number of packet when the template was last exported */
+   uint32_t odid; /**< Observation Domain ID */
 	struct template_t *next;
 } template_t;
 
@@ -265,10 +258,8 @@ private:
 
    uint32_t reconnectTimeout; /**< Timeout between connection retries */
    time_t lastReconnect; /**< Time in seconds of last connection retry */
-   uint32_t odid; /**< Observation Domain ID */
    uint32_t templateRefreshTime; /**< UDP template refresh time interval */
    uint32_t templateRefreshPackets; /**< UDP template refresh packet interval */
-   uint32_t dir_bit_field;     /**< Direction bit field value. */
 
    uint16_t mtu; /**< Max size of packet payload sent */
    uint8_t *packetDataBuffer; /**< Data buffer to store packet */
@@ -277,10 +268,10 @@ private:
    void init_template_buffer(template_t *tmpl);
    int fill_template_set_header(uint8_t *ptr, uint16_t size);
    void check_template_lifetime(template_t *tmpl);
-   int fill_ipfix_header(uint8_t *ptr, uint16_t size);
+   int fill_ipfix_header(uint8_t *ptr, uint16_t size, uint32_t odid);
    template_file_record_t *get_template_record_by_name(const char *name);
    void expire_templates();
-   template_t *create_template(const char **tmplt, const char **ext);
+   template_t *create_template(const char **tmplt, const char **ext, const Flow &flow);
    uint16_t create_template_packet(ipfix_packet_t *packet);
    uint16_t create_data_packet(ipfix_packet_t *packet);
    void send_templates();

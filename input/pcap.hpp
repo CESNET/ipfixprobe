@@ -35,6 +35,7 @@
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/options.hpp>
 #include <ipfixprobe/utils.hpp>
+#include <ipfixprobe/output.hpp>
 
 namespace ipxp {
 
@@ -59,10 +60,11 @@ public:
    std::string m_filter;
    uint16_t m_snaplen;
    uint64_t m_id;
+   uint32_t m_dir;
    bool m_list;
 
    PcapOptParser() : OptionsParser("pcap", "Input plugin for reading packets from a pcap file or a network interface"),
-      m_file(""), m_ifc(""), m_filter(""), m_snaplen(-1), m_id(0), m_list(false)
+      m_file(""), m_ifc(""), m_filter(""), m_snaplen(-1), m_id(DEFAULT_EXPORTER_ID), m_dir(0), m_list(false)
    {
       register_option("f", "file", "PATH", "Path to a pcap file", [this](const char *arg){m_file = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("i", "ifc", "IFC", "Network interface name", [this](const char *arg){m_ifc = arg; return true;}, OptionFlags::RequiredArgument);
@@ -71,6 +73,12 @@ public:
          [this](const char *arg){try {m_snaplen = str2num<decltype(m_snaplen)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);
       register_option("l", "list", "", "Print list of available interfaces", [this](const char *arg){m_list = true; return true;}, OptionFlags::NoArgument);
+      register_option("I", "id", "NUM", "Exporter identification",
+         [this](const char *arg){try {m_id = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
+         OptionFlags::RequiredArgument);
+      register_option("d", "dir", "NUM", "Dir bit field value",
+         [this](const char *arg){try {m_dir = str2num<decltype(m_dir)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
+         OptionFlags::RequiredArgument);
    }
 };
 
@@ -95,6 +103,9 @@ private:
    int m_datalink;
    bool m_live;               /**< Capturing from network interface */
    bpf_u_int32 m_netmask;       /**< Network mask. Used when setting filter */
+
+   uint64_t m_id;
+   uint32_t m_dir;
 
    void open_file(const std::string &file);
    void open_ifc(const std::string &ifc);

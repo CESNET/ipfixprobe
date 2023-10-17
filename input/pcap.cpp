@@ -118,6 +118,9 @@ void PcapReader::init(const char *params)
    if (!parser.m_filter.empty()) {
       set_filter(parser.m_filter);
    }
+
+   m_id = parser.m_id;
+   m_dir = parser.m_dir;
 }
 
 void PcapReader::close()
@@ -255,6 +258,12 @@ InputPlugin::Result PcapReader::get(PacketBlock &packets)
 
    packets.cnt = 0;
    ret = pcap_dispatch(m_handle, PCAP_PACKET_BLOCK_SIZE, packet_handler, (u_char *) (&opt));
+
+   for (size_t i = 0; i < packets.cnt; ++i) {
+      packets.pkts[i].export_id = m_id;
+      packets.pkts[i].export_dir = m_dir;
+   }
+
    if (m_live) {
       if (ret == 0) {
          return Result::TIMEOUT;
