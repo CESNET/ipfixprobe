@@ -1,0 +1,32 @@
+---
+title: Get ipfixprobe
+heading: Start using ipfixprobe
+
+
+---
+
+{% for option in site.get_options  %}
+<section style="padding:0px; padding-bottom:100px">
+  <div class="container">
+    <div class="text editable">
+      
+      <h2 style="float:'left'">{{ option.title }}</h3>
+      <p>{{ option.description }}</p>
+    </div>
+    <hr>
+    {%if option.instructions %}
+      {% for instruction in option.instructions %}
+      <p>{{ instruction.description }}</p>
+      <span>
+        {% for line in instruction.code %}
+        <code>{{line}}</code> <br>
+        {% endfor %}
+      </span>
+      {% endfor %}
+
+      
+    {% endif %}
+  </div>
+  <hr>
+</section>
+{% endfor %}
