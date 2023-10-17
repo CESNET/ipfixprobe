@@ -75,10 +75,12 @@ public:
    bool m_udp;
    uint64_t m_id;
    uint32_t m_dir;
+   uint32_t m_template_refresh_time;
    bool m_verbose;
 
    IpfixOptParser() : OptionsParser("ipfix", "Output plugin for ipfix export"),
-      m_host("127.0.0.1"), m_port(4739), m_mtu(DEFAULT_MTU), m_udp(false), m_id(DEFAULT_EXPORTER_ID), m_dir(0), m_verbose(false)
+      m_host("127.0.0.1"), m_port(4739), m_mtu(DEFAULT_MTU), m_udp(false), m_id(DEFAULT_EXPORTER_ID), m_dir(0), 
+      m_template_refresh_time(TEMPLATE_REFRESH_TIME), m_verbose(false)
    {
       register_option("h", "host", "ADDR", "Remote collector address", [this](const char *arg){m_host = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("p", "port", "PORT", "Remote collector port",
@@ -94,6 +96,9 @@ public:
       register_option("d", "dir", "NUM", "Dir bit field value",
          [this](const char *arg){try {m_dir = str2num<decltype(m_dir)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);
+      register_option("t", "template", "NUM", "Template refresh rate (sec)",
+         [this](const char *arg){try {m_template_refresh_time = str2num<decltype(m_template_refresh_time)>(arg);} 
+         catch(std::invalid_argument &e) {return false;} return true;}, OptionFlags::RequiredArgument);
       register_option("v", "verbose", "", "Enable verbose mode", [this](const char *arg){m_verbose = true; return true;}, OptionFlags::NoArgument);
    }
 };

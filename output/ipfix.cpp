@@ -171,6 +171,7 @@ void IPFIXExporter::init(const char *params)
    odid = parser.m_id;
    mtu = parser.m_mtu;
    dir_bit_field = parser.m_dir;
+   templateRefreshTime = parser.m_template_refresh_time;
 
    if (parser.m_udp) {
       protocol = IPPROTO_UDP;
