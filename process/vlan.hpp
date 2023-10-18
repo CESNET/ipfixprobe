@@ -86,7 +86,7 @@ struct RecordExtVLAN : public RecordExt {
       }
 
       *reinterpret_cast<uint16_t *>(buffer) = htons(vlan_id);
-      return 0;
+      return LEN;
    }
 
    const char **get_ipfix_tmplt() const
