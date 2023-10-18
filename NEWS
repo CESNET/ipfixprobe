@@ -1,3 +1,12 @@
+2023-10-17 (Pavel Siska): ipfix - propose new variables (ipfix template refresh rate) to control init by ipfixprobed The description of new variables was added into link0.conf.example:     TEMPLATE_REFRESH_RATE
+2023-10-17 (Pavel Siska): ipfix - add configuration option for template refresh rate (UDP)
+2023-10-17 (Pavel Siska): vlan plugin: fix invalid return code from fill_ipfix()
+2023-09-14 (Jakub Antonín Štigler): mpls - add description to readme
+2023-09-14 (Jakub Antonín Štigler): Introduce mpls plugin
+2023-09-14 (Jakub Antonín Štigler): ipfix - Add mpls label element
+2023-09-14 (Jakub Antonín Štigler): Parser - extract mpls
+2023-09-14 (Jakub Antonín Štigler): Packet - Add mpls field
+
 2023-10-03 (Tomas Cejka): Merge pull request #185 from CESNET/dpdkinit
 2023-09-30 (Tomas Cejka): dpdk: propose new variables to control init by ipfixprobed
 2023-09-25 (SiskaPavel): Merge pull request #184 from CESNET/vlan_plugin_ipfix_fix

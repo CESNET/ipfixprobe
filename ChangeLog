@@ -1,3 +1,7 @@
+2023-10-18 ipfixprobe-4.11.0
+	* ipfix - propose new variable (ipfix template refresh rate)
+	* vlan plugin: fix ipfix output
+
 2023-10-03 ipfixprobe-4.10.0
 	* dpdk: improvement of config and init script
 	* QUIC: bugfixes and checks
