@@ -34,6 +34,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 #include <ipfixprobe/ipaddr.hpp>
 #include <ipfixprobe/flowifc.hpp>

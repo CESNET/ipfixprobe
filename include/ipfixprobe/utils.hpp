@@ -38,6 +38,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cstdint>
+#include <sys/time.h>
 
 namespace ipxp {
 
