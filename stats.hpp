@@ -29,47 +29,47 @@
 #ifndef IPXP_STATS_HPP
 #define IPXP_STATS_HPP
 
-#define SERVICE_WAIT_BEFORE_TIMEOUT 250000  ///< Timeout after EAGAIN or EWOULDBLOCK errno returned from service send() and recv().
-#define SERVICE_WAIT_MAX_TRY 8  ///< A maximal count of repeated timeouts per each service recv() and send() function call.
+#define SERVICE_WAIT_BEFORE_TIMEOUT                                                                \
+    250000 ///< Timeout after EAGAIN or EWOULDBLOCK errno returned from service send() and recv().
+#define SERVICE_WAIT_MAX_TRY                                                                       \
+    8 ///< A maximal count of repeated timeouts per each service recv() and send() function call.
 
 #define MSG_MAGIC 0xBEEFFEEB
 
 #include <cstdint>
 #include <string>
 
-namespace ipxp
-{
+namespace ipxp {
 
 struct InputStats {
-   uint64_t packets;
-   uint64_t parsed;
-   uint64_t bytes;
-   uint64_t qtime;
-   uint64_t dropped;
+    uint64_t packets;
+    uint64_t parsed;
+    uint64_t bytes;
+    uint64_t qtime;
+    uint64_t dropped;
 };
 
 struct OutputStats {
-   uint64_t biflows;
-   uint64_t bytes;
-   uint64_t packets;
-   uint64_t dropped;
+    uint64_t biflows;
+    uint64_t bytes;
+    uint64_t packets;
+    uint64_t dropped;
 };
 
-typedef struct msg_header_s
-{
-   uint32_t magic;
-   uint16_t size;
-   uint16_t inputs;
-   uint16_t outputs;
+typedef struct msg_header_s {
+    uint32_t magic;
+    uint16_t size;
+    uint16_t inputs;
+    uint16_t outputs;
 
-   // followed by arrays of plugin stats
+    // followed by arrays of plugin stats
 } msg_header_t;
 
-int connect_to_exporter(const char *path);
-int create_stats_sock(const char *path);
-int recv_data(int sd, uint32_t size, void *data);
-int send_data(int sd, uint32_t size, void *data);
-std::string create_sockpath(const char *id);
+int connect_to_exporter(const char* path);
+int create_stats_sock(const char* path);
+int recv_data(int sd, uint32_t size, void* data);
+int send_data(int sd, uint32_t size, void* data);
+std::string create_sockpath(const char* id);
 
-}
+} // namespace ipxp
 #endif /* IPXP_STATS_HPP */

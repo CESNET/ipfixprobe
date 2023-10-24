@@ -32,34 +32,32 @@
 
 #include <string>
 
-#include "plugin.hpp"
 #include "packet.hpp"
+#include "plugin.hpp"
 
 namespace ipxp {
 
 /**
  * \brief Base class for packet receivers.
  */
-class InputPlugin : public Plugin
-{
+class InputPlugin : public Plugin {
 public:
-   enum class Result {
-      TIMEOUT = 0,
-      PARSED,
-      NOT_PARSED,
-      END_OF_FILE,
-      ERROR
-   };
+    enum class Result { TIMEOUT = 0, PARSED, NOT_PARSED, END_OF_FILE, ERROR };
 
-   uint64_t m_seen;
-   uint64_t m_parsed;
-   uint64_t m_dropped;
+    uint64_t m_seen;
+    uint64_t m_parsed;
+    uint64_t m_dropped;
 
-   InputPlugin() : m_seen(0), m_parsed(0), m_dropped(0) {}
-   virtual ~InputPlugin() {}
+    InputPlugin()
+        : m_seen(0)
+        , m_parsed(0)
+        , m_dropped(0)
+    {
+    }
+    virtual ~InputPlugin() {}
 
-   virtual Result get(PacketBlock &packets) = 0;
+    virtual Result get(PacketBlock& packets) = 0;
 };
 
-}
+} // namespace ipxp
 #endif /* IPXP_INPUT_TEMPLATE_HPP */

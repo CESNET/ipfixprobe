@@ -36,68 +36,63 @@ int RecordExtBASICPLUS::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
-   static PluginRecord rec = PluginRecord("basicplus", [](){return new BASICPLUSPlugin();});
-   register_plugin(&rec);
-   RecordExtBASICPLUS::REGISTERED_ID = register_extension();
+    static PluginRecord rec = PluginRecord("basicplus", []() { return new BASICPLUSPlugin(); });
+    register_plugin(&rec);
+    RecordExtBASICPLUS::REGISTERED_ID = register_extension();
 }
 
-BASICPLUSPlugin::BASICPLUSPlugin()
-{
-}
+BASICPLUSPlugin::BASICPLUSPlugin() {}
 
 BASICPLUSPlugin::~BASICPLUSPlugin()
 {
-   close();
+    close();
 }
 
-void BASICPLUSPlugin::init(const char *params)
+void BASICPLUSPlugin::init(const char* params) {}
+
+void BASICPLUSPlugin::close() {}
+
+ProcessPlugin* BASICPLUSPlugin::copy()
 {
+    return new BASICPLUSPlugin(*this);
 }
 
-void BASICPLUSPlugin::close()
+int BASICPLUSPlugin::post_create(Flow& rec, const Packet& pkt)
 {
+    RecordExtBASICPLUS* p = new RecordExtBASICPLUS();
+
+    rec.add_extension(p);
+
+    p->ip_ttl[0] = pkt.ip_ttl;
+    p->ip_flg[0] = pkt.ip_flags;
+    p->tcp_mss[0] = pkt.tcp_mss;
+    p->tcp_opt[0] = pkt.tcp_options;
+    p->tcp_win[0] = pkt.tcp_window;
+    if (pkt.tcp_flags == 0x02) { // check syn packet
+        p->tcp_syn_size = pkt.ip_len;
+    }
+
+    return 0;
 }
 
-ProcessPlugin *BASICPLUSPlugin::copy()
+int BASICPLUSPlugin::pre_update(Flow& rec, Packet& pkt)
 {
-   return new BASICPLUSPlugin(*this);
+    RecordExtBASICPLUS* p
+        = (RecordExtBASICPLUS*) rec.get_extension(RecordExtBASICPLUS::REGISTERED_ID);
+    uint8_t dir = pkt.source_pkt ? 0 : 1;
+
+    if (p->ip_ttl[dir] < pkt.ip_ttl) {
+        p->ip_ttl[dir] = pkt.ip_ttl;
+    }
+    if (dir && !p->dst_filled) {
+        p->ip_ttl[1] = pkt.ip_ttl;
+        p->ip_flg[1] = pkt.ip_flags;
+        p->tcp_mss[1] = pkt.tcp_mss;
+        p->tcp_opt[1] = pkt.tcp_options;
+        p->tcp_win[1] = pkt.tcp_window;
+        p->dst_filled = true;
+    }
+    return 0;
 }
 
-int BASICPLUSPlugin::post_create(Flow &rec, const Packet &pkt)
-{
-   RecordExtBASICPLUS *p = new RecordExtBASICPLUS();
-
-   rec.add_extension(p);
-
-   p->ip_ttl[0]  = pkt.ip_ttl;
-   p->ip_flg[0]  = pkt.ip_flags;
-   p->tcp_mss[0] = pkt.tcp_mss;
-   p->tcp_opt[0] = pkt.tcp_options;
-   p->tcp_win[0] = pkt.tcp_window;
-   if (pkt.tcp_flags == 0x02) { // check syn packet
-      p->tcp_syn_size = pkt.ip_len;
-   }
-
-   return 0;
-}
-
-int BASICPLUSPlugin::pre_update(Flow &rec, Packet &pkt)
-{
-   RecordExtBASICPLUS *p = (RecordExtBASICPLUS *) rec.get_extension(RecordExtBASICPLUS::REGISTERED_ID);
-   uint8_t dir = pkt.source_pkt ? 0 : 1;
-
-   if (p->ip_ttl[dir] < pkt.ip_ttl) {
-      p->ip_ttl[dir] = pkt.ip_ttl;
-   }
-   if (dir && !p->dst_filled) {
-      p->ip_ttl[1]  = pkt.ip_ttl;
-      p->ip_flg[1]  = pkt.ip_flags;
-      p->tcp_mss[1] = pkt.tcp_mss;
-      p->tcp_opt[1] = pkt.tcp_options;
-      p->tcp_win[1] = pkt.tcp_window;
-      p->dst_filled = true;
-   }
-   return 0;
-}
-
-}
+} // namespace ipxp

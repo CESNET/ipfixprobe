@@ -29,47 +29,51 @@
 #ifndef IPXP_PLUGIN_MANAGER_HPP
 #define IPXP_PLUGIN_MANAGER_HPP
 
-#include <functional>
 #include <exception>
+#include <functional>
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 
 #include <ipfixprobe/plugin.hpp>
 
 namespace ipxp {
 
-class PluginManagerError : public std::runtime_error
-{
+class PluginManagerError : public std::runtime_error {
 public:
-   explicit PluginManagerError(const std::string &msg) : std::runtime_error(msg) {}
-   explicit PluginManagerError(const char *msg) : std::runtime_error(msg) {}
+    explicit PluginManagerError(const std::string& msg)
+        : std::runtime_error(msg)
+    {
+    }
+    explicit PluginManagerError(const char* msg)
+        : std::runtime_error(msg)
+    {
+    }
 };
 
 // TODO: should be singleton
-class PluginManager
-{
+class PluginManager {
 public:
-   PluginManager();
-   ~PluginManager();
-   void register_plugin(const std::string &name, PluginGetter g);
-   Plugin *get(const std::string &name);
-   std::vector<Plugin *> get() const;
-   Plugin *load(const std::string &name);
+    PluginManager();
+    ~PluginManager();
+    void register_plugin(const std::string& name, PluginGetter g);
+    Plugin* get(const std::string& name);
+    std::vector<Plugin*> get() const;
+    Plugin* load(const std::string& name);
 
 private:
-   struct LoadedPlugin {
-      void *m_handle;
-      std::string m_file;
-   };
+    struct LoadedPlugin {
+        void* m_handle;
+        std::string m_file;
+    };
 
-   std::map<std::string, PluginGetter> m_getters;
-   std::vector<LoadedPlugin> m_loaded_so;
-   PluginRecord *m_last_rec;
+    std::map<std::string, PluginGetter> m_getters;
+    std::vector<LoadedPlugin> m_loaded_so;
+    PluginRecord* m_last_rec;
 
-   void unload();
-   void register_loaded_plugins();
+    void unload();
+    void register_loaded_plugins();
 };
 
-}
+} // namespace ipxp
 #endif /* IPXP_PLUGIN_MANAGER_HPP */

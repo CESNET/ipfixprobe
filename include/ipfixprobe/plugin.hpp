@@ -36,55 +36,74 @@
 namespace ipxp {
 
 class Plugin;
-typedef std::function<Plugin *()> PluginGetter;
+typedef std::function<Plugin*()> PluginGetter;
 
 struct PluginRecord {
-   std::string m_name;
-   PluginGetter m_getter;
-   PluginRecord *m_next;
+    std::string m_name;
+    PluginGetter m_getter;
+    PluginRecord* m_next;
 
-   PluginRecord(const std::string &name, PluginGetter getter)
-      : m_name(name), m_getter(getter), m_next(nullptr)
-   {
-   }
+    PluginRecord(const std::string& name, PluginGetter getter)
+        : m_name(name)
+        , m_getter(getter)
+        , m_next(nullptr)
+    {
+    }
 };
 
-void register_plugin(PluginRecord *rec);
+void register_plugin(PluginRecord* rec);
 
-class Plugin
-{
+class Plugin {
 public:
-   Plugin() {}
-   virtual ~Plugin() {}
+    Plugin() {}
+    virtual ~Plugin() {}
 
-   virtual void init(const char *params) {}
-   virtual void close() {}
+    virtual void init(const char* params) {}
+    virtual void close() {}
 
-   virtual OptionsParser *get_parser() const = 0;
-   virtual std::string get_name() const = 0;
+    virtual OptionsParser* get_parser() const = 0;
+    virtual std::string get_name() const = 0;
 };
 
-class PluginException : public std::runtime_error
-{
+class PluginException : public std::runtime_error {
 public:
-   explicit PluginException(const std::string &msg) : std::runtime_error(msg) {}
-   explicit PluginException(const char *msg) : std::runtime_error(msg) {}
+    explicit PluginException(const std::string& msg)
+        : std::runtime_error(msg)
+    {
+    }
+    explicit PluginException(const char* msg)
+        : std::runtime_error(msg)
+    {
+    }
 };
 
-class PluginError : public PluginException
-{
+class PluginError : public PluginException {
 public:
-   explicit PluginError(const std::string &msg) : PluginException(msg) {}
-   explicit PluginError(const char *msg) : PluginException(msg) {}
+    explicit PluginError(const std::string& msg)
+        : PluginException(msg)
+    {
+    }
+    explicit PluginError(const char* msg)
+        : PluginException(msg)
+    {
+    }
 };
 
-class PluginExit : public PluginException
-{
+class PluginExit : public PluginException {
 public:
-   explicit PluginExit(const std::string &msg) : PluginException(msg) {}
-   explicit PluginExit(const char *msg) : PluginException(msg) {}
-   explicit PluginExit() : PluginException("") {}
+    explicit PluginExit(const std::string& msg)
+        : PluginException(msg)
+    {
+    }
+    explicit PluginExit(const char* msg)
+        : PluginException(msg)
+    {
+    }
+    explicit PluginExit()
+        : PluginException("")
+    {
+    }
 };
 
-}
+} // namespace ipxp
 #endif /* IPXE_PLUGIN_HPP */

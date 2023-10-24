@@ -25,11 +25,11 @@
  */
 #include <cstring>
 #include <mutex>
+#include <rte_eal.h>
+#include <rte_errno.h>
 #include <rte_ethdev.h>
 #include <rte_version.h>
 #include <unistd.h>
-#include <rte_eal.h>
-#include <rte_errno.h>
 
 #include "dpdk-ring.h"
 #include "parser.hpp"
@@ -41,9 +41,9 @@ __attribute__((constructor)) static void register_this_plugin()
     register_plugin(&rec);
 }
 
-DpdkRingCore *DpdkRingCore::m_instance = nullptr;
+DpdkRingCore* DpdkRingCore::m_instance = nullptr;
 
-DpdkRingCore &DpdkRingCore::getInstance()
+DpdkRingCore& DpdkRingCore::getInstance()
 {
     if (!m_instance) {
         m_instance = new DpdkRingCore();
@@ -65,7 +65,8 @@ void DpdkRingCore::deinit()
     }
 }
 
-void DpdkRingCore::configure(const char* params) {
+void DpdkRingCore::configure(const char* params)
+{
     if (isConfigured) {
         return;
     }
@@ -80,15 +81,15 @@ void DpdkRingCore::configure(const char* params) {
     isConfigured = true;
 }
 
-std::vector<char *> DpdkRingCore::convertStringToArgvFormat(const std::string& ealParams)
+std::vector<char*> DpdkRingCore::convertStringToArgvFormat(const std::string& ealParams)
 {
     // set first value as program name (argv[0])
-    std::vector<char *> args = {"ipfixprobe"};
+    std::vector<char*> args = {"ipfixprobe"};
     std::istringstream iss(ealParams);
     std::string token;
 
-    while(iss >> token) {
-        char *arg = new char[token.size() + 1];
+    while (iss >> token) {
+        char* arg = new char[token.size() + 1];
         copy(token.begin(), token.end(), arg);
         arg[token.size()] = '\0';
         args.push_back(arg);
@@ -98,7 +99,7 @@ std::vector<char *> DpdkRingCore::convertStringToArgvFormat(const std::string& e
 
 void DpdkRingCore::configureEal(const std::string& ealParams)
 {
-    std::vector<char *> args = convertStringToArgvFormat(ealParams);
+    std::vector<char*> args = convertStringToArgvFormat(ealParams);
 
     if (rte_eal_init(args.size(), args.data()) < 0) {
         rte_exit(EXIT_FAILURE, "Cannot initialize RTE_EAL: %s\n", rte_strerror(rte_errno));
@@ -157,7 +158,7 @@ struct timeval DpdkRingReader::getTimestamp(rte_mbuf* mbuf)
     return tv;
 }
 
-InputPlugin::Result DpdkRingReader::get(PacketBlock& packets) 
+InputPlugin::Result DpdkRingReader::get(PacketBlock& packets)
 {
     while (is_reader_ready == false) {
         usleep(1000);
@@ -178,7 +179,8 @@ InputPlugin::Result DpdkRingReader::get(PacketBlock& packets)
         return Result::TIMEOUT;
     }
     for (auto i = 0; i < pkts_read_; i++) {
-        parse_packet(&opt,
+        parse_packet(
+            &opt,
             getTimestamp(mbufs_[i]),
             rte_pktmbuf_mtod(mbufs_[i], const std::uint8_t*),
             rte_pktmbuf_data_len(mbufs_[i]),

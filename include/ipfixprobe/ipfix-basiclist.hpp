@@ -30,40 +30,40 @@
 #define IPFIXBASICLIST
 
 #include <arpa/inet.h>
-#include <sys/time.h>
 #include <cstring>
 #include <ipfixprobe/byte-utils.hpp>
+#include <sys/time.h>
 
 namespace ipxp {
 
 struct IpfixBasicList {
 public:
-   static const uint8_t IpfixBasicListRecordHdrSize = 12;
-   static const uint8_t IpfixBasicListHdrSize       = 9;
-   static const uint8_t flag        = 255; // Maximum size see rfc631;
-   static const uint8_t hdrSemantic = 3;
+    static const uint8_t IpfixBasicListRecordHdrSize = 12;
+    static const uint8_t IpfixBasicListHdrSize = 9;
+    static const uint8_t flag = 255; // Maximum size see rfc631;
+    static const uint8_t hdrSemantic = 3;
 
-   enum ePEMNumber {
-      CesnetPEM = 8057,
-   };
+    enum ePEMNumber {
+        CesnetPEM = 8057,
+    };
 
-   ePEMNumber hdrEnterpriseNum;
+    ePEMNumber hdrEnterpriseNum;
 
+    static uint64_t Tv2Ts(timeval input);
 
-   static uint64_t Tv2Ts(timeval input);
-
-   int32_t HeaderSize();
-   int32_t FillBuffer(uint8_t *buffer, uint16_t *values, uint16_t len, uint16_t fieldID);
-   int32_t FillBuffer(uint8_t *buffer, int16_t *values, uint16_t len, uint16_t fieldID);
-   int32_t FillBuffer(uint8_t *buffer, uint32_t *values, uint16_t len, uint16_t fieldID);
-   int32_t FillBuffer(uint8_t *buffer, int32_t *values, uint16_t len, uint16_t fieldID);
-   int32_t FillBuffer(uint8_t *buffer, struct timeval *values, uint16_t len, uint16_t fieldID);
-   int32_t FillBuffer(uint8_t *buffer, uint8_t *values, uint16_t len, uint16_t fieldID);
-   int32_t FillBuffer(uint8_t *buffer, int8_t *values, uint16_t len, uint16_t fieldID);
+    int32_t HeaderSize();
+    int32_t FillBuffer(uint8_t* buffer, uint16_t* values, uint16_t len, uint16_t fieldID);
+    int32_t FillBuffer(uint8_t* buffer, int16_t* values, uint16_t len, uint16_t fieldID);
+    int32_t FillBuffer(uint8_t* buffer, uint32_t* values, uint16_t len, uint16_t fieldID);
+    int32_t FillBuffer(uint8_t* buffer, int32_t* values, uint16_t len, uint16_t fieldID);
+    int32_t FillBuffer(uint8_t* buffer, struct timeval* values, uint16_t len, uint16_t fieldID);
+    int32_t FillBuffer(uint8_t* buffer, uint8_t* values, uint16_t len, uint16_t fieldID);
+    int32_t FillBuffer(uint8_t* buffer, int8_t* values, uint16_t len, uint16_t fieldID);
 
 private:
-   int32_t FillBufferHdr(uint8_t *buffer, uint16_t length, uint16_t elementLength, uint16_t fieldID);
+    int32_t
+    FillBufferHdr(uint8_t* buffer, uint16_t length, uint16_t elementLength, uint16_t fieldID);
 };
 
-}
+} // namespace ipxp
 #endif // ifndef IPFIXBASICLIST

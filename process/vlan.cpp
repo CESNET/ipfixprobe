@@ -36,23 +36,22 @@ int RecordExtVLAN::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
-   static PluginRecord rec = PluginRecord("vlan", [](){return new VLANPlugin();});
-   register_plugin(&rec);
-   RecordExtVLAN::REGISTERED_ID = register_extension();
+    static PluginRecord rec = PluginRecord("vlan", []() { return new VLANPlugin(); });
+    register_plugin(&rec);
+    RecordExtVLAN::REGISTERED_ID = register_extension();
 }
 
-ProcessPlugin *VLANPlugin::copy()
+ProcessPlugin* VLANPlugin::copy()
 {
-   return new VLANPlugin(*this);
+    return new VLANPlugin(*this);
 }
 
-int VLANPlugin::post_create(Flow &rec, const Packet &pkt)
+int VLANPlugin::post_create(Flow& rec, const Packet& pkt)
 {
-   auto ext = new RecordExtVLAN();
-   ext->vlan_id = pkt.vlan_id;
-   rec.add_extension(ext);
-   return 0;
+    auto ext = new RecordExtVLAN();
+    ext->vlan_id = pkt.vlan_id;
+    rec.add_extension(ext);
+    return 0;
 }
 
-}
-
+} // namespace ipxp

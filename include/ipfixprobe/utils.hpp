@@ -29,26 +29,31 @@
 #ifndef IPXP_UTILS_HPP
 #define IPXP_UTILS_HPP
 
-#include <type_traits>
-#include <set>
-#include <string>
-#include <limits>
-#include <cctype>
-#include <utility>
 #include <algorithm>
-#include <stdexcept>
+#include <cctype>
 #include <cstdint>
+#include <limits>
+#include <set>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <utility>
 
 namespace ipxp {
 
-void parse_range(const std::string &arg, std::string &from, std::string &to, const std::string &delim = "-");
+void parse_range(
+    const std::string& arg,
+    std::string& from,
+    std::string& to,
+    const std::string& delim = "-");
 bool str2bool(std::string str);
-void trim_str(std::string &str);
+void trim_str(std::string& str);
 uint32_t variable2ipfix_buffer(uint8_t* buffer2write, uint8_t* buffer2read, uint16_t len);
 
-template<typename T> constexpr
-T const& max(const T &a, const T &b) {
-  return a > b ? a : b;
+template<typename T>
+constexpr T const& max(const T& a, const T& b)
+{
+    return a > b ? a : b;
 }
 
 /*
@@ -59,91 +64,88 @@ T const& max(const T &a, const T &b) {
 template<typename T>
 static constexpr unsigned bitcount(T num)
 {
-   static_assert(!std::is_signed<T>(), "bitcount function is for unsigned types only");
-   return num == 0 ? 0 : (bitcount<T>(num >> 1) + (num & 1));
+    static_assert(!std::is_signed<T>(), "bitcount function is for unsigned types only");
+    return num == 0 ? 0 : (bitcount<T>(num >> 1) + (num & 1));
 }
 
-template <typename T>
+template<typename T>
 static constexpr bool is_fpoint()
 {
-   return std::is_floating_point<T>();
+    return std::is_floating_point<T>();
 }
 
-template <typename T>
+template<typename T>
 static constexpr bool is_uint()
 {
-   return std::is_integral<T>() && std::is_unsigned<T>();
+    return std::is_integral<T>() && std::is_unsigned<T>();
 }
 
-template <typename T>
+template<typename T>
 static constexpr bool is_sint()
 {
-   return std::is_integral<T>() && std::is_signed<T>();
+    return std::is_integral<T>() && std::is_signed<T>();
 }
 
 // Use of SFINAE to implement specific conversion function variants
 
-template <typename T>
-T str2num(std::string str, typename std::enable_if<is_fpoint<T>()>::type * = nullptr)
+template<typename T>
+T str2num(std::string str, typename std::enable_if<is_fpoint<T>()>::type* = nullptr)
 {
-   size_t pos;
-   double tmp;
+    size_t pos;
+    double tmp;
 
-   trim_str(str);
-   try {
-      tmp = std::stold(str, &pos);
-   } catch (std::out_of_range &e) {
-      throw std::invalid_argument(str);
-   }
-   if (pos != str.size() ||
-      tmp < std::numeric_limits<T>::min() ||
-      tmp > std::numeric_limits<T>::max()) {
-      throw std::invalid_argument(str);
-   }
+    trim_str(str);
+    try {
+        tmp = std::stold(str, &pos);
+    } catch (std::out_of_range& e) {
+        throw std::invalid_argument(str);
+    }
+    if (pos != str.size() || tmp < std::numeric_limits<T>::min()
+        || tmp > std::numeric_limits<T>::max()) {
+        throw std::invalid_argument(str);
+    }
 
-   return static_cast<T>(tmp);
+    return static_cast<T>(tmp);
 }
 
-template <typename T>
-T str2num(std::string str, typename std::enable_if<is_sint<T>()>::type * = nullptr)
+template<typename T>
+T str2num(std::string str, typename std::enable_if<is_sint<T>()>::type* = nullptr)
 {
-   long long tmp;
-   size_t pos;
+    long long tmp;
+    size_t pos;
 
-   trim_str(str);
-   try {
-      tmp = std::stoll(str, &pos, 0);
-   } catch (std::out_of_range &e) {
-      throw std::invalid_argument(str);
-   }
-   if (pos != str.size() ||
-      tmp < std::numeric_limits<T>::min() ||
-      tmp > std::numeric_limits<T>::max()) {
-      throw std::invalid_argument(str);
-   }
+    trim_str(str);
+    try {
+        tmp = std::stoll(str, &pos, 0);
+    } catch (std::out_of_range& e) {
+        throw std::invalid_argument(str);
+    }
+    if (pos != str.size() || tmp < std::numeric_limits<T>::min()
+        || tmp > std::numeric_limits<T>::max()) {
+        throw std::invalid_argument(str);
+    }
 
-   return static_cast<T>(tmp);
+    return static_cast<T>(tmp);
 }
 
-template <typename T>
-T str2num(std::string str, typename std::enable_if<is_uint<T>()>::type * = nullptr)
+template<typename T>
+T str2num(std::string str, typename std::enable_if<is_uint<T>()>::type* = nullptr)
 {
-   unsigned long long tmp;
-   size_t pos;
+    unsigned long long tmp;
+    size_t pos;
 
-   trim_str(str);
-   try {
-      tmp = std::stoull(str, &pos, 0);
-   } catch (std::out_of_range &e) {
-      throw std::invalid_argument(str);
-   }
-   if (pos != str.size() ||
-      tmp < std::numeric_limits<T>::min() ||
-      tmp > std::numeric_limits<T>::max()) {
-      throw std::invalid_argument(str);
-   }
+    trim_str(str);
+    try {
+        tmp = std::stoull(str, &pos, 0);
+    } catch (std::out_of_range& e) {
+        throw std::invalid_argument(str);
+    }
+    if (pos != str.size() || tmp < std::numeric_limits<T>::min()
+        || tmp > std::numeric_limits<T>::max()) {
+        throw std::invalid_argument(str);
+    }
 
-   return static_cast<T>(tmp);
+    return static_cast<T>(tmp);
 }
 
 /**
@@ -151,6 +153,6 @@ T str2num(std::string str, typename std::enable_if<is_uint<T>()>::type * = nullp
  */
 uint64_t timeval2usec(const struct timeval& tv);
 
-}
+} // namespace ipxp
 
 #endif /* IPXP_UTILS_HPP */

@@ -28,50 +28,50 @@
 namespace ipxp {
 
 DpdkMbuf::DpdkMbuf(size_t mBufsCount)
-	: m_mBufsCount(mBufsCount)
-	, m_mBufsInUse(0)
+    : m_mBufsCount(mBufsCount)
+    , m_mBufsInUse(0)
 {
-	m_mBufs.resize(mBufsCount);
+    m_mBufs.resize(mBufsCount);
 }
 
 void DpdkMbuf::resize(size_t mBufsCount)
 {
-	releaseMbufs();
-	m_mBufs.resize(mBufsCount);
-	m_mBufsCount = mBufsCount;
+    releaseMbufs();
+    m_mBufs.resize(mBufsCount);
+    m_mBufsCount = mBufsCount;
 }
 
 void DpdkMbuf::setMbufsInUse(size_t mBufsInUse) noexcept
 {
-	m_mBufsInUse = mBufsInUse;
+    m_mBufsInUse = mBufsInUse;
 }
 
 DpdkMbuf::~DpdkMbuf()
 {
-	releaseMbufs();
+    releaseMbufs();
 }
 
 uint16_t DpdkMbuf::maxSize() const noexcept
 {
-	return m_mBufsCount;
+    return m_mBufsCount;
 }
 
 uint16_t DpdkMbuf::size() const noexcept
 {
-	return m_mBufsInUse;
+    return m_mBufsInUse;
 }
 
 rte_mbuf** DpdkMbuf::data()
 {
-	return m_mBufs.data();
+    return m_mBufs.data();
 }
 
 void DpdkMbuf::releaseMbufs()
 {
-	for (auto mBufID = 0; mBufID < m_mBufsInUse; mBufID++) {
-		rte_pktmbuf_free(m_mBufs[mBufID]);
-	}
-	m_mBufsInUse = 0;
+    for (auto mBufID = 0; mBufID < m_mBufsInUse; mBufID++) {
+        rte_pktmbuf_free(m_mBufs[mBufID]);
+    }
+    m_mBufsInUse = 0;
 }
 
 } // namespace ipxp

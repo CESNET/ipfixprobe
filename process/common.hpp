@@ -35,7 +35,7 @@ namespace ipxp {
 
 static inline bool check_payload_len(size_t payload_len, size_t required_len) noexcept
 {
-   return payload_len < required_len;
+    return payload_len < required_len;
 }
 
 /**
@@ -45,31 +45,30 @@ static inline bool check_payload_len(size_t payload_len, size_t required_len) no
  * \param str1 C string to be scanned.
  * \param str2 C string containing the sequence of characters to match.
  * \param len Number of bytes to be analyzed.
- * 
+ *
  * \return A pointer to the first occurrence of string in str1.
  *         If the string is not found, the function returns a null pointer.
  */
-static inline const char *
-strnstr(const char *str1, const char *str2, size_t len) noexcept
+static inline const char* strnstr(const char* str1, const char* str2, size_t len) noexcept
 {
-   char c, sc;
-   size_t slen;
+    char c, sc;
+    size_t slen;
 
-   if ((c = *str2++) != '\0') {
-      slen = strlen(str2);
-      do {
-         do {
-            if (len-- < 1 || (sc = *str1++) == '\0')
-               return (NULL);
-         } while (sc != c);
-         if (slen > len)
-            return (NULL);
-      } while (strncmp(str1, str2, slen) != 0);
-      str1--;
-   }
-   return ((char *)str1);
+    if ((c = *str2++) != '\0') {
+        slen = strlen(str2);
+        do {
+            do {
+                if (len-- < 1 || (sc = *str1++) == '\0')
+                    return (NULL);
+            } while (sc != c);
+            if (slen > len)
+                return (NULL);
+        } while (strncmp(str1, str2, slen) != 0);
+        str1--;
+    }
+    return ((char*) str1);
 }
 
-}
+} // namespace ipxp
 
 #endif /* IPXP_PROCESS_COMMON_HPP */

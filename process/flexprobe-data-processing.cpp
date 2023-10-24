@@ -34,9 +34,10 @@ int FlexprobeData::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
-   static PluginRecord rec = PluginRecord("flexprobe-data", [](){return new FlexprobeDataProcessing();});
-   register_plugin(&rec);
+    static PluginRecord rec
+        = PluginRecord("flexprobe-data", []() { return new FlexprobeDataProcessing(); });
+    register_plugin(&rec);
     FlexprobeData::REGISTERED_ID = register_extension();
 }
 
-}
+} // namespace ipxp
