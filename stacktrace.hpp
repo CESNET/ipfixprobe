@@ -33,5 +33,5 @@ namespace ipxp {
 
 void st_dump(int fd, int sig);
 
-}
+} // namespace ipxp
 #endif /* IPXP_STACKTRACE_HPP */

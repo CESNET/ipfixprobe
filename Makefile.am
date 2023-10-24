@@ -275,6 +275,17 @@ clean-local:
 	fi
 endif
 
+SOURCE_DIR = .
+SOURCE_REGEX = '.*\.\(cpp\|hpp\)'
+
+.PHONY: format-check
+format-check:
+	find $(SOURCE_DIR) -type f -regex $(SOURCE_REGEX) -print0 | xargs -0 clang-format --dry-run
+
+.PHONY: format-fix
+format-fix:
+	find $(SOURCE_DIR) -type f -regex $(SOURCE_REGEX) -print0 | xargs -0 clang-format -i
+
 RPMDIR = RPMBUILD
 
 if MAKE_RPMS

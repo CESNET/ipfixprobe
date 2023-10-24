@@ -74,118 +74,121 @@ using dir_t = uint8_t;
  * \brief Flow record extension header for storing parsed SSADETECTOR data.
  */
 struct RecordExtSSADetector : public RecordExt {
-   static int REGISTERED_ID;
+    static int REGISTERED_ID;
 
-   struct pkt_entry {
-      pkt_entry();
-      void reset();
-      timeval& get_time(dir_t dir);
+    struct pkt_entry {
+        pkt_entry();
+        void reset();
+        timeval& get_time(dir_t dir);
 
-      timeval ts_dir1;
-      timeval ts_dir2;
-   };
+        timeval ts_dir1;
+        timeval ts_dir2;
+    };
 
-   struct pkt_table {
-  public:
-      pkt_entry table_[PKT_TABLE_SIZE];
+    struct pkt_table {
+    public:
+        pkt_entry table_[PKT_TABLE_SIZE];
 
-      void reset();
+        void reset();
 
-      bool check_range_for_presence(
-          uint16_t len,
-          uint8_t down_by,
-          dir_t dir,
-          const timeval& ts_to_compare);
-      void update_entry(uint16_t len, dir_t dir, timeval ts);
+        bool check_range_for_presence(
+            uint16_t len,
+            uint8_t down_by,
+            dir_t dir,
+            const timeval& ts_to_compare);
+        void update_entry(uint16_t len, dir_t dir, timeval ts);
 
-  private:
-      static inline int8_t get_idx_from_len(uint16_t len);
-      static inline bool time_in_window(const timeval& ts_now, const timeval& ts_old);
-      inline bool entry_is_present(int8_t idx, dir_t dir, const timeval& ts_to_compare);
-   };
+    private:
+        static inline int8_t get_idx_from_len(uint16_t len);
+        static inline bool time_in_window(const timeval& ts_now, const timeval& ts_old);
+        inline bool entry_is_present(int8_t idx, dir_t dir, const timeval& ts_to_compare);
+    };
 
-   uint8_t possible_vpn {0}; // fidelity of this flow being vpn
-   uint64_t suspects {0};
-   uint8_t syn_pkts_idx {0};
-   uint8_t syn_pkts[SYN_RECORDS_NUM];
+    uint8_t possible_vpn {0}; // fidelity of this flow being vpn
+    uint64_t suspects {0};
+    uint8_t syn_pkts_idx {0};
+    uint8_t syn_pkts[SYN_RECORDS_NUM];
 
-   pkt_table syn_table {};
-   pkt_table syn_ack_table {};
+    pkt_table syn_table {};
+    pkt_table syn_ack_table {};
 
-   RecordExtSSADetector()
-       : RecordExt(REGISTERED_ID)
-   {
-   }
+    RecordExtSSADetector()
+        : RecordExt(REGISTERED_ID)
+    {
+    }
 
-   void reset()
-   {
-      syn_table.reset();
-      syn_ack_table.reset();
-   }
+    void reset()
+    {
+        syn_table.reset();
+        syn_ack_table.reset();
+    }
 
 #ifdef WITH_NEMEA
-   virtual void fill_unirec(ur_template_t* tmplt, void* record)
-   {
-      ur_set(tmplt, record, F_SSA_CONF_LEVEL, possible_vpn);
-   }
+    virtual void fill_unirec(ur_template_t* tmplt, void* record)
+    {
+        ur_set(tmplt, record, F_SSA_CONF_LEVEL, possible_vpn);
+    }
 
-   const char* get_unirec_tmplt() const { return SSADETECTOR_UNIREC_TEMPLATE; }
+    const char* get_unirec_tmplt() const { return SSADETECTOR_UNIREC_TEMPLATE; }
 #endif
 
-   virtual int fill_ipfix(uint8_t* buffer, int size)
-   {
-      if (size < 1) {
-         return -1;
-      }
-      buffer[0] = (uint8_t) possible_vpn;
-      return 1;
-   }
+    virtual int fill_ipfix(uint8_t* buffer, int size)
+    {
+        if (size < 1) {
+            return -1;
+        }
+        buffer[0] = (uint8_t) possible_vpn;
+        return 1;
+    }
 
-   const char** get_ipfix_tmplt() const
-   {
-      static const char* ipfix_template[] = {IPFIX_SSADETECTOR_TEMPLATE(IPFIX_FIELD_NAMES) NULL};
-      return ipfix_template;
-   }
+    const char** get_ipfix_tmplt() const
+    {
+        static const char* ipfix_template[] = {IPFIX_SSADETECTOR_TEMPLATE(IPFIX_FIELD_NAMES) NULL};
+        return ipfix_template;
+    }
 
-   std::string get_text() const
-   {
-      std::ostringstream out;
-      out << "SSA=" << (int) possible_vpn;
-      return out.str();
-   }
+    std::string get_text() const
+    {
+        std::ostringstream out;
+        out << "SSA=" << (int) possible_vpn;
+        return out.str();
+    }
 };
 
 /**
  * \brief Process plugin for parsing SSADETECTOR packets.
  */
 class SSADetectorPlugin : public ProcessPlugin {
-   public:
-   SSADetectorPlugin();
-   ~SSADetectorPlugin();
-   void init(const char* params);
-   void close();
-   OptionsParser* get_parser() const
-   {
-      return new OptionsParser(
-          "SSADetector",
-          "Check traffic for SYN-SYNACK-ACK sequence to find possible network tunnels.");
-   }
-   std::string get_name() const { return "SSADetector"; }
-   RecordExt* get_ext() const { return new RecordExtSSADetector(); }
-   ProcessPlugin* copy();
+public:
+    SSADetectorPlugin();
+    ~SSADetectorPlugin();
+    void init(const char* params);
+    void close();
+    OptionsParser* get_parser() const
+    {
+        return new OptionsParser(
+            "SSADetector",
+            "Check traffic for SYN-SYNACK-ACK sequence to find possible network tunnels.");
+    }
+    std::string get_name() const { return "SSADetector"; }
+    RecordExt* get_ext() const { return new RecordExtSSADetector(); }
+    ProcessPlugin* copy();
 
-   int post_update(Flow& rec, const Packet& pkt);
-   void pre_export(Flow& rec);
-   void update_record(RecordExtSSADetector* record, const Packet& pkt);
-   static inline void
-   transition_from_init(RecordExtSSADetector* record, uint16_t len, const timeval& ts, uint8_t dir);
-   static inline void
-   transition_from_syn(RecordExtSSADetector* record, uint16_t len, const timeval& ts, uint8_t dir);
-   static inline bool transition_from_syn_ack(
-       RecordExtSSADetector* record,
-       uint16_t len,
-       const timeval& ts,
-       uint8_t dir);
+    int post_update(Flow& rec, const Packet& pkt);
+    void pre_export(Flow& rec);
+    void update_record(RecordExtSSADetector* record, const Packet& pkt);
+    static inline void transition_from_init(
+        RecordExtSSADetector* record,
+        uint16_t len,
+        const timeval& ts,
+        uint8_t dir);
+    static inline void
+    transition_from_syn(RecordExtSSADetector* record, uint16_t len, const timeval& ts, uint8_t dir);
+    static inline bool transition_from_syn_ack(
+        RecordExtSSADetector* record,
+        uint16_t len,
+        const timeval& ts,
+        uint8_t dir);
 };
 
 } // namespace ipxp

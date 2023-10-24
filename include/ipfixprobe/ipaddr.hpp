@@ -31,18 +31,15 @@
 
 namespace ipxp {
 
-enum IP : uint8_t {
-   v4 = 4,
-   v6 = 6
-};
+enum IP : uint8_t { v4 = 4, v6 = 6 };
 
 /**
  * \brief Store IPv4 or IPv6 address.
  */
 typedef union ipaddr_u {
-   uint8_t  v6[16];  /**< IPv6 address. */
-   uint32_t v4;      /**< IPv4 address  */
+    uint8_t v6[16]; /**< IPv6 address. */
+    uint32_t v4; /**< IPv4 address  */
 } ipaddr_t;
 
-}
+} // namespace ipxp
 #endif /* IPXP_IPADDR_HPP */

@@ -36,28 +36,27 @@ int RecordExtMPLS::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
-   static PluginRecord rec = PluginRecord("mpls", [](){return new MPLSPlugin();});
-   register_plugin(&rec);
-   RecordExtMPLS::REGISTERED_ID = register_extension();
+    static PluginRecord rec = PluginRecord("mpls", []() { return new MPLSPlugin(); });
+    register_plugin(&rec);
+    RecordExtMPLS::REGISTERED_ID = register_extension();
 }
 
-ProcessPlugin *MPLSPlugin::copy()
+ProcessPlugin* MPLSPlugin::copy()
 {
-   return new MPLSPlugin(*this);
+    return new MPLSPlugin(*this);
 }
 
-int MPLSPlugin::post_create(Flow &rec, const Packet &pkt)
+int MPLSPlugin::post_create(Flow& rec, const Packet& pkt)
 {
-   if (pkt.mplsTop == 0) {
-      return 0;
-   }
+    if (pkt.mplsTop == 0) {
+        return 0;
+    }
 
-   auto ext = new RecordExtMPLS();
-   ext->mpls = pkt.mplsTop;
+    auto ext = new RecordExtMPLS();
+    ext->mpls = pkt.mplsTop;
 
-   rec.add_extension(ext);
-   return 0;
+    rec.add_extension(ext);
+    return 0;
 }
 
-}
-
+} // namespace ipxp

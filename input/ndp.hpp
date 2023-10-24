@@ -33,46 +33,70 @@
 #include <ndpreader.hpp>
 
 #include <ipfixprobe/input.hpp>
-#include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/options.hpp>
+#include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/utils.hpp>
 
 namespace ipxp {
 
-class NdpOptParser : public OptionsParser
-{
+class NdpOptParser : public OptionsParser {
 public:
-   std::string m_dev;
-   uint64_t m_id;
+    std::string m_dev;
+    uint64_t m_id;
 
-   NdpOptParser() : OptionsParser("ndp", "Input plugin for reading packets from a ndp device"), m_dev(""), m_id(0)
-   {
-      register_option("d", "dev", "PATH", "Path to a device file", [this](const char *arg){m_dev = arg; return true;}, OptionFlags::RequiredArgument);
-      register_option("I", "id", "NUM", "Link identifier number",
-         [this](const char *arg){try {m_id = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
-   }
+    NdpOptParser()
+        : OptionsParser("ndp", "Input plugin for reading packets from a ndp device")
+        , m_dev("")
+        , m_id(0)
+    {
+        register_option(
+            "d",
+            "dev",
+            "PATH",
+            "Path to a device file",
+            [this](const char* arg) {
+                m_dev = arg;
+                return true;
+            },
+            OptionFlags::RequiredArgument);
+        register_option(
+            "I",
+            "id",
+            "NUM",
+            "Link identifier number",
+            [this](const char* arg) {
+                try {
+                    m_id = str2num<decltype(m_id)>(arg);
+                } catch (std::invalid_argument& e) {
+                    return false;
+                }
+                return true;
+            },
+            OptionFlags::RequiredArgument);
+    }
 };
 
-class NdpPacketReader : public InputPlugin
-{
+class NdpPacketReader : public InputPlugin {
 public:
-   NdpPacketReader();
-   ~NdpPacketReader();
+    NdpPacketReader();
+    ~NdpPacketReader();
 
-   void init(const char *params);
-   void close();
-   OptionsParser *get_parser() const { return new NdpOptParser(); }
-   std::string get_name() const { return "ndp"; }
-   InputPlugin::Result get(PacketBlock &packets);
+    void init(const char* params);
+    void close();
+    OptionsParser* get_parser() const { return new NdpOptParser(); }
+    std::string get_name() const { return "ndp"; }
+    InputPlugin::Result get(PacketBlock& packets);
 
 private:
-   NdpReader ndpReader;
+    NdpReader ndpReader;
 
-   void init_ifc(const std::string &dev);
+    void init_ifc(const std::string& dev);
 };
 
-void packet_ndp_handler(Packet *pkt, const struct ndp_packet *ndp_packet, const struct ndp_header *ndp_header);
+void packet_ndp_handler(
+    Packet* pkt,
+    const struct ndp_packet* ndp_packet,
+    const struct ndp_header* ndp_header);
 
-}
+} // namespace ipxp
 #endif /* IPXP_INPUT_NDP_HPP */

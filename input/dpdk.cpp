@@ -26,14 +26,13 @@
  *
  */
 
-
 #include <cstring>
 #include <mutex>
+#include <rte_eal.h>
+#include <rte_errno.h>
 #include <rte_ethdev.h>
 #include <rte_version.h>
 #include <unistd.h>
-#include <rte_eal.h>
-#include <rte_errno.h>
 
 #include "dpdk.h"
 #include "parser.hpp"
@@ -56,9 +55,10 @@ static bool convert_from_flexprobe(const rte_mbuf* mbuf, Packet& pkt)
 {
     static constexpr unsigned DATA_OFFSET = 14; // size of preceeding header
 
-    auto data_view = reinterpret_cast<const Flexprobe::FlexprobeData*>(rte_pktmbuf_mtod(mbuf, const uint8_t*) + DATA_OFFSET);
+    auto data_view = reinterpret_cast<const Flexprobe::FlexprobeData*>(
+        rte_pktmbuf_mtod(mbuf, const uint8_t*) + DATA_OFFSET);
 
-    pkt.ts = { data_view->arrival_time.sec, data_view->arrival_time.nsec / 1000 };
+    pkt.ts = {data_view->arrival_time.sec, data_view->arrival_time.nsec / 1000};
 
     std::memset(pkt.dst_mac, 0, sizeof(pkt.dst_mac));
     std::memset(pkt.src_mac, 0, sizeof(pkt.src_mac));
@@ -94,12 +94,12 @@ static bool convert_from_flexprobe(const rte_mbuf* mbuf, Packet& pkt)
     pkt.tcp_ack = data_view->tcp_acknowledge_no;
 
     std::uint16_t datalen = rte_pktmbuf_pkt_len(mbuf) - DATA_OFFSET;
-    pkt.packet = (uint8_t*)rte_pktmbuf_mtod(mbuf, const char*) + DATA_OFFSET;
+    pkt.packet = (uint8_t*) rte_pktmbuf_mtod(mbuf, const char*) + DATA_OFFSET;
 
     pkt.packet_len = 0;
     pkt.packet_len_wire = datalen;
 
-    pkt.custom = (uint8_t*)pkt.packet;
+    pkt.custom = (uint8_t*) pkt.packet;
     pkt.custom_len = datalen;
 
     pkt.payload = pkt.packet + data_view->size();
@@ -123,7 +123,7 @@ DpdkCore& DpdkCore::getInstance()
 DpdkCore::~DpdkCore()
 {
     m_dpdkDevices.clear();
-    //rte_eal_cleanup(); // segfault?
+    // rte_eal_cleanup(); // segfault?
     m_instance = nullptr;
 }
 
@@ -159,22 +159,22 @@ void DpdkCore::configure(const char* params)
     configureEal(parser.eal_params());
 
     m_dpdkDevices.reserve(parser.port_numbers().size());
-    for (auto portID :  parser.port_numbers()) {
+    for (auto portID : parser.port_numbers()) {
         m_dpdkDevices.emplace_back(portID, rxQueueCount, mempoolSize, m_mBufsCount);
     }
 
     isConfigured = true;
 }
 
-std::vector<char *> DpdkCore::convertStringToArgvFormat(const std::string& ealParams)
+std::vector<char*> DpdkCore::convertStringToArgvFormat(const std::string& ealParams)
 {
     // set first value as program name (argv[0])
-    std::vector<char *> args = {"ipfixprobe"};
+    std::vector<char*> args = {"ipfixprobe"};
     std::istringstream iss(ealParams);
     std::string token;
 
-    while(iss >> token) {
-        char *arg = new char[token.size() + 1];
+    while (iss >> token) {
+        char* arg = new char[token.size() + 1];
         copy(token.begin(), token.end(), arg);
         arg[token.size()] = '\0';
         args.push_back(arg);
@@ -184,7 +184,7 @@ std::vector<char *> DpdkCore::convertStringToArgvFormat(const std::string& ealPa
 
 void DpdkCore::configureEal(const std::string& ealParams)
 {
-    std::vector<char *> args = convertStringToArgvFormat(ealParams);
+    std::vector<char*> args = convertStringToArgvFormat(ealParams);
 
     if (rte_eal_init(args.size(), args.data()) < 0) {
         rte_exit(EXIT_FAILURE, "Cannot initialize RTE_EAL: %s\n", rte_strerror(rte_errno));
@@ -241,7 +241,8 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
         m_parsed++;
         packets.cnt++;
 #else
-        parse_packet(&opt,
+        parse_packet(
+            &opt,
             dpdkDevice.getPacketTimestamp(mBufs[packetID]),
             rte_pktmbuf_mtod(mBufs[packetID], const std::uint8_t*),
             rte_pktmbuf_data_len(mBufs[packetID]),
@@ -253,4 +254,4 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
 
     return Result::PARSED;
 }
-}
+} // namespace ipxp

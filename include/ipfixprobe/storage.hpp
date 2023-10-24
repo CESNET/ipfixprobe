@@ -32,162 +32,153 @@
 
 #include <string>
 
-#include "plugin.hpp"
-#include "packet.hpp"
 #include "flowifc.hpp"
-#include "ring.h"
+#include "packet.hpp"
+#include "plugin.hpp"
 #include "process.hpp"
+#include "ring.h"
 
 namespace ipxp {
 
 /**
  * \brief Base class for flow caches.
  */
-class StoragePlugin : public Plugin
-{
+class StoragePlugin : public Plugin {
 protected:
-   ipx_ring_t *m_export_queue;
+    ipx_ring_t* m_export_queue;
 
 private:
-   ProcessPlugin **m_plugins; /**< Array of plugins. */
-   uint32_t m_plugin_cnt;
+    ProcessPlugin** m_plugins; /**< Array of plugins. */
+    uint32_t m_plugin_cnt;
 
 public:
-   StoragePlugin() : m_export_queue(nullptr), m_plugins(nullptr), m_plugin_cnt(0)
-   {
-   }
+    StoragePlugin()
+        : m_export_queue(nullptr)
+        , m_plugins(nullptr)
+        , m_plugin_cnt(0)
+    {
+    }
 
-   virtual ~StoragePlugin()
-   {
-      if (m_plugins != nullptr) {
-         delete [] m_plugins;
-      }
-   }
+    virtual ~StoragePlugin()
+    {
+        if (m_plugins != nullptr) {
+            delete[] m_plugins;
+        }
+    }
 
-   /**
-    * \brief Put packet into the cache (i.e. update corresponding flow record or create a new one)
-    * \param [in] pkt Input parsed packet.
-    * \return 0 on success.
-    */
-   virtual int put_pkt(Packet &pkt) = 0;
+    /**
+     * \brief Put packet into the cache (i.e. update corresponding flow record or create a new one)
+     * \param [in] pkt Input parsed packet.
+     * \return 0 on success.
+     */
+    virtual int put_pkt(Packet& pkt) = 0;
 
-   /**
-    * \brief Set export queue
-    */
-   virtual void set_queue(ipx_ring_t *queue)
-   {
-      m_export_queue = queue;
-   }
+    /**
+     * \brief Set export queue
+     */
+    virtual void set_queue(ipx_ring_t* queue) { m_export_queue = queue; }
 
-   /**
-    * \brief Get export queue
-    */
-   const ipx_ring_t *get_queue() const
-   {
-      return m_export_queue;
-   }
+    /**
+     * \brief Get export queue
+     */
+    const ipx_ring_t* get_queue() const { return m_export_queue; }
 
-   virtual void export_expired(time_t ts)
-   {
-   }
-   virtual void finish()
-   {
-   }
+    virtual void export_expired(time_t ts) {}
+    virtual void finish() {}
 
-   /**
-    * \brief Add plugin to internal list of plugins.
-    * Plugins are always called in the same order, as they were added.
-    */
-   void add_plugin(ProcessPlugin *plugin)
-   {
-      if (m_plugins == nullptr) {
-         m_plugins = new ProcessPlugin*[8];
-      } else {
-         if (m_plugin_cnt % 8 == 0) {
-            ProcessPlugin **tmp = new ProcessPlugin*[m_plugin_cnt + 8];
-            for (unsigned int i = 0; i < m_plugin_cnt; i++) {
-               tmp[i] = m_plugins[i];
+    /**
+     * \brief Add plugin to internal list of plugins.
+     * Plugins are always called in the same order, as they were added.
+     */
+    void add_plugin(ProcessPlugin* plugin)
+    {
+        if (m_plugins == nullptr) {
+            m_plugins = new ProcessPlugin*[8];
+        } else {
+            if (m_plugin_cnt % 8 == 0) {
+                ProcessPlugin** tmp = new ProcessPlugin*[m_plugin_cnt + 8];
+                for (unsigned int i = 0; i < m_plugin_cnt; i++) {
+                    tmp[i] = m_plugins[i];
+                }
+                delete[] m_plugins;
+                m_plugins = tmp;
             }
-            delete [] m_plugins;
-            m_plugins = tmp;
-
-         }
-      }
-      m_plugins[m_plugin_cnt++] = plugin;
-   }
+        }
+        m_plugins[m_plugin_cnt++] = plugin;
+    }
 
 protected:
-   //Every StoragePlugin implementation should call these functions at appropriate places
+    // Every StoragePlugin implementation should call these functions at appropriate places
 
-   /**
-    * \brief Call pre_create function for each added plugin.
-    * \param [in] pkt Input parsed packet.
-    * \return Options for flow cache.
-    */
-   int plugins_pre_create(Packet &pkt)
-   {
-      int ret = 0;
-      for (unsigned int i = 0; i < m_plugin_cnt; i++) {
-         ret |= m_plugins[i]->pre_create(pkt);
-      }
-      return ret;
-   }
+    /**
+     * \brief Call pre_create function for each added plugin.
+     * \param [in] pkt Input parsed packet.
+     * \return Options for flow cache.
+     */
+    int plugins_pre_create(Packet& pkt)
+    {
+        int ret = 0;
+        for (unsigned int i = 0; i < m_plugin_cnt; i++) {
+            ret |= m_plugins[i]->pre_create(pkt);
+        }
+        return ret;
+    }
 
-   /**
-    * \brief Call post_create function for each added plugin.
-    * \param [in,out] rec Stored flow record.
-    * \param [in] pkt Input parsed packet.
-    * \return Options for flow cache.
-    */
-   int plugins_post_create(Flow &rec, const Packet &pkt)
-   {
-      int ret = 0;
-      for (unsigned int i = 0; i < m_plugin_cnt; i++) {
-         ret |= m_plugins[i]->post_create(rec, pkt);
-      }
-      return ret;
-   }
+    /**
+     * \brief Call post_create function for each added plugin.
+     * \param [in,out] rec Stored flow record.
+     * \param [in] pkt Input parsed packet.
+     * \return Options for flow cache.
+     */
+    int plugins_post_create(Flow& rec, const Packet& pkt)
+    {
+        int ret = 0;
+        for (unsigned int i = 0; i < m_plugin_cnt; i++) {
+            ret |= m_plugins[i]->post_create(rec, pkt);
+        }
+        return ret;
+    }
 
-   /**
-    * \brief Call pre_update function for each added plugin.
-    * \param [in,out] rec Stored flow record.
-    * \param [in] pkt Input parsed packet.
-    * \return Options for flow cache.
-    */
-   int plugins_pre_update(Flow &rec, Packet &pkt)
-   {
-      int ret = 0;
-      for (unsigned int i = 0; i < m_plugin_cnt; i++) {
-         ret |= m_plugins[i]->pre_update(rec, pkt);
-      }
-      return ret;
-   }
+    /**
+     * \brief Call pre_update function for each added plugin.
+     * \param [in,out] rec Stored flow record.
+     * \param [in] pkt Input parsed packet.
+     * \return Options for flow cache.
+     */
+    int plugins_pre_update(Flow& rec, Packet& pkt)
+    {
+        int ret = 0;
+        for (unsigned int i = 0; i < m_plugin_cnt; i++) {
+            ret |= m_plugins[i]->pre_update(rec, pkt);
+        }
+        return ret;
+    }
 
-   /**
-    * \brief Call post_update function for each added plugin.
-    * \param [in,out] rec Stored flow record.
-    * \param [in] pkt Input parsed packet.
-    */
-   int plugins_post_update(Flow &rec, const Packet &pkt)
-   {
-      int ret = 0;
-      for (unsigned int i = 0; i < m_plugin_cnt; i++) {
-         ret |= m_plugins[i]->post_update(rec, pkt);
-      }
-      return ret;
-   }
+    /**
+     * \brief Call post_update function for each added plugin.
+     * \param [in,out] rec Stored flow record.
+     * \param [in] pkt Input parsed packet.
+     */
+    int plugins_post_update(Flow& rec, const Packet& pkt)
+    {
+        int ret = 0;
+        for (unsigned int i = 0; i < m_plugin_cnt; i++) {
+            ret |= m_plugins[i]->post_update(rec, pkt);
+        }
+        return ret;
+    }
 
-   /**
-    * \brief Call pre_export function for each added plugin.
-    * \param [in,out] rec Stored flow record.
-    */
-   void plugins_pre_export(Flow &rec)
-   {
-      for (unsigned int i = 0; i < m_plugin_cnt; i++) {
-         m_plugins[i]->pre_export(rec);
-      }
-   }
+    /**
+     * \brief Call pre_export function for each added plugin.
+     * \param [in,out] rec Stored flow record.
+     */
+    void plugins_pre_export(Flow& rec)
+    {
+        for (unsigned int i = 0; i < m_plugin_cnt; i++) {
+            m_plugins[i]->pre_export(rec);
+        }
+    }
 };
 
-}
+} // namespace ipxp
 #endif /* IPXP_STORAGE_HPP */

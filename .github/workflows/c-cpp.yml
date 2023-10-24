@@ -25,6 +25,8 @@ jobs:
       run: autoreconf -i
     - name: configure
       run: ./configure --with-raw --with-pcap --with-nemea --with-gtest
+    - name: make format-check
+      run: make format-check
     - name: make
       run: make
     - name: make check
