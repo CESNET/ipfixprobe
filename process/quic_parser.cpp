@@ -38,17 +38,80 @@ QUICParser::QUICParser()
     payload_len = 0;
 
     dcid = nullptr;
+    dcid_len = 0;
+    scid = nullptr;
+    scid_len = 0;
     pkn = nullptr;
     sample = nullptr;
     salt = nullptr;
     final_payload = nullptr;
     parsed_initial = 0;
     is_version2 = false;
+    packet_type = UNKNOWN;
+    packets = 0;
+    token_length = QUIC_UNUSED_VARIABLE_LENGTH_INT;
+    zero_rtt = 0;
+    server_port = 0;
+}
+
+uint8_t QUICParser::quic_get_packet_type()
+{
+    return packet_type;
+}
+
+uint8_t QUICParser::quic_get_zero_rtt()
+{
+    return zero_rtt;
 }
 
 void QUICParser::quic_get_version(uint32_t& version_toset)
 {
     version_toset = version;
+    return;
+}
+
+void QUICParser::quic_get_packets(uint8_t& packets_toset)
+{
+    packets_toset = packets;
+    return;
+}
+
+void QUICParser::quic_get_token_length(uint64_t& token_len_toset)
+{
+    token_len_toset = token_length;
+    return;
+}
+
+uint16_t QUICParser::quic_get_server_port() {
+    return server_port;
+}
+
+void QUICParser::quic_get_parsed_initial(uint8_t& to_set) {
+    to_set = parsed_initial;
+    return;
+}
+
+void QUICParser::quic_get_dcid_len(uint8_t& scid_length_toset)
+{
+    scid_length_toset = dcid_len;
+    return;
+}
+
+void QUICParser::quic_get_scid_len(uint8_t& scid_length_toset)
+{
+    scid_length_toset = scid_len;
+    return;
+}
+
+void QUICParser::quic_get_dcid(char* in)
+{
+    memcpy(in, dcid, dcid_len);
+    return;
+}
+
+void QUICParser::quic_get_scid(char* in)
+{
+    memcpy(in, scid, scid_len);
     return;
 }
 
@@ -568,7 +631,7 @@ bool QUICParser::quic_encrypt_sample(uint8_t* plaintext)
     return true;
 }
 
-bool QUICParser::quic_decrypt_header(const Packet& pkt)
+bool QUICParser::quic_decrypt_initial_header(const uint8_t* payload_pointer, uint64_t offset)
 {
     uint8_t plaintext[SAMPLE_LENGTH];
     uint8_t mask[5] = {0};
@@ -605,13 +668,13 @@ bool QUICParser::quic_decrypt_header(const Packet& pkt)
     // payload
     payload = payload + pkn_len;
     payload_len = payload_len - pkn_len;
-    header_len = payload - pkt.payload;
+    header_len = payload - payload_pointer;
     if (header_len > MAX_HEADER_LEN) {
         DEBUG_MSG("Header length too long\n");
         return false;
     }
 
-    memcpy(tmp_header_mem, pkt.payload, header_len);
+    memcpy(tmp_header_mem, payload_pointer, header_len);
     header = tmp_header_mem;
 
     header[0] = first_byte;
@@ -630,7 +693,7 @@ bool QUICParser::quic_decrypt_header(const Packet& pkt)
         initial_secrets.iv + sizeof(initial_secrets.iv) - 8,
         pntoh64(initial_secrets.iv + sizeof(initial_secrets.iv) - 8) ^ packet_number);
     return true;
-} // QUICPlugin::quic_decrypt_header
+} // QUICPlugin::quic_decrypt_initial_header
 
 bool QUICParser::quic_decrypt_payload()
 {
@@ -833,47 +896,184 @@ void QUICParser::quic_initialze_arrays()
     memset(tmp_header_mem, 0, MAX_HEADER_LEN);
 }
 
+bool QUICParser::quic_check_long_header(uint8_t packet0)
+{
+   // We  test for 1 in the fist position = long header
+   // We ignore the QUIC bit, as it might be greased
+   // https://datatracker.ietf.org/doc/html/rfc9287
+  return (packet0 & 0x80) == 0x80;
+
+}
+
 bool QUICParser::quic_check_initial(uint8_t packet0)
 {
-    // version 1 (header form:long header(1) | fixed bit:fixed(1) | long packet type:initial(00) -->
-    // 1100 --> C)
-    if ((packet0 & 0xF0) == 0xC0) {
-        is_version2 = false;
+
+    // The fixed bit, might be greased. We assume greasing for all packets
+    // RFC 9287
+    // version 1 (header form:long header(1) | fixed bit:fixed(1/0) | long packet type:initial(00) -->
+    // 1000 --> 8)
+    if ((packet0 & 0xB0) == 0x80) {
         return true;
     }
-    // version 2 (header form:long header(1) | fixed bit:fixed(1) | long packet type:initial(01) -->
-    // 1101 --> D)
-    else if ((packet0 & 0xF0) == 0xD0) {
-        is_version2 = true;
+        // version 2 (header form:long header(1) | fixed bit:fixed(1)/0 | long packet type:initial(01) -->
+        // 1001 --> 9)
+    else if ( is_version2 && ((packet0 & 0xB0) == 0x90)) {
         return true;
     } else {
         return false;
     }
 }
 
-bool QUICParser::quic_initial_checks(const Packet& pkt)
+
+bool QUICParser::quic_check_min_initial_size(const Packet&pkt)
 {
-    // Port check, Initial packet check and UDP check
-    if (pkt.ip_proto != 17 || !quic_check_initial(pkt.payload[0]) || pkt.dst_port != 443) {
-        DEBUG_MSG("Packet is not Initial or does not contains LONG HEADER or is not on port 443\n");
-        return false;
+    if (pkt.payload_len < QUIC_MIN_PACKET_LENGTH) {
+      return false;
+   }
+   return true;
+}
+
+
+uint32_t read_uint32_t(const uint8_t *ptr, uint8_t offset)
+{
+   uint32_t val;
+   memcpy(&val, ptr + offset, sizeof(uint32_t));
+   return val;
+}
+
+bool QUICParser::quic_check_supported_version(const uint32_t version) {
+   switch (version) {
+      case q_version2_draft00:
+         is_version2 = true;
+         return true;
+      case q_version2_newest:
+         is_version2 = true;
+         return true;
+      case older_version:
+      case faceebook1:
+      case faceebook2:
+      case facebook_experimental:
+      case force_ver_neg_pattern:
+      case version_negotiation:
+      case quic_newest:
+         return true;
+   }
+   return false;
+}
+
+bool QUICParser::quic_long_header_packet(const Packet& pkt)
+{
+    // UDP check, Initial packet check, QUIC min long header size, QUIC version check,
+    if (pkt.ip_proto != 17 || !quic_check_long_header(pkt.payload[0]) || !(quic_check_min_initial_size(pkt)) || !(quic_check_supported_version(ntohl(read_uint32_t(pkt.payload, 1)))) ) {
+       DEBUG_MSG("Packet is not Initial or does not contains LONG HEADER or is not long enough or is not a supported QUIC version\n");
+       return false;
     }
     return true;
 }
 
-bool QUICParser::quic_parse_header(const Packet& pkt)
+bool QUICParser::quic_parse_initial_header(const Packet& pkt,  const uint8_t* payload_pointer,
+                                           const uint8_t* payload_end, uint64_t& offset)
 {
-    const uint8_t* payload_pointer = pkt.payload;
-    uint64_t offset = 0;
+    token_length = quic_get_variable_length(payload_pointer, offset);
+    if (!quic_check_pointer_pos((payload_pointer + offset), payload_end)) {
+        return false;
+    }
+    offset += token_length;
 
-    const uint8_t* payload_end = payload_pointer + pkt.payload_len;
+   if (!quic_check_pointer_pos((payload_pointer + offset), payload_end)) {
+       return false;
+   }
+
+   payload_len = quic_get_variable_length(payload_pointer, offset);
+   if (payload_len > CURRENT_BUFFER_SIZE) {
+       return false;
+   }
+
+   if (!quic_check_pointer_pos((payload_pointer + offset), payload_end)) {
+       return false;
+   }
+
+   pkn = (payload_pointer + offset);
+
+   payload = (payload_pointer + offset);
+
+    // This should not cause an offset.
+    //   offset += sizeof(uint8_t) * 4;
+    sample = (payload_pointer + offset + 4*sizeof(uint8_t) );
+
+    if (!quic_check_pointer_pos((payload_pointer + offset + 4*sizeof(uint8_t)), payload_end)) {
+       return false;
+   }
+   return true;
+}
+
+void QUICParser::quic_parse_packet_type(uint8_t packet0) {
+
+    if (version == version_negotiation) {
+        packets |= F_VERSION_NEGOTIATION;
+        packet_type = VERSION_NEGOTIATION;
+        return;
+    }
+
+    packet_type = (packet0 & 0b00110000)>> 4;
+    if (!is_version2) {
+        switch (packet_type) {
+            case 0b00:
+                packets |= F_INITIAL;
+                break;
+            case 0b01:
+                packets |= F_ZERO_RTT;
+                break;
+            case 0b10:
+                packets |= F_HANDSHAKE;
+                break;
+            case 0b11:
+                packets |= F_RETRY;
+                break;
+        }
+    }
+    if (is_version2) {
+        switch (packet_type) {
+            case 0b01:
+                packet_type = INITIAL;
+                packets |= F_INITIAL;
+                break;
+            case 0b10:
+                packet_type = ZERO_RTT;
+                packets |= F_ZERO_RTT;
+                break;
+            case 0b11:
+                packet_type = HANDSHAKE;
+                packets |= F_HANDSHAKE;
+                break;
+            case 0b00:
+                packet_type = RETRY;
+                packets |= F_RETRY;
+                break;
+        }
+    }
+}
+
+bool QUICParser::quic_parse_header(const Packet &pkt, uint64_t& offset, uint8_t* payload_pointer, uint8_t*  payload_end)
+{
+    if (!quic_check_pointer_pos((payload_pointer + offset), payload_end)) {
+        return false;
+    }
 
     quic_h1 = (quic_first_ver_dcidlen*) (payload_pointer + offset);
+
+    if (!quic_check_long_header(quic_h1->first_byte)) {
+        // If not long header packet -> short header packet. Do not analyze.
+        return false;
+    }
 
     if (!quic_obtain_version()) {
         DEBUG_MSG("Error, version not supported\n");
         return false;
     }
+
+    quic_parse_packet_type(quic_h1->first_byte);
+
 
     offset += sizeof(quic_first_ver_dcidlen);
 
@@ -883,6 +1083,7 @@ bool QUICParser::quic_parse_header(const Packet& pkt)
 
     if (quic_h1->dcid_len != 0) {
         dcid = (payload_pointer + offset);
+        dcid_len = quic_h1->dcid_len;
         offset += quic_h1->dcid_len;
     }
 
@@ -899,6 +1100,8 @@ bool QUICParser::quic_parse_header(const Packet& pkt)
     }
 
     if (quic_h2->scid_len != 0) {
+        scid = (payload_pointer + offset);
+        scid_len = quic_h2->scid_len;
         offset += quic_h2->scid_len;
     }
 
@@ -906,57 +1109,134 @@ bool QUICParser::quic_parse_header(const Packet& pkt)
         return false;
     }
 
-    uint64_t token_length = quic_get_variable_length(payload_pointer, offset);
-
-    if (!quic_check_pointer_pos((payload_pointer + offset), payload_end)) {
-        return false;
-    }
-
-    offset += token_length;
-
-    if (!quic_check_pointer_pos((payload_pointer + offset), payload_end)) {
-        return false;
-    }
-
-    payload_len = quic_get_variable_length(payload_pointer, offset);
-    if (payload_len > CURRENT_BUFFER_SIZE) {
-        return false;
-    }
-
-    if (!quic_check_pointer_pos((payload_pointer + offset), payload_end)) {
-        return false;
-    }
-
-    pkn = (payload_pointer + offset);
-
-    payload = (payload_pointer + offset);
-
-    offset += sizeof(uint8_t) * 4;
-    sample = (payload_pointer + offset);
-
-    if (!quic_check_pointer_pos((payload_pointer + offset), payload_end)) {
-        return false;
-    }
-
     return true;
+
+}
+
+bool QUICParser::quic_parse_headers(const Packet& pkt, bool forceInitialParsing)
+{
+    uint8_t* pkt_payload_pointer = (uint8_t *)pkt.payload;
+    uint8_t* payload_pointer = pkt_payload_pointer;
+    uint64_t offset = 0;
+
+    packets = 0;
+
+    uint8_t* pkt_payload_end = payload_pointer + pkt.payload_len;
+
+    // Handle coalesced packets
+    // 7 because (1B QUIC LH, 4B Version, 1 B SCID LEN, 1B DCID LEN)
+    uint64_t stored_payload_len;
+    while(payload_pointer + offset + QUIC_MIN_PACKET_LENGTH  <= pkt.payload + pkt.payload_len) {
+        payload_pointer = pkt_payload_pointer + offset;
+
+        if (!quic_parse_header(pkt, offset, pkt_payload_pointer, pkt_payload_end)) {
+            break;
+        }
+
+        switch (packet_type) {
+            case ZERO_RTT:
+                if (zero_rtt < 0xFF) {
+                    zero_rtt +=1;
+                }
+                break;
+            case HANDSHAKE:
+                payload_len = quic_get_variable_length(pkt_payload_pointer, offset);
+                if (payload_len > CURRENT_BUFFER_SIZE) {
+                    return false;
+                }
+                offset += payload_len;
+                break;
+            case INITIAL:
+                if (!quic_parse_initial_header(pkt, pkt_payload_pointer, pkt_payload_end, offset)) {
+                    return false;
+                }
+                stored_payload_len = payload_len;
+                if (!parsed_initial) {
+                    // Not yet parsed a CH, try to parse as CH
+                    quic_parse_initial(pkt, pkt_payload_pointer, offset);
+                }
+                offset += stored_payload_len;
+                break;
+            case RETRY:
+                // 16 - Integrity tag
+                token_length = pkt_payload_end - payload_pointer - offset - 16;
+                if (!quic_check_pointer_pos((pkt_payload_pointer + offset), pkt_payload_end)) {
+                    return false;
+                }
+                offset += token_length;
+                if (!quic_check_pointer_pos((pkt_payload_pointer + offset), pkt_payload_end)) {
+                    return false;
+                }
+                break;
+        }
+
+        if (!quic_set_server_port(pkt)) {
+            DEBUG_MSG("Error, extracting server port");
+            return false;
+        }
+
+        if (packet_type == RETRY) {
+            break;
+        }
+    }
+
+    // Update packet type to most specific, i.e., Initial
+    if (packets & F_INITIAL) {
+        packet_type = INITIAL;
+    }
+
+
+    return packets;
 } // QUICPlugin::quic_parse_data
 
-bool QUICParser::quic_start(const Packet& pkt)
-{
-    if (!quic_initial_checks(pkt)) {
+bool QUICParser::quic_set_server_port(const Packet& pkt) {
+
+    tls_handshake hs = tls_parser.tls_get_handshake();
+
+    switch (packet_type) {
+        case INITIAL:
+            if (hs.type == 1) {
+                server_port = pkt.dst_port;
+            } else if (hs.type == 2) {
+                server_port = pkt.src_port;
+            }
+            // e.g. ACKs do not reveal direction
+            break;
+        case RETRY:
+            server_port = pkt.src_port;
+            break;
+        case ZERO_RTT:
+            server_port = pkt.dst_port;
+            break;
+        case HANDSHAKE:
+            // Does not reveal the direction
+            break;
+    }
+   return true;
+}
+
+bool QUICParser::quic_check_quic_long_header_packet(const Packet& pkt) {
+
+    if (!quic_long_header_packet(pkt)) {
         return false;
     }
 
     quic_initialze_arrays();
-    if (!quic_parse_header(pkt)) {
-        DEBUG_MSG("Error, parsing header failed\n");
+    if (!quic_parse_headers(pkt, false)) {
         return false;
     }
+    return true;
+}
+
+
+bool QUICParser::quic_parse_initial(const Packet& pkt, const uint8_t* payload_pointer, uint64_t offset)
+{
+
     if (!quic_create_initial_secrets()) {
         DEBUG_MSG("Error, creation of initial secrets failed (client side)\n");
         return false;
     }
-    if (!quic_decrypt_header(pkt)) {
+    if (!quic_decrypt_initial_header(payload_pointer, offset)) {
         DEBUG_MSG("Error, header decryption failed (client side)\n");
         return false;
     }
@@ -972,6 +1252,16 @@ bool QUICParser::quic_start(const Packet& pkt)
         DEBUG_MSG("SNI and User Agent Extraction failed\n");
         return false;
     }
+
+    // 1 if CH or SH parsed
+    parsed_initial = 1;
+
+    // According to RFC 9000 the server port will not change.
+    if (!quic_set_server_port(pkt)) {
+       DEBUG_MSG("Error, extracting server port");
+       return false;
+    }
+
     return true;
 }
 } // namespace ipxp

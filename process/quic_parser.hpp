@@ -40,6 +40,10 @@
 #define MAX_HEADER_LEN 67 + 100
 #define BUFF_SIZE 255
 #define CURRENT_BUFFER_SIZE 1500
+// 8 because (1B QUIC LH, 4B Version, 1 B SCID LEN, 1B DCID LEN, Payload/Retry Token/Supported Version >= 1 B)
+#define QUIC_MIN_PACKET_LENGTH 8
+
+
 
 namespace ipxp {
 typedef struct __attribute__((packed)) quic_first_ver_dcidlen {
@@ -86,23 +90,13 @@ private:
         = sizeof("tls13 client in") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t)
     };
 
-    enum QUIC_VERSION {
-        older_version = 0xff0000,
-        faceebook1 = 0xfaceb001,
-        faceebook2 = 0xfaceb002,
-        facebook_experimental = 0xfaceb00e,
-        q_version2_draft00 = 0xff020000,
-        q_version2_newest = 0x709a50c4,
-        force_ver_neg_pattern = 0x0a0a0a0a,
-        version_negotiation = 0x00000000,
-        quic_newest = 0x00000001
-    };
+
     bool quic_initial_checks(const Packet&);
     void quic_initialze_arrays();
     bool quic_check_initial(uint8_t);
-    bool quic_parse_header(const Packet&);
+    bool quic_check_long_header(uint8_t);
     bool quic_create_initial_secrets();
-    bool quic_decrypt_header(const Packet&);
+    bool quic_decrypt_initial_header(const uint8_t* payload_pointer, uint64_t offset);
     bool quic_decrypt_payload();
     bool quic_reassemble_frames();
     bool quic_parse_tls();
@@ -120,6 +114,13 @@ private:
     bool quic_check_version(uint32_t, uint8_t);
     bool quic_check_pointer_pos(const uint8_t*, const uint8_t*);
     bool quic_obtain_tls_data(TLSData&);
+    bool quic_set_server_port(const Packet& pkt);
+    bool quic_check_min_initial_size(const Packet&pkt);
+    bool quic_check_supported_version(const uint32_t version);
+    bool quic_parser_tls_and_set_server_port(const Packet& pkt);
+    bool quic_parse_initial_header(const Packet& pkt,  const uint8_t* payload_pointer,
+                                   const uint8_t* payload_end, uint64_t& offset);
+    void quic_parse_packet_type(uint8_t packet0);
 
     Initial_Secrets initial_secrets;
 
@@ -134,16 +135,25 @@ private:
     uint16_t header_len;
     uint64_t payload_len;
 
+    uint8_t packet_type;
     const uint8_t* dcid;
+    uint8_t dcid_len;
+    const uint8_t* scid;
+    uint8_t scid_len;
     const uint8_t* pkn;
     const uint8_t* sample;
     uint32_t version;
+    uint64_t token_length;
 
     uint8_t decrypted_payload[CURRENT_BUFFER_SIZE];
     uint8_t assembled_payload[CURRENT_BUFFER_SIZE];
     uint8_t tmp_header_mem[MAX_HEADER_LEN];
     uint8_t* final_payload;
+    uint8_t zero_rtt;
+
     int parsed_initial;
+    uint16_t server_port;
+    bool direction_to_server;
 
     bool is_version2;
 
@@ -154,12 +164,58 @@ private:
     uint16_t quic_crypto_len;
     TLSParser tls_parser;
 
+    uint8_t packets;
+
 public:
+    enum PACKET_TYPE {
+        INITIAL = 0b00,
+        ZERO_RTT = 0b01,
+        HANDSHAKE = 0b10,
+        RETRY = 0b11,
+        VERSION_NEGOTIATION = 0b111,
+        UNKNOWN = 0xFF
+    };
+    enum PACKET_TYPE_FLAG {
+        F_INITIAL = 0b00000001,
+        F_ZERO_RTT = 0b00000010,
+        F_HANDSHAKE = 0b00000100,
+        F_RETRY = 0b00001000,
+        F_VERSION_NEGOTIATION = 0b00010000
+    };
+    enum QUIC_CONSTANTS {
+        QUIC_UNUSED_VARIABLE_LENGTH_INT = 0xFFFFFFFFFFFFFFFF
+    };
+    enum QUIC_VERSION {
+        older_version = 0xff0000,
+        faceebook1 = 0xfaceb001,
+        faceebook2 = 0xfaceb002,
+        facebook_experimental = 0xfaceb00e,
+        q_version2_draft00 = 0xff020000,
+        q_version2_newest = 0x709a50c4,
+        force_ver_neg_pattern = 0x0a0a0a0a,
+        version_negotiation = 0x00000000,
+        quic_newest = 0x00000001
+    };
     QUICParser();
-    bool quic_start(const Packet&);
+    uint8_t quic_get_zero_rtt();
+    bool quic_parse_initial(const Packet&, const uint8_t* payload_end, uint64_t offset);
     void quic_get_sni(char* in);
     void quic_get_user_agent(char* in);
     void quic_get_version(uint32_t&);
+    void quic_get_token_length(uint64_t&);
+    void quic_get_dcid(char *in);
+    void quic_get_scid(char *in);
+    void quic_get_scid_len(uint8_t&);
+    void quic_get_dcid_len(uint8_t&);
+    void quic_get_parsed_initial(uint8_t&);
+    void quic_get_packets(uint8_t&);
+    uint8_t quic_get_packet_type();
+    uint16_t quic_get_server_port();
+    bool quic_check_quic_long_header_packet(const Packet& pkt);
+    bool quic_parse_headers(const Packet&, bool forceInitialParsing);
+    bool quic_parse_header(const Packet &pkt, uint64_t& offset, uint8_t*  payload_pointer, uint8_t*  payload_end);
+    bool quic_long_header_packet(const Packet& pkt);
+
 };
 } // namespace ipxp
 
