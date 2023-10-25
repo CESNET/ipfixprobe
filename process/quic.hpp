@@ -27,27 +27,78 @@
 
 
 namespace ipxp {
-#define QUIC_UNIREC_TEMPLATE "QUIC_SNI,QUIC_USER_AGENT,QUIC_VERSION"
+#define QUIC_UNIREC_TEMPLATE "QUIC_SNI,QUIC_USER_AGENT,QUIC_VERSION,QUIC_CLIENT_VERSION,QUIC_TOKEN_LENGTH,QUIC_OCCID,QUIC_OSCID,QUIC_SCID,QUIC_RETRY_SCID,QUIC_MULTIPLEXED,QUIC_ZERO_RTT"
 UR_FIELDS(
    string QUIC_SNI,
    string QUIC_USER_AGENT,
-   uint32 QUIC_VERSION
+   uint32 QUIC_VERSION,
+   uint32 QUIC_CLIENT_VERSION,
+   uint64 QUIC_TOKEN_LENGTH,
+   bytes QUIC_OCCID,
+   bytes QUIC_OSCID,
+   bytes QUIC_SCID,
+   bytes QUIC_RETRY_SCID,
+   uint8 QUIC_MULTIPLEXED,
+   uint8 QUIC_ZERO_RTT
 )
 
 /**
  * \brief Flow record extension header for storing parsed QUIC packets.
  */
+#define MAX_CID_LEN 20
+#define QUIC_DETECTED 0
+#define QUIC_NOT_DETECTED 2
+
 struct RecordExtQUIC : public RecordExt {
    static int REGISTERED_ID;
    char       sni[BUFF_SIZE]        = { 0 };
    char       user_agent[BUFF_SIZE] = { 0 };
    uint32_t   quic_version;
+   uint32_t   quic_client_version;
+   uint64_t   quic_token_length;
+   // We use a char as a buffer.
+   uint8_t    occid_length;
+   uint8_t    oscid_length;
+   uint8_t    scid_length;
+   uint8_t    dir_scid_length;
+   uint8_t    dir_dcid_length;
+   uint8_t    retry_scid_length;
+   char       occid[MAX_CID_LEN] = { 0 };
+   char       oscid[MAX_CID_LEN] = { 0 };
+   char       scid[MAX_CID_LEN] = { 0 };
+   char       retry_scid[MAX_CID_LEN] = { 0 };
+   // Intermediate storage when direction is not clear
+   char       dir_scid[MAX_CID_LEN] = { 0 };
+   char       dir_dcid[MAX_CID_LEN] = { 0 };
+   uint16_t   dir_dport;
+   uint16_t   server_port;
+
+   uint8_t    quic_multiplexed;
+   uint8_t    quic_zero_rtt;
 
    RecordExtQUIC() : RecordExt(REGISTERED_ID)
    {
       sni[0]        = 0;
       user_agent[0] = 0;
       quic_version  = 0;
+      quic_client_version  = 0;
+      occid_length  = 0;
+      oscid_length  = 0;
+      scid_length   = 0;
+      retry_scid_length = 0;
+      occid[0]      = 0;
+      oscid[0]      = 0;
+      scid[0]       = 0;
+      retry_scid[0] = 0;
+      dir_dcid[0]   = 0;
+      dir_scid[0]   = 0;
+      dir_dcid_length=0;
+      dir_scid_length=0;
+      server_port          = 0;
+      dir_dport     = 0;
+      quic_token_length = QUICParser::QUIC_CONSTANTS::QUIC_UNUSED_VARIABLE_LENGTH_INT;
+      quic_multiplexed = 0;
+      quic_zero_rtt = 0;
    }
 
    #ifdef WITH_NEMEA
@@ -56,6 +107,14 @@ struct RecordExtQUIC : public RecordExt {
       ur_set_string(tmplt, record, F_QUIC_SNI, sni);
       ur_set_string(tmplt, record, F_QUIC_USER_AGENT, user_agent);
       ur_set(tmplt, record, F_QUIC_VERSION, quic_version);
+      ur_set(tmplt, record, F_QUIC_CLIENT_VERSION, quic_client_version);
+      ur_set(tmplt, record, F_QUIC_TOKEN_LENGTH, quic_token_length);
+      ur_set_var(tmplt, record, F_QUIC_OCCID, occid, occid_length);
+      ur_set_var(tmplt, record, F_QUIC_OSCID, oscid, oscid_length);
+      ur_set_var(tmplt, record, F_QUIC_SCID, scid, scid_length);
+      ur_set_var(tmplt, record, F_QUIC_RETRY_SCID, retry_scid, retry_scid_length);
+      ur_set(tmplt, record, F_QUIC_MULTIPLEXED, quic_multiplexed);
+      ur_set(tmplt, record, F_QUIC_ZERO_RTT, quic_zero_rtt);
    }
 
    const char *get_unirec_tmplt() const
@@ -70,9 +129,15 @@ struct RecordExtQUIC : public RecordExt {
       uint16_t len_sni        = strlen(sni);
       uint16_t len_user_agent = strlen(user_agent);
       uint16_t len_version    = sizeof(quic_version);
+      uint16_t len_client_version = sizeof(quic_client_version);
+      uint16_t len_token_length = sizeof(quic_token_length);
+      uint16_t len_multiplexed = sizeof(quic_multiplexed);
+      uint16_t len_zero_rtt = sizeof(quic_zero_rtt);
       int pos = 0;
 
-      if ((len_sni + 3) + (len_user_agent + 3) + len_version > size) {
+      if ((len_sni + 3) + (len_user_agent + 3) + len_version +
+            len_client_version + len_token_length + len_multiplexed + len_zero_rtt +
+            (scid_length + 3) + (occid_length + 3) + (oscid_length + 3)  + (retry_scid_length + 3) > size) {
          return -1;
       }
 
@@ -80,6 +145,24 @@ struct RecordExtQUIC : public RecordExt {
       pos += variable2ipfix_buffer(buffer + pos, (uint8_t *) user_agent, len_user_agent);
       *(uint32_t *) (buffer + pos) = htonl(quic_version);
       pos += len_version;
+       *(uint32_t *) (buffer + pos) = htonl(quic_client_version);
+      pos += len_client_version;
+      *(uint64_t *) (buffer + pos) = htobe64(quic_token_length);
+      pos += len_token_length;
+      // original client connection ID
+      pos += variable2ipfix_buffer(buffer + pos, (uint8_t *) occid, occid_length);
+      // original server connection id
+      pos += variable2ipfix_buffer(buffer + pos, (uint8_t *) oscid, oscid_length);
+      // server connection id
+      pos += variable2ipfix_buffer(buffer + pos, (uint8_t *) scid, scid_length);
+      // retry server connection id
+      pos += variable2ipfix_buffer(buffer + pos, (uint8_t *) retry_scid, retry_scid_length);
+
+      *(uint8_t *) (buffer + pos) = quic_multiplexed;
+      pos += 1;
+
+       *(uint8_t *) (buffer + pos) = quic_zero_rtt;
+       pos += 1;
       return pos;
    }
 
@@ -98,7 +181,13 @@ struct RecordExtQUIC : public RecordExt {
       std::ostringstream out;
 
       out << "quicsni=\"" << sni << "\"" << "quicuseragent=\"" << user_agent << "\"" << "quicversion=\"" <<
-           quic_version << "\"";
+           quic_version << "\""
+           << "quicclientversion=\"" << quic_client_version << "\""
+           << "quicoccidlength=\"" << occid_length << "\"" << "quicoccid=\"" << occid << "\""
+           << "quicoscidlength=\"" << oscid_length << "\"" << "quicoscid=\"" << oscid << "\""
+           << "quicscidlength=\"" << scid_length << "\"" << "quicscid=\"" << scid << "\""
+           << "quicmultiplexed=\"" << quic_multiplexed << "\""
+           << "quiczerortt=\"" << quic_zero_rtt << "\"";
       return out.str();
    }
 };
@@ -125,11 +214,18 @@ public:
    int post_create(Flow &rec, const Packet &pkt);
    int pre_update(Flow &rec, Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
-   void add_quic(Flow &rec, const Packet &pkt);
+   int add_quic(Flow &rec, const Packet &pkt);
    void finish(bool print_stats);
 
 private:
-   bool     process_quic(RecordExtQUIC *, const Packet&);
+   int process_quic(RecordExtQUIC *, Flow &rec, const Packet&);
+   void set_stored_cid_fields(RecordExtQUIC *quic_data, RecordExtQUIC *ext);
+   void set_cid_fields(RecordExtQUIC *quic_data, QUICParser *process_quic, int toServer,
+                                       RecordExtQUIC *ext, const Packet &pkt );
+   int get_direction_to_server(uint16_t parsed_port, const Packet &pkt, RecordExtQUIC *ext);
+   int get_direction_to_server_and_set_port(QUICParser *process_quic, RecordExtQUIC *quic_data, uint16_t parsed_port, const Packet &pkt, RecordExtQUIC *ext);
+   void set_client_hello_fields(QUICParser *process_quic, RecordExtQUIC *quic_data, const Packet &pkt,
+                                         RecordExtQUIC *ext );
    int parsed_initial;
    RecordExtQUIC *quic_ptr;
 };
