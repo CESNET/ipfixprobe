@@ -31,7 +31,10 @@
 #ifndef IPXP_PROCESS_STATS_HPP
 #define IPXP_PROCESS_STATS_HPP
 
+#include <cstdint>
 #include <ostream>
+#include <string>
+#include <sys/time.h>
 
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/options.hpp>

@@ -240,6 +240,15 @@ namespace ipxp {
 #define QUIC_SNI(F)                   F(8057,    890,  -1,   nullptr)
 #define QUIC_USER_AGENT(F)            F(8057,    891,  -1,   nullptr)
 #define QUIC_VERSION(F)               F(8057,    892,   4,   nullptr)
+#define QUIC_CLIENT_VERSION(F)        F(8057,    893,   4,   nullptr)
+#define QUIC_TOKEN_LENGTH(F)          F(8057,    894,   8,   nullptr)
+#define QUIC_OCCID(F)                 F(8057,    895,  -1,   nullptr)
+#define QUIC_OSCID(F)                 F(8057,    896,  -1,   nullptr)
+#define QUIC_SCID(F)                  F(8057,    897,  -1,   nullptr)
+#define QUIC_RETRY_SCID(F)            F(8057,    898,  -1,   nullptr)
+#define QUIC_MULTIPLEXED(F)           F(8057,    899,   1,   nullptr)
+#define QUIC_ZERO_RTT(F)              F(8057,    900,   1,   nullptr)
+
 
 #define OSQUERY_PROGRAM_NAME(F)       F(8057,    852,  -1,   nullptr)
 #define OSQUERY_USERNAME(F)           F(8057,    853,  -1,   nullptr)
@@ -494,7 +503,15 @@ namespace ipxp {
 #define IPFIX_QUIC_TEMPLATE(F) \
   F(QUIC_SNI) \
   F(QUIC_USER_AGENT) \
-  F(QUIC_VERSION)
+  F(QUIC_VERSION) \
+  F(QUIC_CLIENT_VERSION) \
+  F(QUIC_TOKEN_LENGTH) \
+  F(QUIC_OCCID) \
+  F(QUIC_OSCID) \
+  F(QUIC_SCID) \
+  F(QUIC_RETRY_SCID) \
+  F(QUIC_MULTIPLEXED) \
+  F(QUIC_ZERO_RTT)
 
 #define IPFIX_OSQUERY_TEMPLATE(F) \
    F(OSQUERY_PROGRAM_NAME) \
