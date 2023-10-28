@@ -220,7 +220,7 @@ NHTFlowCache<NEED_FLOW_CACHE_STATS>::NHTFlowCache():
 template<bool NEED_FLOW_CACHE_STATS>
 NHTFlowCache<NEED_FLOW_CACHE_STATS>::~NHTFlowCache()
 {
-   close();
+   this->NHTFlowCache<false>::close();
 }
 template<bool NEED_FLOW_CACHE_STATS>
 void NHTFlowCache<NEED_FLOW_CACHE_STATS>::test_attributes()
@@ -330,10 +330,6 @@ void NHTFlowCache<NEED_FLOW_CACHE_STATS>::finish()
 template<bool NEED_FLOW_CACHE_STATS>
 void NHTFlowCache<NEED_FLOW_CACHE_STATS>::flush(Packet &pkt, size_t flow_index, int ret, bool source_flow)
 {
-#ifdef FLOW_CACHE_STATS
-   m_flushed++;
-#endif /* FLOW_CACHE_STATS */
-
    if (ret == FLOW_FLUSH_WITH_REINSERT) {
       FlowRecord *flow = m_flow_table[flow_index];
       flow->m_flow.end_reason = FLOW_END_FORCED;
@@ -358,6 +354,12 @@ void NHTFlowCache<NEED_FLOW_CACHE_STATS>::flush(Packet &pkt, size_t flow_index, 
       m_flow_table[flow_index]->m_flow.end_reason = FLOW_END_FORCED;
       export_flow(flow_index);
    }
+}
+
+void NHTFlowCache<true>::flush(Packet &pkt, size_t flow_index, int ret, bool source_flow)
+{
+   m_flushed++;
+   NHTFlowCache<false>::flush(pkt,flow_index, ret,source_flow);
 }
 
 template<bool NEED_FLOW_CACHE_STATS>
@@ -594,11 +596,22 @@ uint8_t NHTFlowCache<NEED_FLOW_CACHE_STATS>::get_export_reason(Flow &flow)
 }
 
 template<bool NEED_FLOW_CACHE_STATS>
-uint32_t NHTFlowCache<NEED_FLOW_CACHE_STATS>::export_expired(time_t ts)
+void NHTFlowCache<NEED_FLOW_CACHE_STATS>::export_expired(time_t ts)
 {
    for (decltype(m_timeout_idx) i = m_timeout_idx; i < m_timeout_idx + m_line_new_idx; i++) {
       if (!m_flow_table[i]->is_empty() && ts - m_flow_table[i]->m_flow.time_last.tv_sec >= m_inactive) {
+         m_flow_table[i]->m_flow.end_reason = get_export_reason(m_flow_table[i]->m_flow);
+         plugins_pre_export(m_flow_table[i]->m_flow);
+         export_flow(i);
+      }
+   }
+   m_timeout_idx = (m_timeout_idx + m_line_new_idx) & (m_cache_size - 1);
+}
 
+void NHTFlowCache<true>::export_expired(time_t ts) noexcept
+{
+   for (decltype(m_timeout_idx) i = m_timeout_idx; i < m_timeout_idx + m_line_new_idx; i++) {
+      if (!m_flow_table[i]->is_empty() && ts - m_flow_table[i]->m_flow.time_last.tv_sec >= m_inactive) {
          m_flow_table[i]->m_flow.end_reason = get_export_reason(m_flow_table[i]->m_flow);
          plugins_pre_export(m_flow_table[i]->m_flow);
          export_flow(i);

@@ -198,11 +198,11 @@ protected:
    static constexpr uint32_t m_default_flow_cache_size = DEFAULT_FLOW_CACHE_SIZE;
    static constexpr const uint32_t m_default_flow_line_size =  DEFAULT_FLOW_LINE_SIZE;
 
-   void flush(Packet &pkt, size_t flow_index, int ret, bool source_flow);
+   virtual void flush(Packet &pkt, size_t flow_index, int ret, bool source_flow);
    bool create_hash_key(const Packet &pkt) noexcept;
    void export_flow(size_t index);
    static uint8_t get_export_reason(Flow &flow);
-   void finish();
+   void finish() override;
    void get_opts_from_parser(const CacheOptParser& parser);
    static void test_attributes();
    std::enable_if<PRINT_FLOW_CACHE_STATS,void> print_report();
@@ -236,6 +236,8 @@ class NHTFlowCache<true> : public NHTFlowCache<false>{
    bool export_inactive_timeout(Packet& pkt,uint32_t flow_index) noexcept override;
    bool export_active_timeout(Packet& pkt,uint32_t flow_index) noexcept override;
    void print_report() const noexcept;
+   void export_expired(time_t ts)noexcept override;
+   void flush(Packet &pkt, size_t flow_index, int ret, bool source_flow) override;
 };
 
 }
