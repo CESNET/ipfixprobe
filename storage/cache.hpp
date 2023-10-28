@@ -33,6 +33,8 @@
 #define IPXP_STORAGE_CACHE_HPP
 
 #include <string>
+#include <memory>
+#include <optional>
 
 #include <ipfixprobe/storage.hpp>
 #include <ipfixprobe/options.hpp>
@@ -41,7 +43,27 @@
 
 namespace ipxp {
 
-struct __attribute__((packed)) flow_key_v4_t {
+template<uint16_t IPSize>
+struct __attribute__((packed)) flow_key{
+    uint16_t src_port;
+    uint16_t dst_port;
+    uint8_t proto;
+    uint8_t ip_version;
+    std::array<uint8_t,IPSize> src_ip;
+    std::array<uint8_t,IPSize> dst_ip;
+    uint16_t vlan_id;
+    flow_key<IPSize>& operator=(const Packet &pkt)noexcept;
+    flow_key<IPSize>& save_reversed(const Packet &pkt)noexcept;
+};
+struct __attribute__((packed)) flow_key_v4 : public flow_key<4>{
+    flow_key_v4& operator=(const Packet &pkt)noexcept;
+    flow_key_v4& save_reversed(const Packet &pkt)noexcept;
+};
+struct __attribute__((packed)) flow_key_v6 : public flow_key<16>{
+    flow_key_v6& operator=(const Packet &pkt)noexcept;
+    flow_key_v6& save_reversed(const Packet &pkt)noexcept;
+};
+/*struct __attribute__((packed)) flow_key_v4 {
    uint16_t src_port;
    uint16_t dst_port;
    uint8_t proto;
@@ -49,9 +71,11 @@ struct __attribute__((packed)) flow_key_v4_t {
    uint32_t src_ip;
    uint32_t dst_ip;
    uint16_t vlan_id;
+
+
 };
 
-struct __attribute__((packed)) flow_key_v6_t {
+struct __attribute__((packed)) flow_key_v6 {
    uint16_t src_port;
    uint16_t dst_port;
    uint8_t proto;
@@ -59,44 +83,39 @@ struct __attribute__((packed)) flow_key_v6_t {
    uint8_t src_ip[16];
    uint8_t dst_ip[16];
    uint16_t vlan_id;
-};
 
-#define MAX_KEY_LENGTH (max<size_t>(sizeof(flow_key_v4_t), sizeof(flow_key_v6_t)))
+};*/
+
+
+#ifdef FLOW_CACHE_STATS
+    static const constexpr bool PRINT_FLOW_CACHE_STATS = true;
+#else
+    static const constexpr bool PRINT_FLOW_CACHE_STATS = false;
+#endif /* FLOW_CACHE_STATS */
 
 #ifdef IPXP_FLOW_CACHE_SIZE
-static const uint32_t DEFAULT_FLOW_CACHE_SIZE = IPXP_FLOW_CACHE_SIZE;
+    static const uint32_t DEFAULT_FLOW_CACHE_SIZE = IPXP_FLOW_CACHE_SIZE;
 #else
-static const uint32_t DEFAULT_FLOW_CACHE_SIZE = 17; // 131072 records total
+    static const uint32_t DEFAULT_FLOW_CACHE_SIZE = 17; // 131072 records total
 #endif /* IPXP_FLOW_CACHE_SIZE */
 
 #ifdef IPXP_FLOW_LINE_SIZE
-static const uint32_t DEFAULT_FLOW_LINE_SIZE = IPXP_FLOW_LINE_SIZE;
+    static const uint32_t DEFAULT_FLOW_LINE_SIZE = IPXP_FLOW_LINE_SIZE;
 #else
-static const uint32_t DEFAULT_FLOW_LINE_SIZE = 4; // 16 records per line
+    static const uint32_t DEFAULT_FLOW_LINE_SIZE = 4; // 16 records per line
 #endif /* IPXP_FLOW_LINE_SIZE */
-
-static const uint32_t DEFAULT_INACTIVE_TIMEOUT = 30;
-static const uint32_t DEFAULT_ACTIVE_TIMEOUT = 300;
-
-static_assert(std::is_unsigned<decltype(DEFAULT_FLOW_CACHE_SIZE)>(), "Static checks of default cache sizes won't properly work without unsigned type.");
-static_assert(bitcount<decltype(DEFAULT_FLOW_CACHE_SIZE)>(-1) > DEFAULT_FLOW_CACHE_SIZE, "Flow cache size is too big to fit in variable!");
-static_assert(bitcount<decltype(DEFAULT_FLOW_LINE_SIZE)>(-1) > DEFAULT_FLOW_LINE_SIZE, "Flow cache line size is too big to fit in variable!");
-
-static_assert(DEFAULT_FLOW_LINE_SIZE >= 1, "Flow cache line size must be at least 1!");
-static_assert(DEFAULT_FLOW_CACHE_SIZE >= DEFAULT_FLOW_LINE_SIZE, "Flow cache size must be at least cache line size!");
 
 class CacheOptParser : public OptionsParser
 {
 public:
    uint32_t m_cache_size;
    uint32_t m_line_size;
-   uint32_t m_active;
-   uint32_t m_inactive;
+   uint32_t m_active = 300;
+   uint32_t m_inactive = 30;
    bool m_split_biflow;
 
    CacheOptParser() : OptionsParser("cache", "Storage plugin implemented as a hash table"),
-      m_cache_size(1 << DEFAULT_FLOW_CACHE_SIZE), m_line_size(1 << DEFAULT_FLOW_LINE_SIZE),
-      m_active(DEFAULT_ACTIVE_TIMEOUT), m_inactive(DEFAULT_INACTIVE_TIMEOUT), m_split_biflow(false)
+      m_cache_size(1 << DEFAULT_FLOW_CACHE_SIZE), m_line_size(1 << DEFAULT_FLOW_LINE_SIZE),m_split_biflow(false)
    {
       register_option("s", "size", "EXPONENT", "Cache size exponent to the power of two",
          [this](const char *arg){try {unsigned exp = str2num<decltype(exp)>(arg);
@@ -143,21 +162,22 @@ public:
    void update(const Packet &pkt, bool src);
 };
 
+template<bool NEED_FLOW_CACHE_STATS = false>
 class NHTFlowCache : public StoragePlugin
 {
 public:
    NHTFlowCache();
    ~NHTFlowCache();
-   void init(const char *params);
-   void close();
-   void set_queue(ipx_ring_t *queue);
-   OptionsParser *get_parser() const { return new CacheOptParser(); }
-   std::string get_name() const { return "cache"; }
+   void init(const char *params) override;
+   void close() override;
+   void set_queue(ipx_ring_t *queue) override;
+   OptionsParser *get_parser() const override { return new CacheOptParser(); }
+   std::string get_name() const override { return "cache"; }
 
-   int put_pkt(Packet &pkt);
-   void export_expired(time_t ts);
+   int put_pkt(Packet &pkt) override;
+   void export_expired(time_t ts) override;
 
-private:
+protected:
    uint32_t m_cache_size;
    uint32_t m_line_size;
    uint32_t m_line_mask;
@@ -165,7 +185,41 @@ private:
    uint32_t m_qsize;
    uint32_t m_qidx;
    uint32_t m_timeout_idx;
-#ifdef FLOW_CACHE_STATS
+   uint32_t m_active;
+   uint32_t m_inactive;
+   bool m_split_biflow;
+   uint8_t m_keylen;
+   char m_key[max<size_t>(sizeof(flow_key_v4), sizeof(flow_key_v6))];
+   char m_key_inv[max<size_t>(sizeof(flow_key_v4), sizeof(flow_key_v6))];
+   std::unique_ptr<FlowRecord*[]> m_flow_table;
+   std::unique_ptr<FlowRecord[]>  m_flow_records;
+
+
+   static constexpr uint32_t m_default_flow_cache_size = DEFAULT_FLOW_CACHE_SIZE;
+   static constexpr const uint32_t m_default_flow_line_size =  DEFAULT_FLOW_LINE_SIZE;
+
+   void flush(Packet &pkt, size_t flow_index, int ret, bool source_flow);
+   bool create_hash_key(const Packet &pkt) noexcept;
+   void export_flow(size_t index);
+   static uint8_t get_export_reason(Flow &flow);
+   void finish();
+   void get_opts_from_parser(const CacheOptParser& parser);
+   static void test_attributes();
+   std::enable_if<PRINT_FLOW_CACHE_STATS,void> print_report();
+   std::pair<bool,uint32_t> find_existing_record(uint32_t begin_line,uint32_t end_line,uint64_t hashval) const noexcept;
+   virtual uint32_t enhance_existing_flow_record(uint32_t flow_index,uint32_t line_index) noexcept;
+   std::pair<bool,uint32_t> find_empty_place(uint32_t begin_line,uint32_t end_line) const noexcept;
+   virtual void free_index(uint32_t flow_index) noexcept;
+   virtual uint32_t put_new_flow_record(uint32_t flow_index,uint32_t begin_line,uint32_t end_line) noexcept;
+   virtual uint32_t put_into_free_place(uint32_t flow_index,bool empty_place_found,uint32_t begin_line,uint32_t end_line) noexcept;
+   bool processing_last_tcp_packet(Packet& pkt,uint32_t flow_index) noexcept;
+   virtual void create_new_flow(uint32_t flow_index, Packet& pkt,uint64_t hashval) noexcept;
+   virtual bool export_inactive_timeout(Packet& pkt,uint32_t flow_index) noexcept;
+   virtual bool export_active_timeout(Packet& pkt,uint32_t flow_index) noexcept;
+   virtual bool flush_and_update_flow(uint32_t flow_index,Packet& pkt) noexcept;
+};
+template<>
+class NHTFlowCache<true> : public NHTFlowCache<false>{
    uint64_t m_empty;
    uint64_t m_not_empty;
    uint64_t m_hits;
@@ -173,25 +227,15 @@ private:
    uint64_t m_flushed;
    uint64_t m_lookups;
    uint64_t m_lookups2;
-#endif /* FLOW_CACHE_STATS */
-   uint32_t m_active;
-   uint32_t m_inactive;
-   bool m_split_biflow;
-   uint8_t m_keylen;
-   char m_key[MAX_KEY_LENGTH];
-   char m_key_inv[MAX_KEY_LENGTH];
-   FlowRecord **m_flow_table;
-   FlowRecord *m_flow_records;
-
-   void flush(Packet &pkt, size_t flow_index, int ret, bool source_flow);
-   bool create_hash_key(Packet &pkt);
-   void export_flow(size_t index);
-   static uint8_t get_export_reason(Flow &flow);
-   void finish();
-
-#ifdef FLOW_CACHE_STATS
-   void print_report();
-#endif /* FLOW_CACHE_STATS */
+   void init(const char *params);
+   uint32_t
+   enhance_existing_flow_record(uint32_t flow_index,uint32_t line_index) noexcept override;
+   void free_index(uint32_t flow_index) noexcept override;
+   uint32_t put_into_free_place(uint32_t flow_index,bool empty_place_found,uint32_t begin_line,uint32_t end_line) noexcept override;
+   void create_new_flow(uint32_t flow_index, Packet& pkt,uint64_t hashval) noexcept override;
+   bool export_inactive_timeout(Packet& pkt,uint32_t flow_index) noexcept override;
+   bool export_active_timeout(Packet& pkt,uint32_t flow_index) noexcept override;
+   void print_report() const noexcept;
 };
 
 }
