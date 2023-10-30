@@ -6,7 +6,7 @@ cppflags=
 ldflags=
 endif
 
-check_PROGRAMS=utils byte_utils options flowifc unirec
+check_PROGRAMS=utils byte_utils options flowifc unirec cache
 
 if HAVE_GOOGLETEST
 utils_SOURCES=utils.cpp
@@ -47,5 +47,13 @@ unirec_SOURCES=skip.cpp
 endif
 unirec_CPPFLAGS=$(cppflags)
 unirec_LDFLAGS=$(ldflags)
+
+if HAVE_GOOGLETEST
+cache_SOURCES=cache.cpp
+else
+cache_SOURCES=skip.cpp
+endif
+cache_CPPFLAGS=$(cppflags)
+cache_LDFLAGS=$(ldflags)
 
 TESTS=$(check_PROGRAMS)
