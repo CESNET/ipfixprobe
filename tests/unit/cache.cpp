@@ -1,60 +1,51 @@
 #include <algorithm>
 #include "gtest/gtest.h"
 
-#include "ipfixprobe/flowifc.hpp"
+#include "storage/cache.hpp"
+#include "storage/old_cache.hpp"
+#include "fstream"
+#include <sys/stat.h>
+#include <limits.h>
 
 namespace ipxp_test {
 
 using namespace ipxp;
 
-RecordExt *genext(int id)
+TEST(TestCaches,compareResult)
 {
-   return new RecordExt(id);
-}
-
-class TestExt : public RecordExt
-{
-public:
-   static int REGISTERED_ID;
-
-   TestExt() : RecordExt(REGISTERED_ID) {}
-};
-
-int TestExt::REGISTERED_ID = -1;
-
-class TestRec : public::testing::Test, public Record
-{
-protected:
-   std::vector<RecordExt *> m_vec;
-
-   void SetUp() {
-      m_vec.push_back(genext(1));
-      m_vec.push_back(genext(2));
-      m_vec.push_back(genext(1));
-      m_vec.push_back(genext(3));
-
-      for (auto it : m_vec) {
-         add_extension(it);
-      }
-   }
-
-   void TearDown() {
-      remove_extensions();
-   }
-};
-
-
-TEST(TestExt, registration)
-{
-   EXPECT_EQ(0, 1);
+    auto list ={"dns","mixed","bstats","dnssd","tls","sip","ssdp",
+                "ovpn","vlan","wg","http","rtsp","quic_initial-sample",
+                "smtp","idpcontent","arp","ntp","netbios"};
+    for(const auto& filename : list){
+        system((std::string("../../ipfixprobe -i 'pcap;file=../../pcaps/") + filename
+            +".pcap' -o 'text' -s old_cache > old_cache.res").c_str());
+        system((std::string("../../ipfixprobe -i 'pcap;file=../../pcaps/") + filename
+            + ".pcap' -o 'text' -s cache > cache.res").c_str());
+        std::ifstream f1("cache.res"),f2("old_cache.res");
+        std::cout<<"Testing:" << filename  << "\n";
+        if (!f1 || !f2)
+            FAIL() << "Some file(s) wasn't created\n";
+        std::string str1,str2;
+        while(true){
+            std::getline(f1,str1);
+            std::getline(f2,str2);
+            EXPECT_EQ(str1, str2) << "Mismatch\n";
+            if (f2.eof() && f1.eof())
+                break;
+            if (f1.bad() || f2.bad() || (f1.eof() && !f2.eof()) || (f2.eof() && !f1.eof()))
+                FAIL() << "Error\n";
+        }
+        f1.close();
+        f2.close();
+    }
 }
 
 }
 
 int main(int argc, char **argv)
 {
-   // invoking the tests
-   ::testing::InitGoogleTest(&argc, argv);
-   return RUN_ALL_TESTS();
+    // invoking the tests
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
 
