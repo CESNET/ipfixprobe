@@ -1,43 +1,42 @@
 /**
-* \file cache.hpp
-* \brief "NewHashTable" flow cache
-* \author Martin Zadnik <zadnik@cesnet.cz>
-* \author Vaclav Bartos <bartos@cesnet.cz>
-* \author Jiri Havranek <havranek@cesnet.cz>
-* \date 2014
-* \date 2015
-* \date 2016
-*/
+ * \file cache.hpp
+ * \brief "NewHashTable" flow cache
+ * \author Martin Zadnik <zadnik@cesnet.cz>
+ * \author Vaclav Bartos <bartos@cesnet.cz>
+ * \author Jiri Havranek <havranek@cesnet.cz>
+ * \date 2014
+ * \date 2015
+ * \date 2016
+ */
 /*
-* Copyright (C) 2014-2016 CESNET
-*
-* LICENSE TERMS
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions
-* are met:
-* 1. Redistributions of source code must retain the above copyright
-*    notice, this list of conditions and the following disclaimer.
-* 2. Redistributions in binary form must reproduce the above copyright
-*    notice, this list of conditions and the following disclaimer in
-*    the documentation and/or other materials provided with the
-*    distribution.
-* 3. Neither the name of the Company nor the names of its contributors
-*    may be used to endorse or promote products derived from this
-*    software without specific prior written permission.
-*
-*
-*
-*/
-#define FLOW_CACHE_STATS true
+ * Copyright (C) 2014-2016 CESNET
+ *
+ * LICENSE TERMS
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of the Company nor the names of its contributors
+ *    may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ *
+ *
+ *
+ */
 #ifndef IPXP_STORAGE_OLD_CACHE_HPP
 #define IPXP_STORAGE_OLD_CACHE_HPP
 
 #include <string>
 
-#include <ipfixprobe/storage.hpp>
-#include <ipfixprobe/options.hpp>
 #include <ipfixprobe/flowifc.hpp>
+#include <ipfixprobe/options.hpp>
+#include <ipfixprobe/storage.hpp>
 #include <ipfixprobe/utils.hpp>
 
 namespace ipxp {
@@ -234,7 +233,6 @@ private:
     uint64_t m_flushed;
     uint64_t m_lookups;
     uint64_t m_lookups2;
-    uint64_t m_order;
 #endif /* FLOW_CACHE_STATS */
     uint32_t m_active;
     uint32_t m_inactive;
@@ -253,9 +251,9 @@ private:
 
 #ifdef FLOW_CACHE_STATS
     void print_report();
-    void print_cache_dump()const noexcept;
+    void print_cache_dump() const noexcept;
 #endif /* FLOW_CACHE_STATS */
 };
-}
-}
+} // namespace old_cache
+} // namespace ipxp
 #endif /* IPXP_STORAGE_OLD_CACHE_HPP */

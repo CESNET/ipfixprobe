@@ -215,6 +215,12 @@ if [[ -z "$WITH_NDP_TRUE" ]]; then
    RPM_BUILDREQ+=" netcope-common-devel"
 fi
 
+AC_ARG_WITH([debugcache], [AS_HELP_STRING([--with-debugcache], [Enable cache statistic prints])])
+if test "x$with_debugcache" = "xyes"; then
+  CPPFLAGS="$CPPFLAGS -DFLOW_CACHE_STATS"
+fi
+
+
 AC_ARG_WITH([pcap],
         AC_HELP_STRING([--with-pcap],[Compile ipfixprobe with pcap plugin for capturing using libpcap library]),
         [

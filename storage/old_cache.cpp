@@ -1,45 +1,45 @@
 /**
-* \file cache.cpp
-* \brief "NewHashTable" flow cache
-* \author Martin Zadnik <zadnik@cesnet.cz>
-* \author Vaclav Bartos <bartos@cesnet.cz>
-* \author Jiri Havranek <havranek@cesnet.cz>
-* \date 2014
-* \date 2015
-* \date 2016
-*/
+ * \file cache.cpp
+ * \brief "NewHashTable" flow cache
+ * \author Martin Zadnik <zadnik@cesnet.cz>
+ * \author Vaclav Bartos <bartos@cesnet.cz>
+ * \author Jiri Havranek <havranek@cesnet.cz>
+ * \date 2014
+ * \date 2015
+ * \date 2016
+ */
 /*
-* Copyright (C) 2014-2016 CESNET
-*
-* LICENSE TERMS
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions
-* are met:
-* 1. Redistributions of source code must retain the above copyright
-*    notice, this list of conditions and the following disclaimer.
-* 2. Redistributions in binary form must reproduce the above copyright
-*    notice, this list of conditions and the following disclaimer in
-*    the documentation and/or other materials provided with the
-*    distribution.
-* 3. Neither the name of the Company nor the names of its contributors
-*    may be used to endorse or promote products derived from this
-*    software without specific prior written permission.
-*
-*
-*
-*/
+ * Copyright (C) 2014-2016 CESNET
+ *
+ * LICENSE TERMS
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of the Company nor the names of its contributors
+ *    may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ *
+ *
+ *
+ */
 
 #include <cstdlib>
-#include <iostream>
 #include <cstring>
-#include <sys/time.h>
-#include <iomanip>
 #include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <sys/time.h>
 
-#include <ipfixprobe/ring.h>
 #include "old_cache.hpp"
 #include "xxhash.h"
+#include <ipfixprobe/ring.h>
 
 namespace ipxp {
 namespace old_cache {
@@ -311,26 +311,13 @@ void OldNHTFlowCache::flush(Packet& pkt, size_t flow_index, int ret, bool source
         export_flow(flow_index);
     }
 }
-#ifdef FLOW_CACHE_STATS
-void OldNHTFlowCache::print_cache_dump()const noexcept{
-    /*std::ofstream outfile;
-    outfile.open("old_cache_res.txt", std::ios_base::app);
-    const uint32_t field_count = sizeof(FlowRecord)/sizeof(uint32_t);
-    for(uint32_t i = 0; i < m_cache_size + m_qsize; i++)
-        for(uint32_t k = 0; k < field_count; k++)
-            outfile<<reinterpret_cast<uint32_t*>(&m_flow_records[i])[k];
-    outfile.close();*/
-}
-#endif /*FLOW_CACHE_STATS*/
 
 int OldNHTFlowCache::put_pkt(Packet& pkt)
 {
-#ifdef FLOW_CACHE_STATS
-    print_cache_dump();
-#endif /*FLOW_CACHE_STATS*/
     int ret = plugins_pre_create(pkt);
 
-    if (!create_hash_key(pkt)) { // saves key value and key length into attributes NHTFlowCache::key and NHTFlowCache::m_keylen
+    if (!create_hash_key(pkt)) { // saves key value and key length into attributes NHTFlowCache::key
+                                 // and NHTFlowCache::m_keylen
         return 0;
     }
 
@@ -349,7 +336,7 @@ int OldNHTFlowCache::put_pkt(Packet& pkt)
         if (m_flow_table[flow_index]->belongs(hashval)) {
             found = true;
 #ifdef FLOW_CACHE_STATS
-            //std::cout<<m_order << " was found directly\n";
+            // std::cout<<m_order << " was found directly\n";
 #endif /*FLOW_CACHE_STATS*/
             break;
         }
@@ -367,7 +354,7 @@ int OldNHTFlowCache::put_pkt(Packet& pkt)
                 hashval = hashval_inv;
                 line_index = line_index_inv;
 #ifdef FLOW_CACHE_STATS
-                //std::cout<<m_order << " was found reversed\n";
+                // std::cout<<m_order << " was found reversed\n";
 #endif /*FLOW_CACHE_STATS*/
                 break;
             }
@@ -393,7 +380,7 @@ int OldNHTFlowCache::put_pkt(Packet& pkt)
 #endif /* FLOW_CACHE_STATS */
     } else {
 #ifdef FLOW_CACHE_STATS
-       // std::cout<<m_order << " was not found\n";
+        // std::cout<<m_order << " was not found\n";
 #endif /*FLOW_CACHE_STATS*/
         /* Existing flow record was not found. Find free place in flow line. */
         for (flow_index = line_index; flow_index < next_line; flow_index++) {
@@ -404,7 +391,7 @@ int OldNHTFlowCache::put_pkt(Packet& pkt)
         }
         if (!found) {
             /* If free place was not found (flow line is full), find
-         * record which will be replaced by new record. */
+             * record which will be replaced by new record. */
             flow_index = next_line - 1;
 
             // Export flow
@@ -586,5 +573,5 @@ void OldNHTFlowCache::print_report()
     std::cout << "Variance Lookup: " << float(m_lookups2) / m_hits - tmp * tmp << std::endl;
 }
 #endif /* FLOW_CACHE_STATS */
-}
-}
+} // namespace old_cache
+} // namespace ipxp
