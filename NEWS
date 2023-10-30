@@ -1,3 +1,6 @@
+2023-10-25 (Tomas Cejka): openwrt: fix missing byteorder in RTP plugin
+2023-10-25 (Tomas Cejka): openwrt: add missing include of time.h
+
 2023-10-17 (Pavel Siska): ipfix - propose new variables (ipfix template refresh rate) to control init by ipfixprobed The description of new variables was added into link0.conf.example:     TEMPLATE_REFRESH_RATE
 2023-10-17 (Pavel Siska): ipfix - add configuration option for template refresh rate (UDP)
 2023-10-17 (Pavel Siska): vlan plugin: fix invalid return code from fill_ipfix()

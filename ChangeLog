@@ -1,3 +1,6 @@
+2023-10-30 ipfixprobe-4.11.1
+	* minor bugfixes to build on openwrt
+
 2023-10-18 ipfixprobe-4.11.0
 	* ipfix - propose new variable (ipfix template refresh rate)
 	* vlan plugin: fix ipfix output
