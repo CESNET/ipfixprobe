@@ -621,10 +621,10 @@ List of fields exported together with basic flow fields on interface by quic plu
 |    QUIC_VERSION     | uint32 |             QUIC version extracted from long header packets             |
 | QUIC_CLIENT_VERSION | uint32 |     QUIC version from the Initial packet with the TLS Client Hello      |
 |  QUIC_TOKEN_LENGTH  | uint64 |               Token length from Initial and Retry packets               |
-|     QUIC_OCCID      | string |   Source Connection ID from Initial packet with the TLS Client Hello    |
-|     QUIC_OSCID      | string | Destination Connection ID from Initial packet with the TLS Client Hello |
-|      QUIC_SCID      | string |    Source Connection ID from long header packets other than before.     |
-|   QUIC_RETRY_SCID   | string |                 Source Connection ID from Retry packet                  |
+|     QUIC_OCCID      | bytes  |   Source Connection ID from Initial packet with the TLS Client Hello    |
+|     QUIC_OSCID      | bytes  | Destination Connection ID from Initial packet with the TLS Client Hello |
+|      QUIC_SCID      | bytes  |    Source Connection ID from long header packets other than before.     |
+|   QUIC_RETRY_SCID   | bytes  |                 Source Connection ID from Retry packet                  |
 |  QUIC_MULTIPLEXED   | uint8  |          > 0 if multiplexed (at least two QUIC_OSCIDs or SNIs)          |
 |    QUIC_ZERO_RTT    | uint8  |                    Number of 0-RTT packets in flow.                    |
 
