@@ -283,7 +283,7 @@ int QUICPlugin::add_quic(Flow &rec, const Packet &pkt)
 
    int ret = process_quic(q_ptr, rec, pkt);
    // Test if QUIC extension is not set
-   if (new_qptr && (ret == QUIC_DETECTED)) {
+   if (new_qptr && ((ret == QUIC_DETECTED) || (ret == FLOW_FLUSH))) {
          rec.add_extension(q_ptr);
    }
    if (new_qptr && (ret == QUIC_NOT_DETECTED)) {

@@ -315,7 +315,6 @@ bool QUICParser::quic_obtain_version()
 
     if (version == version_negotiation) {
         DEBUG_MSG("Error, version negotiation\n");
-        return false;
     } else if (!is_version2 && version == quic_newest) {
         salt = handshake_salt_v1;
     } else if (!is_version2 && quic_check_version(version, 9)) {
