@@ -247,7 +247,7 @@ namespace ipxp {
 #define QUIC_SCID(F)                  F(8057,    897,  -1,   nullptr)
 #define QUIC_RETRY_SCID(F)            F(8057,    898,  -1,   nullptr)
 #define QUIC_MULTIPLEXED(F)           F(8057,    899,   1,   nullptr)
-#define QUIC_ZERO_RTT(F)              F(8057,    900,   1,   nullptr)
+#define QUIC_ZERO_RTT(F)              F(8057,    889,   1,   nullptr)
 
 
 #define OSQUERY_PROGRAM_NAME(F)       F(8057,    852,  -1,   nullptr)
