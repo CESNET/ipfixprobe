@@ -194,7 +194,19 @@ int QUICPlugin::process_quic(RecordExtQUIC *quic_data, Flow &rec, const Packet &
    // Test for QUIC packet in UDP payload
    if(process_quic.quic_check_quic_long_header_packet(pkt) ) {
 
-       process_quic.quic_get_version(quic_data->quic_version);
+       uint32_t version;
+       process_quic.quic_get_version(version);
+
+       uint8_t packets = 0;
+       process_quic.quic_get_packets(packets);
+
+       // A 0-RTT carries the same QUIC version as the Client Initial Hello.
+       // 0-RTT and compatible version negotiation is not defined.
+       // We ignore those cases because it might be defined in the future
+       if ((process_quic.quic_get_packet_type() != QUICParser::PACKET_TYPE::ZERO_RTT)) {
+            quic_data->quic_version = version;
+       }
+
        if (quic_data->quic_version == QUICParser::QUIC_VERSION::version_negotiation) {
            return FLOW_FLUSH;
        }
@@ -203,8 +215,7 @@ int QUICPlugin::process_quic(RecordExtQUIC *quic_data, Flow &rec, const Packet &
        // Simple version, more advanced information is available after Initial parsing
        int toServer = get_direction_to_server_and_set_port(&process_quic, quic_data, process_quic.quic_get_server_port(), pkt, ext);
 
-       uint8_t packets = 0;
-       process_quic.quic_get_packets(packets);
+
         if (packets & QUICParser::PACKET_TYPE_FLAG::F_ZERO_RTT) {
             uint8_t zero_rtt_pkts = process_quic.quic_get_zero_rtt();
 
@@ -227,7 +238,6 @@ int QUICPlugin::process_quic(RecordExtQUIC *quic_data, Flow &rec, const Packet &
                // Update accounting for information from CH, SH.
                toServer = get_direction_to_server_and_set_port(&process_quic, quic_data, process_quic.quic_get_server_port(), pkt, ext);
                // fallthrough to set cids
-           case QUICParser::PACKET_TYPE::ZERO_RTT:
            case QUICParser::PACKET_TYPE::HANDSHAKE:
                // -1 sets stores intermediately.
                set_cid_fields(quic_data, &process_quic, toServer, ext, pkt);
@@ -238,6 +248,11 @@ int QUICPlugin::process_quic(RecordExtQUIC *quic_data, Flow &rec, const Packet &
                process_quic.quic_get_scid_len(quic_data->retry_scid_length);
                process_quic.quic_get_token_length(quic_data->quic_token_length);
                set_cid_fields(quic_data, &process_quic, toServer, ext, pkt);
+               break;
+           case QUICParser::PACKET_TYPE::ZERO_RTT:
+                // Connection IDs are identical to Client Initial CH. The DCID might be OSCID at first and change to SCID later. We ignore the DCID.
+               process_quic.quic_get_scid(quic_data->occid);
+               process_quic.quic_get_scid_len(quic_data->occid_length);
                break;
        }
 
