@@ -215,14 +215,9 @@ int QUICPlugin::process_quic(RecordExtQUIC *quic_data, Flow &rec, const Packet &
             quic_data->quic_version = version;
        }
 
-       if (quic_data->quic_version == QUICParser::QUIC_VERSION::version_negotiation) {
-           return FLOW_FLUSH;
-       }
-
        RecordExtQUIC *ext = (RecordExtQUIC *) rec.get_extension(RecordExtQUIC::REGISTERED_ID);
        // Simple version, more advanced information is available after Initial parsing
        int toServer = get_direction_to_server_and_set_port(&process_quic, quic_data, process_quic.quic_get_server_port(), pkt, ext);
-
 
         if (packets & QUICParser::PACKET_TYPE_FLAG::F_ZERO_RTT) {
             uint8_t zero_rtt_pkts = process_quic.quic_get_zero_rtt();
@@ -234,6 +229,10 @@ int QUICPlugin::process_quic(RecordExtQUIC *quic_data, Flow &rec, const Packet &
             }
         }
        uint8_t parsed_initial = 0;
+
+       if (version == QUICParser::QUIC_VERSION::version_negotiation) {
+           return FLOW_FLUSH;
+       }
 
        switch (process_quic.quic_get_packet_type()) {
            case QUICParser::PACKET_TYPE::INITIAL:

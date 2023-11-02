@@ -1204,10 +1204,12 @@ bool QUICParser::quic_set_server_port(const Packet& pkt) {
             if (hs.type == 1) {
                 server_port = pkt.dst_port;
             } else if (hs.type == 2) {
+                // Won't be reached, since we don't supply the OCCID to quic_parser
                 server_port = pkt.src_port;
             }
             // e.g. ACKs do not reveal direction
             break;
+        case VERSION_NEGOTIATION:
         case RETRY:
             server_port = pkt.src_port;
             break;
