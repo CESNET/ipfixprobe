@@ -200,6 +200,14 @@ int QUICPlugin::process_quic(RecordExtQUIC *quic_data, Flow &rec, const Packet &
        uint8_t packets = 0;
        process_quic.quic_get_packets(packets);
 
+
+       // Store all QUIC packet types contained in each packet
+       uint8_t pos = rec.src_packets + rec.dst_packets -1;
+       if (pos < QUIC_MAX_ELEMCOUNT) {
+            quic_data->pkt_types[pos] = packets;
+            quic_data->last_pkt_type = pos;
+       }
+
        // A 0-RTT carries the same QUIC version as the Client Initial Hello.
        // 0-RTT and compatible version negotiation is not defined.
        // We ignore those cases because it might be defined in the future
