@@ -1071,9 +1071,6 @@ bool QUICParser::quic_parse_header(const Packet &pkt, uint64_t& offset, uint8_t*
         return false;
     }
 
-    quic_parse_packet_type(quic_h1->first_byte);
-
-
     offset += sizeof(quic_first_ver_dcidlen);
 
     if (!quic_check_pointer_pos((payload_pointer + offset), payload_end)) {
@@ -1081,6 +1078,10 @@ bool QUICParser::quic_parse_header(const Packet &pkt, uint64_t& offset, uint8_t*
     }
 
     if (quic_h1->dcid_len != 0) {
+        if (quic_h1->dcid_len>MAX_CID_LEN) {
+            DEBUG_MSG("Recieved DCID longer than supported. dcid_len=%d \n", dcid_len);
+            return false;
+        }
         dcid = (payload_pointer + offset);
         dcid_len = quic_h1->dcid_len;
         offset += quic_h1->dcid_len;
@@ -1099,6 +1100,10 @@ bool QUICParser::quic_parse_header(const Packet &pkt, uint64_t& offset, uint8_t*
     }
 
     if (quic_h2->scid_len != 0) {
+        if (quic_h2->scid_len>MAX_CID_LEN) {
+    	    DEBUG_MSG("Recieved SCID longer than supported. scid_len=%d \n", scid_len);
+            return false;
+        }
         scid = (payload_pointer + offset);
         scid_len = quic_h2->scid_len;
         offset += quic_h2->scid_len;
@@ -1107,6 +1112,8 @@ bool QUICParser::quic_parse_header(const Packet &pkt, uint64_t& offset, uint8_t*
     if (!quic_check_pointer_pos((payload_pointer + offset), payload_end)) {
         return false;
     }
+
+    quic_parse_packet_type(quic_h1->first_byte);
 
     return true;
 
