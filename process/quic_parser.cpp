@@ -952,10 +952,12 @@ bool QUICParser::quic_check_supported_version(const uint32_t version) {
       case faceebook1:
       case faceebook2:
       case facebook_experimental:
-      case force_ver_neg_pattern:
       case version_negotiation:
       case quic_newest:
          return true;
+   }
+   if ((version & 0x0f0f0f0f) == force_ver_neg_pattern) {
+       return true
    }
    return false;
 }
