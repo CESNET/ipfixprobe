@@ -42,8 +42,7 @@
 #define CURRENT_BUFFER_SIZE 1500
 // 8 because (1B QUIC LH, 4B Version, 1 B SCID LEN, 1B DCID LEN, Payload/Retry Token/Supported Version >= 1 B)
 #define QUIC_MIN_PACKET_LENGTH 8
-
-
+#define MAX_CID_LEN 20
 
 namespace ipxp {
 typedef struct __attribute__((packed)) quic_first_ver_dcidlen {
