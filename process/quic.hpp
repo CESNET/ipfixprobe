@@ -28,7 +28,7 @@
 
 
 namespace ipxp {
-#define QUIC_UNIREC_TEMPLATE "QUIC_SNI,QUIC_USER_AGENT,QUIC_VERSION,QUIC_CLIENT_VERSION,QUIC_TOKEN_LENGTH,QUIC_OCCID,QUIC_OSCID,QUIC_SCID,QUIC_RETRY_SCID,QUIC_MULTIPLEXED,QUIC_ZERO_RTT,QUIC_PACKETS"
+#define QUIC_UNIREC_TEMPLATE "QUIC_SNI,QUIC_USER_AGENT,QUIC_VERSION,QUIC_CLIENT_VERSION,QUIC_TOKEN_LENGTH,QUIC_OCCID,QUIC_OSCID,QUIC_SCID,QUIC_RETRY_SCID,QUIC_MULTIPLEXED,QUIC_ZERO_RTT,QUIC_SERVER_PORT,QUIC_PACKETS"
 UR_FIELDS(
    string QUIC_SNI,
    string QUIC_USER_AGENT,
@@ -41,6 +41,7 @@ UR_FIELDS(
    bytes QUIC_RETRY_SCID,
    uint8 QUIC_MULTIPLEXED,
    uint8 QUIC_ZERO_RTT,
+   uint16 QUIC_SERVER_PORT,
    uint8* QUIC_PACKETS
 )
 
@@ -123,6 +124,7 @@ struct RecordExtQUIC : public RecordExt {
       ur_set_var(tmplt, record, F_QUIC_RETRY_SCID, retry_scid, retry_scid_length);
       ur_set(tmplt, record, F_QUIC_MULTIPLEXED, quic_multiplexed);
       ur_set(tmplt, record, F_QUIC_ZERO_RTT, quic_zero_rtt);
+      ur_set(tmplt, record, F_QUIC_SERVER_PORT, server_port);
       ur_array_allocate(tmplt, record, F_QUIC_PACKETS, last_pkt_type+1);
       for (int i = 0; i < last_pkt_type+1; i++) {
         ur_array_set(tmplt, record, F_QUIC_PACKETS, i, pkt_types[i]);
@@ -148,12 +150,14 @@ struct RecordExtQUIC : public RecordExt {
       uint16_t len_multiplexed = sizeof(quic_multiplexed);
       uint16_t len_zero_rtt = sizeof(quic_zero_rtt);
       uint16_t pkt_types_len = sizeof(pkt_types[0])*(last_pkt_type+1) + basiclist.HeaderSize() ;
+      uint16_t len_server_port = sizeof(server_port);
       uint32_t pos = 0;
+
 
       if ((len_sni + 3) + (len_user_agent + 3) + len_version +
             len_client_version + len_token_length + len_multiplexed + len_zero_rtt +
             (scid_length + 3) + (occid_length + 3) + (oscid_length + 3)  + (retry_scid_length + 3) +
-            pkt_types_len > size) {
+            len_server_port + pkt_types_len > size) {
          return -1;
       }
 
@@ -179,6 +183,8 @@ struct RecordExtQUIC : public RecordExt {
 
        *(uint8_t *) (buffer + pos) = quic_zero_rtt;
        pos += 1;
+       *(uint16_t *) (buffer + pos) = htons(server_port);
+       pos += len_server_port;
        // Packet types
        pos += basiclist.FillBuffer(buffer + pos, pkt_types, (uint16_t) last_pkt_type + 1, (uint16_t) QUIC_PKT_FIELD_ID);
 
