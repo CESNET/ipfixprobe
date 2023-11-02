@@ -248,6 +248,7 @@ namespace ipxp {
 #define QUIC_RETRY_SCID(F)            F(8057,    898,  -1,   nullptr)
 #define QUIC_MULTIPLEXED(F)           F(8057,    899,   1,   nullptr)
 #define QUIC_ZERO_RTT(F)              F(8057,    889,   1,   nullptr)
+#define QUIC_SERVER_PORT(F)           F(8057,    887,   2,   nullptr)
 #define QUIC_PACKETS(F)               F(8057,    888,  -1,   nullptr)
 
 
@@ -515,6 +516,7 @@ namespace ipxp {
   F(QUIC_RETRY_SCID) \
   F(QUIC_MULTIPLEXED) \
   F(QUIC_ZERO_RTT) \
+  F(QUIC_SERVER_PORT) \
   F(QUIC_PACKETS)
 
 #define IPFIX_OSQUERY_TEMPLATE(F) \
