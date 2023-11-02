@@ -247,6 +247,11 @@ uint8_t QUICParser::quic_draft_version(uint32_t version)
     if ((version >> 8) == older_version) {
         return (uint8_t) version;
     }
+    // This exists since version 29, but is still present in RFC9000.
+    if (version & 0x0F0F0F0F == force_ver_neg_pattern){
+        // Version 1
+        return 35;
+    }
     switch (version) {
     // older mvfst version, but still used, based on draft 22, but salt 21 used
     case (faceebook1):
@@ -255,9 +260,6 @@ uint8_t QUICParser::quic_draft_version(uint32_t version)
     case faceebook2:
     case facebook_experimental:
         return 27;
-    case (force_ver_neg_pattern & 0x0F0F0F0F):
-        return 29;
-
     // version 2 draft 00
     case q_version2_draft00:
     // newest
@@ -329,6 +331,8 @@ bool QUICParser::quic_obtain_version()
         salt = handshake_salt_draft_23;
     } else if (!is_version2 && quic_check_version(version, 32)) {
         salt = handshake_salt_draft_29;
+    else if (!is_version2 && quic_check_version(version, 35)) {
+        salt = handshake_salt_v1;
     } else if (is_version2 && quic_check_version(version, 100)) {
         salt = handshake_salt_v2;
     } else {
