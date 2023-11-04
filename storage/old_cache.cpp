@@ -183,7 +183,8 @@ OldNHTFlowCache::OldNHTFlowCache()
 OldNHTFlowCache::~OldNHTFlowCache()
 {
 #ifdef FLOW_CACHE_STATS
-    print_report();
+    if (m_hits)
+        print_report();
 #endif /*FLOW_CACHE_STATS */
     close();
 }

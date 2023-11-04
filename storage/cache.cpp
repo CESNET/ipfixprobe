@@ -471,6 +471,7 @@ std::pair<bool, uint32_t> NHTFlowCache<NEED_FLOW_CACHE_STATS>::find_empty_place(
         if (m_flow_table[flow_index]->is_empty())
             return {true, flow_index};
     }
+    //No empty place was found.
     return {false, 0};
 }
 
@@ -582,7 +583,6 @@ int NHTFlowCache<NEED_FLOW_CACHE_STATS>::put_pkt(Packet& pkt)
         return 0;
     /* Calculates hash value from key created before. */
     uint64_t hashval = XXH64(m_key, m_keylen, 0);
-    //std::cerr<< hashval << std::endl;
     bool source_flow = true;
 
     /* Get index of flow line. */
@@ -644,13 +644,12 @@ int NHTFlowCache<NEED_FLOW_CACHE_STATS>::put_pkt(Packet& pkt)
     return 0;
 }
 
-
-    int NHTFlowCache<true>::put_pkt(Packet& pkt){
-        auto start = std::chrono::high_resolution_clock::now();
-        auto res = NHTFlowCache<false>::put_pkt(pkt);
-        m_put_time += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
-        return res;
-    }
+int NHTFlowCache<true>::put_pkt(Packet& pkt){
+    auto start = std::chrono::high_resolution_clock::now();
+    auto res = NHTFlowCache<false>::put_pkt(pkt);
+    m_put_time += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
+    return res;
+}
 
 template<bool NEED_FLOW_CACHE_STATS>
 uint8_t NHTFlowCache<NEED_FLOW_CACHE_STATS>::get_export_reason(Flow& flow)
