@@ -708,7 +708,7 @@ void NHTFlowCache<true>::print_report() const noexcept
     std::cout << "Flushed: " << m_flushed << std::endl;
     std::cout << "Average Lookup:  " << tmp << std::endl;
     std::cout << "Variance Lookup: " << float(m_lookups2) / m_hits - tmp * tmp << std::endl;
-    std::cout << "Spent in put_pkt: " << m_put_time << " us" << std::endl;
+    //std::cout << "Spent in put_pkt: " << m_put_time << " us" << std::endl;
 }
 
 } // namespace ipxp
