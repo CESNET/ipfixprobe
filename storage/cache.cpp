@@ -582,6 +582,7 @@ int NHTFlowCache<NEED_FLOW_CACHE_STATS>::put_pkt(Packet& pkt)
         return 0;
     /* Calculates hash value from key created before. */
     uint64_t hashval = XXH64(m_key, m_keylen, 0);
+    //std::cerr<< hashval << std::endl;
     bool source_flow = true;
 
     /* Get index of flow line. */
