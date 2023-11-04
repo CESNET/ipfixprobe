@@ -275,7 +275,6 @@ class NHTFlowCache<true> : public NHTFlowCache<false> {
     void prepare_and_export(uint32_t flow_index) noexcept override;
     void prepare_and_export(uint32_t flow_index, uint32_t reason) noexcept override;
     void print_report() const noexcept;
-
 };
 
 } // namespace ipxp

@@ -30,22 +30,23 @@
  *
  */
 
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-#include <sys/time.h>
-#include <chrono>
 #include "cache.hpp"
 #include "xxhash.h"
+#include <chrono>
+#include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <ipfixprobe/ring.h>
+#include <sys/time.h>
 
 namespace ipxp {
 
 __attribute__((constructor)) static void register_this_plugin() noexcept
 {
-    static PluginRecord rec = PluginRecord("cache", []() { return new NHTFlowCache<PRINT_FLOW_CACHE_STATS>(); });
+    static PluginRecord rec
+        = PluginRecord("cache", []() { return new NHTFlowCache<PRINT_FLOW_CACHE_STATS>(); });
     register_plugin(&rec);
 }
 
@@ -471,7 +472,7 @@ std::pair<bool, uint32_t> NHTFlowCache<NEED_FLOW_CACHE_STATS>::find_empty_place(
         if (m_flow_table[flow_index]->is_empty())
             return {true, flow_index};
     }
-    //No empty place was found.
+    // No empty place was found.
     return {false, 0};
 }
 
@@ -644,10 +645,13 @@ int NHTFlowCache<NEED_FLOW_CACHE_STATS>::put_pkt(Packet& pkt)
     return 0;
 }
 
-int NHTFlowCache<true>::put_pkt(Packet& pkt){
+int NHTFlowCache<true>::put_pkt(Packet& pkt)
+{
     auto start = std::chrono::high_resolution_clock::now();
     auto res = NHTFlowCache<false>::put_pkt(pkt);
-    m_put_time += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
+    m_put_time += std::chrono::duration_cast<std::chrono::microseconds>(
+                      std::chrono::high_resolution_clock::now() - start)
+                      .count();
     return res;
 }
 
@@ -708,7 +712,7 @@ void NHTFlowCache<true>::print_report() const noexcept
     std::cout << "Flushed: " << m_flushed << std::endl;
     std::cout << "Average Lookup:  " << tmp << std::endl;
     std::cout << "Variance Lookup: " << float(m_lookups2) / m_hits - tmp * tmp << std::endl;
-    //std::cout << "Spent in put_pkt: " << m_put_time << " us" << std::endl;
+    // std::cout << "Spent in put_pkt: " << m_put_time << " us" << std::endl;
 }
 
 } // namespace ipxp

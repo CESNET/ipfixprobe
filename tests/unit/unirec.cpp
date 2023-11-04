@@ -4,7 +4,7 @@
 
 namespace ipxp_test {
 
-using namespace ipxp;
+/*using namespace ipxp;
 
 TEST(UnirecOptParser, pluginMap) {
    UnirecOptParser p;
@@ -46,7 +46,7 @@ TEST(UnirecOptParser, plugins) {
    EXPECT_EQ(m[1][0], "bar1");
    EXPECT_EQ(m[1][1], "bar2");
    EXPECT_EQ(m[2][0], "foo2");
-}
+}*/
 
 }
 

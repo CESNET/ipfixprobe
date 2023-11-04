@@ -325,7 +325,7 @@ int OldNHTFlowCache::put_pkt(Packet& pkt)
     uint64_t hashval
         = XXH64(m_key, m_keylen, 0); /* Calculates hash value from key created before. */
 
-    //std::cerr<< hashval << std::endl;
+    // std::cerr<< hashval << std::endl;
     FlowRecord* flow; /* Pointer to flow we will be working with. */
     bool found = false;
     bool source_flow = true;
