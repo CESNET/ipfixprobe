@@ -34,7 +34,7 @@
 #include <cstring>
 #include <iostream>
 #include <sys/time.h>
-
+#include <chrono>
 #include "cache.hpp"
 #include "xxhash.h"
 #include <fstream>
@@ -244,7 +244,8 @@ NHTFlowCache<NEED_FLOW_CACHE_STATS>::~NHTFlowCache()
 
 NHTFlowCache<true>::~NHTFlowCache()
 {
-    print_report();
+    if (m_hits)
+        print_report();
     NHTFlowCache::close();
 }
 
@@ -576,13 +577,15 @@ template<bool NEED_FLOW_CACHE_STATS>
 int NHTFlowCache<NEED_FLOW_CACHE_STATS>::put_pkt(Packet& pkt)
 {
     plugins_pre_create(pkt);
-    if (!create_hash_key(pkt)) // saves key value and key length into attributes NHTFlowCache::key
-                               // and NHTFlowCache::m_keylen
+
+    if (!create_hash_key(pkt))
         return 0;
-    uint64_t hashval
-        = XXH64(m_key, m_keylen, 0); /* Calculates hash value from key created before. */
+    /* Calculates hash value from key created before. */
+    uint64_t hashval = XXH64(m_key, m_keylen, 0);
     bool source_flow = true;
-    uint32_t line_index = hashval & m_line_mask; /* Get index of flow line. */
+
+    /* Get index of flow line. */
+    uint32_t line_index = hashval & m_line_mask;
     uint32_t next_line = line_index + m_line_size;
 
     auto res = find_existing_record(line_index, next_line, hashval);
@@ -640,6 +643,14 @@ int NHTFlowCache<NEED_FLOW_CACHE_STATS>::put_pkt(Packet& pkt)
     return 0;
 }
 
+
+    int NHTFlowCache<true>::put_pkt(Packet& pkt){
+        auto start = std::chrono::high_resolution_clock::now();
+        auto res = NHTFlowCache<false>::put_pkt(pkt);
+        m_put_time += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
+        return res;
+    }
+
 template<bool NEED_FLOW_CACHE_STATS>
 uint8_t NHTFlowCache<NEED_FLOW_CACHE_STATS>::get_export_reason(Flow& flow)
 {
@@ -662,7 +673,7 @@ void NHTFlowCache<NEED_FLOW_CACHE_STATS>::export_expired(time_t ts)
     }
     m_timeout_idx = (m_timeout_idx + m_line_new_idx) & (m_cache_size - 1);
 }
-
+// saves key value and key length into attributes NHTFlowCache::keyand NHTFlowCache::m_keylen
 template<bool NEED_FLOW_CACHE_STATS>
 bool NHTFlowCache<NEED_FLOW_CACHE_STATS>::create_hash_key(const Packet& pkt) noexcept
 {
@@ -697,6 +708,7 @@ void NHTFlowCache<true>::print_report() const noexcept
     std::cout << "Flushed: " << m_flushed << std::endl;
     std::cout << "Average Lookup:  " << tmp << std::endl;
     std::cout << "Variance Lookup: " << float(m_lookups2) / m_hits - tmp * tmp << std::endl;
+    std::cout << "Spent in put_pkt: " << m_put_time << " us" << std::endl;
 }
 
 } // namespace ipxp

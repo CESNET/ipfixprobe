@@ -258,9 +258,10 @@ class NHTFlowCache<true> : public NHTFlowCache<false> {
     uint64_t m_flushed;
     uint64_t m_lookups;
     uint64_t m_lookups2;
-
+    uint64_t m_put_time;
     void init(const char* params) override;
     ~NHTFlowCache() override;
+    int put_pkt(Packet& pkt) override;
 
     uint32_t
     enhance_existing_flow_record(uint32_t flow_index, uint32_t line_index) noexcept override;
