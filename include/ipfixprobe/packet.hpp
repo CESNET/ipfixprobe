@@ -61,6 +61,9 @@ struct Packet : public Record {
    ipaddr_t    src_ip;
    ipaddr_t    dst_ip;
    uint32_t    vlan_id;
+   uint32_t    frag_id;
+   uint16_t    frag_off;
+   bool        more_fragments;
 
    uint16_t    src_port;
    uint16_t    dst_port;
@@ -107,6 +110,7 @@ struct Packet : public Record {
       dst_mac(), src_mac(), ethertype(0),
       ip_len(0), ip_payload_len(0), ip_version(0), ip_ttl(0),
       ip_proto(0), ip_tos(0), ip_flags(0), src_ip({0}), dst_ip({0}), vlan_id(0),
+      frag_id(0), frag_off(0), more_fragments(false),
       src_port(0), dst_port(0), tcp_flags(0), tcp_window(0),
       tcp_options(0), tcp_mss(0), tcp_seq(0), tcp_ack(0), mplsTop(0),
       packet(nullptr), packet_len(0), packet_len_wire(0),

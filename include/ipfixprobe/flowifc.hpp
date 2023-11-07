@@ -48,6 +48,7 @@
 
 #include <arpa/inet.h>
 #include "ipaddr.hpp"
+#include <string>
 
 namespace ipxp {
 

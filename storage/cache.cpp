@@ -164,7 +164,9 @@ void FlowRecord::update(const Packet &pkt, bool src)
 NHTFlowCache::NHTFlowCache() :
    m_cache_size(0), m_line_size(0), m_line_mask(0), m_line_new_idx(0),
    m_qsize(0), m_qidx(0), m_timeout_idx(0), m_active(0), m_inactive(0),
-   m_split_biflow(false), m_keylen(0), m_key(), m_key_inv(), m_flow_table(nullptr), m_flow_records(nullptr)
+   m_split_biflow(false), m_enable_fragmentation_cache(true), m_keylen(0),
+   m_key(), m_key_inv(), m_flow_table(nullptr), m_flow_records(nullptr),
+   m_fragmentation_cache(0, 0)
 {
 }
 
@@ -213,6 +215,15 @@ void NHTFlowCache::init(const char *params)
    }
 
    m_split_biflow = parser.m_split_biflow;
+   m_enable_fragmentation_cache = parser.m_enable_fragmentation_cache;
+
+   if (m_enable_fragmentation_cache) {
+      try {
+         m_fragmentation_cache = FragmentationCache(parser.m_frag_cache_size, parser.m_frag_cache_timeout);
+      } catch (std::bad_alloc &e) {
+         throw PluginError("not enough memory for fragment cache allocation");
+      }
+   }
 
 #ifdef FLOW_CACHE_STATS
    m_empty = 0;
@@ -300,6 +311,10 @@ void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int ret, bool source_fl
 int NHTFlowCache::put_pkt(Packet &pkt)
 {
    int ret = plugins_pre_create(pkt);
+
+   if (m_enable_fragmentation_cache) {
+      try_to_fill_ports_to_fragmented_packet(pkt);
+   }
 
    if (!create_hash_key(pkt)) { // saves key value and key length into attributes NHTFlowCache::key and NHTFlowCache::m_keylen
       return 0;
@@ -453,6 +468,11 @@ int NHTFlowCache::put_pkt(Packet &pkt)
 
    export_expired(pkt.ts.tv_sec);
    return 0;
+}
+
+void NHTFlowCache::try_to_fill_ports_to_fragmented_packet(Packet& packet)
+{
+   m_fragmentation_cache.process_packet(packet);
 }
 
 uint8_t NHTFlowCache::get_export_reason(Flow &flow)

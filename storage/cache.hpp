@@ -39,6 +39,8 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/utils.hpp>
 
+#include "fragmentationCache/fragmentationCache.hpp"
+
 namespace ipxp {
 
 struct __attribute__((packed)) flow_key_v4_t {
@@ -93,10 +95,15 @@ public:
    uint32_t m_active;
    uint32_t m_inactive;
    bool m_split_biflow;
+   bool m_enable_fragmentation_cache;
+   std::size_t m_frag_cache_size;
+   time_t m_frag_cache_timeout;
 
    CacheOptParser() : OptionsParser("cache", "Storage plugin implemented as a hash table"),
       m_cache_size(1 << DEFAULT_FLOW_CACHE_SIZE), m_line_size(1 << DEFAULT_FLOW_LINE_SIZE),
-      m_active(DEFAULT_ACTIVE_TIMEOUT), m_inactive(DEFAULT_INACTIVE_TIMEOUT), m_split_biflow(false)
+      m_active(DEFAULT_ACTIVE_TIMEOUT), m_inactive(DEFAULT_INACTIVE_TIMEOUT), m_split_biflow(false),
+      m_enable_fragmentation_cache(true), m_frag_cache_size(10007), // Prime for better distribution in hash table
+      m_frag_cache_timeout(3)
    {
       register_option("s", "size", "EXPONENT", "Cache size exponent to the power of two",
          [this](const char *arg){try {unsigned exp = str2num<decltype(exp)>(arg);
@@ -121,6 +128,33 @@ public:
          OptionFlags::RequiredArgument);
       register_option("S", "split", "", "Split biflows into uniflows",
          [this](const char *arg){ m_split_biflow = true; return true;}, OptionFlags::NoArgument);
+      register_option("fe", "frag-enable", "true|false", "Enable/disable fragmentation cache. Enabled (true) by default.",
+         [this](const char *arg){
+            if (strcmp(arg, "true") == 0) {
+               m_enable_fragmentation_cache = true;
+            } else if (strcmp(arg, "false") == 0) {
+               m_enable_fragmentation_cache = false;
+            } else {
+               return false;
+            }
+            return true;
+         }, OptionFlags::RequiredArgument);
+      register_option("fs", "frag-size", "size", "Size of fragmentation cache, must be at least 1. Default value is 10007.", [this](const char *arg) {
+         try {
+            m_frag_cache_size = str2num<decltype(m_frag_cache_size)>(arg);
+         } catch(std::invalid_argument &e) {
+            return false;
+         }
+         return m_frag_cache_size > 0;
+      });
+      register_option("ft", "frag-timeout", "TIME", "Timeout of fragments in fragmentation cache in seconds. Default value is 3.", [this](const char *arg) {
+         try {
+            m_frag_cache_timeout = str2num<decltype(m_frag_cache_timeout)>(arg);
+         } catch(std::invalid_argument &e) {
+            return false;
+         }
+         return true;
+      });
    }
 };
 
@@ -177,12 +211,16 @@ private:
    uint32_t m_active;
    uint32_t m_inactive;
    bool m_split_biflow;
+   bool m_enable_fragmentation_cache;
    uint8_t m_keylen;
    char m_key[MAX_KEY_LENGTH];
    char m_key_inv[MAX_KEY_LENGTH];
    FlowRecord **m_flow_table;
    FlowRecord *m_flow_records;
 
+   FragmentationCache m_fragmentation_cache;
+
+   void try_to_fill_ports_to_fragmented_packet(Packet& packet);
    void flush(Packet &pkt, size_t flow_index, int ret, bool source_flow);
    bool create_hash_key(Packet &pkt);
    void export_flow(size_t index);

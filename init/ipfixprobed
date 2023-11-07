@@ -54,11 +54,23 @@ if [ -e "$CONFFILE" ]; then
    if [ ! -z ${ACTIVE_TIMEOUT+x} ]; then
       CACHE_ACTIVET_PARAM=";active=${ACTIVE_TIMEOUT}"
    fi
-   CACHE_INACTIVET_PARAM=""
+   CACHE_INACTIVE_PARAM=""
    if [ ! -z ${INACTIVE_TIMEOUT+x} ]; then
-      CACHE_INACTIVET_PARAM=";inactive=${INACTIVE_TIMEOUT}"
+      CACHE_INACTIVE_PARAM=";inactive=${INACTIVE_TIMEOUT}"
    fi
-   storage="-s cache;${CACHE_SIZE_PARAM}${CACHE_ACTIVET_PARAM}${CACHE_INACTIVET_PARAM}"
+   CACHE_FRAG_ENABLE_PARAM=""
+   if [ ! -z ${FRAG_CACHE_ENABLE+x} ]; then
+      CACHE_FRAG_ENABLE_PARAM=";frag-enable=${FRAG_CACHE_ENABLE}"
+   fi
+   CACHE_FRAG_SIZE=""
+   if [ ! -z ${FRAG_CACHE_SIZE+x} ]; then
+      CACHE_FRAG_SIZE=";frag-size=${FRAG_CACHE_SIZE}"
+   fi
+   CACHE_FRAG_TIMEOUT=""
+   if [ ! -z ${FRAG_CACHE_TIMEOUT+x} ]; then
+      CACHE_FRAG_TIMEOUT=";frag-timeout=${FRAG_CACHE_TIMEOUT}"
+   fi
+   storage="-s cache;${CACHE_SIZE_PARAM}${CACHE_ACTIVET_PARAM}${CACHE_INACTIVE_PARAM}${CACHE_FRAG_ENABLE_PARAM}${CACHE_FRAG_SIZE}${CACHE_FRAG_TIMEOUT}"
    process=""
    if `declare -p PROCESS > /dev/null 2>/dev/null`; then
       # list of input plugins

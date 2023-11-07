@@ -146,6 +146,15 @@ CACHE_SIZE=17
 ACTIVE_TIMEOUT=300
 INACTIVE_TIMEOUT=65
 
+# Enable/disable fragmentation cache (true, false)
+FRAG_CACHE_ENABLE=true
+
+# size of fragmentation cache
+FRAG_CACHE_SIZE=10007
+
+# timeout in seconds for fragments in fragmentation cache
+FRAG_CACHE_TIMEOUT=3
+
 #
 #  $$$$$$\              $$\                           $$\
 # $$  __$$\             $$ |                          $$ |
