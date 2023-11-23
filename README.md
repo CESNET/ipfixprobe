@@ -614,19 +614,25 @@ List of fields exported together with basic flow fields on interface by WG plugi
 
 List of fields exported together with basic flow fields on interface by quic plugin.
 
-|    Output field     |  Type  |                               Description                               |
-|:-------------------:|:------:|:-----------------------------------------------------------------------:|
-|      QUIC_SNI       | string |                          Decrypted server name                          |
-|   QUIC_USER_AGENT   | string |                          Decrypted user agent                           |
-|    QUIC_VERSION     | uint32 |             QUIC version extracted from long header packets             |
-| QUIC_CLIENT_VERSION | uint32 |     QUIC version from the Initial packet with the TLS Client Hello      |
-|  QUIC_TOKEN_LENGTH  | uint64 |               Token length from Initial and Retry packets               |
-|     QUIC_OCCID      | bytes  |   Source Connection ID from Initial packet with the TLS Client Hello    |
-|     QUIC_OSCID      | bytes  | Destination Connection ID from Initial packet with the TLS Client Hello |
-|      QUIC_SCID      | bytes  |    Source Connection ID from long header packets other than before.     |
-|   QUIC_RETRY_SCID   | bytes  |                 Source Connection ID from Retry packet                  |
-|  QUIC_MULTIPLEXED   | uint8  |          > 0 if multiplexed (at least two QUIC_OSCIDs or SNIs)          |
-|    QUIC_ZERO_RTT    | uint8  |                    Number of 0-RTT packets in flow.                    |
+|    Output field     |   Type   |                               Description                                |
+|:-------------------:|:--------:|:------------------------------------------------------------------------:|
+|      QUIC_SNI       |  string  |                          Decrypted server name                           |
+|   QUIC_USER_AGENT   |  string  |                           Decrypted user agent                           |
+|    QUIC_VERSION     |  uint32  |            QUIC version from first server long header packets            |
+| QUIC_CLIENT_VERSION |  uint32  |            QUIC version from first client long header packet             |
+|  QUIC_TOKEN_LENGTH  |  uint64  |               Token length from Initial and Retry packets                |
+|     QUIC_OCCID      |  bytes   |              Source Connection ID from first client packet               |
+|     QUIC_OSCID      |  bytes   |            Destination Connection ID from first client packet            |
+|      QUIC_SCID      |  bytes   |              Source Connection ID from first server packet               |
+|   QUIC_RETRY_SCID   |  bytes   |                  Source Connection ID from Retry packet                  |
+|  QUIC_MULTIPLEXED   |  uint8   |     > 0 if multiplexed (at least two different QUIC_OSCIDs or SNIs)      |
+|    QUIC_ZERO_RTT    |  uint8   |                     Number of 0-RTT packets in flow.                     |
+| QUIC_SERVER_PORT    |  uint16  |        TODO Server Port determined by packet type and TLS message        |
+|    QUIC_PACKETS     | uint8\*  | QUIC long header packet type (v1 encoded), version negotiation, QUIC bit |
+|   QUIC_CH_PARSED    |  uint8   |               >0 if TLS Client Hello parsed without errors               |
+|  QUIC_TLS_EXT_TYPE  | uint16\* |                  TLS extensions in the TLS Client Hello                  |
+|  QUIC_TLS_EXT_LEN   | uint16\* |                       Length of each TLS extension                       |
+|    QUIC_TLS_EXT     |  string  |                      Payload of each TLS extension                       |
 
 ### ICMP
 
