@@ -116,8 +116,8 @@ namespace ipxp {
 #define L4_TCP_OPTIONS_REV(F)         F(29305,   209,   8,   nullptr)
 
 
-#define L4_TCP_MSS(F)                 F(8057,   900,   4,   nullptr)
-#define L4_TCP_MSS_REV(F)             F(8057,   901,   4,   nullptr)
+#define L4_TCP_MSS(F)                 F(8057,   900,   2,   nullptr)
+#define L4_TCP_MSS_REV(F)             F(8057,   901,   2,   nullptr)
 #define L4_TCP_SYN_SIZE(F)            F(8057,   902,   2,   nullptr)
 
 #define HTTP_DOMAIN(F)                F(39499,    1,   -1,   nullptr)
