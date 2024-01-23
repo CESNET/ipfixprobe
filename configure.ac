@@ -159,6 +159,12 @@ if [[ -z "$WITH_QUIC_TRUE" ]]; then
    AC_DEFINE([WITH_QUIC], [1], [Define to 1 if compile with quic plugin])
 fi
 
+AC_ARG_WITH([quic-ch-full-tls-ext],
+       AC_HELP_STRING([--with-quic-ch-full-tls-ext],[Extract all QUIC TLS payloads from the first client hello.]),
+       [
+       CPPFLAGS="$CPPFLAGS -DQUIC_CH_FULL_TLS_EXT"
+       ]
+)
 
 AM_CONDITIONAL(OS_CYGWIN, test x${host_os} = xcygwin)
 
@@ -400,6 +406,8 @@ AC_ARG_WITH([msects],
        CPPFLAGS="$CPPFLAGS -DIPXP_TS_MSEC"
        ]
 )
+
+
 
 
 AM_CONDITIONAL(MAKE_RPMS, test x$RPMBUILD != x)

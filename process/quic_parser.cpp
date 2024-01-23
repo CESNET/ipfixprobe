@@ -279,10 +279,19 @@ bool QUICParser::quic_obtain_tls_data(TLSData& payload)
         }
 
         // Save value payload except for length
-        uint16_t len_of_ext = length;
-        if (quic_tls_ext_pos + len_of_ext < CURRENT_BUFFER_SIZE) {
-            memcpy(quic_tls_ext + quic_tls_ext_pos, payload.start, len_of_ext);
-            quic_tls_ext_pos += len_of_ext;
+        if (quic_tls_ext_pos + length < CURRENT_BUFFER_SIZE) {
+            #ifndef QUIC_CH_FULL_TLS_EXT
+            if (type == TLS_EXT_ALPN
+                || type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1
+                || type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS
+                || type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2) {
+            #endif
+                memcpy(quic_tls_ext + quic_tls_ext_pos, payload.start, length);
+                quic_tls_ext_pos += length;
+            #ifndef QUIC_CH_FULL_TLS_EXT
+            }
+            #endif
+
         }
 
         // Legacy extract specific fields
