@@ -178,8 +178,7 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
          break;
 
       case WG_PACKETTYPE_TRANSPORT_DATA:
-         // Each packet of transport data is zero-padded to the multiple of 16 bytes in length.
-         if (payload_len < WG_PACKETLEN_MIN_TRANSPORT_DATA || (payload_len % 16) != 0) {
+         if (payload_len < WG_PACKETLEN_MIN_TRANSPORT_DATA) {
             return false;
          }
 
