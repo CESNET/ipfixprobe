@@ -23,6 +23,7 @@
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/utils.hpp>
 #include <sstream>
+#include <iomanip>
 
 namespace ipxp {
 #define QUIC_UNIREC_TEMPLATE                                                                       \
@@ -308,15 +309,47 @@ struct RecordExtQUIC : public RecordExt {
             << "quicuseragent=\"" << user_agent << "\""
             << "quicversion=\"" << quic_version << "\""
             << "quicclientversion=\"" << quic_client_version << "\""
-            << "quicoccidlength=\"" << occid_length << "\""
-            << "quicoccid=\"" << occid << "\""
-            << "quicoscidlength=\"" << oscid_length << "\""
-            << "quicoscid=\"" << oscid << "\""
-            << "quicscidlength=\"" << scid_length << "\""
-            << "quicscid=\"" << scid << "\""
-            << "quicmultiplexed=\"" << quic_multiplexed << "\""
-            << "quiczerortt=\"" << quic_zero_rtt << "\""
-            << "quic_parsed_ch=\"" << parsed_ch << "\"";
+            << "quicoccidlength=\"" << (int) occid_length << "\"";
+        out << "quicoccid=\"";
+        for (int i = 0; i < occid_length; i++) {
+            out << std::hex  << (occid[i] & 0xff);
+        }
+        out << "\""
+            << "quicoscidlength=\"" << std::dec << (int) oscid_length << "\"";
+        out << "quicoscid=\"";
+        for (int i = 0; i < oscid_length; i++) {
+            out << std::hex << (oscid[i] & 0xff);
+        }
+        out << "\""
+            << "quicscidlength=\"" << std::dec << (int) scid_length << "\"";
+        out << "quicscid=\"";
+        for (int i = 0; i < scid_length; i++) {
+            out << std::hex << (scid[i] & 0xff);
+        }
+        out << "\""
+            << "quicmultiplexed=\"" << std::dec << (int) quic_multiplexed << "\""
+            << "quiczerortt=\"" << (int) quic_zero_rtt << "\""
+            << "quicparsedch=\"" << (int) parsed_ch << "\"";
+        out << "quictlsexttype=(";
+        for (int i = 0; i < tls_ext_type_len; i++) {
+            out << std::dec << (uint16_t) tls_ext_type[i];
+            if (i != tls_ext_type_len - 1) {
+                out << ",";
+            }
+        }
+        out << ")quictlsextlen=(";
+        for (int i = 0; i < tls_ext_len_len; i++) {
+            out << std::dec << (uint16_t) tls_ext_len[i];
+            if (i != tls_ext_len_len - 1) {
+                out << ",";
+            }
+        }
+        out << ")quictlsext=\"";
+        for (int i = 0; i < tls_ext_length; i++) {
+            out << std::hex << std::setw(2) << std::setfill('0')<< (uint16_t) tls_ext[i];
+        }
+        out << "\"";
+
         return out.str();
     }
 };
@@ -373,8 +406,7 @@ private:
         RecordExtQUIC* quic_data,
         const Packet& pkt,
         bool new_quic_flow);
-    void set_cid_if_unset
-(
+    void set_cid_if_unset(
         bool& set_flag,
         uint8_t& src_id_length,
         char* src_id,
