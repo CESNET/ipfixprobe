@@ -840,6 +840,10 @@ bool QUICParser::quic_decrypt_initial_header(const uint8_t* payload_pointer, uin
     // payload
     payload = payload + pkn_len;
     payload_len = payload_len - pkn_len;
+    if (payload_len > CURRENT_BUFFER_SIZE ) {
+        DEBUG_MSG("Payload length underflow\n");
+        return false;
+    }
     header_len = payload - payload_pointer;
     if (header_len > MAX_HEADER_LEN) {
         DEBUG_MSG("Header length too long\n");
@@ -874,8 +878,8 @@ bool QUICParser::quic_decrypt_payload()
 
     /* Input is --> "header || ciphertext (buffer) || auth tag (16 bytes)" */
 
-    if (payload_len <= 16) {
-        DEBUG_MSG("Payload decryption error, ciphertext too short\n");
+    if (payload_len <= 16 || payload_len > CURRENT_BUFFER_SIZE) {
+        DEBUG_MSG("Payload decryption error, ciphertext too short or long\n");
         return false;
     }
     // https://datatracker.ietf.org/doc/html/draft-ietf-quic-tls-34#section-5.3
