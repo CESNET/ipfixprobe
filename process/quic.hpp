@@ -240,7 +240,7 @@ struct RecordExtQUIC : public RecordExt {
                 + len_token_length + len_multiplexed + len_zero_rtt + (scid_length + 3)
                 + (occid_length + 3) + (oscid_length + 3) + (retry_scid_length + 3)
                 + len_server_port + pkt_types_len + len_parsed_ch + len_tls_ext_type + len_tls_len
-                + len_tls_ext
+                + len_tls_ext + 3 * basiclist.HeaderSize()
             > size) {
             return -1;
         }
