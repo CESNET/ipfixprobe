@@ -111,7 +111,7 @@ private:
     void quic_skip_ack2(uint8_t*, uint64_t&);
     void quic_skip_connection_close1(uint8_t*, uint64_t&);
     void quic_skip_connection_close2(uint8_t*, uint64_t&);
-    void quic_copy_crypto(uint8_t*, uint64_t&);
+    void quic_copy_crypto(uint8_t*, const uint8_t*, uint64_t&);
     bool quic_encrypt_sample(uint8_t*);
 
     uint8_t quic_draft_version(uint32_t);
