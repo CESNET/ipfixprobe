@@ -1000,14 +1000,23 @@ inline void QUICParser::quic_skip_connection_close2(uint8_t* start, uint64_t& of
     return;
 }
 
-inline void QUICParser::quic_copy_crypto(uint8_t* start, uint64_t& offset)
+inline void QUICParser::quic_copy_crypto(uint8_t* start, const uint8_t* end, uint64_t& offset)
 {
     offset += 1;
-    uint16_t frame_offset = quic_get_variable_length(start, offset);
-    uint16_t frame_length = quic_get_variable_length(start, offset);
+    uint32_t frame_offset = quic_get_variable_length(start, offset);
+    uint32_t frame_length = quic_get_variable_length(start, offset);
 
-    frame_offset = std::min(frame_offset, (uint16_t) (CURRENT_BUFFER_SIZE - 1));
-    frame_length = std::min((uint16_t) (CURRENT_BUFFER_SIZE - 1 - frame_offset), frame_length);
+    if(end < (start + offset)) {
+        //avoid source buffer overflow
+        quic_crypto_len += frame_length;
+        offset += frame_length;
+        return;
+    }
+
+    frame_offset = std::min(frame_offset, (uint32_t) (CURRENT_BUFFER_SIZE - 1));
+    frame_length = std::min((uint32_t) (CURRENT_BUFFER_SIZE - 1 - frame_offset), frame_length);
+    // avoid memory overlap in memcpy when not enought space in source buffer
+    frame_length = std::min(frame_length, (uint32_t)(end - (start + offset))); 
 
     memcpy(assembled_payload + frame_offset, start + offset, frame_length);
     if (frame_offset < quic_crypto_start) {
@@ -1036,7 +1045,7 @@ bool QUICParser::quic_reassemble_frames()
         // https://www.rfc-editor.org/rfc/rfc9000.html#name-frames-and-frame-types
         // only those frames can occure in initial packets
         if (quic_check_frame_type(current, CRYPTO)) {
-            quic_copy_crypto(decrypted_payload, offset);
+            quic_copy_crypto(decrypted_payload, payload_end, offset);
         } else if (quic_check_frame_type(current, ACK1)) {
             quic_skip_ack1(decrypted_payload, offset);
         } else if (quic_check_frame_type(current, ACK2)) {
