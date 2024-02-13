@@ -233,23 +233,23 @@ public:
         force_ver_neg_pattern = 0x0a0a0a0a,
         quant = 0x45474700,
         older_version = 0xff0000,
-        quic_go = 0x51474f,
+        quic_go = 0x51474f00,
         // unknown handshake salt TODO use version 1 as default?
-        quicly = 0x91c170,
+        quicly = 0x91c17000,
         // https://github.com/microsoft/msquic/blob/d33bc56d5e11db52e2b34ae152ea598fd6e935c0/src/core/packet.c#L461
         // But version is different
-        ms_quic = 0xabcd000,
+        ms_quic = 0xabcd0000,
 
-        ethz = 0xf0f0f0f,
+        ethz = 0xf0f0f0f0,
         telecom_italia = 0xf0f0f1f0,
 
-        moz_quic = 0xf123f0c,
+        moz_quic = 0xf123f0c0,
 
-        tencent_quic = 0x0700700,
+        tencent_quic = 0x07007000,
 
-        quinn_noise = 0xf0f0f2f,
+        quinn_noise = 0xf0f0f2f0,
 
-        quic_over_scion = 0x5c10000
+        quic_over_scion = 0x5c100000
     };
     QUICParser();
     void quic_get_zero_rtt(uint8_t& zero_rtt_toset);
