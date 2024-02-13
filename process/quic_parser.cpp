@@ -343,46 +343,44 @@ bool QUICParser::quic_parse_tls()
 
 uint8_t QUICParser::quic_draft_version(uint32_t version)
 {
+    // Calculate potential draft version
+    uint8_t draftversion = (uint8_t) version & 0xff;
     // this is IETF implementation, older version used
     if ((version >> 8) == older_version) {
-        uint8_t draftversion = (uint8_t) version & 0xff;
         if (draftversion >= 1 && draftversion <=34) {
             return (uint8_t) version;
-        }
-    }
+        }    }
     // This exists since version 29, but is still present in RFC9000.
     if ((version & 0x0F0F0F0F) == force_ver_neg_pattern) {
         // Version 1
         return 35;
-    } else if ((version & 0xffffff00) == quant) {
+    }
+
+    // Without further knowledge we assume QUIC version 1.
+
+    // Last Nybble zero
+    switch (version & 0xfffffff0) {
+    case ms_quic:
+        return 29;
+    case ethz:
+    case telecom_italia:
+    case tencent_quic:
+    case quinn_noise:
+    case quic_over_scion:
         return 35;
-    } else if ((version >> 8) == quic_go) {
+    case moz_quic:
+        return 14;
+    }
+
+    // Last Byte zero
+    switch (version & 0xffffff00 ) {
+    case quant:
+        return draftversion;
+    case quic_go:
+    case quicly:
         return 35;
     }
-    if ((version >> 8) == quicly) {
-        return true;
-    }
-    if ((version >> 4) == ms_quic) {
-        return true;
-    }
-    if ((version >> 4) == ethz) {
-        return true;
-    }
-    if ((version >> 4) == telecom_italia) {
-        return true;
-    }
-    if ((version >> 4) == moz_quic) {
-        return true;
-    }
-    if ((version >> 4) == tencent_quic) {
-        return true;
-    }
-    if ((version >> 4) == quinn_noise) {
-        return true;
-    }
-    if ((version >> 4) == quic_over_scion) {
-        return true;
-    }
+
     switch (version) {
     case version_negotiation:
         // TODO verify: We return a value that has no salt assigned.
