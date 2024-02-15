@@ -249,10 +249,10 @@ namespace ipxp {
 #define QUIC_MULTIPLEXED(F)           F(8057,    899,   1,   nullptr)
 #define QUIC_ZERO_RTT(F)              F(8057,    889,   1,   nullptr)
 #define QUIC_SERVER_PORT(F)           F(8057,    887,   2,   nullptr)
-#define QUIC_PACKETS(F)               F(8057,    888,  -1,   nullptr)
+#define QUIC_PACKETS(F)               F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id888 (uint16*)
 #define QUIC_CH_PARSED(F)             F(8057,    886,   1,   nullptr)
-#define QUIC_TLS_EXT_TYPE(F)          F(8057,    885,  -1,   nullptr)
-#define QUIC_TLS_EXT_LEN(F)           F(8057,    884,  -1,   nullptr)
+#define QUIC_TLS_EXT_TYPE(F)          F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id885 (uint16*)
+#define QUIC_TLS_EXT_LEN(F)           F(0,       291,  -1,   nullptr) // BASIC LIST -- FIELD IS e8057id884 (uint16*)
 #define QUIC_TLS_EXT(F)               F(8057,    883,  -1,   nullptr)
 
 
