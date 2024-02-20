@@ -72,7 +72,5 @@ private:
    void init_ifc(const std::string &dev);
 };
 
-void packet_ndp_handler(Packet *pkt, const struct ndp_packet *ndp_packet, const struct ndp_header *ndp_header);
-
 }
 #endif /* IPXP_INPUT_NDP_HPP */

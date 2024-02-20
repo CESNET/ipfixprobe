@@ -42,15 +42,6 @@ __attribute__((constructor)) static void register_this_plugin()
    register_plugin(&rec);
 }
 
-void packet_ndp_handler(parser_opt_t *opt, const struct ndp_packet *ndp_packet, const struct ndp_header *ndp_header)
-{
-   struct timeval ts;
-   ts.tv_sec = le32toh(ndp_header->timestamp_sec);
-   ts.tv_usec = le32toh(ndp_header->timestamp_nsec) / 1000;
-
-   parse_packet(opt, ts, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
-}
-
 NdpPacketReader::NdpPacketReader()
 {
 }
@@ -91,13 +82,13 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
 {
    parser_opt_t opt = {&packets, false, false, 0};
    struct ndp_packet *ndp_packet;
-   struct ndp_header *ndp_header;
+   struct timeval timestamp;
    size_t read_pkts = 0;
    int ret = -1;
 
    packets.cnt = 0;
    for (unsigned i = 0; i < packets.size; i++) {
-      ret = ndpReader.get_pkt(&ndp_packet, &ndp_header);
+      ret = ndpReader.get_pkt(&ndp_packet, &timestamp);
       if (ret == 0) {
          if (opt.pblock->cnt) {
             break;
@@ -108,7 +99,7 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
          throw PluginError(ndpReader.error_msg);
       }
       read_pkts++;
-      packet_ndp_handler(&opt, ndp_packet, ndp_header);
+      parse_packet(&opt, timestamp, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
    }
 
    m_seen += read_pkts;

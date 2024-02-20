@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <nfb/ndp.h>
+#include <sys/time.h>
 
 enum class NdpFwType {
    NDP_FW_HANIC,
@@ -23,10 +24,12 @@ public:
    int init_interface(const std::string &interface);
    void print_stats();
    void close();
-   int get_pkt(struct ndp_packet **ndp_packet, struct ndp_header **ndp_header);
+   int get_pkt(struct ndp_packet **ndp_packet, struct timeval *timestamp);
    std::string error_msg;
 private:
    void set_booted_fw();
+   void convert_fw_ts_to_timeval(const uint64_t *fw_ts, struct timeval *tv);
+   void set_sw_timestamp(struct timeval *tv);
    bool retrieve_ndp_packets();
    struct nfb_device *dev_handle; // NFB device
    struct ndp_queue *rx_handle; // data receiving NDP queue
