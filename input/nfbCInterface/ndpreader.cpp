@@ -52,6 +52,12 @@ int NdpReader::init_interface(const std::string &interface)
       return 1;
    }
 
+   set_booted_fw();
+   if (fw_type == NdpFwType::NDP_FW_UNKNOWN) {
+      error_msg = std::string() + "unknown NDP firmware type";
+      return 1;
+   }
+
    struct bitmask *bits = nullptr;
    int node_id;
    rx_handle = ndp_open_rx_queue(dev_handle, channel);
@@ -98,6 +104,53 @@ void NdpReader::close()
 void NdpReader::print_stats()
 {
    std::cout << "NFB Reader processed packets: " << processed_packets << std::endl;
+}
+
+void NdpReader::set_booted_fw()
+{
+   const void* fdt = nfb_get_fdt(dev_handle);
+   const void* prop;
+   int len;
+
+   int fdt_offset = fdt_path_offset(fdt, "/firmware/");
+   if (fdt_offset < 0) {
+      fw_type = NdpFwType::NDP_FW_UNKNOWN;
+      return;
+   }
+   prop = fdt_getprop(fdt, fdt_offset, "project-name", &len);
+   if (!prop) {
+      fw_type = NdpFwType::NDP_FW_UNKNOWN;
+      return;
+   }
+
+   std::string name = (const char*) prop;
+   if (name.find("NDK_") != std::string::npos) {
+      fw_type = NdpFwType::NDP_FW_NDK;
+      int header_id = 0;
+      do {
+         int direction = 0;
+         fdt_offset = ndp_header_fdt_node_offset(fdt, direction, header_id);
+         if (fdt_offset < 0) {
+            break;
+         }
+
+         struct nfb_fdt_packed_item packet_item = nfb_fdt_packed_item_by_name(fdt, fdt_offset, "timestamp");
+         if (packet_item.name == nullptr) {
+            ndk_timestamp_offsets.emplace_back(-1);
+            header_id++;
+            continue;
+         }
+
+         int offset = packet_item.offset / 8; // bits to bytes
+         ndk_timestamp_offsets.emplace_back(offset);
+         header_id++;
+      } while (true);
+
+   } else if (name.find("HANIC_") != std::string::npos) {
+      fw_type = NdpFwType::NDP_FW_HANIC;
+   } else {
+      fw_type = NdpFwType::NDP_FW_UNKNOWN;
+   }
 }
 
 bool NdpReader::retrieve_ndp_packets()
