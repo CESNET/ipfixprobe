@@ -37,6 +37,7 @@ QUICParser::QUICParser()
 
     header_len = 0;
     payload_len = 0;
+    payload_len_offset = 0;
 
     dcid = nullptr;
     dcid_len = 0;
@@ -884,6 +885,8 @@ bool QUICParser::quic_decrypt_payload()
     // "These cipher suites have a 16-byte authentication tag and produce an output 16 bytes larger
     // than their input." adjust length because last 16 bytes are authentication tag
     payload_len -= 16;
+    payload_len_offset = 16;
+
     memcpy(&atag, &payload[payload_len], 16);
     EVP_CIPHER_CTX* ctx;
 
@@ -1349,11 +1352,11 @@ bool QUICParser::quic_parse_headers(const Packet& pkt, bool forceInitialParsing)
                 // Session resumption is such a case.
                 if (!parsed_initial) {
                     quic_tls_extension_lengths_pos = 0;
-                    initial_dcid_len = dcid_len;
-                    initial_dcid = (uint8_t*) dcid;
+                    // len = 0 forces reading DCID from current packet
+                    initial_dcid_len = 0;
                     // Increment by tag_len, since subsequent function is not stateless.
-                    payload_len += 16;
-                    // Undo another side effect
+                    payload_len += payload_len_offset;
+                    // Undo side effect from QUICParser::quic_decrypt_initial_header
                     payload = payload - pkn_len;
                     payload_len += pkn_len;
                     quic_parse_initial(pkt, pkt_payload_pointer, offset);
