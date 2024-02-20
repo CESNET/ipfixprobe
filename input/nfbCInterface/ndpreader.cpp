@@ -4,6 +4,7 @@
 #include <nfb/nfb.h>
 #include <numa.h>
 #include <unistd.h>
+#include <chrono>
 
 #include "ndpreader.hpp"
 #include "ndpreader.h"
@@ -49,6 +50,12 @@ int NdpReader::init_interface(const std::string &interface)
    dev_handle = nfb_open(p_interface.c_str()); // path to NFB device
    if (!dev_handle) {
       error_msg = std::string() + "unable to open NFB device '" + p_interface + "'";
+      return 1;
+   }
+
+   set_booted_fw();
+   if (fw_type == NdpFwType::NDP_FW_UNKNOWN) {
+      error_msg = std::string() + "unknown NDP firmware type";
       return 1;
    }
 
@@ -100,6 +107,53 @@ void NdpReader::print_stats()
    std::cout << "NFB Reader processed packets: " << processed_packets << std::endl;
 }
 
+void NdpReader::set_booted_fw()
+{
+   const void* fdt = nfb_get_fdt(dev_handle);
+   const void* prop;
+   int len;
+
+   int fdt_offset = fdt_path_offset(fdt, "/firmware/");
+   if (fdt_offset < 0) {
+      fw_type = NdpFwType::NDP_FW_UNKNOWN;
+      return;
+   }
+   prop = fdt_getprop(fdt, fdt_offset, "project-name", &len);
+   if (!prop) {
+      fw_type = NdpFwType::NDP_FW_UNKNOWN;
+      return;
+   }
+
+   std::string name = (const char*) prop;
+   if (name.find("NDK_") != std::string::npos) {
+      fw_type = NdpFwType::NDP_FW_NDK;
+      int header_id = 0;
+      do {
+         int direction = 0;
+         fdt_offset = ndp_header_fdt_node_offset(fdt, direction, header_id);
+         if (fdt_offset < 0) {
+            break;
+         }
+
+         struct nfb_fdt_packed_item packet_item = nfb_fdt_packed_item_by_name(fdt, fdt_offset, "timestamp");
+         if (packet_item.name == nullptr) {
+            ndk_timestamp_offsets.emplace_back(-1);
+            header_id++;
+            continue;
+         }
+
+         int offset = packet_item.offset / 8; // bits to bytes
+         ndk_timestamp_offsets.emplace_back(offset);
+         header_id++;
+      } while (true);
+
+   } else if (name.find("HANIC_") != std::string::npos) {
+      fw_type = NdpFwType::NDP_FW_HANIC;
+   } else {
+      fw_type = NdpFwType::NDP_FW_UNKNOWN;
+   }
+}
+
 bool NdpReader::retrieve_ndp_packets()
 {
    int ret;
@@ -120,7 +174,28 @@ bool NdpReader::retrieve_ndp_packets()
    return false;
 }
 
-int NdpReader::get_pkt(struct ndp_packet **ndp_packet_out, struct ndp_header **ndp_header_out)
+void NdpReader::convert_fw_ts_to_timeval(const uint64_t *ts, struct timeval *tv)
+{
+   uint32_t sec = (*ts) >> 32;
+   uint32_t nsec = (*ts) & 0xFFFFFFFF;
+
+   tv->tv_sec = le32toh(sec);
+   tv->tv_usec = le32toh(nsec) / 1000;
+}
+
+void NdpReader::set_sw_timestamp(struct timeval *tv)
+{
+   auto now = std::chrono::system_clock::now();
+	auto now_t = std::chrono::system_clock::to_time_t(now);
+
+	auto dur = now - std::chrono::system_clock::from_time_t(now_t);
+	auto micros = std::chrono::duration_cast<std::chrono::microseconds>(dur).count();
+
+	tv->tv_sec = now_t;
+	tv->tv_usec = micros;
+}
+
+int NdpReader::get_pkt(struct ndp_packet **ndp_packet_out, struct timeval *timestamp)
 {
    if (ndp_packet_buffer_processed >= ndp_packet_buffer_packets) {
       if (!retrieve_ndp_packets()) {
@@ -130,7 +205,28 @@ int NdpReader::get_pkt(struct ndp_packet **ndp_packet_out, struct ndp_header **n
 
    struct ndp_packet *ndp_packet = (ndp_packet_buffer + ndp_packet_buffer_processed);
    *ndp_packet_out = ndp_packet;
-   *ndp_header_out = (struct ndp_header *) ndp_packet->header;
+   if (fw_type == NdpFwType::NDP_FW_HANIC) {
+      uint64_t *fw_ts = &((ndp_header *)(ndp_packet->header))->timestamp;
+      if (*fw_ts == 0) {
+         set_sw_timestamp(timestamp);
+      } else {
+         convert_fw_ts_to_timeval(fw_ts, timestamp);
+      }
+   } else {
+      uint8_t header_id = ndp_packet_flag_header_id_get(ndp_packet);
+      if (header_id >= ndk_timestamp_offsets.size()) {
+         set_sw_timestamp(timestamp);
+      } else if (ndk_timestamp_offsets[header_id] < 0) {
+         set_sw_timestamp(timestamp);
+      } else {
+         uint64_t *fw_ts = (uint64_t *)((uint8_t*) ndp_packet->header + ndk_timestamp_offsets[header_id]);
+         if (*fw_ts == std::numeric_limits<uint64_t>::max()) {
+            set_sw_timestamp(timestamp);
+         } else {
+            convert_fw_ts_to_timeval(fw_ts, timestamp);
+         }
+      }
+    }
 
    processed_packets++;
    ndp_packet_buffer_processed++;
@@ -162,10 +258,7 @@ extern "C" {
    {
       ((NdpReader *)context->reader)->close();
    }
-   int ndp_reader_get_pkt(struct NdpReaderContext *context, struct ndp_packet **ndp_packet, struct ndp_header **ndp_header)
-   {
-      return ((NdpReader *)context->reader)->get_pkt(ndp_packet, ndp_header);
-   }
+
    const char *ndp_reader_error_msg(struct NdpReaderContext *context)
    {
       return ((NdpReader *)context->reader)->error_msg.c_str();

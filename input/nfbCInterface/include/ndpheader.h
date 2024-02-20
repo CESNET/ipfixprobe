@@ -15,8 +15,7 @@ struct ndp_header {
     uint8_t  crc_hash : 4; //!< Precomputed CRC hash (4 bits).
     uint8_t  data_type : 4; //!< Format of data that follow this header.
     uint16_t frame_size; //!< Size of captured frame.
-    uint32_t timestamp_nsec; //!< Nanoseconds part of capture timestamp.
-    uint32_t timestamp_sec; //!< Seconds part of capture timestamp.
+    uint64_t timestamp; //!< Timestamp of capture.
 } __attribute__((__packed__));
 
 #ifdef __cplusplus
