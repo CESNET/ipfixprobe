@@ -142,6 +142,7 @@ private:
 
     uint16_t header_len;
     uint64_t payload_len;
+    uint8_t payload_len_offset;
 
     uint8_t packet_type;
     const uint8_t* dcid;
