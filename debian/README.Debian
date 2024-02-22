@@ -200,8 +200,8 @@ Fields without `_REV` suffix are fields from source flow. Fields with `_REV` are
 | TCP_WIN_REV  | uint16 | TCP window size             |
 | TCP_OPT      | uint64 | TCP options bitfield        |
 | TCP_OPT_REV  | uint64 | TCP options bitfield        |
-| TCP_MSS      | uint32 | TCP maximum segment size    |
-| TCP_MSS_REV  | uint32 | TCP maximum segment size    |
+| TCP_MSS      | uint16 | TCP maximum segment size    |
+| TCP_MSS_REV  | uint16 | TCP maximum segment size    |
 | TCP_SYN_SIZE | uint16 | TCP SYN packet size         |
 
 ### HTTP

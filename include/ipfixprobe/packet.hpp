@@ -70,7 +70,7 @@ struct Packet : public Record {
    uint8_t     tcp_flags;
    uint16_t    tcp_window;
    uint64_t    tcp_options;
-   uint32_t    tcp_mss;
+   uint16_t    tcp_mss;
    uint32_t    tcp_seq;
    uint32_t    tcp_ack;
 
