@@ -191,7 +191,9 @@ ipfixprobe_telemetry_src=\
 		telemetry/file.hpp \
 		telemetry/file.cpp \
 		telemetry/directory.hpp \
-		telemetry/directory.cpp
+		telemetry/directory.cpp \
+		telemetry/holder.cpp \
+		telemetry/holder.hpp
 
 ipfixprobe_headers_src=\
 		include/ipfixprobe/plugin.hpp \
