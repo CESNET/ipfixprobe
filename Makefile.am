@@ -189,7 +189,9 @@ ipfixprobe_telemetry_src=\
 		telemetry/node.hpp \
 		telemetry/node.cpp \
 		telemetry/file.hpp \
-		telemetry/file.cpp
+		telemetry/file.cpp \
+		telemetry/directory.hpp \
+		telemetry/directory.cpp
 
 ipfixprobe_headers_src=\
 		include/ipfixprobe/plugin.hpp \
