@@ -185,7 +185,9 @@ endif
 
 ipfixprobe_telemetry_src=\
 		telemetry/content.hpp \
-		telemetry/content.cpp
+		telemetry/content.cpp \
+		telemetry/node.hpp \
+		telemetry/node.cpp
 
 ipfixprobe_headers_src=\
 		include/ipfixprobe/plugin.hpp \
