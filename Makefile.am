@@ -183,6 +183,10 @@ ipfixprobe_input_src+=\
 	input/dpdk-ring.h
 endif
 
+ipfixprobe_telemetry_src=\
+		telemetry/content.hpp \
+		telemetry/content.cpp
+
 ipfixprobe_headers_src=\
 		include/ipfixprobe/plugin.hpp \
 		include/ipfixprobe/input.hpp \
@@ -206,6 +210,7 @@ ipfixprobe_src=\
 		$(ipfixprobe_output_src) \
 		$(ipfixprobe_process_src) \
 		$(ipfixprobe_headers_src) \
+		$(ipfixprobe_telemetry_src) \
 		pluginmgr.cpp \
 		pluginmgr.hpp \
 		options.cpp \
