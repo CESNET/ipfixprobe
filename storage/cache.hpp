@@ -177,6 +177,23 @@ public:
    void update(const Packet &pkt, bool src);
 };
 
+struct FlowEndReasonStats {
+   uint64_t activeTimeout;
+   uint64_t inactiveTimeout;
+   uint64_t endOfFlow;
+   uint64_t collision;
+   uint64_t forced;
+};
+
+struct FlowRecordStats {
+   uint64_t packetsCount1;
+   uint64_t packetsCount2_5;
+   uint64_t packetsCount6_10;
+   uint64_t packetsCount11_20;
+   uint64_t packetsCount21_50;
+   uint64_t packestCount51Plus;
+};
+
 class NHTFlowCache : public StoragePlugin
 {
 public:
@@ -191,6 +208,8 @@ public:
    int put_pkt(Packet &pkt);
    void export_expired(time_t ts);
 
+   void set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDir) override;
+
 private:
    uint32_t m_cache_size;
    uint32_t m_line_size;
@@ -199,6 +218,8 @@ private:
    uint32_t m_qsize;
    uint32_t m_qidx;
    uint32_t m_timeout_idx;
+   uint64_t m_flows_in_cache = 0;
+   uint64_t m_total_exported = 0;
 #ifdef FLOW_CACHE_STATS
    uint64_t m_empty;
    uint64_t m_not_empty;
@@ -219,6 +240,8 @@ private:
    FlowRecord *m_flow_records;
 
    FragmentationCache m_fragmentation_cache;
+   FlowEndReasonStats m_flow_end_reason_stats = {};
+   FlowRecordStats m_flow_record_stats = {};
 
    void try_to_fill_ports_to_fragmented_packet(Packet& packet);
    void flush(Packet &pkt, size_t flow_index, int ret, bool source_flow);
@@ -226,6 +249,14 @@ private:
    void export_flow(size_t index);
    static uint8_t get_export_reason(Flow &flow);
    void finish();
+
+   void update_flow_end_reason_stats(uint8_t reason);
+   void update_flow_record_stats(uint64_t packetsCount);
+   Telemetry::Content get_cache_telemetry();
+   void register_file_telemetry(
+        std::shared_ptr<Telemetry::Directory> directory,
+        const std::string_view& filename,
+        Telemetry::FileOps ops);
 
 #ifdef FLOW_CACHE_STATS
    void print_report();
