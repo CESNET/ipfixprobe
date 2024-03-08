@@ -9,9 +9,9 @@ bin_PROGRAMS=ipfixprobe ipfixprobe_stats
 
 DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)"
 
-ipfixprobe_LDFLAGS=-lpthread -ldl -latomic
+ipfixprobe_LDFLAGS=-lpthread -ldl -latomic -lfuse
 ipfixprobe_CFLAGS=-I$(srcdir)/include/ -fPIC
-ipfixprobe_CXXFLAGS=-std=gnu++17 -Wno-write-strings -I$(srcdir)/include/ -fPIC
+ipfixprobe_CXXFLAGS=-std=gnu++17 -Wno-write-strings -I$(srcdir)/include/ -fPIC -D_FILE_OFFSET_BITS=64
 
 if OS_CYGWIN
 ipfixprobe_CXXFLAGS+=-Wl,--export-all-symbols
@@ -193,7 +193,9 @@ ipfixprobe_telemetry_src=\
 		telemetry/directory.hpp \
 		telemetry/directory.cpp \
 		telemetry/holder.cpp \
-		telemetry/holder.hpp
+		telemetry/holder.hpp \
+		telemetry/fuseTelemetry.hpp \
+		telemetry/fuseTelemetry.cpp
 
 ipfixprobe_headers_src=\
 		include/ipfixprobe/plugin.hpp \
