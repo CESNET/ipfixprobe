@@ -31,12 +31,15 @@
 #define IPXP_STORAGE_HPP
 
 #include <string>
+#include <memory>
 
 #include "plugin.hpp"
 #include "packet.hpp"
 #include "flowifc.hpp"
 #include "ring.h"
 #include "process.hpp"
+#include "telemetry/directory.hpp"
+#include "telemetry/holder.hpp"
 
 namespace ipxp {
 
@@ -85,6 +88,20 @@ public:
    const ipx_ring_t *get_queue() const
    {
       return m_export_queue;
+   }
+
+   /**
+    * \brief set telemtry directory for the plugin
+    */
+   virtual void set_telemetry_dir(std::shared_ptr<Telemetry::Directory> pluginDirectory) 
+   {
+   }
+
+   /**
+    * \brief Set telemtry directory for the specific queue
+    */
+   virtual void set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDir)
+   {
    }
 
    virtual void export_expired(time_t ts)
@@ -187,6 +204,8 @@ protected:
          m_plugins[i]->pre_export(rec);
       }
    }
+
+   Telemetry::Holder holder;
 };
 
 }
