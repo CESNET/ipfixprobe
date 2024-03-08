@@ -247,11 +247,71 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
             rte_pktmbuf_mtod(mBufs[packetID], const std::uint8_t*),
             rte_pktmbuf_data_len(mBufs[packetID]),
             rte_pktmbuf_data_len(mBufs[packetID]));
-        m_seen++;
-        m_parsed++;
 #endif
     }
 
+    m_seen += recivedPackets;
+    m_parsed += recivedPackets;
+
+    m_stats.receivedPackets += recivedPackets;
+    m_stats.receivedBytes += packets.bytes;
+
     return Result::PARSED;
 }
+
+void DpdkReader::set_telemetry_dir(std::shared_ptr<Telemetry::Directory> pluginDirectory)
+{
+    auto portsDirectory = pluginDirectory->addDir("ports");
+    for (size_t portID = 0; portID < m_dpdkDeviceCount; portID++) {
+        auto portDirectory = portsDirectory->addDir(std::to_string(portID));
+        Telemetry::FileOps statsOps = {[=]() { return get_port_telemetry(portID); }, nullptr};
+        register_file_telemetry(portDirectory, "stats", statsOps);
+
+        Telemetry::FileOps mempoolOps {
+            [&]() { return Telemetry::Scalar {static_cast<uint64_t>(m_dpdkCore.getMbufsCount())}; },
+            nullptr};
+        register_file_telemetry(portDirectory, "mempools", mempoolOps);
+    }
+}
+
+Telemetry::Content DpdkReader::get_port_telemetry(uint16_t portNumber)
+{
+    struct rte_eth_stats stats = {};
+    rte_eth_stats_get(portNumber, &stats);
+
+    Telemetry::Dict dict;
+    dict["received_packets"] = stats.ipackets;
+    dict["dropped_packets"] = stats.imissed;
+    dict["received_bytes"] = stats.ibytes;
+    dict["errors_packets"] = stats.ierrors;
+    return dict;
+}
+
+Telemetry::Content DpdkReader::get_queue_telemetry()
+{
+    Telemetry::Dict dict;
+    dict["received_packets"] = m_stats.receivedPackets;
+    dict["received_bytes"] = m_stats.receivedBytes;
+    return dict;
+}
+
+void DpdkReader::set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDirectory)
+{
+    Telemetry::FileOps statsOps = {[=]() { return get_queue_telemetry(); }, nullptr};
+    register_file_telemetry(queueDirectory, "input-stats", statsOps);
+}
+
+void DpdkReader::register_file_telemetry(
+    std::shared_ptr<Telemetry::Directory> directory,
+    const std::string_view& filename,
+    Telemetry::FileOps ops)
+{
+    if (directory->getEntry(filename)) {
+        return;
+    }
+
+    auto file = directory->addFile(filename, ops);
+    m_holder.add(file);
+}
+
 }
