@@ -31,9 +31,12 @@
 #define IPXP_INPUT_HPP
 
 #include <string>
+#include <memory>
 
 #include "plugin.hpp"
 #include "packet.hpp"
+#include "telemetry/directory.hpp"
+#include "telemetry/holder.hpp"
 
 namespace ipxp {
 
@@ -58,7 +61,13 @@ public:
    InputPlugin() : m_seen(0), m_parsed(0), m_dropped(0) {}
    virtual ~InputPlugin() {}
 
+   virtual void set_telemetry_dir(std::shared_ptr<Telemetry::Directory> pluginDir) {};
+   virtual void set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDir) {}
+
    virtual Result get(PacketBlock &packets) = 0;
+
+protected:
+    Telemetry::Holder m_holder;
 };
 
 }
