@@ -44,6 +44,7 @@ FragmentationCache::FragmentationCache(std::size_t table_size, time_t timeout_in
 
 void FragmentationCache::process_packet(Packet& packet)
 {
+    m_stats.totalPackets++;
     if (!is_packet_fragmented(packet)) {
         return; // Packet is not fragmented, no further action needed.
     }
@@ -52,12 +53,16 @@ void FragmentationCache::process_packet(Packet& packet)
 
 void FragmentationCache::process_fragmented_packet(Packet& packet) noexcept
 {
+    m_stats.fragmentedPackets++;
     if (is_packet_first_fragment(packet)) {
+        m_stats.firstFragments++;
         m_fragmentation_table.insert(packet);
     } else {
         auto fragmentation_data = m_fragmentation_table.find(packet);
         if (fragmentation_data) {
             fill_missing_packet_data(packet, *fragmentation_data);
+        } else {
+            m_stats.notFoundFragments++;
         }
     }
 }
@@ -84,6 +89,38 @@ void FragmentationCache::fill_ports_to_packet(
 {
     packet.src_port = fragmentation_data.source_port;
     packet.dst_port = fragmentation_data.destination_port;
+}
+
+void FragmentationCache::set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDir)
+{
+    Telemetry::FileOps statsOps = {[=]() { return get_cache_telemetry(); }, nullptr};
+    register_telemetry_file(queueDir, "fragmentation-cache-stats", statsOps);
+}
+
+Telemetry::Content FragmentationCache::get_cache_telemetry()
+{
+    Telemetry::Dict dict;
+    dict["firstFragments"] = m_stats.firstFragments;
+    dict["totalPackets"] = m_stats.totalPackets;
+    double trafficPercentage =  double(m_stats.fragmentedPackets) / m_stats.totalPackets * 100;
+    dict["fragmentedTraffic"] = Telemetry::ScalarWithUnit {trafficPercentage, "%"};
+    dict["fragmentedPackets"] = m_stats.fragmentedPackets;
+    dict["notFoundFragments"] = m_stats.notFoundFragments;
+
+    return dict;
+}
+
+void FragmentationCache::register_telemetry_file(
+    std::shared_ptr<Telemetry::Directory> directory,
+    const std::string_view& filename,
+    Telemetry::FileOps ops)
+{
+    if (directory->getEntry(filename)) {
+        return;
+    }
+
+    auto file = directory->addFile(filename, ops);
+    m_holder.add(file);
 }
 
 } // namespace ipxp
