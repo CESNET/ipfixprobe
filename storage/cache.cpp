@@ -631,6 +631,10 @@ void NHTFlowCache::set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory>
 {
    Telemetry::FileOps statsOps = {[=]() { return get_cache_telemetry(); }, nullptr};
    register_file_telemetry(queueDir, "cache-stats", statsOps);
+
+   if (m_enable_fragmentation_cache) {
+      m_fragmentation_cache.set_queue_telemetry_dir(queueDir);
+   }
 }
 
 void NHTFlowCache::register_file_telemetry(

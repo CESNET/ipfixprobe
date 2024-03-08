@@ -32,6 +32,14 @@
 #include "fragmentationKeyData.hpp"
 #include "fragmentationTable.hpp"
 
+#include "telemetry/holder.hpp"
+#include "telemetry/directory.hpp"
+#include "telemetry/content.hpp"
+#include "telemetry/file.hpp"
+
+#include <memory>
+#include <string>
+#include <string_view>
 #include <cstdint>
 #include <ipfixprobe/packet.hpp>
 #include <sys/time.h>
@@ -81,7 +89,25 @@ public:
      */
     void process_packet(Packet& packet);
 
+    /**
+     * @brief Set the queue telemetry directory
+     */
+    void set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDir);
+
 private:
+    struct CacheStats {
+        uint64_t firstFragments;
+        uint64_t fragmentedPackets;
+        uint64_t notFoundFragments;
+        uint64_t totalPackets;
+    };
+
+    Telemetry::Content get_cache_telemetry();
+    void register_telemetry_file(
+        std::shared_ptr<Telemetry::Directory> directory,
+        const std::string_view& filename,
+        Telemetry::FileOps ops);
+
     void process_fragmented_packet(Packet& packet) noexcept;
     void fill_ports_to_packet(Packet& packet, const FragmentationData& data) const noexcept;
     void
@@ -101,6 +127,8 @@ private:
     }
 
     struct timeval m_timeout;
+    Telemetry::Holder m_holder;
+    CacheStats m_stats = {};
     FragmentationTable m_fragmentation_table;
 };
 
