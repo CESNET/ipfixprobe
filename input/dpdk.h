@@ -203,15 +203,32 @@ public:
         return "dpdk";
     }
 
+    void set_telemetry_dir(std::shared_ptr<Telemetry::Directory> pluginDirectory) override;
+    void set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDir) override;
+
     ~DpdkReader();
     DpdkReader();
 
 private:
+    struct DpdkRxStats {
+        uint64_t receivedPackets;
+        uint64_t receivedBytes;
+    };
+
+    Telemetry::Content get_port_telemetry(uint16_t portNumber);
+    Telemetry::Content get_queue_telemetry();
+    void register_file_telemetry(
+        std::shared_ptr<Telemetry::Directory> directory,
+        const std::string_view& filename,
+        Telemetry::FileOps ops);
+
+
     size_t m_dpdkDeviceCount;
     uint64_t m_dpdkDeviceIndex = 0;
     uint16_t m_rxQueueId;
     DpdkCore& m_dpdkCore;
     DpdkMbuf mBufs;
+    DpdkRxStats m_stats = {};
 };
 
 }
