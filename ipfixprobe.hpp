@@ -47,6 +47,9 @@
 #include <ipfixprobe/ring.h>
 #include "pluginmgr.hpp"
 #include "workers.hpp"
+#include "telemetry/fuseTelemetry.hpp"
+#include "telemetry/directory.hpp"
+#include "telemetry/holder.hpp"
 
 namespace ipxp {
 
@@ -75,6 +78,7 @@ public:
    std::vector<std::string> m_input;
    std::vector<std::string> m_storage;
    std::vector<std::string> m_output;
+   std::vector<std::string> m_telemetry;
    std::vector<std::string> m_process;
    std::string m_pid;
    bool m_daemon;
@@ -107,6 +111,11 @@ public:
       register_option("-o", "--output", "ARGS", "Activate output plugin (-h output for help)",
                       [this](const char *arg) {
                           m_output.push_back(arg);
+                          return true;
+                      }, OptionFlags::RequiredArgument);
+      register_option("-t", "--telemetry", "ARGS", "Activate telemtry plugin (-h telemetry for help)",
+                      [this](const char *arg) {
+                          m_telemetry.push_back(arg);
                           return true;
                       }, OptionFlags::RequiredArgument);
       register_option("-p", "--process", "ARGS", "Activate processing plugin (-h process for help)",
@@ -177,17 +186,22 @@ struct ipxp_conf_t {
       std::vector<StoragePlugin *> storage;
       std::vector<OutputPlugin *> output;
       std::vector<ProcessPlugin *> process;
+      FuseTelemetry *telemetry;
       std::vector<Plugin *> all;
    } active;
 
    std::vector<WorkPipeline> pipelines;
    std::vector<OutputWorker> outputs;
+   std::thread *telemetry_thread = nullptr;
 
    std::vector<std::atomic<InputStats> *> input_stats;
    std::vector<std::atomic<OutputStats> *> output_stats;
 
    std::vector<std::shared_future<WorkerResult>> input_fut;
-   std::vector<std::future<WorkerResult>> output_fut;  
+   std::vector<std::future<WorkerResult>> output_fut;
+
+   std::shared_ptr<Telemetry::Directory> telemetry_root_node;
+   Telemetry::Holder holder;
 
    size_t pkt_bufsize;
    size_t blocks_cnt;
@@ -203,6 +217,7 @@ struct ipxp_conf_t {
                    worker_cnt(0), fps(0), max_pkts(0),
                    pkt_bufsize(1600), blocks_cnt(0), pkts_cnt(0), pkt_data_cnt(0), blocks(nullptr), pkts(nullptr), pkt_data(nullptr)
    {
+      telemetry_root_node = Telemetry::Directory::create();
    }
 
    ~ipxp_conf_t()
