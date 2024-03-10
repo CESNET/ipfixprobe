@@ -183,9 +183,42 @@ InputPlugin::Result DpdkRingReader::get(PacketBlock& packets)
             rte_pktmbuf_mtod(mbufs_[i], const std::uint8_t*),
             rte_pktmbuf_data_len(mbufs_[i]),
             rte_pktmbuf_data_len(mbufs_[i]));
-        m_seen++;
-        m_parsed++;
     }
+
+    m_seen += pkts_read_;
+    m_parsed += pkts_read_;
+
+    m_stats.receivedPackets += pkts_read_;
+    m_stats.receivedBytes += packets.bytes;
+
     return Result::PARSED;
 }
+
+Telemetry::Content DpdkRingReader::get_queue_telemetry()
+{
+    Telemetry::Dict dict;
+    dict["received_packets"] = m_stats.receivedPackets;
+    dict["received_bytes"] = m_stats.receivedBytes;
+    return dict;
+}
+
+void DpdkRingReader::set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDirectory)
+{
+    Telemetry::FileOps statsOps = {[=]() { return get_queue_telemetry(); }, nullptr};
+    register_file_telemetry(queueDirectory, "input-stats", statsOps);
+}
+
+void DpdkRingReader::register_file_telemetry(
+    std::shared_ptr<Telemetry::Directory> directory,
+    const std::string_view& filename,
+    Telemetry::FileOps ops)
+{
+    if (directory->getEntry(filename)) {
+        return;
+    }
+
+    auto file = directory->addFile(filename, ops);
+    m_holder.add(file);
+}
+
 } // namespace ipxp
