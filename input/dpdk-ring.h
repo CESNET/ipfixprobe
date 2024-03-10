@@ -121,9 +121,23 @@ public:
         return "dpdk-ring";
     }
 
+    void set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDir) override;
+
     ~DpdkRingReader();
     DpdkRingReader();
 private:
+    struct DpdkRingStats {
+        uint64_t receivedPackets;
+        uint64_t receivedBytes;
+    };
+
+    Telemetry::Content get_port_telemetry(uint16_t portNumber);
+    Telemetry::Content get_queue_telemetry();
+    void register_file_telemetry(
+        std::shared_ptr<Telemetry::Directory> directory,
+        const std::string_view& filename,
+        Telemetry::FileOps ops);
+
     std::vector<rte_mbuf *> mbufs_;
     std::uint16_t pkts_read_;
 
@@ -132,8 +146,7 @@ private:
     DpdkRingCore &m_dpdkRingCore;
     rte_ring *m_ring;
     bool is_reader_ready = false;
-
-
+    DpdkRingStats m_stats = {};
 };
 } // namespace ipxp
 
