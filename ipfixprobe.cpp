@@ -117,6 +117,8 @@ void print_help(ipxp_conf_t &conf, const std::string &arg)
       print_plugins_help<StoragePlugin>(*plugins);
    } else if (arg == "output") {
       print_plugins_help<OutputPlugin>(*plugins);
+   } else if (arg == "telemetry") {
+      print_plugins_help<FuseTelemetry>(*plugins);
    } else if (arg == "process") {
       print_plugins_help<ProcessPlugin>(*plugins);
    } else {
@@ -136,6 +138,22 @@ void print_help(ipxp_conf_t &conf, const std::string &arg)
       delete parser;
       delete p;
    }
+}
+
+Telemetry::Content get_ipx_ring_telemetry(ipx_ring_t* ring)
+{
+    Telemetry::Dict dict;
+    uint64_t size = ipx_ring_size(ring);
+    uint64_t count = ipx_ring_cnt(ring);
+    double usage = 0;
+    if (size) {
+        usage = (double) count / size * 100;
+    }
+
+    dict["size"] = size;
+    dict["count"] = count;
+    dict["usage"] = Telemetry::ScalarWithUnit {usage, "%"};
+    return dict;
 }
 
 void process_plugin_argline(const std::string &args, std::string &plugin, std::string &params)
@@ -165,12 +183,22 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
    std::string storage_params = "";
    std::string output_name = "ipfix";
    std::string output_params = "";
+   std::string telemetry_name = "";
+   std::string telemetry_params = "";
+
+   auto inputTelemetryDir = conf.telemetry_root_node->addDir("input");
+   auto pipelineTelemetryDir = conf.telemetry_root_node->addDir("pipeline");
+   auto storageTelemetryDir = conf.telemetry_root_node->addDir("flowCache");
+   auto outputTelemetryDir = conf.telemetry_root_node->addDir("output");
 
    if (parser.m_storage.size()) {
       process_plugin_argline(parser.m_storage[0], storage_name, storage_params);
    }
    if (parser.m_output.size()) {
       process_plugin_argline(parser.m_output[0], output_name, output_params);
+   }
+   if (parser.m_telemetry.size()) {
+      process_plugin_argline(parser.m_telemetry[0], telemetry_name, telemetry_params);
    }
 
    // Process
@@ -212,6 +240,7 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
    if (output_queue == nullptr) {
       throw IPXPError("unable to initialize ring buffer");
    }
+
    OutputPlugin *output_plugin = nullptr;
    try {
       output_plugin = dynamic_cast<OutputPlugin *>(conf.mgr.get(output_name));
@@ -235,6 +264,11 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       throw IPXPError(output_name + std::string(": ") + e.what());
    }
 
+   auto ipxRingTelemetryDir = outputTelemetryDir->addDir("ipxRing");
+   Telemetry::FileOps statsOps = {[=]() { return get_ipx_ring_telemetry(output_queue); }, nullptr};
+   auto statsFile = ipxRingTelemetryDir->addFile("stats", statsOps);
+   conf.holder.add(statsFile);
+
    {
       std::promise<WorkerResult> *output_res = new std::promise<WorkerResult>();
       auto output_stats = new std::atomic<OutputStats>();
@@ -250,6 +284,31 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       conf.output_fut.push_back(output_res->get_future());
    }
 
+   FuseTelemetry *fusePlugin = nullptr;
+   if (!telemetry_name.empty()) {
+      try {
+         fusePlugin = dynamic_cast<FuseTelemetry *>(conf.mgr.get(telemetry_name));
+         if (fusePlugin == nullptr) {
+            throw IPXPError("invalid telemetry plugin " + telemetry_name);
+         }
+
+         fusePlugin->init(telemetry_params.c_str());
+         conf.active.telemetry = fusePlugin;
+         conf.active.all.push_back(fusePlugin);
+         FuseTelemetry::rootNode = conf.telemetry_root_node;
+         conf.telemetry_thread = new std::thread(&FuseTelemetry::start, fusePlugin);
+
+      } catch (PluginError &e) {
+         delete fusePlugin;
+         throw IPXPError(telemetry_name + std::string(": ") + e.what());
+      } catch (PluginExit &e) {
+         delete fusePlugin;
+         return true;
+      } catch (PluginManagerError &e) {
+         throw IPXPError(telemetry_name + std::string(": ") + e.what());
+      }
+   }
+
    // Input
    size_t pipeline_idx = 0;
    for (auto &it : parser.m_input) {
@@ -259,14 +318,20 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       std::string input_name;
       process_plugin_argline(it, input_name, input_params);
 
+      auto inputPluginTelemetryDir = inputTelemetryDir->addDir(input_name);
+      auto queueDirectory = pipelineTelemetryDir->addDir("queues")->addDir(std::to_string(pipeline_idx));
+
       try {
          input_plugin = dynamic_cast<InputPlugin *>(conf.mgr.get(input_name));
          if (input_plugin == nullptr) {
             throw IPXPError("invalid input plugin " + input_name);
          }
          input_plugin->init(input_params.c_str());
+         input_plugin->set_telemetry_dir(inputPluginTelemetryDir);
+         input_plugin->set_queue_telemetry_dir(queueDirectory);
          conf.active.input.push_back(input_plugin);
          conf.active.all.push_back(input_plugin);
+
       } catch (PluginError &e) {
          delete input_plugin;
          throw IPXPError(input_name + std::string(": ") + e.what());
@@ -284,6 +349,7 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
          }
          storage_plugin->set_queue(output_queue);
          storage_plugin->init(storage_params.c_str());
+         storage_plugin->set_queue_telemetry_dir(queueDirectory);
          conf.active.storage.push_back(storage_plugin);
          conf.active.all.push_back(storage_plugin);
       } catch (PluginError &e) {
@@ -353,6 +419,10 @@ void finish(ipxp_conf_t &conf)
    terminate_export = 1;
    for (auto &it : conf.outputs) {
       it.thread->join();
+   }
+
+   if (conf.telemetry_thread) {
+      //conf.telemetry_thread->join(); // TODO
    }
 
    for (auto &it : conf.pipelines) {
