@@ -804,12 +804,6 @@ void IPFIXExporter::send_data()
     * Loop ends when len = create_data_packet() is 0
     */
    while (true) {
-      // reset for every new connection
-      // (reset is faster when requested before getWriteBuffer())
-      if (sequenceNum == 0) {
-         packetDataBuffer.requestReset();
-      }
-
       pkt.data = packetDataBuffer.getWriteBuffer(mtu);
       if (!pkt.data) {
          // this should never happen because packetDataBuffer
@@ -1065,7 +1059,7 @@ int IPFIXExporter::reconnect()
 // compress buffer implementation
 
 CompressBuffer::CompressBuffer() :
-   shouldCompress(false), shouldReset(false), uncompressed(nullptr),
+   shouldCompress(false), shouldResetConnection(true), uncompressed(nullptr),
    uncompressedSize(0), compressed(nullptr), compressedSize(0), readIndex(0),
    readSize(0), lastReadIndex(0), lastReadSize(0), lz4Stream(nullptr) {}
 
@@ -1098,7 +1092,7 @@ int CompressBuffer::init(bool compress, size_t compressSize, size_t writeSize)
       return -1;
    }
 
-   shouldReset = true;
+   shouldResetConnection = true;
 
    return 0;
 }
@@ -1115,10 +1109,8 @@ uint8_t *CompressBuffer::getWriteBuffer(size_t requiredSize) {
 
    if (readIndex != 0 && readSize + requiredSize <= uncompressedSize) {
       if (readSize != 0) {
-         // move the written data in the buffer to the start of the buffer
-         memmove(uncompressed, uncompressed + readIndex, sizeof(uint8_t) * readSize);
-         // the old data is definitely invalid
-         shouldReset = true;
+         // getWriteBuffer was called multiple times and it is a problem
+         return nullptr;
       }
 
       // if readSize is 0, this just wraps the circular buffer to the begining
@@ -1138,7 +1130,7 @@ uint8_t *CompressBuffer::getWriteBuffer(size_t requiredSize) {
 
    // reset the stream if the data is not on the same position
    if (shouldCompress && newPtr != uncompressed) {
-      requestReset();
+      requestConnectionReset();
    }
 
    uncompressed = reinterpret_cast<uint8_t *>(newPtr);
@@ -1188,7 +1180,7 @@ int CompressBuffer::compress() {
    auto com = compressed;
    auto comSize = compressedSize;
 
-   if (shouldReset) {
+   if (shouldResetConnection) {
       // when reset, the buffer must start at 0
       if (readIndex != 0) {
          memmove(uncompressed, uncompressed + readIndex, readSize);
@@ -1198,8 +1190,8 @@ int CompressBuffer::compress() {
 
       // fill the info about new stream
 
-      // set the 0 to tell the reciever that this is new stream
-      *reinterpret_cast<uint32_t *>(com) = 0;
+      // set the magic number
+      *reinterpret_cast<uint32_t *>(com) = ntohl(LZ4_MAGIC);
       com += 4;
       comSize -= 4;
 
@@ -1209,7 +1201,7 @@ int CompressBuffer::compress() {
          htonl(uncompressedSize + compressedSize);
       com += sizeof(ipfix_start_compress_header_t);
       comSize -= sizeof(ipfix_start_compress_header_t);
-      shouldReset = false;
+      shouldResetConnection = false;
    }
 
    // set the info about the current block
@@ -1230,7 +1222,6 @@ int CompressBuffer::compress() {
    );
 
    if (res == 0) {
-      requestReset();
       return -1;
    }
 
@@ -1254,7 +1245,7 @@ uint8_t *CompressBuffer::reviveLast() {
    readIndex = lastReadIndex;
 
    if (shouldCompress) {
-      requestReset();
+      requestConnectionReset();
    }
 
    return uncompressed + readIndex;
@@ -1264,7 +1255,7 @@ void CompressBuffer::shrinkTo(size_t size) {
    readSize = std::min(readSize, size);
 }
 
-void CompressBuffer::requestReset() {
+void CompressBuffer::requestConnectionReset() {
    if (!shouldCompress) {
       return;
    }
@@ -1273,7 +1264,7 @@ void CompressBuffer::requestReset() {
    if (readSize == 0) {
       readIndex = 0;
    }
-   shouldReset = true;
+   shouldResetConnection = true;
 }
 
 void CompressBuffer::close() {
@@ -1303,7 +1294,7 @@ void CompressBuffer::close() {
       lz4Stream = nullptr;
    }
 
-   shouldReset = false;
+   shouldResetConnection = false;
    shouldCompress = false;
    readIndex = 0;
    lastReadIndex = 0;

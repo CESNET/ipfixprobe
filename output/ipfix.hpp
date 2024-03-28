@@ -303,7 +303,7 @@ class CompressBuffer {
    // is valid only if no data has been written to the end of the block that
    // will be discarded by this call.
    //
-   // The compression can be reset using requestReset(), this will make it so
+   // The compression can be reset using requestConnectionReset(), this will make it so
    // that when decompressing you don't need the previous blocks, but the
    // compression will be less effective.
    //
@@ -315,9 +315,9 @@ class CompressBuffer {
    // Ideal workflow:
    //
    // 1. init the buffer with init()
-   // 2. reset if needed with requestReset()
+   // 2. reset if needed with requestConnectionReset()
    // 3. write to the buffer with getWriteBuffer()
-   //    ideally call getWriteBuffer() only once
+   //    you can call getWriteBuffer() only once
    // 4. shrink the data if needed with shrinkTo()
    // 5. get the written data with compress() and getCompressed()
    // 6. try to avoid calling reviveLast()
@@ -408,7 +408,7 @@ public:
     * @brief requests that the compression is reset
     *
     */
-   void requestReset();
+   void requestConnectionReset();
 
    /**
     * @brief frees all allocated memory
@@ -419,14 +419,20 @@ public:
    // the maximum aditional size required to send metadata that are needed to
    // to decompress the data, the +4 is there for four 0 bytes that identify
    // ipfix_start_compress_header_t
-   static constexpr size_t C_ADD_SIZE = sizeof(ipfix_compress_header_t) + sizeof(ipfix_start_compress_header_t) + 4;
+   static constexpr size_t C_ADD_SIZE =
+      sizeof(ipfix_compress_header_t)
+      + sizeof(ipfix_start_compress_header_t)
+      + sizeof(uint32_t) * 2;
+
+   // LZ4c
+   static constexpr uint32_t LZ4_MAGIC = 0x4c5a3463;
 
 private:
 
    // false if the buffer is in non-compression mode
    bool shouldCompress;
    // true if the lz4Stream should be reset
-   bool shouldReset;
+   bool shouldResetConnection;
 
    // the buffer with uncompressed data
    uint8_t *uncompressed;
