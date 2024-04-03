@@ -493,12 +493,6 @@ int QUICPlugin::pre_update(Flow& rec, Packet& pkt)
 
 int QUICPlugin::post_update(Flow& rec, const Packet& pkt)
 {
-    //   RecordExtQUIC *ext = (RecordExtQUIC *) rec.get_extension(RecordExtQUIC::REGISTERED_ID);
-    //
-    //   if (ext == nullptr) {
-    //      return 0;
-    //   }
-
     return add_quic(rec, pkt);
 }
 
