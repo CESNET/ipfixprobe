@@ -51,6 +51,7 @@
 #define MAX_QUIC_TLS_EXT_LEN 30
 
 namespace ipxp {
+
 typedef struct __attribute__((packed)) quic_first_ver_dcidlen {
     uint8_t first_byte;
     uint32_t version;
@@ -252,6 +253,7 @@ public:
 
         quic_over_scion = 0x5c100000
     };
+
     QUICParser();
     void quic_get_zero_rtt(uint8_t& zero_rtt_toset);
     bool quic_parse_initial(const Packet&, const uint8_t* payload_end, uint64_t offset);
@@ -290,6 +292,7 @@ public:
     void quic_get_tls_extension_lengths_len(uint8_t& tls_extensions_length_len_toset);
     void quic_get_tls_extensions(char* in);
 };
+
 } // namespace ipxp
 
 // known versions
@@ -322,18 +325,3 @@ public:
  * 0xfaceb011 -- MVFST_EXPERIMENTAL2
  * 0xfaceb013 -- MVFST_EXPERIMENTAL3
  */
-
-// google salts
-
-/*static const uint8_t hanshake_salt_draft_q50[SALT_LENGTH] = {
- * 0x50, 0x45, 0x74, 0xEF, 0xD0, 0x66, 0xFE, 0x2F, 0x9D, 0x94,
- * 0x5C, 0xFC, 0xDB, 0xD3, 0xA7, 0xF0, 0xD3, 0xB5, 0x6B, 0x45
- * };
- * static const uint8_t hanshake_salt_draft_t50[SALT_LENGTH] = {
- * 0x7f, 0xf5, 0x79, 0xe5, 0xac, 0xd0, 0x72, 0x91, 0x55, 0x80,
- * 0x30, 0x4c, 0x43, 0xa2, 0x36, 0x7c, 0x60, 0x48, 0x83, 0x10
- * };
- * static const uint8_t hanshake_salt_draft_t51[SALT_LENGTH] = {
- * 0x7a, 0x4e, 0xde, 0xf4, 0xe7, 0xcc, 0xee, 0x5f, 0xa4, 0x50,
- * 0x6c, 0x19, 0x12, 0x4f, 0xc8, 0xcc, 0xda, 0x6e, 0x03, 0x3d
- * };*/

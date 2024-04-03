@@ -13,8 +13,6 @@
 
 #include "quic_parser.hpp"
 
-// #include "quic_variable_length.cpp"
-
 #ifdef DEBUG_QUIC
 #define DEBUG_MSG(format, ...) fprintf(stderr, format, ##__VA_ARGS__)
 #else
@@ -281,18 +279,16 @@ bool QUICParser::quic_obtain_tls_data(TLSData& payload)
 
         // Save value payload except for length
         if (quic_tls_ext_pos + length < CURRENT_BUFFER_SIZE) {
-            #ifndef QUIC_CH_FULL_TLS_EXT
-            if (type == TLS_EXT_ALPN
-                || type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1
+#ifndef QUIC_CH_FULL_TLS_EXT
+            if (type == TLS_EXT_ALPN || type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1
                 || type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS
                 || type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2) {
-            #endif
+#endif
                 memcpy(quic_tls_ext + quic_tls_ext_pos, payload.start, length);
                 quic_tls_ext_pos += length;
-            #ifndef QUIC_CH_FULL_TLS_EXT
+#ifndef QUIC_CH_FULL_TLS_EXT
             }
-            #endif
-
+#endif
         }
 
         // Legacy extract specific fields
@@ -348,9 +344,10 @@ uint8_t QUICParser::quic_draft_version(uint32_t version)
     uint8_t draftversion = (uint8_t) version & 0xff;
     // this is IETF implementation, older version used
     if ((version >> 8) == older_version) {
-        if (draftversion >= 1 && draftversion <=34) {
+        if (draftversion >= 1 && draftversion <= 34) {
             return (uint8_t) version;
-        }    }
+        }
+    }
     // This exists since version 29, but is still present in RFC9000.
     if ((version & 0x0F0F0F0F) == force_ver_neg_pattern) {
         // Version 1
@@ -374,7 +371,7 @@ uint8_t QUICParser::quic_draft_version(uint32_t version)
     }
 
     // Last Byte zero
-    switch (version & 0xffffff00 ) {
+    switch (version & 0xffffff00) {
     case quant:
         return draftversion;
     case quic_go:
@@ -492,8 +489,8 @@ bool QUICParser::quic_obtain_version()
         salt = handshake_salt_draft_29;
     } else if (!is_version2 && quic_check_version(version, 35)) {
         salt = handshake_salt_v1;
-    }else if (!is_version2 && quic_check_version(version, 36)) {
-            salt = handshake_salt_picoquic_internal;
+    } else if (!is_version2 && quic_check_version(version, 36)) {
+        salt = handshake_salt_picoquic_internal;
     } else if (is_version2 && quic_check_version(version, 100)) {
         salt = handshake_salt_v2_provisional;
     } else if (is_version2 && quic_check_version(version, 101)) {
@@ -839,7 +836,7 @@ bool QUICParser::quic_decrypt_initial_header(const uint8_t* payload_pointer, uin
     // payload
     payload = payload + pkn_len;
     payload_len = payload_len - pkn_len;
-    if (payload_len > CURRENT_BUFFER_SIZE ) {
+    if (payload_len > CURRENT_BUFFER_SIZE) {
         DEBUG_MSG("Payload length underflow\n");
         return false;
     }
@@ -1007,8 +1004,8 @@ inline void QUICParser::quic_copy_crypto(uint8_t* start, const uint8_t* end, uin
     uint32_t frame_offset = quic_get_variable_length(start, offset);
     uint32_t frame_length = quic_get_variable_length(start, offset);
 
-    if(end < (start + offset)) {
-        //avoid source buffer overflow
+    if (end < (start + offset)) {
+        // avoid source buffer overflow
         quic_crypto_len += frame_length;
         offset += frame_length;
         return;
@@ -1017,7 +1014,7 @@ inline void QUICParser::quic_copy_crypto(uint8_t* start, const uint8_t* end, uin
     frame_offset = std::min(frame_offset, (uint32_t) (CURRENT_BUFFER_SIZE - 1));
     frame_length = std::min((uint32_t) (CURRENT_BUFFER_SIZE - 1 - frame_offset), frame_length);
     // avoid memory overlap in memcpy when not enought space in source buffer
-    frame_length = std::min(frame_length, (uint32_t)(end - (start + offset))); 
+    frame_length = std::min(frame_length, (uint32_t) (end - (start + offset)));
 
     memcpy(assembled_payload + frame_offset, start + offset, frame_length);
     if (frame_offset < quic_crypto_start) {
@@ -1126,7 +1123,7 @@ uint32_t read_uint32_t(const uint8_t* ptr, uint8_t offset)
 bool QUICParser::quic_check_supported_version(const uint32_t version)
 {
     uint8_t draft_version = quic_draft_version(version);
-    return (draft_version > 0) && (draft_version < 255) ;
+    return (draft_version > 0) && (draft_version < 255);
 }
 
 bool QUICParser::quic_long_header_packet(const Packet& pkt)
