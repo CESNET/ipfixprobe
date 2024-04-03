@@ -173,7 +173,7 @@ void DpdkDevice::initMemPools(uint16_t memPoolSize)
 			MEMPOOL_CACHE_SIZE,
 			0,
 			RTE_MBUF_DEFAULT_BUF_SIZE,
-			rte_lcore_to_socket_id(rxQueueID));
+			rte_eth_dev_socket_id(m_portID));
 		if (!memPool) {
 			throw PluginError(
 				"DpdkDevice::initMemPool() has failed. Failed to create packets memory pool for "
