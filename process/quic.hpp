@@ -19,17 +19,19 @@
 #endif
 
 #include "quic_parser.hpp"
+#include <iomanip>
 #include <ipfixprobe/ipfix-basiclist.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/utils.hpp>
 #include <sstream>
-#include <iomanip>
 
 namespace ipxp {
+
 #define QUIC_UNIREC_TEMPLATE                                                                       \
     "QUIC_SNI,QUIC_USER_AGENT,QUIC_VERSION,QUIC_CLIENT_VERSION,QUIC_TOKEN_LENGTH,QUIC_OCCID,QUIC_" \
     "OSCID,QUIC_SCID,QUIC_RETRY_SCID,QUIC_MULTIPLEXED,QUIC_ZERO_RTT,QUIC_SERVER_PORT,QUIC_"        \
     "PACKETS,QUIC_CH_PARSED,QUIC_TLS_EXT_TYPE,QUIC_TLS_EXT_LEN,QUIC_TLS_EXT"
+
 UR_FIELDS(
     string QUIC_SNI,
     string QUIC_USER_AGENT,
@@ -48,6 +50,7 @@ UR_FIELDS(
     uint16* QUIC_TLS_EXT_TYPE,
     uint16* QUIC_TLS_EXT_LEN,
     bytes QUIC_TLS_EXT)
+
 /**
  * \brief Flow record extension header for storing parsed QUIC packets.
  */
@@ -312,7 +315,7 @@ struct RecordExtQUIC : public RecordExt {
             << "quicoccidlength=\"" << (int) occid_length << "\"";
         out << "quicoccid=\"";
         for (int i = 0; i < occid_length; i++) {
-            out << std::hex  << (occid[i] & 0xff);
+            out << std::hex << (occid[i] & 0xff);
         }
         out << "\""
             << "quicoscidlength=\"" << std::dec << (int) oscid_length << "\"";
@@ -346,7 +349,7 @@ struct RecordExtQUIC : public RecordExt {
         }
         out << ")quictlsext=\"";
         for (int i = 0; i < tls_ext_length; i++) {
-            out << std::hex << std::setw(2) << std::setfill('0')<< (uint16_t) tls_ext[i];
+            out << std::hex << std::setw(2) << std::setfill('0') << (uint16_t) tls_ext[i];
         }
         out << "\"";
 
@@ -417,5 +420,7 @@ private:
     int parsed_initial;
     RecordExtQUIC* quic_ptr;
 };
+
 } // namespace ipxp
+
 #endif /* IPXP_PROCESS_QUIC_HPP */
