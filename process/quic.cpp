@@ -439,14 +439,21 @@ int QUICPlugin::process_quic(
             break;
         case QUICParser::PACKET_TYPE::RETRY:
             quic_data->cnt_retry_packets += 1;
-            // Additionally set token len
-            process_quic.quic_get_scid(quic_data->retry_scid);
-            process_quic.quic_get_scid_len(quic_data->retry_scid_length);
-            // Update DCID for decryption
-            process_quic.quic_get_dcid_len(quic_data->initial_dcid_length);
-            process_quic.quic_get_scid(quic_data->initial_dcid);
+            /*
+             * A client MUST accept and process at most one Retry packet for each connection
+             * attempt. After the client has received and processed an Initial or Retry packet from
+             * the server, it MUST discard any subsequent Retry packets that it receives.
+             */
+            if (quic_data->cnt_retry_packets == 1) {
+                // Additionally set token len
+                process_quic.quic_get_scid(quic_data->retry_scid);
+                process_quic.quic_get_scid_len(quic_data->retry_scid_length);
+                // Update DCID for decryption
+                process_quic.quic_get_dcid_len(quic_data->initial_dcid_length);
+                process_quic.quic_get_scid(quic_data->initial_dcid);
 
-            process_quic.quic_get_token_length(quic_data->quic_token_length);
+                process_quic.quic_get_token_length(quic_data->quic_token_length);
+            }
 
             if (!quic_data->occid_set) {
                 process_quic.quic_get_dcid(quic_data->occid);
