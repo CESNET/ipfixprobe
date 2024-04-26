@@ -35,6 +35,7 @@
 
 #include "plugin.hpp"
 #include "packet.hpp"
+#include "parser-stats.hpp"
 #include "telemetry/directory.hpp"
 #include "telemetry/holder.hpp"
 
@@ -58,16 +59,28 @@ public:
    uint64_t m_parsed;
    uint64_t m_dropped;
 
-   InputPlugin() : m_seen(0), m_parsed(0), m_dropped(0) {}
+   InputPlugin();
    virtual ~InputPlugin() {}
 
-   virtual void set_telemetry_dir(std::shared_ptr<Telemetry::Directory> pluginDir) {};
-   virtual void set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDir) {}
+   void set_telemetry_dir(std::shared_ptr<Telemetry::Directory> pluginDir);
+
+   void set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDir);
 
    virtual Result get(PacketBlock &packets) = 0;
 
 protected:
-    Telemetry::Holder m_holder;
+   virtual void config_queue_telemetry(std::shared_ptr<Telemetry::Directory> queueDir) {}
+   virtual void config_plugin_telemetry(std::shared_ptr<Telemetry::Directory> pluginDir) {}
+
+   void create_parser_stats_telemetry(std::shared_ptr<Telemetry::Directory> queueDirectory);
+
+   void register_telemetry_file(
+      std::shared_ptr<Telemetry::Directory> directory,
+      const std::string_view& filename,
+      Telemetry::FileOps ops);
+
+   ParserStats m_parser_stats;
+   Telemetry::Holder m_holder;
 };
 
 }

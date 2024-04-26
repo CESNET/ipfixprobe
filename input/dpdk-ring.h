@@ -121,10 +121,12 @@ public:
         return "dpdk-ring";
     }
 
-    void set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDir) override;
-
     ~DpdkRingReader();
     DpdkRingReader();
+
+protected:
+    void config_queue_telemetry(std::shared_ptr<Telemetry::Directory> queueDir) override;
+
 private:
     struct DpdkRingStats {
         uint64_t receivedPackets;

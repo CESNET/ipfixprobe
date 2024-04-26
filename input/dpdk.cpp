@@ -243,6 +243,7 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
         packets.cnt++;
 #else
         parse_packet(&opt,
+            m_parser_stats,
             dpdkDevice.getPacketTimestamp(mBufs[packetID]),
             rte_pktmbuf_mtod(mBufs[packetID], const std::uint8_t*),
             rte_pktmbuf_data_len(mBufs[packetID]),
@@ -259,18 +260,18 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
     return Result::PARSED;
 }
 
-void DpdkReader::set_telemetry_dir(std::shared_ptr<Telemetry::Directory> pluginDirectory)
+void DpdkReader::config_plugin_telemetry(std::shared_ptr<Telemetry::Directory> pluginDirectory)
 {
     auto portsDirectory = pluginDirectory->addDir("ports");
     for (size_t portID = 0; portID < m_dpdkDeviceCount; portID++) {
         auto portDirectory = portsDirectory->addDir(std::to_string(portID));
         Telemetry::FileOps statsOps = {[=]() { return get_port_telemetry(portID); }, nullptr};
-        register_file_telemetry(portDirectory, "stats", statsOps);
+        register_telemetry_file(portDirectory, "stats", statsOps);
 
         Telemetry::FileOps mempoolOps {
             [&]() { return Telemetry::Scalar {static_cast<uint64_t>(m_dpdkCore.getMbufsCount())}; },
             nullptr};
-        register_file_telemetry(portDirectory, "mempools", mempoolOps);
+        register_telemetry_file(portDirectory, "mempools", mempoolOps);
     }
 }
 
@@ -295,23 +296,10 @@ Telemetry::Content DpdkReader::get_queue_telemetry()
     return dict;
 }
 
-void DpdkReader::set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDirectory)
+void DpdkReader::config_queue_telemetry(std::shared_ptr<Telemetry::Directory> queueDirectory)
 {
     Telemetry::FileOps statsOps = {[=]() { return get_queue_telemetry(); }, nullptr};
-    register_file_telemetry(queueDirectory, "input-stats", statsOps);
-}
-
-void DpdkReader::register_file_telemetry(
-    std::shared_ptr<Telemetry::Directory> directory,
-    const std::string_view& filename,
-    Telemetry::FileOps ops)
-{
-    if (directory->getEntry(filename)) {
-        return;
-    }
-
-    auto file = directory->addFile(filename, ops);
-    m_holder.add(file);
+    register_telemetry_file(queueDirectory, "input-stats", statsOps);
 }
 
 }

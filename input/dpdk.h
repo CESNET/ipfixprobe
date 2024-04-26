@@ -214,11 +214,12 @@ public:
         return "dpdk";
     }
 
-    void set_telemetry_dir(std::shared_ptr<Telemetry::Directory> pluginDirectory) override;
-    void set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDir) override;
-
     ~DpdkReader();
     DpdkReader();
+
+protected:
+    void config_plugin_telemetry(std::shared_ptr<Telemetry::Directory> pluginDirectory) override;
+    void config_queue_telemetry(std::shared_ptr<Telemetry::Directory> queueDir) override;
 
 private:
     struct DpdkRxStats {

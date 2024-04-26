@@ -179,6 +179,7 @@ InputPlugin::Result DpdkRingReader::get(PacketBlock& packets)
     }
     for (auto i = 0; i < pkts_read_; i++) {
         parse_packet(&opt,
+            m_parser_stats,
             getTimestamp(mbufs_[i]),
             rte_pktmbuf_mtod(mbufs_[i], const std::uint8_t*),
             rte_pktmbuf_data_len(mbufs_[i]),
@@ -202,7 +203,7 @@ Telemetry::Content DpdkRingReader::get_queue_telemetry()
     return dict;
 }
 
-void DpdkRingReader::set_queue_telemetry_dir(std::shared_ptr<Telemetry::Directory> queueDirectory)
+void DpdkRingReader::config_queue_telemetry(std::shared_ptr<Telemetry::Directory> queueDirectory)
 {
     Telemetry::FileOps statsOps = {[=]() { return get_queue_telemetry(); }, nullptr};
     register_file_telemetry(queueDirectory, "input-stats", statsOps);
