@@ -9,6 +9,7 @@
  * \author Ondrej Sedlacek <xsedla1o@stud.fit.vutbr.cz>
  * \author Karel Hynek <hynekkar@fit.cvut.cz>
  * \author Andrej Lukacovic lukacan1@fit.cvut.cz
+ * \author Jonas Mücke <jonas.muecke@tu-dresden.de>
  * \date 2018-2022
  */
 
@@ -99,7 +100,6 @@ bool TLSPlugin::obtain_tls_data(TLSData &payload, RecordExtTLS *rec, std::string
    std::string ecliptic_curves;
    std::string ec_point_formats;
 
-
    while (payload.start + sizeof(tls_ext) <= payload.end) {
       tls_ext *ext    = (tls_ext *) payload.start;
       uint16_t length = ntohs(ext->length);
@@ -118,6 +118,20 @@ bool TLSPlugin::obtain_tls_data(TLSData &payload, RecordExtTLS *rec, std::string
          } else if (type == TLS_EXT_EC_POINT_FORMATS) {
             ec_point_formats = tls_parser.tls_get_ja3_ec_point_formats(payload);
          }
+
+          if (!rec->tls_ext_len_set && !rec->tls_ext_type_set) {
+                // Store extension type
+                if (rec->tls_ext_type_len < MAX_TLS_EXT_LEN) {
+                    rec->tls_ext_type[rec->tls_ext_type_len] = type;
+                    rec->tls_ext_type_len += 1;
+                }
+
+                // Store extension type length
+                if (rec->tls_ext_len_len < MAX_TLS_EXT_LEN) {
+                    rec->tls_ext_len[rec->tls_ext_len_len] = length;
+                    rec->tls_ext_len_len += 1;
+                }
+          }
       } else if (hs_type == TLS_HANDSHAKE_SERVER_HELLO) {
          rec->server_hello_parsed = true;
          if (type == TLS_EXT_ALPN) {
@@ -138,6 +152,12 @@ bool TLSPlugin::obtain_tls_data(TLSData &payload, RecordExtTLS *rec, std::string
          }
       }
    }
+   if (rec->tls_ext_type_len > 0 ) {
+      rec->tls_ext_type_set = true;
+      rec->tls_ext_len_set = true;
+   }
+
+
    if (hs_type == TLS_HANDSHAKE_SERVER_HELLO) {
       return false;
    }

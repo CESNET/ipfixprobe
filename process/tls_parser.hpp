@@ -26,6 +26,7 @@
 // draf-02 az draft-12 have this value defined as 0x26 == 38
 #define TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2 0x26
 #define TLS_EXT_GOOGLE_USER_AGENT            0x3129
+#define MAX_TLS_EXT_LEN                      30
 
 
 namespace ipxp {
