@@ -54,8 +54,8 @@ UR_FIELDS(
  * \brief Flow record extension header for storing parsed HTTPS packets.
  */
 // TODO fix IEs
-#define TLS_EXT_TYPE_FIELD_ID 885
-#define TLS_EXT_LEN_FIELD_ID 884
+#define TLS_EXT_TYPE_FIELD_ID 802
+#define TLS_EXT_LEN_FIELD_ID 803
 struct RecordExtTLS : public RecordExt {
    static int  REGISTERED_ID;
 
