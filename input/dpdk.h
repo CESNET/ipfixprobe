@@ -50,6 +50,7 @@ private:
     std::vector<uint16_t> port_numbers_;
     uint16_t rx_queues_ = 1;
     std::string eal_;
+    uint16_t mtu_;
 
     std::vector<uint16_t> parsePortNumbers(std::string arg)
     {
@@ -80,6 +81,7 @@ public:
         : OptionsParser("dpdk", "Input plugin for reading packets using DPDK interface")
         , pkt_buffer_size_(DEFAULT_MBUF_BURST_SIZE)
         , pkt_mempool_size_(DEFAULT_MBUF_POOL_SIZE)
+        , mtu_(RTE_ETHER_MAX_LEN)
     {
         register_option(
             "b",
@@ -116,6 +118,13 @@ public:
             "DPDK eal", 
             [this](const char *arg){eal_ = arg; return true;}, 
             OptionFlags::RequiredArgument);
+        register_option(
+            "M",
+            "mtu",
+            "MTU",
+            "Input interface MTU. Default: " + std::to_string(RTE_ETHER_MAX_LEN),
+            [this](const char *arg) {try{mtu_ = str2num<decltype(mtu_)>(arg);} catch (std::invalid_argument&){return false;} return true; },
+            RequiredArgument);
     }
 
     size_t pkt_buffer_size() const { return pkt_buffer_size_; }
@@ -127,6 +136,8 @@ public:
     std::string eal_params() const { return eal_; }
 
     uint16_t rx_queues() const { return rx_queues_; }
+
+    uint16_t mtu_size() const { return mtu_; }
 };
 
 class DpdkCore {
