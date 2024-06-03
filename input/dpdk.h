@@ -43,7 +43,7 @@ namespace ipxp {
 
 class DpdkOptParser : public OptionsParser {
 private:
-    static constexpr size_t DEFAULT_MBUF_BURST_SIZE = 256;
+    static constexpr size_t DEFAULT_MBUF_BURST_SIZE = 64;
     static constexpr size_t DEFAULT_MBUF_POOL_SIZE = 16384;
     size_t pkt_buffer_size_;
     size_t pkt_mempool_size_;
