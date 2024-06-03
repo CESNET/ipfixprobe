@@ -40,7 +40,7 @@
 namespace ipxp {
 class DpdkRingOptParser : public OptionsParser {
 private:
-    static constexpr size_t DEFAULT_MBUF_BURST_SIZE = 256;
+    static constexpr size_t DEFAULT_MBUF_BURST_SIZE = 64;
     size_t pkt_buffer_size_;
 
     std::string ring_name_;
