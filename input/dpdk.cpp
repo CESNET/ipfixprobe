@@ -155,12 +155,13 @@ void DpdkCore::configure(const char* params)
     uint16_t mempoolSize = parser.pkt_mempool_size();
     uint16_t rxQueueCount = parser.rx_queues();
     m_mBufsCount = parser.pkt_buffer_size();
+    uint16_t mtuSize = parser.mtu_size();
 
     configureEal(parser.eal_params());
 
     m_dpdkDevices.reserve(parser.port_numbers().size());
     for (auto portID :  parser.port_numbers()) {
-        m_dpdkDevices.emplace_back(portID, rxQueueCount, mempoolSize, m_mBufsCount);
+        m_dpdkDevices.emplace_back(portID, rxQueueCount, mempoolSize, m_mBufsCount, mtuSize);
     }
 
     isConfigured = true;

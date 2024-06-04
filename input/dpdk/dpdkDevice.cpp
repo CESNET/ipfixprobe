@@ -39,7 +39,8 @@ DpdkDevice::DpdkDevice(
 	uint16_t portID,
 	uint16_t rxQueueCount,
 	uint16_t memPoolSize,
-	uint16_t mbufsCount)
+	uint16_t mbufsCount,
+	uint16_t mtuSize)
 	: m_portID(portID)
 	, m_rxQueueCount(rxQueueCount)
 	, m_txQueueCount(0)
@@ -47,6 +48,7 @@ DpdkDevice::DpdkDevice(
 	, m_isNfbDpdkDriver(false)
 	, m_supportedRSS(false)
 	, m_supportedHWTimestamp(false)
+	, m_mtuSize(mtuSize)
 {
 	validatePort();
 	recognizeDriver();
@@ -137,9 +139,9 @@ rte_eth_conf DpdkDevice::createPortConfig()
 	}
 
 #if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
-	rte_eth_conf portConfig {.rxmode = {.mtu = RTE_ETHER_MAX_LEN}};
+	rte_eth_conf portConfig {.rxmode = {.mtu = m_mtuSize}};
 #else
-	rte_eth_conf portConfig {.rxmode = {.max_rx_pkt_len = RTE_ETHER_MAX_LEN}};
+	rte_eth_conf portConfig {.rxmode = {.max_rx_pkt_len = m_mtuSize}};
 #endif
 
 	if (m_supportedRSS) {
@@ -172,7 +174,7 @@ void DpdkDevice::initMemPools(uint16_t memPoolSize)
 			memPoolSize,
 			MEMPOOL_CACHE_SIZE,
 			0,
-			RTE_MBUF_DEFAULT_BUF_SIZE,
+			std::max(m_mtuSize, (uint16_t)RTE_MBUF_DEFAULT_DATAROOM) + RTE_PKTMBUF_HEADROOM,
 			rte_eth_dev_socket_id(m_portID));
 		if (!memPool) {
 			throw PluginError(
