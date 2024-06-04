@@ -121,6 +121,7 @@ struct RecordExtTLS : public RecordExt {
    virtual int fill_ipfix(uint8_t *buffer, int size)
    {
       IpfixBasicList basiclist;
+      basiclist.hdrEnterpriseNum = IpfixBasicList::CesnetPEM;
 
       uint16_t sni_len  = strlen(sni);
       uint16_t alpn_len = strlen(alpn);
