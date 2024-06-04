@@ -40,5 +40,6 @@ jobs:
         flags: tests # optional
         name: ipfixprobe # optional
         fail_ci_if_error: true # optional (default = false)
+        token: ${{ secrets.CODECOV_TOKEN }}
         verbose: true
         gcov: true
