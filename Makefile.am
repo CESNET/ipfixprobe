@@ -11,7 +11,7 @@ DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(syste
 
 ipfixprobe_LDFLAGS=-lpthread -ldl -latomic
 ipfixprobe_CFLAGS=-I$(srcdir)/include/ -fPIC
-ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/ -fPIC
+ipfixprobe_CXXFLAGS=-std=gnu++17 -Wno-write-strings -I$(srcdir)/include/ -fPIC
 
 if OS_CYGWIN
 ipfixprobe_CXXFLAGS+=-Wl,--export-all-symbols
@@ -226,7 +226,7 @@ endif
 
 ipfixprobe_SOURCES=$(ipfixprobe_src) main.cpp
 
-ipfixprobe_stats_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/
+ipfixprobe_stats_CXXFLAGS=-std=gnu++17 -Wno-write-strings -I$(srcdir)/include/
 ipfixprobe_stats_SOURCES=ipfixprobe_stats.cpp \
 		include/ipfixprobe/options.hpp \
 		include/ipfixprobe/utils.hpp \
