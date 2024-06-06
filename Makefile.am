@@ -228,7 +228,7 @@ endif
 
 ipfixprobe_SOURCES=$(ipfixprobe_src) main.cpp
 
-ipfixprobe_stats_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/
+ipfixprobe_stats_CXXFLAGS=-std=gnu++17 -Wno-write-strings -I$(srcdir)/include/
 ipfixprobe_stats_SOURCES=ipfixprobe_stats.cpp \
 		include/ipfixprobe/options.hpp \
 		include/ipfixprobe/utils.hpp \
