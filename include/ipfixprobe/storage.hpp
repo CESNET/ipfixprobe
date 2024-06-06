@@ -30,13 +30,15 @@
 #ifndef IPXP_STORAGE_HPP
 #define IPXP_STORAGE_HPP
 
-#include <string>
-
 #include "plugin.hpp"
 #include "packet.hpp"
 #include "flowifc.hpp"
 #include "ring.h"
 #include "process.hpp"
+
+#include <string>
+#include <memory>
+#include <telemetry.hpp>
 
 namespace ipxp {
 
@@ -91,6 +93,13 @@ public:
    {
    }
    virtual void finish()
+   {
+   }
+
+   /**
+    * \brief set telemetry directory for the storage
+    */
+   virtual void set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir)
    {
    }
 
