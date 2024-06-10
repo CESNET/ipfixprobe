@@ -44,6 +44,7 @@ FragmentationCache::FragmentationCache(std::size_t table_size, time_t timeout_in
 
 void FragmentationCache::process_packet(Packet& packet)
 {
+    m_stats.total_packets++;
     if (!is_packet_fragmented(packet)) {
         return; // Packet is not fragmented, no further action needed.
     }
@@ -52,12 +53,16 @@ void FragmentationCache::process_packet(Packet& packet)
 
 void FragmentationCache::process_fragmented_packet(Packet& packet) noexcept
 {
+    m_stats.fragmented_packets++;
     if (is_packet_first_fragment(packet)) {
+        m_stats.first_fragments++;
         m_fragmentation_table.insert(packet);
     } else {
         auto fragmentation_data = m_fragmentation_table.find(packet);
         if (fragmentation_data) {
             fill_missing_packet_data(packet, *fragmentation_data);
+        } else {
+            m_stats.not_found_fragments++;
         }
     }
 }
@@ -85,5 +90,28 @@ void FragmentationCache::fill_ports_to_packet(
     packet.src_port = fragmentation_data.source_port;
     packet.dst_port = fragmentation_data.destination_port;
 }
+
+telemetry::Content FragmentationCache::get_cache_telemetry()
+{
+    telemetry::Dict dict;
+    dict["firstFragments"] = m_stats.first_fragments;
+    dict["totalPackets"] = m_stats.total_packets;
+    double trafficPercentage = 0;
+    if (m_stats.total_packets) {
+        trafficPercentage = double(m_stats.fragmented_packets) / m_stats.total_packets * 100;
+    }
+    dict["fragmentedTraffic"] = telemetry::ScalarWithUnit {trafficPercentage, "%"};
+    dict["fragmentedPackets"] = m_stats.fragmented_packets;
+    dict["notFoundFragments"] = m_stats.not_found_fragments;
+
+    return dict;
+}
+
+void FragmentationCache::set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir)
+{
+    telemetry::FileOps statsOps = {[=]() { return get_cache_telemetry(); }, nullptr};
+    register_file(dir, "fragmentation-cache-stats", statsOps);
+}
+
 
 } // namespace ipxp
