@@ -579,6 +579,10 @@ void NHTFlowCache::set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir)
 {
    telemetry::FileOps statsOps = {[=]() { return get_cache_telemetry(); }, nullptr};
    register_file(dir, "cache-stats", statsOps);
+
+   if (m_enable_fragmentation_cache) {
+      m_fragmentation_cache.set_telemetry_dir(dir);
+   }
 }
 
 void NHTFlowCache::update_flow_record_stats(uint64_t packets_count)
