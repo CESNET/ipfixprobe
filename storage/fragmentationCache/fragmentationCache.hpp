@@ -33,6 +33,8 @@
 #include "fragmentationTable.hpp"
 
 #include <cstdint>
+#include <telemetry.hpp>
+#include <ipfixprobe/telemetry-utils.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <sys/time.h>
 
@@ -54,7 +56,7 @@ namespace ipxp {
  * subsequent fragments are received, it attempts to retrieve this port information from the
  * fragmentation table to ensure consistent port association across all fragments.
  */
-class FragmentationCache {
+class FragmentationCache : TelemetryUtils {
 public:
     /**
      * @brief Constructor for the FragmentationCache class.
@@ -81,7 +83,21 @@ public:
      */
     void process_packet(Packet& packet);
 
+    /**
+     * @brief Set and configure the telemetry directory where cache stats will be stored.
+     */
+    void set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir);
+
 private:
+    struct CacheStats {
+        uint64_t first_fragments;
+        uint64_t fragmented_packets;
+        uint64_t not_found_fragments;
+        uint64_t total_packets;
+    };
+
+    telemetry::Content get_cache_telemetry();
+
     void process_fragmented_packet(Packet& packet) noexcept;
     void fill_ports_to_packet(Packet& packet, const FragmentationData& data) const noexcept;
     void
@@ -100,6 +116,7 @@ private:
         return !packet.frag_off && packet.more_fragments;
     }
 
+    CacheStats m_stats = {};
     struct timeval m_timeout;
     FragmentationTable m_fragmentation_table;
 };
