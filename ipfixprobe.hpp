@@ -200,6 +200,7 @@ struct ipxp_conf_t {
 
    std::shared_ptr<telemetry::Directory> telemetry_root_node;
    std::unique_ptr<telemetry::appFs::AppFsFuse> appFs;
+   telemetry::Holder holder;
 
    size_t pkt_bufsize;
    size_t blocks_cnt;
