@@ -73,10 +73,10 @@ protected:
       std::shared_ptr<telemetry::Directory> plugin_dir, 
       std::shared_ptr<telemetry::Directory> queues_dir) {};
 
+   ParserStats m_parser_stats;
+
 private:
    void create_parser_stats_telemetry(std::shared_ptr<telemetry::Directory> queues_dir);
-
-   ParserStats m_parser_stats;
 };
 
 }
