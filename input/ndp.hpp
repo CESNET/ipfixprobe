@@ -66,8 +66,20 @@ public:
    std::string get_name() const { return "ndp"; }
    InputPlugin::Result get(PacketBlock &packets);
 
+   void configure_telemetry_dirs(
+      std::shared_ptr<telemetry::Directory> plugin_dir, 
+      std::shared_ptr<telemetry::Directory> queues_dir) override;
+
 private:
+   struct RxStats {
+        uint64_t receivedPackets;
+        uint64_t receivedBytes;
+   };
+
+   telemetry::Content get_queue_telemetry();
+
    NdpReader ndpReader;
+   RxStats m_stats = {};
 
    void init_ifc(const std::string &dev);
 };
