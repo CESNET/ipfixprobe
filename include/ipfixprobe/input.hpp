@@ -31,16 +31,20 @@
 #define IPXP_INPUT_HPP
 
 #include <string>
+#include <memory>
+#include <telemetry.hpp>
 
+#include "telemetry-utils.hpp"
 #include "plugin.hpp"
 #include "packet.hpp"
+#include "parser-stats.hpp"
 
 namespace ipxp {
 
 /**
  * \brief Base class for packet receivers.
  */
-class InputPlugin : public Plugin
+class InputPlugin : public TelemetryUtils, public Plugin
 {
 public:
    enum class Result {
@@ -55,10 +59,24 @@ public:
    uint64_t m_parsed;
    uint64_t m_dropped;
 
-   InputPlugin() : m_seen(0), m_parsed(0), m_dropped(0) {}
+   InputPlugin();
    virtual ~InputPlugin() {}
 
    virtual Result get(PacketBlock &packets) = 0;
+
+   void set_telemetry_dirs(
+      std::shared_ptr<telemetry::Directory> plugin_dir, 
+      std::shared_ptr<telemetry::Directory> queues_dir);
+
+protected:
+   virtual void configure_telemetry_dirs(
+      std::shared_ptr<telemetry::Directory> plugin_dir, 
+      std::shared_ptr<telemetry::Directory> queues_dir) {};
+
+private:
+   void create_parser_stats_telemetry(std::shared_ptr<telemetry::Directory> queues_dir);
+
+   ParserStats m_parser_stats;
 };
 
 }
