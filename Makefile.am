@@ -20,6 +20,7 @@ ipfixprobe_CXXFLAGS+=-Wl,--export-dynamic
 endif
 
 ipfixprobe_input_src=\
+        input/input.cpp \
 		input/benchmark.cpp \
 		input/benchmark.hpp \
 		input/parser.cpp \
