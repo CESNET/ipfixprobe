@@ -309,7 +309,7 @@ int RawReader::process_packets(struct tpacket_block_desc *pbd, PacketBlock &pack
       size_t snaplen = ppd->tp_snaplen;
       struct timeval ts = {ppd->tp_sec, ppd->tp_nsec / 1000};
 
-      parse_packet(&opt, ts, data, len, snaplen);
+      parse_packet(&opt, m_parser_stats, ts, data, len, snaplen);
       ppd = (struct tpacket3_hdr *) ((uint8_t *) ppd + ppd->tp_next_offset);
    }
    m_last_ppd = ppd;

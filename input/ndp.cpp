@@ -107,7 +107,7 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
          throw PluginError(ndpReader.error_msg);
       }
       read_pkts++;
-      parse_packet(&opt, timestamp, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
+      parse_packet(&opt, m_parser_stats, timestamp, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
    }
 
    m_seen += read_pkts;
