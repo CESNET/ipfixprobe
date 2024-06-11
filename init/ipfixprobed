@@ -84,6 +84,13 @@ if [ -e "$CONFFILE" ]; then
    fi
    output="-o ipfix;host=${HOST:-127.0.0.1};port=${PORT:-4739};id=${LINK:-0};dir=${DIR:-0};${UDP_PARAM};template=${TEMPLATE_REFRESH_RATE:-300}"
 
+   telemetry=""
+   if [ "$USE_FUSE" = "1" ]; then
+      telemetry="-t ${FUSE_MOUNT_POINT}"
+   fi
+
+   exec /usr/bin/ipfixprobe "${dpdkinput[@]}" $input $storage $process $output $telemetry
+
    exec /usr/bin/ipfixprobe "${dpdkinput[@]}" $input $storage $process $output
 else
    echo "Configuration file '$CONFFILE' does not exist, exitting." >&2
