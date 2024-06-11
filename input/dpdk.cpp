@@ -278,6 +278,7 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
         packets.cnt++;
 #else
         parse_packet(&opt,
+            m_parser_stats,
             dpdkDevice.getPacketTimestamp(mBufs[packetID]),
             rte_pktmbuf_mtod(mBufs[packetID], const std::uint8_t*),
             rte_pktmbuf_data_len(mBufs[packetID]),

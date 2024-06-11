@@ -41,6 +41,11 @@ namespace ipxp {
 // Read only 1 packet into packet block
 constexpr size_t PCAP_PACKET_BLOCK_SIZE = 1;
 
+struct UserData {
+   parser_opt_t* opt;
+   ParserStats& stats;
+};
+
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("pcap", [](){return new PcapReader();});
@@ -49,12 +54,14 @@ __attribute__((constructor)) static void register_this_plugin()
 
 /**
  * \brief Parsing callback function for pcap_dispatch() call. Parse packets up to transport layer.
- * \param [in,out] arg Serves for passing pointer to Packet structure into callback function.
+ * \param [in,out] arg Serves for passing pointer to Packet user data structure into callback function.
  * \param [in] h Contains timestamp and packet size.
  * \param [in] data Pointer to the captured packet data.
  */
 void packet_handler(u_char *arg, const struct pcap_pkthdr *h, const u_char *data)
 {
+   UserData *user_data = reinterpret_cast<UserData *>(arg);
+
 #ifdef __CYGWIN__
    // WinPcap, uses Microsoft's definition of struct timeval, which has `long` data type
    // used for both tv_sec and tv_usec and has 32 bit even on 64 bit platform.
@@ -64,9 +71,9 @@ void packet_handler(u_char *arg, const struct pcap_pkthdr *h, const u_char *data
    new_h.ts.tv_usec = *(reinterpret_cast<const uint32_t *>(h) + 1);
    new_h.caplen = *(reinterpret_cast<const uint32_t *>(h) + 2);
    new_h.len = *(reinterpret_cast<const uint32_t *>(h) + 3);
-   parse_packet((parser_opt_t *) arg, new_h.ts, data, new_h.len, new_h.caplen);
+   parse_packet(user_data->opt, user_data->stats, new_h.ts, data, new_h.len, new_h.caplen);
 #else
-   parse_packet((parser_opt_t *) arg, h->ts, data, h->len, h->caplen);
+   parse_packet(user_data->opt, user_data->stats, h->ts, data, h->len, h->caplen);
 #endif
 }
 
@@ -249,12 +256,14 @@ InputPlugin::Result PcapReader::get(PacketBlock &packets)
    parser_opt_t opt = {&packets, false, false, m_datalink};
    int ret;
 
+   UserData user_data = {&opt, m_parser_stats};
+
    if (m_handle == nullptr) {
       throw PluginError("no interface capture or file opened");
    }
 
    packets.cnt = 0;
-   ret = pcap_dispatch(m_handle, PCAP_PACKET_BLOCK_SIZE, packet_handler, (u_char *) (&opt));
+   ret = pcap_dispatch(m_handle, PCAP_PACKET_BLOCK_SIZE, packet_handler, (u_char *) (&user_data));
    if (m_live) {
       if (ret == 0) {
          return Result::TIMEOUT;

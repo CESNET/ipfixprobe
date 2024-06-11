@@ -179,6 +179,7 @@ InputPlugin::Result DpdkRingReader::get(PacketBlock& packets)
     }
     for (auto i = 0; i < pkts_read_; i++) {
         parse_packet(&opt,
+            m_parser_stats,
             getTimestamp(mbufs_[i]),
             rte_pktmbuf_mtod(mbufs_[i], const std::uint8_t*),
             rte_pktmbuf_data_len(mbufs_[i]),
