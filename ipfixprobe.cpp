@@ -207,7 +207,11 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       }
    }
 
+   // telemetry
+   conf.telemetry_root_node = telemetry::Directory::create();
+
    // Output
+   auto output_dir = conf.telemetry_root_node->addDir("output");
    ipx_ring_t *output_queue = ipx_ring_init(conf.oqueue_size, 1);
    if (output_queue == nullptr) {
       throw IPXPError("unable to initialize ring buffer");
@@ -251,6 +255,9 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
    }
 
    // Input
+   auto input_dir = conf.telemetry_root_node->addDir("input");
+   auto pipeline_dir = conf.telemetry_root_node->addDir("pipeline");
+   auto flowcache_dir = conf.telemetry_root_node->addDir("flowcache");
    size_t pipeline_idx = 0;
    for (auto &it : parser.m_input) {
       InputPlugin *input_plugin = nullptr;
@@ -259,12 +266,16 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       std::string input_name;
       process_plugin_argline(it, input_name, input_params);
 
+      auto input_plugin_dir = input_dir->addDir(input_name);
+      auto pipeline_queue_dir = pipeline_dir->addDir("queues")->addDir(std::to_string(pipeline_idx));
+
       try {
          input_plugin = dynamic_cast<InputPlugin *>(conf.mgr.get(input_name));
          if (input_plugin == nullptr) {
             throw IPXPError("invalid input plugin " + input_name);
          }
          input_plugin->init(input_params.c_str());
+         input_plugin->set_telemetry_dirs(input_plugin_dir, pipeline_queue_dir);
          conf.active.input.push_back(input_plugin);
          conf.active.all.push_back(input_plugin);
       } catch (PluginError &e) {
@@ -284,6 +295,7 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
          }
          storage_plugin->set_queue(output_queue);
          storage_plugin->init(storage_params.c_str());
+         storage_plugin->set_telemetry_dir(pipeline_queue_dir);
          conf.active.storage.push_back(storage_plugin);
          conf.active.all.push_back(storage_plugin);
       } catch (PluginError &e) {
@@ -620,11 +632,25 @@ int run(int argc, char *argv[])
    conf.pkt_bufsize = parser.m_pkt_bufsize;
    conf.max_pkts = parser.m_max_pkts;
 
+
    try {
       if (process_plugin_args(conf, parser)) {
          goto EXIT;
       }
+      if (!parser.m_appfs_mount_point.empty()) {
+         bool unmount_on_start = true;
+         bool create_directory = true;
+         conf.appFs = std::make_unique<telemetry::appFs::AppFsFuse>(
+            conf.telemetry_root_node,
+            parser.m_appfs_mount_point,
+            unmount_on_start,
+            create_directory);
+         conf.appFs->start();
+      }
       main_loop(conf);
+      if (!parser.m_appfs_mount_point.empty()) {
+         conf.appFs->stop();
+      }
    } catch (std::system_error &e) {
       error(e.what());
       status = EXIT_FAILURE;
