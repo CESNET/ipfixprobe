@@ -185,3 +185,8 @@ UDP=yes
 
 # Export ipfix template every N seconds (UDP)
 TEMPLATE_REFRESH_RATE=300
+
+####### Fuse telemetry
+
+USE_FUSE=0
+FUSE_MOUNT_POINT="/var/run/ipfixprobe"
