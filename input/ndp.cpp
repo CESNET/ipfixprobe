@@ -36,6 +36,14 @@
 
 namespace ipxp {
 
+telemetry::Content NdpPacketReader::get_queue_telemetry()
+{
+   telemetry::Dict dict;
+   dict["received_packets"] = m_stats.receivedPackets;
+   dict["received_bytes"] = m_stats.receivedBytes;
+   return dict;
+}
+
 __attribute__((constructor)) static void register_this_plugin()
 {
    static PluginRecord rec = PluginRecord("ndp", [](){return new NdpPacketReader();});
@@ -104,7 +112,19 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
 
    m_seen += read_pkts;
    m_parsed += opt.pblock->cnt;
+
+   m_stats.receivedPackets += read_pkts;
+   m_stats.receivedBytes += packets.bytes;
+
    return opt.pblock->cnt ? Result::PARSED : Result::NOT_PARSED;
+}
+
+void NdpPacketReader::configure_telemetry_dirs(
+   std::shared_ptr<telemetry::Directory> plugin_dir, 
+   std::shared_ptr<telemetry::Directory> queues_dir)
+{
+   telemetry::FileOps statsOps = {[&]() { return get_queue_telemetry(); }, nullptr};
+   register_file(queues_dir, "input-stats", statsOps);
 }
 
 }
