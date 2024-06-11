@@ -152,6 +152,22 @@ void process_plugin_argline(const std::string &args, std::string &plugin, std::s
    trim_str(params);
 }
 
+telemetry::Content get_ipx_ring_telemetry(ipx_ring_t* ring)
+{
+   telemetry::Dict dict;
+   uint64_t size = ipx_ring_size(ring);
+   uint64_t count = ipx_ring_cnt(ring);
+   double usage = 0;
+   if (size) {
+      usage = (double) count / size * 100;
+   }
+
+   dict["size"] = size;
+   dict["count"] = count;
+   dict["usage"] = telemetry::ScalarWithUnit {usage, "%"};
+   return dict;
+}
+
 bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
 {
    auto deleter = [&](OutputPlugin::Plugins *p) {
@@ -216,6 +232,12 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
    if (output_queue == nullptr) {
       throw IPXPError("unable to initialize ring buffer");
    }
+
+   auto ipxRingTelemetryDir = output_dir->addDir("ipxRing");
+   telemetry::FileOps statsOps = {[=]() { return get_ipx_ring_telemetry(output_queue); }, nullptr};
+   auto statsFile = ipxRingTelemetryDir->addFile("stats", statsOps);
+   conf.holder.add(statsFile);
+
    OutputPlugin *output_plugin = nullptr;
    try {
       output_plugin = dynamic_cast<OutputPlugin *>(conf.mgr.get(output_name));
