@@ -127,6 +127,9 @@ void DpdkDevice::configurePort()
 	if (rte_eth_dev_configure(m_portID, m_rxQueueCount, m_txQueueCount, &portConfig)) {
 		throw PluginError("DpdkDevice::configurePort() has failed. Unable to configure interface");
 	}
+	if (rte_eth_dev_set_mtu(m_portID, m_mtuSize)) {
+		throw PluginError("DpdkDevice::configurePort() has failed. Unable to set MTU (rte_eth_dev_set_mtu)");
+	}
 }
 
 rte_eth_conf DpdkDevice::createPortConfig()
