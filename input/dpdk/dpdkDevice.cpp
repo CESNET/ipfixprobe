@@ -127,6 +127,9 @@ void DpdkDevice::configurePort()
 	if (rte_eth_dev_configure(m_portID, m_rxQueueCount, m_txQueueCount, &portConfig)) {
 		throw PluginError("DpdkDevice::configurePort() has failed. Unable to configure interface");
 	}
+	if (rte_eth_dev_set_mtu(m_portID, m_mtuSize)) {
+		throw PluginError("DpdkDevice::configurePort() has failed. Unable to set MTU (rte_eth_dev_set_mtu)");
+	}
 }
 
 rte_eth_conf DpdkDevice::createPortConfig()
@@ -163,6 +166,8 @@ rte_eth_conf DpdkDevice::createPortConfig()
 void DpdkDevice::initMemPools(uint16_t memPoolSize)
 {
 	constexpr int MEMPOOL_CACHE_SIZE = 256;
+	constexpr int VLAN_HDR_LEN = 4;
+	const int max_packet_size = m_mtuSize + RTE_ETHER_HDR_LEN + VLAN_HDR_LEN;
 
 	m_memPools.reserve(m_rxQueueCount);
 
@@ -174,7 +179,7 @@ void DpdkDevice::initMemPools(uint16_t memPoolSize)
 			memPoolSize,
 			MEMPOOL_CACHE_SIZE,
 			0,
-			std::max(m_mtuSize, (uint16_t)RTE_MBUF_DEFAULT_DATAROOM) + RTE_PKTMBUF_HEADROOM,
+			std::max(max_packet_size, RTE_MBUF_DEFAULT_DATAROOM) + RTE_PKTMBUF_HEADROOM,
 			rte_eth_dev_socket_id(m_portID));
 		if (!memPool) {
 			throw PluginError(
