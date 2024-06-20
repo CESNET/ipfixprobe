@@ -9,7 +9,7 @@
  * \date 2016
  */
 /*
- * Copyright (C) 2014-2016 CESNET
+ * Copyright (C) 2023 CESNET
  *
  * LICENSE TERMS
  *
@@ -25,212 +25,110 @@
  * 3. Neither the name of the Company nor the names of its contributors
  *    may be used to endorse or promote products derived from this
  *    software without specific prior written permission.
- *
- *
- *
  */
 #ifndef IPXP_STORAGE_CACHE_HPP
 #define IPXP_STORAGE_CACHE_HPP
 
-#include <string>
-
-#include <ipfixprobe/storage.hpp>
-#include <ipfixprobe/options.hpp>
+#include "cacheoptparser.hpp"
+#include "cachestatistics.hpp"
+#include "flowendreason.hpp"
+#include "flowkeyv4.hpp"
+#include "flowkeyv6.hpp"
+#include "flowrecord.hpp"
+#include <array>
+#include <chrono>
 #include <ipfixprobe/flowifc.hpp>
+#include <ipfixprobe/storage.hpp>
 #include <ipfixprobe/utils.hpp>
-
+#include <memory>
+#include <optional>
+#include <string>
+#include <variant>
+#include <thread>
 #include "fragmentationCache/fragmentationCache.hpp"
 
 namespace ipxp {
 
-struct __attribute__((packed)) flow_key_v4_t {
-   uint16_t src_port;
-   uint16_t dst_port;
-   uint8_t proto;
-   uint8_t ip_version;
-   uint32_t src_ip;
-   uint32_t dst_ip;
-   uint16_t vlan_id;
-};
-
-struct __attribute__((packed)) flow_key_v6_t {
-   uint16_t src_port;
-   uint16_t dst_port;
-   uint8_t proto;
-   uint8_t ip_version;
-   uint8_t src_ip[16];
-   uint8_t dst_ip[16];
-   uint16_t vlan_id;
-};
-
-#define MAX_KEY_LENGTH (max<size_t>(sizeof(flow_key_v4_t), sizeof(flow_key_v6_t)))
-
-#ifdef IPXP_FLOW_CACHE_SIZE
-static const uint32_t DEFAULT_FLOW_CACHE_SIZE = IPXP_FLOW_CACHE_SIZE;
-#else
-static const uint32_t DEFAULT_FLOW_CACHE_SIZE = 17; // 131072 records total
-#endif /* IPXP_FLOW_CACHE_SIZE */
-
-#ifdef IPXP_FLOW_LINE_SIZE
-static const uint32_t DEFAULT_FLOW_LINE_SIZE = IPXP_FLOW_LINE_SIZE;
-#else
-static const uint32_t DEFAULT_FLOW_LINE_SIZE = 4; // 16 records per line
-#endif /* IPXP_FLOW_LINE_SIZE */
-
-static const uint32_t DEFAULT_INACTIVE_TIMEOUT = 30;
-static const uint32_t DEFAULT_ACTIVE_TIMEOUT = 300;
-
-static_assert(std::is_unsigned<decltype(DEFAULT_FLOW_CACHE_SIZE)>(), "Static checks of default cache sizes won't properly work without unsigned type.");
-static_assert(bitcount<decltype(DEFAULT_FLOW_CACHE_SIZE)>(-1) > DEFAULT_FLOW_CACHE_SIZE, "Flow cache size is too big to fit in variable!");
-static_assert(bitcount<decltype(DEFAULT_FLOW_LINE_SIZE)>(-1) > DEFAULT_FLOW_LINE_SIZE, "Flow cache line size is too big to fit in variable!");
-
-static_assert(DEFAULT_FLOW_LINE_SIZE >= 1, "Flow cache line size must be at least 1!");
-static_assert(DEFAULT_FLOW_CACHE_SIZE >= DEFAULT_FLOW_LINE_SIZE, "Flow cache size must be at least cache line size!");
-
-class CacheOptParser : public OptionsParser
-{
+using namespace std::chrono_literals;
+class NHTFlowCache : public StoragePlugin {
 public:
-   uint32_t m_cache_size;
-   uint32_t m_line_size;
-   uint32_t m_active;
-   uint32_t m_inactive;
-   bool m_split_biflow;
-   bool m_enable_fragmentation_cache;
-   std::size_t m_frag_cache_size;
-   time_t m_frag_cache_timeout;
-
-   CacheOptParser() : OptionsParser("cache", "Storage plugin implemented as a hash table"),
-      m_cache_size(1 << DEFAULT_FLOW_CACHE_SIZE), m_line_size(1 << DEFAULT_FLOW_LINE_SIZE),
-      m_active(DEFAULT_ACTIVE_TIMEOUT), m_inactive(DEFAULT_INACTIVE_TIMEOUT), m_split_biflow(false),
-      m_enable_fragmentation_cache(true), m_frag_cache_size(10007), // Prime for better distribution in hash table
-      m_frag_cache_timeout(3)
-   {
-      register_option("s", "size", "EXPONENT", "Cache size exponent to the power of two",
-         [this](const char *arg){try {unsigned exp = str2num<decltype(exp)>(arg);
-               if (exp < 4 || exp > 30) {
-                  throw PluginError("Flow cache size must be between 4 and 30");
-               }
-               m_cache_size = static_cast<uint32_t>(1) << exp;
-            } catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
-      register_option("l", "line", "EXPONENT", "Cache line size exponent to the power of two",
-         [this](const char *arg){try {m_line_size = static_cast<uint32_t>(1) << str2num<decltype(m_line_size)>(arg);
-               if (m_line_size < 1) {
-                  throw PluginError("Flow cache line size must be at least 1");
-               }
-            } catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
-      register_option("a", "active", "TIME", "Active timeout in seconds",
-         [this](const char *arg){try {m_active = str2num<decltype(m_active)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
-      register_option("i", "inactive", "TIME", "Inactive timeout in seconds",
-         [this](const char *arg){try {m_inactive = str2num<decltype(m_inactive)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
-      register_option("S", "split", "", "Split biflows into uniflows",
-         [this](const char *arg){ m_split_biflow = true; return true;}, OptionFlags::NoArgument);
-      register_option("fe", "frag-enable", "true|false", "Enable/disable fragmentation cache. Enabled (true) by default.",
-         [this](const char *arg){
-            if (strcmp(arg, "true") == 0) {
-               m_enable_fragmentation_cache = true;
-            } else if (strcmp(arg, "false") == 0) {
-               m_enable_fragmentation_cache = false;
-            } else {
-               return false;
-            }
-            return true;
-         }, OptionFlags::RequiredArgument);
-      register_option("fs", "frag-size", "size", "Size of fragmentation cache, must be at least 1. Default value is 10007.", [this](const char *arg) {
-         try {
-            m_frag_cache_size = str2num<decltype(m_frag_cache_size)>(arg);
-         } catch(std::invalid_argument &e) {
-            return false;
-         }
-         return m_frag_cache_size > 0;
-      });
-      register_option("ft", "frag-timeout", "TIME", "Timeout of fragments in fragmentation cache in seconds. Default value is 3.", [this](const char *arg) {
-         try {
-            m_frag_cache_timeout = str2num<decltype(m_frag_cache_timeout)>(arg);
-         } catch(std::invalid_argument &e) {
-            return false;
-         }
-         return true;
-      });
-   }
-};
-
-class FlowRecord
-{
-   uint64_t m_hash;
-
-public:
-   Flow m_flow;
-
-   FlowRecord();
-   ~FlowRecord();
-
-   void erase();
-   void reuse();
-
-   inline bool is_empty() const;
-   inline bool belongs(uint64_t pkt_hash) const;
-   void create(const Packet &pkt, uint64_t pkt_hash);
-   void update(const Packet &pkt, bool src);
-};
-
-class NHTFlowCache : public StoragePlugin
-{
-public:
-   NHTFlowCache();
-   ~NHTFlowCache();
-   void init(const char *params);
-   void close();
-   void set_queue(ipx_ring_t *queue);
-   OptionsParser *get_parser() const { return new CacheOptParser(); }
-   std::string get_name() const { return "cache"; }
-
-   int put_pkt(Packet &pkt);
-   void export_expired(time_t ts);
+    NHTFlowCache();
+    ~NHTFlowCache() override;
+    void init(const char* params) override;
+    void set_queue(ipx_ring_t* queue) override;
+    OptionsParser* get_parser() const;
+    std::string get_name() const noexcept;
+    int put_pkt(Packet& pkt) override;
+    void export_expired(time_t ts) override;
+    void print_report() const noexcept;
+    void set_hash_function(std::function<uint64_t(const uint8_t* data,uint32_t len)> function) noexcept;
 
 private:
-   uint32_t m_cache_size;
-   uint32_t m_line_size;
-   uint32_t m_line_mask;
-   uint32_t m_line_new_idx;
-   uint32_t m_qsize;
-   uint32_t m_qidx;
-   uint32_t m_timeout_idx;
-#ifdef FLOW_CACHE_STATS
-   uint64_t m_empty;
-   uint64_t m_not_empty;
-   uint64_t m_hits;
-   uint64_t m_expired;
-   uint64_t m_flushed;
-   uint64_t m_lookups;
-   uint64_t m_lookups2;
-#endif /* FLOW_CACHE_STATS */
-   uint32_t m_active;
-   uint32_t m_inactive;
-   bool m_split_biflow;
-   bool m_enable_fragmentation_cache;
-   uint8_t m_keylen;
-   char m_key[MAX_KEY_LENGTH];
-   char m_key_inv[MAX_KEY_LENGTH];
-   FlowRecord **m_flow_table;
-   FlowRecord *m_flow_records;
+    uint32_t m_cache_size; ///< Maximal count of records in cache
+    uint32_t m_line_size; ///< Maximal count of records in one row
+    uint32_t m_line_mask; ///< Line mask xored with flow index returns start of the row
+    uint32_t m_line_new_idx; ///< Insert position of new flow, if row has no empty space
+    uint32_t m_qsize; ///< Export queue size
+    uint32_t m_qidx; ///< Next position in export queue that will be exported
+    uint32_t m_timeout_idx; ///< Index of the row where expired flow will be exported
+    uint32_t m_active; ///< Active timeout
+    uint32_t m_inactive; ///< Inactive timeout
+    bool m_split_biflow; ///< If true, request and response packets between same ips will be counted
+                         ///< belonging to different flows
+    bool m_enable_fragmentation_cache; ///< If true, fragmentation cache will try to complete port
+                                       ///< information for fragmented packet
+    std::variant<FlowKeyV4, FlowKeyV6> m_key; ///< Key values of processed flow
+    std::variant<FlowKeyV4, FlowKeyV6> m_key_inv; ///< Key values of processed flow with swapped
+                                                  ///< source and destination addresses and ports
+    std::vector<FlowRecord*>
+        m_flow_table; ///< Pointers to flow records used for faster flow reorder operations
+    std::vector<FlowRecord> m_flow_records; ///< Main memory of the cache
+    CacheStatistics
+        m_statistics; ///< Total statistics about cache efficiency from the program start
+    CacheStatistics m_last_statistics; ///< Cache statistics for last
+                                       ///< m_periodic_statistics_sleep_time amount of time
+    bool m_exit; ///< Used for stopping background statistics thread
+    std::chrono::duration<double>
+        m_periodic_statistics_sleep_time; ///< Amount of time in which periodic statistics must
+                                          ///< reset
+    std::unique_ptr<std::thread> m_statistics_thread; ///< Pointer to periodic statistics thread
+    FragmentationCache
+        m_fragmentation_cache; ///< Fragmentation cache used for completing packets ports
+    std::function<uint64_t(const uint8_t*,uint32_t)> m_hash_function;
 
-   FragmentationCache m_fragmentation_cache;
+    void try_to_fill_ports_to_fragmented_packet(Packet& packet);
+    void allocate_tables();
+    void export_periodic_statistics(std::ostream& stream) noexcept;
+    void flush(
+        Packet& pkt,
+        uint32_t flow_index,
+        int ret,
+        bool source_flow,
+        FlowEndReason reason) noexcept;
+    uint32_t free_place_in_full_line(uint32_t line_begin) noexcept;
+    bool tcp_connection_reset(Packet& pkt, uint32_t flow_index) noexcept;
+    void create_new_flow(uint32_t flow_index, Packet& pkt, uint64_t hashval) noexcept;
+    bool update_flow(uint32_t flow_index, Packet& pkt) noexcept;
+    uint32_t make_place_for_record(uint32_t line_index) noexcept;
+    std::tuple<bool, uint32_t, uint64_t> find_flow_position(Packet& pkt) noexcept;
+    int insert_pkt(Packet& pkt) noexcept;
+    bool timeouts_expired(Packet& pkt, uint32_t flow_index) noexcept;
+    bool create_hash_key(const Packet& pkt) noexcept;
+    void export_flow(uint32_t index);
+    static uint8_t get_export_reason(Flow& flow);
+    void finish() override;
+    void get_opts_from_parser(const CacheOptParser& parser);
+    std::pair<bool, uint32_t> find_existing_record(uint64_t hashval) const noexcept;
+    virtual uint32_t enhance_existing_flow_record(uint32_t flow_index) noexcept;
+    std::pair<bool, uint32_t> find_empty_place(uint32_t begin_line) const noexcept;
+    bool process_last_tcp_packet(Packet& pkt, uint32_t flow_index) noexcept;
+    void prepare_and_export(uint32_t flow_index, FlowEndReason reason) noexcept;
+    void cyclic_rotate_records(uint32_t begin, uint32_t end) noexcept;
+    uint64_t hash(const uint8_t* data, uint32_t len) const noexcept;
 
-   void try_to_fill_ports_to_fragmented_packet(Packet& packet);
-   void flush(Packet &pkt, size_t flow_index, int ret, bool source_flow);
-   bool create_hash_key(Packet &pkt);
-   void export_flow(size_t index);
-   static uint8_t get_export_reason(Flow &flow);
-   void finish();
-
-#ifdef FLOW_CACHE_STATS
-   void print_report();
-#endif /* FLOW_CACHE_STATS */
+    static bool has_tcp_eof_flags(const Flow& flow) noexcept;
+    static void test_attributes();
 };
 
-}
+} // namespace ipxp
 #endif /* IPXP_STORAGE_CACHE_HPP */

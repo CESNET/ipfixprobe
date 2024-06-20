@@ -11,7 +11,7 @@ DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(syste
 
 ipfixprobe_LDFLAGS=-lpthread -ldl -latomic
 ipfixprobe_CFLAGS=-I$(srcdir)/include/ -fPIC
-ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/ -fPIC
+ipfixprobe_CXXFLAGS=-std=gnu++17 -Wno-write-strings -I$(srcdir)/include/ -fPIC
 
 if OS_CYGWIN
 ipfixprobe_CXXFLAGS+=-Wl,--export-all-symbols
@@ -69,6 +69,18 @@ ipfixprobe_storage_src=\
 		storage/fragmentationCache/fragmentationCache.cpp \
 		storage/cache.cpp \
 		storage/cache.hpp \
+		storage/cacheoptparser.cpp \
+		storage/cacheoptparser.hpp \
+		storage/cachestatistics.cpp \
+		storage/cachestatistics.hpp \
+		storage/flowkey.tpp \
+		storage/flowkey.hpp \
+		storage/flowkeyv4.cpp \
+		storage/flowkeyv4.hpp \
+		storage/flowkeyv6.cpp \
+		storage/flowkeyv6.hpp \
+		storage/flowrecord.cpp \
+		storage/flowrecord.hpp \
 		storage/xxhash.c \
 		storage/xxhash.h
 
