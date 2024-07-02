@@ -183,6 +183,9 @@ PORT=4739
 # Use UDP yes/no? (instead of TCP)
 UDP=yes
 
+# Use non-blocking socket for TCP connection yes/no?
+NON_BLOCKING_TCP=no
+
 # Export ipfix template every N seconds (UDP)
 TEMPLATE_REFRESH_RATE=300
 
