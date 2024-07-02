@@ -82,7 +82,20 @@ if [ -e "$CONFFILE" ]; then
    if [[ $UDP == "yes" ]]; then
         UDP_PARAM="udp";
    fi
-   output="-o ipfix;host=${HOST:-127.0.0.1};port=${PORT:-4739};id=${LINK:-0};dir=${DIR:-0};${UDP_PARAM};template=${TEMPLATE_REFRESH_RATE:-300}"
+
+   NON_BLOCKING_TCP_PARAM=""
+   if [[ $NON_BLOCKING_TCP == "yes" ]]; then
+        NON_BLOCKING_TCP_PARAM="non-blocking-tcp";
+   fi
+
+   output="-o ipfix;host=${HOST:-127.0.0.1};port=${PORT:-4739};id=${LINK:-0};dir=${DIR:-0};${UDP_PARAM};${NON_BLOCKING_TCP_PARAM};template=${TEMPLATE_REFRESH_RATE:-300}"
+
+   telemetry=""
+   if [ "$USE_FUSE" = "1" ]; then
+      telemetry="-t ${FUSE_MOUNT_POINT}"
+   fi
+
+   exec /usr/bin/ipfixprobe "${dpdkinput[@]}" $input $storage $process $output $telemetry
 
    telemetry=""
    if [ "$USE_FUSE" = "1" ]; then
