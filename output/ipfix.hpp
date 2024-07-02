@@ -73,13 +73,14 @@ public:
    uint16_t m_port;
    uint16_t m_mtu;
    bool m_udp;
+   bool m_non_blocking_tcp;
    uint64_t m_id;
    uint32_t m_dir;
    uint32_t m_template_refresh_time;
    bool m_verbose;
 
    IpfixOptParser() : OptionsParser("ipfix", "Output plugin for ipfix export"),
-      m_host("127.0.0.1"), m_port(4739), m_mtu(DEFAULT_MTU), m_udp(false), m_id(DEFAULT_EXPORTER_ID), m_dir(0), 
+      m_host("127.0.0.1"), m_port(4739), m_mtu(DEFAULT_MTU), m_udp(false), m_non_blocking_tcp(false), m_id(DEFAULT_EXPORTER_ID), m_dir(0), 
       m_template_refresh_time(TEMPLATE_REFRESH_TIME), m_verbose(false)
    {
       register_option("h", "host", "ADDR", "Remote collector address", [this](const char *arg){m_host = arg; return true;}, OptionFlags::RequiredArgument);
@@ -90,6 +91,7 @@ public:
          [this](const char *arg){try {m_mtu = str2num<decltype(m_mtu)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);
       register_option("u", "udp", "", "Use UDP protocol", [this](const char *arg){m_udp = true; return true;}, OptionFlags::NoArgument);
+      register_option("n", "non-blocking-tcp", "", "Use non-blocking socket for TCP protocol", [this](const char *arg){m_non_blocking_tcp = true; return true;}, OptionFlags::NoArgument);
       register_option("I", "id", "NUM", "Exporter identification",
          [this](const char *arg){try {m_id = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
          OptionFlags::RequiredArgument);
@@ -267,6 +269,7 @@ private:
    int protocol; /**< Collector connection protocol */
    int ip; /**< IP protocol version (AF_INET, ...) */
    int flags; /**< getaddrinfo flags */
+   bool non_blocking_tcp;
 
    uint32_t reconnectTimeout; /**< Timeout between connection retries */
    time_t lastReconnect; /**< Time in seconds of last connection retry */

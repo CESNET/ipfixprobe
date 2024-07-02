@@ -138,7 +138,7 @@ IPFIXExporter::IPFIXExporter() :
    sequenceNum(0), exportedPackets(0),
    fd(-1), addrinfo(nullptr),
    host(""), port(4739), protocol(IPPROTO_TCP),
-   ip(AF_UNSPEC), flags(0),
+   ip(AF_UNSPEC), flags(0), non_blocking_tcp(false),
    reconnectTimeout(RECONNECT_TIMEOUT), lastReconnect(0), odid(0),
    templateRefreshTime(TEMPLATE_REFRESH_TIME),
    templateRefreshPackets(TEMPLATE_REFRESH_PACKETS),
@@ -175,6 +175,10 @@ void IPFIXExporter::init(const char *params)
 
    if (parser.m_udp) {
       protocol = IPPROTO_UDP;
+   }
+
+   if (parser.m_non_blocking_tcp) {
+      non_blocking_tcp = true;
    }
 
    if (mtu <= IPFIX_HEADER_SIZE) {
@@ -906,6 +910,9 @@ int IPFIXExporter::connect_to_collector()
    memset(&hints, 0, sizeof(hints));
    hints.ai_family = ip;
    hints.ai_socktype = protocol == IPPROTO_UDP ? SOCK_DGRAM : SOCK_STREAM;
+   if (protocol != IPPROTO_UDP && non_blocking_tcp) {
+      hints.ai_socktype |= SOCK_NONBLOCK;
+   }
    hints.ai_protocol = protocol;
    hints.ai_flags = AI_ADDRCONFIG | flags;
 
