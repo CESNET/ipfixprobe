@@ -295,6 +295,14 @@ namespace ipxp {
 #define NTS_TIME_DISTRIBUTION(F)      F(8057,    1031,  4,    nullptr)
 #define NTS_SWITCHING_RATIO(F)        F(8057,    1032,  4,    nullptr)
 
+#define MQTT_TYPE_CUMULATIVE(F)       F(8057,    1033,    2,  nullptr)
+#define MQTT_VERSION(F)               F(8057,    1034,    1,  nullptr)
+#define MQTT_CONNECTION_FLAGS(F)      F(8057,    1035,    1,  nullptr)
+#define MQTT_KEEP_ALIVE(F)            F(8057,    1036,    2,  nullptr)
+#define MQTT_LAST_RETURN_CODE(F)      F(8057,    1037,    1,  nullptr)
+#define MQTT_PUBLISH_FLAGS(F)         F(8057,    1038,    1,  nullptr)
+#define MQTT_TOPICS(F)                F(8057,    1039,   -1,  nullptr)
+
 #define MPLS_TOP_LABEL_STACK_SECTION  F(0,         70,  -1,    nullptr)
 
 
@@ -443,6 +451,15 @@ namespace ipxp {
    F(SIP_USER_AGENT) \
    F(SIP_REQUEST_URI) \
    F(SIP_VIA)
+   
+#define IPFIX_MQTT_TEMPLATE(F) \
+   F(MQTT_TYPE_CUMULATIVE) \
+   F(MQTT_VERSION) \
+   F(MQTT_CONNECTION_FLAGS)    \
+   F(MQTT_KEEP_ALIVE) \
+   F(MQTT_LAST_RETURN_CODE) \
+   F(MQTT_PUBLISH_FLAGS)       \
+   F(MQTT_TOPICS)
 
 #define IPFIX_PSTATS_TEMPLATE(F) \
    F(STATS_PCKT_SIZES) \
