@@ -11,7 +11,7 @@ DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(syste
 
 ipfixprobe_LDFLAGS=-lpthread -ldl -latomic
 ipfixprobe_CFLAGS=-I$(srcdir)/include/ -fPIC
-ipfixprobe_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/ -fPIC
+ipfixprobe_CXXFLAGS=-std=gnu++17 -Wno-write-strings -I$(srcdir)/include/ -fPIC
 
 if OS_CYGWIN
 ipfixprobe_CXXFLAGS+=-Wl,--export-all-symbols
@@ -143,7 +143,9 @@ ipfixprobe_process_src=\
 		process/flow_hash.hpp \
 		process/flow_hash.cpp \
 		process/mpls.hpp \
-		process/mpls.cpp
+		process/mpls.cpp \
+		process/mqtt.hpp \
+		process/mqtt.cpp
 
 if WITH_QUIC
 ipfixprobe_process_src+=\
