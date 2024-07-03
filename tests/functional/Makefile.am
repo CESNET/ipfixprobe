@@ -19,7 +19,8 @@ TESTS=basic.sh \
 	wg.sh \
 	ssadetector.sh \
 	vlan.sh \
-	nettisa.sh
+	nettisa.sh \
+	mqtt.sh
 
 if WITH_QUIC
 TESTS+=\
@@ -50,6 +51,7 @@ EXTRA_DIST=common.sh \
 	nettisa.sh \
 	ssadetector.sh \
 	vlan.sh \
+	mqtt.sh \
 	reference/basic \
 	reference/basicplus \
 	reference/pstats \
@@ -72,7 +74,8 @@ EXTRA_DIST=common.sh \
 	reference/quic \
 	reference/ssadetector \
 	reference/vlan \
-	reference/nettisa
+	reference/nettisa \
+	reference/mqtt
 
 clean-local:
 	rm -rf output
