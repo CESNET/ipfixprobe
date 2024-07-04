@@ -38,6 +38,7 @@
 #include <ipfixprobe/utils.hpp>
 #include <numeric>
 #include <cstring>
+#include "sstream"
 
 namespace ipxp {
 
@@ -144,6 +145,18 @@ struct RecordExtMQTT : public RecordExt {
         return MQTT_UNIREC_TEMPLATE;
     }
 #endif
+    std::string get_text() const override
+    {
+        std::ostringstream out;
+        out << "type_cumulative=" << type_cumulative
+            << ",version=" << std::to_string(version)
+            << ",connection_flags=" << std::to_string(connection_flags)
+            << ",keep_alive=" << keep_alive
+            << ",connection_return_code=" << std::to_string(connection_return_code)
+            << ",publish_flags=" << std::to_string(publish_flags)
+            << ",topics=\"" << topics.str << "\"";
+        return out.str();
+    }
 };
 
 
