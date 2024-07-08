@@ -112,7 +112,7 @@ void PHISTSPlugin::update_hist(RecordExtPHISTS *phists_data, uint32_t value, uin
    return;
 }
 
-uint64_t PHISTSPlugin::calculate_ipt(RecordExtPHISTS *phists_data, const struct timeval tv, uint8_t direction)
+int64_t PHISTSPlugin::calculate_ipt(RecordExtPHISTS *phists_data, const struct timeval tv, uint8_t direction)
 {
    int64_t ts = IpfixBasicList::Tv2Ts(tv);
 
@@ -121,9 +121,11 @@ uint64_t PHISTSPlugin::calculate_ipt(RecordExtPHISTS *phists_data, const struct 
       return -1;
    }
    int64_t diff = ts - phists_data->last_ts[direction];
-
    phists_data->last_ts[direction] = ts;
-   return diff;
+   if (diff < 0) {
+      diff = 0;
+   }
+   return (int64_t)diff;
 }
 
 void PHISTSPlugin::update_record(RecordExtPHISTS *phists_data, const Packet &pkt)
@@ -133,7 +135,7 @@ void PHISTSPlugin::update_record(RecordExtPHISTS *phists_data, const Packet &pkt
    }
    uint8_t direction = (uint8_t) !pkt.source_pkt;
    update_hist(phists_data, (uint32_t) pkt.payload_len_wire, phists_data->size_hist[direction]);
-   int32_t ipt_diff = (uint32_t) calculate_ipt(phists_data, pkt.ts, direction);
+   int32_t ipt_diff = (int32_t) calculate_ipt(phists_data, pkt.ts, direction);
    if (ipt_diff != -1) {
       update_hist(phists_data, (uint32_t) ipt_diff, phists_data->ipt_hist[direction]);
    }
