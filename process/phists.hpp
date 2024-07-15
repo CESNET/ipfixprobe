@@ -202,7 +202,7 @@ private:
    void update_record(RecordExtPHISTS *phists_data, const Packet &pkt);
    void update_hist(RecordExtPHISTS *phists_data, uint32_t value, uint32_t *histogram);
    void pre_export(Flow &rec);
-   uint64_t calculate_ipt(RecordExtPHISTS *phists_data, const struct timeval tv, uint8_t direction);
+   int64_t calculate_ipt(RecordExtPHISTS *phists_data, const struct timeval tv, uint8_t direction);
 
    static const uint32_t log2_lookup32[32];
 
