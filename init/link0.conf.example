@@ -201,3 +201,6 @@ TEMPLATE_REFRESH_RATE=300
 
 USE_FUSE=0
 FUSE_MOUNT_POINT="/var/run/ipfixprobe"
+
+# Specify any extra global arguments, e.g. size of input queue
+#EXTRA_ARGS="-q 2048"

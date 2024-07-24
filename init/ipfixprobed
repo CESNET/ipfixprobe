@@ -125,7 +125,7 @@ if [ -e "$CONFFILE" ]; then
       telemetry="-t ${FUSE_MOUNT_POINT}"
    fi
 
-   exec /usr/bin/ipfixprobe "${dpdkinput[@]}" $input $storage $process $output $telemetry
+   exec /usr/bin/ipfixprobe "${dpdkinput[@]}" $input $storage $process $output $telemetry $EXTRA_ARGS
 else
    echo "Configuration file '$CONFFILE' does not exist, exitting." >&2
    exit 1
