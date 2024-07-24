@@ -138,7 +138,7 @@ void print_help(ipxp_conf_t &conf, const std::string &arg)
    }
 }
 
-void process_plugin_argline(const std::string &args, std::string &plugin, std::string &params)
+void process_plugin_argline(const std::string &args, std::string &plugin, std::string &params, std::vector<int> &affinity)
 {
    size_t delim;
 
@@ -147,6 +147,16 @@ void process_plugin_argline(const std::string &args, std::string &plugin, std::s
 
    plugin = params.substr(0, delim);
    params.erase(0, delim == std::string::npos ? delim : delim + 1);
+
+   delim = plugin.find('@');
+   if (delim != std::string::npos) {
+      try {
+         affinity.emplace_back(std::stoi(plugin.substr(delim + 1)));
+      } catch (const std::invalid_argument &ex) {
+         throw IPXPError("CPU affinity must be single number: " + std::string(ex.what()));
+      }
+   }
+   plugin = plugin.substr(0, delim);
 
    trim_str(plugin);
    trim_str(params);
@@ -168,6 +178,28 @@ telemetry::Content get_ipx_ring_telemetry(ipx_ring_t* ring)
    return dict;
 }
 
+void set_thread_details(pthread_t thread, const std::string &name, const std::vector<int> &affinity)
+{
+   // Set thread name and affinity
+   if (name.length() > 0) {
+      pthread_setname_np(thread, name.substr(0, 15).c_str());
+   }
+   if (affinity.size() > 0) {
+      cpu_set_t cpuset;
+      CPU_ZERO(&cpuset);
+      for (auto cpu : affinity) {
+         CPU_SET(cpu, &cpuset);
+      }
+      int ret = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+      if (ret != 0) {
+         throw IPXPError(
+            "pthread_setaffinity_np failed, CPU(s) "
+            + vec2str(affinity) + " probably cannot be set"
+         );
+      }
+   }
+}
+
 bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
 {
    auto deleter = [&](OutputPlugin::Plugins *p) {
@@ -183,10 +215,15 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
    std::string output_params = "";
 
    if (parser.m_storage.size()) {
-      process_plugin_argline(parser.m_storage[0], storage_name, storage_params);
+      std::vector<int> affinity;
+      process_plugin_argline(parser.m_storage[0], storage_name, storage_params, affinity);
+      if (affinity.size() != 0) {
+         throw IPXPError("cannot set CPU affinity for storage plugin (storage plugin is invoked inside input threads)");
+      }
    }
+   std::vector<int> output_worker_affinity;
    if (parser.m_output.size()) {
-      process_plugin_argline(parser.m_output[0], output_name, output_params);
+      process_plugin_argline(parser.m_output[0], output_name, output_params, output_worker_affinity);
    }
 
    // Process
@@ -194,7 +231,11 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       ProcessPlugin *process_plugin = nullptr;
       std::string process_params;
       std::string process_name;
-      process_plugin_argline(it, process_name, process_params);
+      std::vector<int> affinity;
+      process_plugin_argline(it, process_name, process_params, affinity);
+      if (affinity.size() != 0) {
+         throw IPXPError("cannot set CPU affinity for process plugin (process plugins are invoked inside input threads)");
+      }
       for (auto &it : *process_plugins) {
          std::string plugin_name = it.first;
          if (plugin_name == process_name) {
@@ -272,6 +313,7 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
               output_stats,
               output_queue
       };
+      set_thread_details(tmp.thread->native_handle(), "out_" + output_name, output_worker_affinity);
       conf.outputs.push_back(tmp);
       conf.output_fut.push_back(output_res->get_future());
    }
@@ -286,7 +328,8 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
       StoragePlugin *storage_plugin = nullptr;
       std::string input_params;
       std::string input_name;
-      process_plugin_argline(it, input_name, input_params);
+      std::vector<int> affinity;
+      process_plugin_argline(it, input_name, input_params, affinity);
 
       auto input_plugin_dir = input_dir->addDir(input_name);
       auto pipeline_queue_dir = pipeline_dir->addDir("queues")->addDir(std::to_string(pipeline_idx));
@@ -358,6 +401,7 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
             storage_process_plugins
          }
       };
+      set_thread_details(tmp.input.thread->native_handle(), "in_"+ std::to_string(pipeline_idx) + "_" + input_name, affinity);
       conf.pipelines.push_back(tmp);
       pipeline_idx++;
    }
