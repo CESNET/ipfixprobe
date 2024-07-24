@@ -13,6 +13,23 @@ if [ -e "$CONFFILE" ]; then
          exit 1
       fi
 
+      # create array with input workers affinities
+      if [ ! -z "$DPDK_INPUT_WORKER_CPUS" ]; then
+         if `declare -p DPDK_INPUT_WORKER_CPUS > /dev/null 2>/dev/null`; then
+            if [ "${#DPDK_INPUT_WORKER_CPUS[@]}" -ne "$DPDK_QUEUES_COUNT" ]; then
+               echo "DPDK_INPUT_WORKER_CPUS length must be the same as queues count."
+               exit 1
+            fi
+         fi
+      fi
+      for ((i = 0; i < DPDK_QUEUES_COUNT; i++)); do
+         if [ ! -z "$DPDK_INPUT_WORKER_CPUS" ]; then
+            affinities[i]="@${DPDK_INPUT_WORKER_CPUS[$i]}"
+         else
+            affinities[i]=""
+         fi
+      done
+
       # set up DPDK interface(s)
       if [ "$DPDK_RING" = "1" ]; then
          # checks
@@ -24,19 +41,22 @@ if [ -e "$CONFFILE" ]; then
             echo "Missing DPDK_RING_STARTIDX in configuration of DPDK_RING mode, using 0."
             DPDK_RING_STARTIDX=0
          fi
+         
          # mring interfaces
-         dpdkinput=("-i" "dpdk-ring;r=$(printf "$DPDK_RING_PATTERN" "$DPDK_RING_STARTIDX");e=--lcores $DPDK_LCORES $DPDK_EXTRA_EAL")
+         dpdkinput=("-i" "dpdk-ring${affinities[0]};r=$(printf "$DPDK_RING_PATTERN" "$DPDK_RING_STARTIDX");e=--lcores $DPDK_LCORES $DPDK_EXTRA_EAL")
+         plugin_idx=1
          for ((ifc=($DPDK_RING_STARTIDX+1); ifc<($DPDK_RING_STARTIDX + $DPDK_QUEUES_COUNT);ifc++)); do
-            dpdkinput+=("-i" "dpdk-ring;r=$(printf "$DPDK_RING_PATTERN" "$ifc")")
+            dpdkinput+=("-i" "dpdk-ring${affinities[$plugin_idx]};r=$(printf "$DPDK_RING_PATTERN" "$ifc")")
+            ((plugin_idx++))
          done
       else
          # DPDK port interface
          if [ -n "$DPDK_PORTOPTS" -a "${DPDK_PORTOPTS:0:1}" != ";" ]; then
             DPDK_PORTOPTS=";$DPDK_PORTOPTS"
          fi
-         dpdkinput=("-i" "dpdk;p=${DPDK_PORT}${DPDK_PORTOPTS};q=$DPDK_QUEUES_COUNT;e=--lcores $DPDK_LCORES $DPDK_EXTRA_EAL -a $DPDK_DEVICE")
+         dpdkinput=("-i" "dpdk${affinities[0]};p=${DPDK_PORT}${DPDK_PORTOPTS};q=$DPDK_QUEUES_COUNT;e=--lcores $DPDK_LCORES $DPDK_EXTRA_EAL -a $DPDK_DEVICE")
          for ((ifc=1; ifc<$DPDK_QUEUES_COUNT;ifc++)); do
-            dpdkinput+=("-i" "dpdk")
+            dpdkinput+=("-i" "dpdk${affinities[$ifc]}")
          done
       fi
    fi
@@ -88,7 +108,12 @@ if [ -e "$CONFFILE" ]; then
         NON_BLOCKING_TCP_PARAM="non-blocking-tcp";
    fi
 
-   output="-o ipfix;host=${HOST:-127.0.0.1};port=${PORT:-4739};id=${LINK:-0};dir=${DIR:-0};${UDP_PARAM};${NON_BLOCKING_TCP_PARAM};template=${TEMPLATE_REFRESH_RATE:-300}"
+   output_affinity=""
+   if [ ! -z "$OUTPUT_WORKER_CPU" ]; then
+      output_affinity="@$OUTPUT_WORKER_CPU"
+   fi
+
+   output="-o ipfix$output_affinity;host=${HOST:-127.0.0.1};port=${PORT:-4739};id=${LINK:-0};dir=${DIR:-0};${UDP_PARAM};${NON_BLOCKING_TCP_PARAM};template=${TEMPLATE_REFRESH_RATE:-300}"
 
    telemetry=""
    if [ "$USE_FUSE" = "1" ]; then
