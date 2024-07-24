@@ -13,6 +13,10 @@ if [ -e "$CONFFILE" ]; then
          exit 1
       fi
 
+      if [ ! -z "$DPDK_LCORES" ]; then
+         DPDK_LCORES="--lcores $DPDK_LCORES"
+      fi
+
       # create array with input workers affinities
       if [ ! -z "$DPDK_INPUT_WORKER_CPUS" ]; then
          if `declare -p DPDK_INPUT_WORKER_CPUS > /dev/null 2>/dev/null`; then
@@ -43,7 +47,7 @@ if [ -e "$CONFFILE" ]; then
          fi
          
          # mring interfaces
-         dpdkinput=("-i" "dpdk-ring${affinities[0]};r=$(printf "$DPDK_RING_PATTERN" "$DPDK_RING_STARTIDX");e=--lcores $DPDK_LCORES $DPDK_EXTRA_EAL")
+         dpdkinput=("-i" "dpdk-ring${affinities[0]};r=$(printf "$DPDK_RING_PATTERN" "$DPDK_RING_STARTIDX");e=$DPDK_LCORES $DPDK_EXTRA_EAL")
          plugin_idx=1
          for ((ifc=($DPDK_RING_STARTIDX+1); ifc<($DPDK_RING_STARTIDX + $DPDK_QUEUES_COUNT);ifc++)); do
             dpdkinput+=("-i" "dpdk-ring${affinities[$plugin_idx]};r=$(printf "$DPDK_RING_PATTERN" "$ifc")")
@@ -54,7 +58,7 @@ if [ -e "$CONFFILE" ]; then
          if [ -n "$DPDK_PORTOPTS" -a "${DPDK_PORTOPTS:0:1}" != ";" ]; then
             DPDK_PORTOPTS=";$DPDK_PORTOPTS"
          fi
-         dpdkinput=("-i" "dpdk${affinities[0]};p=${DPDK_PORT}${DPDK_PORTOPTS};q=$DPDK_QUEUES_COUNT;e=--lcores $DPDK_LCORES $DPDK_EXTRA_EAL -a $DPDK_DEVICE")
+         dpdkinput=("-i" "dpdk${affinities[0]};p=${DPDK_PORT}${DPDK_PORTOPTS};q=$DPDK_QUEUES_COUNT;e=$DPDK_LCORES $DPDK_EXTRA_EAL -a $DPDK_DEVICE")
          for ((ifc=1; ifc<$DPDK_QUEUES_COUNT;ifc++)); do
             dpdkinput+=("-i" "dpdk${affinities[$ifc]}")
          done
