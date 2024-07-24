@@ -352,6 +352,20 @@ List of unirec fields exported together with basic flow fields on interface by P
 | DNS_RR_TTL   | uint32 | resource record TTL field               |
 | DNS_IP       | ipaddr | IP address from PTR, A or AAAA record   |
 
+
+### MQTT
+List of unirec fields exported together with basic flow fields on interface by MQTT plugin.
+
+|         Output field          | Type   |                      Description                      |
+|:-----------------------------:|:------:|:-----------------------------------------------------:|
+|     MQTT_TYPE_CUMULATIVE      | uint16 | types of packets  and session present flag cumulative |
+|         MQTT_VERSION          | uint8 |                     MQTT version                      |
+|     MQTT_CONNECTION_FLAGS     | uint8  |               last CONNECT packet flags               |
+|        MQTT_KEEP_ALIVE        | uint16 |                last CONNECT keep alive                |
+|  MQTT_CONNECTION_RETURN_CODE  | uint8 |               last CONNECT return code                |
+|      MQTT_PUBLISH_FLAGS       | uint8 |          cumulative of PUBLISH packet flags           |
+|          MQTT_TOPICS          | string |          topics from PUBLISH packets headers          |
+
 ### SIP
 List of unirec fields exported together with basic flow fields on interface by SIP plugin.
 
