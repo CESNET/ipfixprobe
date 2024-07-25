@@ -698,6 +698,7 @@ int run(int argc, char *argv[])
    conf.pkt_bufsize = parser.m_pkt_bufsize;
    conf.max_pkts = parser.m_max_pkts;
 
+   set_thread_details(pthread_self(), "", parser.m_cpu_mask);
 
    try {
       if (process_plugin_args(conf, parser)) {
