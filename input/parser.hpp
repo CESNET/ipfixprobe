@@ -30,6 +30,7 @@
 #define IPXP_INPUT_PARSER_HPP
 
 #include <ipfixprobe/packet.hpp>
+#include <ipfixprobe/parser-stats.hpp>
 
 #ifdef WITH_PCAP
 #include <pcap/pcap.h>
@@ -65,7 +66,7 @@ typedef struct parser_opt_s {
    int datalink;
 } parser_opt_t;
 
-void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uint16_t len, uint16_t caplen);
+void parse_packet(parser_opt_t *opt, ParserStats& stats, struct timeval ts, const uint8_t *data, uint16_t len, uint16_t caplen);
 
 }
 #endif /* IPXP_INPUT_PARSER_HPP */

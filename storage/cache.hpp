@@ -38,6 +38,7 @@
 #include <ipfixprobe/options.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/utils.hpp>
+#include <ipfixprobe/telemetry-utils.hpp>
 
 #include "fragmentationCache/fragmentationCache.hpp"
 
@@ -177,7 +178,24 @@ public:
    void update(const Packet &pkt, bool src);
 };
 
-class NHTFlowCache : public StoragePlugin
+struct FlowEndReasonStats {
+   uint64_t active_timeout;
+   uint64_t inactive_timeout;
+   uint64_t end_of_flow;
+   uint64_t collision;
+   uint64_t forced;
+};
+
+struct FlowRecordStats {
+   uint64_t packets_count_1;
+   uint64_t packets_count_2_5;
+   uint64_t packets_count_6_10;
+   uint64_t packets_count_11_20;
+   uint64_t packets_count_21_50;
+   uint64_t packets_count_51_plus;
+};
+
+class NHTFlowCache : TelemetryUtils, public StoragePlugin
 {
 public:
    NHTFlowCache();
@@ -191,6 +209,11 @@ public:
    int put_pkt(Packet &pkt);
    void export_expired(time_t ts);
 
+   /**
+     * @brief Set and configure the telemetry directory where cache stats will be stored.
+     */
+   void set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir) override;
+
 private:
    uint32_t m_cache_size;
    uint32_t m_line_size;
@@ -199,6 +222,8 @@ private:
    uint32_t m_qsize;
    uint32_t m_qidx;
    uint32_t m_timeout_idx;
+   uint64_t m_flows_in_cache = 0;
+   uint64_t m_total_exported = 0;
 #ifdef FLOW_CACHE_STATS
    uint64_t m_empty;
    uint64_t m_not_empty;
@@ -219,6 +244,8 @@ private:
    FlowRecord *m_flow_records;
 
    FragmentationCache m_fragmentation_cache;
+   FlowEndReasonStats m_flow_end_reason_stats = {};
+   FlowRecordStats m_flow_record_stats = {};
 
    void try_to_fill_ports_to_fragmented_packet(Packet& packet);
    void flush(Packet &pkt, size_t flow_index, int ret, bool source_flow);
@@ -226,6 +253,10 @@ private:
    void export_flow(size_t index);
    static uint8_t get_export_reason(Flow &flow);
    void finish();
+
+   void update_flow_end_reason_stats(uint8_t reason);
+   void update_flow_record_stats(uint64_t packets_count);
+   telemetry::Content get_cache_telemetry();
 
 #ifdef FLOW_CACHE_STATS
    void print_report();

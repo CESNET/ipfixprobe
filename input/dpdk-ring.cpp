@@ -179,6 +179,7 @@ InputPlugin::Result DpdkRingReader::get(PacketBlock& packets)
     }
     for (auto i = 0; i < pkts_read_; i++) {
         parse_packet(&opt,
+            m_parser_stats,
             getTimestamp(mbufs_[i]),
             rte_pktmbuf_mtod(mbufs_[i], const std::uint8_t*),
             rte_pktmbuf_data_len(mbufs_[i]),
@@ -186,6 +187,27 @@ InputPlugin::Result DpdkRingReader::get(PacketBlock& packets)
         m_seen++;
         m_parsed++;
     }
+
+    m_stats.receivedPackets += pkts_read_;
+    m_stats.receivedBytes += packets.bytes;
+
     return Result::PARSED;
 }
+
+telemetry::Content DpdkRingReader::get_queue_telemetry()
+{
+    telemetry::Dict dict;
+    dict["received_packets"] = m_stats.receivedPackets;
+    dict["received_bytes"] = m_stats.receivedBytes;
+    return dict;
+}
+
+void DpdkRingReader::configure_telemetry_dirs(
+    std::shared_ptr<telemetry::Directory> plugin_dir, 
+    std::shared_ptr<telemetry::Directory> queues_dir)
+{
+    telemetry::FileOps statsOps = {[=]() { return get_queue_telemetry(); }, nullptr};
+    register_file(queues_dir, "input-stats", statsOps);
+}
+
 } // namespace ipxp

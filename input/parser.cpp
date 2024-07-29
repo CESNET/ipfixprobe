@@ -640,7 +640,7 @@ inline uint16_t process_pppoe(const u_char *data_ptr, uint16_t data_len, Packet 
    return length;
 }
 
-void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uint16_t len, uint16_t caplen)
+void parse_packet(parser_opt_t *opt, ParserStats& stats, struct timeval ts, const uint8_t *data, uint16_t len, uint16_t caplen)
 {
    if (opt->pblock->cnt >= opt->pblock->size) {
       return;
@@ -672,6 +672,8 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
    pkt->tcp_mss = 0;
    pkt->mplsTop = 0;
 
+   stats.seen_packets++;
+
    uint32_t l3_hdr_offset = 0;
    uint32_t l4_hdr_offset = 0;
    try {
@@ -697,6 +699,7 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
 
       if (pkt->ethertype == ETH_P_TRILL) {
          data_offset += parse_trill(data + data_offset, caplen - data_offset, pkt);
+         stats.trill_packets++;
          data_offset += parse_eth_hdr(data + data_offset, caplen - data_offset, pkt);
       }
       l3_hdr_offset = data_offset;
@@ -706,9 +709,12 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
          data_offset += parse_ipv6_hdr(data + data_offset, caplen - data_offset, pkt);
       } else if (pkt->ethertype == ETH_P_MPLS_UC || pkt->ethertype == ETH_P_MPLS_MC) {
          data_offset += process_mpls(data + data_offset, caplen - data_offset, pkt);
+         stats.mpls_packets++;
       } else if (pkt->ethertype == ETH_P_PPP_SES) {
          data_offset += process_pppoe(data + data_offset, caplen - data_offset, pkt);
+         stats.pppoe_packets++;
       } else if (!opt->parse_all) {
+         stats.unknown_packets++;
          DEBUG_MSG("Unknown ethertype %x\n", pkt->ethertype);
          return;
       }
@@ -716,12 +722,24 @@ void parse_packet(parser_opt_t *opt, struct timeval ts, const uint8_t *data, uin
       l4_hdr_offset = data_offset;
       if (pkt->ip_proto == IPPROTO_TCP) {
          data_offset += parse_tcp_hdr(data + data_offset, caplen - data_offset, pkt);
+         stats.tcp_packets++;
       } else if (pkt->ip_proto == IPPROTO_UDP) {
          data_offset += parse_udp_hdr(data + data_offset, caplen - data_offset, pkt);
+         stats.udp_packets++;
       }
    } catch (const char *err) {
       DEBUG_MSG("%s\n", err);
       return;
+   }
+
+   if (pkt->vlan_id) {
+      stats.vlan_packets++;
+   }
+
+   if (pkt->ethertype == ETH_P_IP) {
+      stats.ipv4_packets++;
+   } else if (pkt->ethertype == ETH_P_IPV6) {
+      stats.ipv6_packets++;
    }
 
    uint16_t pkt_len = caplen;
