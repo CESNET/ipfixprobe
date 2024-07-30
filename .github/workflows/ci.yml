@@ -1,0 +1,35 @@
+name: Continuous Integration pipeline
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-os-matrix:
+#    needs: check
+    runs-on: ubuntu-latest
+    outputs:
+      os: ${{ steps.os.outputs.os }}
+    steps:
+      - name: Build OS Array
+        id: os
+        run: |
+          osArray=()
+          osArray+=("rockylinux:9")
+          osArray+=("oraclelinux:8")
+          osArray+=("oraclelinux:9")
+          osArray=$(jq --compact-output --null-input '$ARGS.positional' --args -- "${osArray[@]}")
+          echo "Updated os list: $osArray"
+          echo "os=$osArray" >> $GITHUB_OUTPUT
+  build:
+    needs: [build-os-matrix]
+    strategy:
+      matrix:
+        os: ${{ fromJSON(needs.build-os-matrix.outputs.os) }}
+    uses: ./.github/workflows/build.yml
+    with:
+      os: ${{ matrix.os }}
+
+
+#  check:
+#    uses: ./.github/workflows/check.yml

@@ -1,0 +1,51 @@
+name: build
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+
+jobs:
+  build-ndp:
+    runs-on: ubuntu-latest
+    container: ${{ inputs.os }}
+    steps:
+    - name: Install core dependencies
+      run: |
+        dnf install -y dnf-plugins-core 
+    - name: Install CRB
+      if: ${{ inputs.os == 'rockylinux:8' }}
+      run: |
+        dnf config-manager --set-enabled powertools
+    - name: Install CRB
+      if: ${{ inputs.os == 'rockylinux:9' }}
+      run: |
+        dnf config-manager --set-enabled crb
+    - name: Install CRB
+      if: ${{ inputs.os == 'oraclelinux:8' }}
+      run: |
+        dnf config-manager --enable ol8_codeready_builder
+    - name: Install CRB
+      if: ${{ inputs.os == 'oraclelinux:9' }}
+      run: |
+        dnf config-manager --enable ol9_codeready_builder
+    - name: Install common dependencies
+      run: |
+        dnf install -y make gcc-c++ git rpm-build autoconf libtool epel-release
+        dnf install -y gcc-toolset-13-libatomic-devel doxygen openssl-devel libunwind-devel
+    - name: Install plugin specific dependencies
+      run: |
+        dnf copr enable -y @CESNET/nfb-framework
+        dnf install -y numactl-devel nfb-framework
+    - name: Check out repository code
+      uses: actions/checkout@v4
+    - name: Mark github workspace as safe
+      run: git config --system --add safe.directory $PWD
+    - name: autoreconf
+      run: autoreconf -i
+    - name: configure
+      run: ./configure
+    - name: make rpm-ndp
+      run: make rpm-ndp
