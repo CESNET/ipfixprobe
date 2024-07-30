@@ -7,7 +7,7 @@ AC_INIT([ipfixprobe], [4.11.1], [nemea@cesnet.cz])
 AC_CONFIG_SRCDIR([main.cpp])
 AC_CONFIG_HEADERS([config.h])
 
-RELEASE=1
+RELEASE=$(date +%Y%m%d%H%M%S)
 AC_SUBST(RELEASE)
 USERNAME=`git config --get user.name`
 USERMAIL=`git config --get user.email`
