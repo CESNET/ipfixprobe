@@ -50,6 +50,8 @@
 #include <assert.h>
 #include <endian.h>
 #include <memory>
+#include <csignal>
+#include <fcntl.h>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -138,7 +140,7 @@ IPFIXExporter::IPFIXExporter() :
    sequenceNum(0), exportedPackets(0),
    fd(-1), addrinfo(nullptr),
    host(""), port(4739), protocol(IPPROTO_TCP),
-   ip(AF_UNSPEC), flags(0),
+   ip(AF_UNSPEC), flags(0), non_blocking_tcp(false),
    reconnectTimeout(RECONNECT_TIMEOUT), lastReconnect(0), odid(0),
    templateRefreshTime(TEMPLATE_REFRESH_TIME),
    templateRefreshPackets(TEMPLATE_REFRESH_PACKETS),
@@ -177,6 +179,10 @@ void IPFIXExporter::init(const char *params)
       protocol = IPPROTO_UDP;
    }
 
+   if (parser.m_non_blocking_tcp) {
+      non_blocking_tcp = true;
+   }
+
    if (mtu <= IPFIX_HEADER_SIZE) {
       throw PluginError("IPFIX message MTU size should be at least " + std::to_string(IPFIX_HEADER_SIZE));
    }
@@ -194,6 +200,9 @@ void IPFIXExporter::init(const char *params)
    if (verbose) {
       fprintf(stderr, "VERBOSE: IPFIX export plugin init end\n");
    }
+
+   // ignore SIGPIPE signal and handle error by return value
+   signal(SIGPIPE, SIG_IGN);
 }
 
 void IPFIXExporter::init(const char *params, Plugins &plugins)
@@ -863,6 +872,10 @@ int IPFIXExporter::send_packet(ipfix_packet_t *packet)
 
             /* Say that we should try to connect and send data again */
             return 1;
+         case EAGAIN:
+            // EAGAIN is returned when the socket is non-blocking and the send buffer is full
+            // possible wait and stop flag check
+            continue;
          default:
             /* Unknown error */
             if (verbose) {
@@ -888,6 +901,79 @@ int IPFIXExporter::send_packet(ipfix_packet_t *packet)
    }
 
    return 0;
+}
+
+static int connect_non_blocking(int fd, struct addrinfo* addr_info, bool verbose)
+{
+   int flags = fcntl(fd, F_GETFL, 0);
+   if (flags == -1) {
+      if (verbose) {
+         fprintf(stderr, "VERBOSE: Cannot get socket flags\n");
+      }
+      return -1;
+   }
+
+   if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+      if (verbose) {
+         fprintf(stderr, "VERBOSE: Cannot set socket to non-blocking mode\n");
+      }
+      return -1;
+   }
+
+   const int connectResult = connect(fd, addr_info->ai_addr, addr_info->ai_addrlen);
+   const int isTCPConnectInProgress = ((connectResult == -1) && (errno == EINPROGRESS));
+
+   if ((connectResult == -1) && (!isTCPConnectInProgress)) {
+      if (verbose) {
+         fprintf(stderr, "VERBOSE: Cannot connect to collector\n");
+      }
+      return -1;
+   }
+
+   if ((connectResult == 0) && (isTCPConnectInProgress == 0)) {
+      return 0;
+   }
+
+   const std::size_t MAX_CONNECTION_TRY = 10;
+   std::size_t connectionTry = 0;
+   while (connectionTry < MAX_CONNECTION_TRY) {
+      fd_set collectorSocket;
+      FD_ZERO(&collectorSocket);
+      FD_SET(fd, &collectorSocket);
+
+      struct timeval tv;
+      tv.tv_sec = 0;
+      tv.tv_usec = 10000;
+
+      const int selectResult = select(fd + 1, NULL, &collectorSocket, NULL, &tv);
+
+      if (selectResult < 0) {
+         if (verbose) {
+            perror("VERBOSE: select() failed");
+         }
+         return -1;
+      }
+
+      if (FD_ISSET(fd, &collectorSocket)) {
+         struct sockaddr_in junk;
+         socklen_t length = sizeof(junk);
+         memset(&junk, 0, sizeof(junk));
+         if (getpeername(fd, (struct sockaddr*) &junk, &length) == 0) {
+            return 0;
+         } else {
+            connectionTry++;
+            continue;
+         }
+      } else {
+         connectionTry++;
+      }
+   }
+
+   if (verbose) {
+      perror("VERBOSE: Cannot connect to collector");
+   }
+
+   return -1;
 }
 
 /**
@@ -952,22 +1038,33 @@ int IPFIXExporter::connect_to_collector()
          continue;
       }
 
-      /* connect to server with TCP and SCTP */
-      if (protocol != IPPROTO_UDP &&
-            connect(fd, tmp->ai_addr, tmp->ai_addrlen) == -1) {
-         if (verbose) {
-            perror("VERBOSE: Cannot connect to collector");
+      if (protocol == IPPROTO_UDP) {
+         break;
+      }
+
+      if (non_blocking_tcp) {
+         if (connect_non_blocking(fd, tmp, verbose) == -1) {
+            if (verbose) {
+               perror("VERBOSE: Cannot connect to collector");
+            }
+            ::close(fd);
+            fd = -1;
+            continue;
          }
-         ::close(fd);
-         fd = -1;
-         continue;
+      } else {
+         if (connect(fd, tmp->ai_addr, tmp->ai_addrlen) == -1) {
+            if (verbose) {
+               perror("VERBOSE: Cannot connect to collector");
+            }
+            ::close(fd);
+            fd = -1;
+            continue;
+         }
       }
 
       /* Connected, meaningless for UDP */
-      if (protocol != IPPROTO_UDP) {
-         if (verbose) {
-            fprintf(stderr, "VERBOSE: Successfully connected to collector\n");
-         }
+      if (verbose) {
+         fprintf(stderr, "VERBOSE: Successfully connected to collector\n");
       }
       break;
    }
