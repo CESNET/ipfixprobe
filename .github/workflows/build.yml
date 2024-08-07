@@ -16,14 +16,6 @@ jobs:
       run: |
         dnf install -y dnf-plugins-core 
     - name: Install CRB
-      if: ${{ inputs.os == 'rockylinux:8' }}
-      run: |
-        dnf config-manager --set-enabled powertools
-    - name: Install CRB
-      if: ${{ inputs.os == 'rockylinux:9' }}
-      run: |
-        dnf config-manager --set-enabled crb
-    - name: Install CRB
       if: ${{ inputs.os == 'oraclelinux:8' }}
       run: |
         dnf config-manager --enable ol8_codeready_builder
@@ -49,3 +41,99 @@ jobs:
       run: ./configure
     - name: make rpm-ndp
       run: make rpm-ndp
+    - name: extract artifact name
+      run: |
+        OS=${{ inputs.os }}
+        echo "artifactName=$(echo ${OS/:/}-ndp-rpm)" >> $GITHUB_ENV
+    - name: upload RPM artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.artifactName }}
+        path: RPMBUILD/RPMS/x86_64/
+        retention-days: 1
+  build-dpdk:
+    runs-on: ubuntu-latest
+    container: ${{ inputs.os }}
+    steps:
+    - name: Install core dependencies
+      run: |
+        dnf install -y dnf-plugins-core 
+    - name: Install CRB
+      if: ${{ inputs.os == 'oraclelinux:8' }}
+      run: |
+        dnf config-manager --enable ol8_codeready_builder
+    - name: Install CRB
+      if: ${{ inputs.os == 'oraclelinux:9' }}
+      run: |
+        dnf config-manager --enable ol9_codeready_builder
+    - name: Install common dependencies
+      run: |
+        dnf install -y make gcc-c++ git rpm-build autoconf libtool epel-release
+        dnf install -y gcc-toolset-13-libatomic-devel doxygen openssl-devel libunwind-devel
+    - name: Install plugin specific dependencies
+      run: |
+        dnf install -y dpdk-devel
+    - name: Check out repository code
+      uses: actions/checkout@v4
+    - name: Mark github workspace as safe
+      run: git config --system --add safe.directory $PWD
+    - name: autoreconf
+      run: autoreconf -i
+    - name: configure
+      run: ./configure
+    - name: make rpm-dpdk
+      run: make rpm-dpdk
+    - name: extract artifact name
+      run: |
+        OS=${{ inputs.os }}
+        echo "artifactName=$(echo ${OS/:/}-dpdk-rpm)" >> $GITHUB_ENV
+    - name: upload RPM artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.artifactName }}
+        path: RPMBUILD/RPMS/x86_64/
+        retention-days: 1
+
+  build-copr-nemea:
+    runs-on: ubuntu-latest
+    container: ${{ inputs.os }}
+    steps:
+    - name: Install core dependencies
+      run: |
+        dnf install -y dnf-plugins-core 
+    - name: Install CRB
+      if: ${{ inputs.os == 'oraclelinux:8' }}
+      run: |
+        dnf config-manager --enable ol8_codeready_builder
+    - name: Install CRB
+      if: ${{ inputs.os == 'oraclelinux:9' }}
+      run: |
+        dnf config-manager --enable ol9_codeready_builder
+    - name: Install common dependencies
+      run: |
+        dnf install -y make gcc-c++ git rpm-build autoconf libtool epel-release
+        dnf install -y gcc-toolset-13-libatomic-devel doxygen openssl-devel libunwind-devel
+    - name: Install plugin specific dependencies
+      run: |
+        dnf copr enable -y @CESNET/NEMEA-stable
+        dnf install -y libtrap-devel unirec libpcap-devel
+    - name: Check out repository code
+      uses: actions/checkout@v4
+    - name: Mark github workspace as safe
+      run: git config --system --add safe.directory $PWD
+    - name: autoreconf
+      run: autoreconf -i
+    - name: configure
+      run: ./configure
+    - name: make rpm-nemea
+      run: make rpm-nemea
+    - name: extract artifact name
+      run: |
+        OS=${{ inputs.os }}
+        echo "artifactName=$(echo ${OS/:/}-nemea-rpm)" >> $GITHUB_ENV
+    - name: upload RPM artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.artifactName }}
+        path: RPMBUILD/RPMS/x86_64/
+        retention-days: 1

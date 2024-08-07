@@ -15,8 +15,6 @@ jobs:
         id: os
         run: |
           osArray=()
-          osArray+=("rockylinux:9")
-          osArray+=("oraclelinux:8")
           osArray+=("oraclelinux:9")
           osArray=$(jq --compact-output --null-input '$ARGS.positional' --args -- "${osArray[@]}")
           echo "Updated os list: $osArray"
@@ -27,6 +25,14 @@ jobs:
       matrix:
         os: ${{ fromJSON(needs.build-os-matrix.outputs.os) }}
     uses: ./.github/workflows/build.yml
+    with:
+      os: ${{ matrix.os }}
+  rpm-install:
+    needs: [build-os-matrix, build]
+    strategy:
+      matrix:
+        os: ${{ fromJSON(needs.build-os-matrix.outputs.os) }}
+    uses: ./.github/workflows/rpm-install.yml
     with:
       os: ${{ matrix.os }}
 

@@ -1,0 +1,74 @@
+name: rpm-install
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+
+jobs:
+  install-ndp-rpm:
+    runs-on: ubuntu-latest
+    container: ${{ inputs.os }}
+    steps:
+    - name: Install CRB
+      if: ${{ inputs.os == 'oraclelinux:8' }}
+      run: |
+        dnf config-manager --enable ol8_codeready_builder
+    - name: Install CRB
+      if: ${{ inputs.os == 'oraclelinux:9' }}
+      run: |
+        dnf config-manager --enable ol9_codeready_builder
+    - name: Install core dependencies
+      run: |
+        dnf install -y dnf-plugins-core epel-release
+        dnf copr enable -y @CESNET/nfb-framework
+    - name: extract artifact name
+      run: |
+        OS=${{ inputs.os }}
+        echo "artifactName=$(echo ${OS/:/}-ndp-rpm)" >> $GITHUB_ENV
+    - name: download RPM artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ env.artifactName }}
+    - name: install RPM artifact
+      run: |
+        dnf install -y *.rpm
+  install-dpdk-rpm:
+    runs-on: ubuntu-latest
+    container: ${{ inputs.os }}
+    steps:
+    - name: Install core dependencies
+      run: |
+        dnf install -y epel-release
+    - name: extract artifact name
+      run: |
+        OS=${{ inputs.os }}
+        echo "artifactName=$(echo ${OS/:/}-dpdk-rpm)" >> $GITHUB_ENV
+    - name: download RPM artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ env.artifactName }}
+    - name: install RPM artifact
+      run: |
+        dnf install -y *.rpm
+  install-nemea-rpm:
+    runs-on: ubuntu-latest
+    container: ${{ inputs.os }}
+    steps:
+    - name: Install core dependencies
+      run: |
+        dnf install -y dnf-plugins-core epel-release
+        dnf copr enable -y @CESNET/NEMEA-stable
+    - name: extract artifact name
+      run: |
+        OS=${{ inputs.os }}
+        echo "artifactName=$(echo ${OS/:/}-nemea-rpm)" >> $GITHUB_ENV
+    - name: download RPM artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ env.artifactName }}
+    - name: install RPM artifact
+      run: |
+        dnf install -y *.rpm
