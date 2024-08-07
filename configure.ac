@@ -444,6 +444,8 @@ fi
 
 AC_CONFIG_FILES([Makefile
                  ipfixprobe.spec
+                 ipfixprobe-dpdk.spec
+                 ipfixprobe-ndp.spec
                  ipfixprobe.bash
                  input/nfbCInterface/Makefile
                  init/Makefile
@@ -480,6 +482,7 @@ echo "  LIBS...................: $LIBS"
 echo "Enforced NEMEA (for copr): $COPRRPM"
 echo "FlexProbe Data Interface.: $withflexprobe"
 echo "DPDK Interface...........: $withdpdk"
+echo "pcap Interface...........: $withpcap"
 echo
 echo "Installation.............: make install (as root if needed, with 'su' or 'sudo')"
 echo "  prefix.................: $prefix"

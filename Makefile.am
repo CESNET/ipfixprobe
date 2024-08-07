@@ -181,8 +181,8 @@ ipfixprobe_input_src+=\
 		input/dpdk/dpdkDevice.cpp \
         input/dpdk.cpp \
         input/dpdk.h \
-	input/dpdk-ring.cpp \
-	input/dpdk-ring.h
+		input/dpdk-ring.cpp \
+		input/dpdk-ring.h
 endif
 
 ipfixprobe_headers_src=\
@@ -296,6 +296,8 @@ srpm:
 	make ${AM_MAKEFLAGS} distdir='$(RPMDIR)/SOURCES/$(RPMFILENAME)' distdir
 	( cd "$(RPMDIR)/SOURCES/"; tar -z -c -f $(RPMFILENAME)-$(RELEASE).tar.gz $(RPMFILENAME); rm -rf $(RPMFILENAME); )
 	$(RPMBUILD) -bs $(PACKAGE_NAME).spec --define "_topdir `pwd`/$(RPMDIR)";
+	$(RPMBUILD) -bs $(PACKAGE_NAME)-dpdk.spec --define "_topdir `pwd`/$(RPMDIR)";
+	$(RPMBUILD) -bs $(PACKAGE_NAME)-ndp.spec --define "_topdir `pwd`/$(RPMDIR)";
 
 .PHONY: rpm
 rpm: srpm
@@ -307,7 +309,11 @@ rpm-nemea: srpm
 
 .PHONY: rpm-ndp
 rpm-ndp: srpm
-	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(RPMFILENAME)-$(RELEASE).src.rpm --with ndp --with unwind;
+	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(PACKAGE_NAME)-ndp-$(VERSION)-$(RELEASE).src.rpm --with unwind;
+
+.PHONY: rpm-dpdk
+rpm-dpdk: srpm
+	$(RPMBUILD) --define "_topdir `pwd`/$(RPMDIR)" --rebuild $(RPMDIR)/SRPMS/$(PACKAGE_NAME)-dpdk-$(VERSION)-$(RELEASE).src.rpm --with unwind;
 else
 endif
 
