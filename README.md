@@ -127,6 +127,7 @@ See `ipfixprobe -h output` for more information and complete list of output plug
 - `-f NUM`        Export max flows per second
 - `-c SIZE`       Quit after number of packets are processed on each interface
 - `-P FILE`       Create pid file
+- `-t PATH`       Mount point of AppFs telemetry directory
 - `-d`            Run as a standalone process
 - `-h [PLUGIN]`   Print help text. Supported help for input, storage, output and process plugins
 - `-V`            Show version and exit
@@ -147,8 +148,8 @@ Here are the examples of various plugins usage:
 # Capture from a COMBO card using ndp plugin, sends ipfix data to 127.0.0.1:4739 using TCP by default
 ./ipfixprobe -i 'ndp;dev=/dev/nfb0:0' -i 'ndp;dev=/dev/nfb0:1' -i 'ndp;dev=/dev/nfb0:2'
 
-# Capture from eth0 interface using pcap plugin, split biflows into flows and prints them to console without mac addresses
-./ipfixprobe -i 'pcap;ifc=eth0' -s 'cache;split' -o 'text;m'
+# Capture from eth0 interface using pcap plugin, split biflows into flows and prints them to console without mac addresses, telemetry data are exposed via the appFs library in /var/run/ipfixprobe directory
+./ipfixprobe -i 'pcap;ifc=eth0' -s 'cache;split' -o 'text;m' -t /var/run/ipfixprobe
 
 # Read packets from pcap file, enable 4 processing plugins, sends L7 HTTP extended biflows to unirec interface named `http` and data from 3 other plugins to the `stats` interface
 ./ipfixprobe -i 'pcap;file=pcaps/http.pcap' -p http -p pstats -p idpcontent -p phists -o 'unirec;i=u:http:timeout=WAIT,u:stats:timeout=WAIT;p=http,(pstats,phists,idpcontent)'
@@ -167,6 +168,11 @@ Here are the examples of various plugins usage:
 # Read packets using DPDK input interface as secondary process with shared memory (DPDK rings) - in this case, 4 DPDK rings are used
 `./ipfixprobe -i 'dpdk-ring;r=rx_ipfixprobe_0;e= --proc-type=secondary' -i 'dpdk-ring;r=rx_ipfixprobe_1' -i 'dpdk-ring;r=rx_ipfixprobe_2' -i 'dpdk-ring;r=rx_ipfixprobe_3' -o 'text'`
 ```
+
+## Telemetry
+
+`ipfixprobe` can expose telemetry data using the appFs library, which leverages the fuse3 library (filesystem in userspace) to allow telemetry data to be accessed and manipulated 
+through standard filesystem operations.
 
 ## Flow Data Extension - Processing Plugins
 

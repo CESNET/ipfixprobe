@@ -256,6 +256,13 @@ void NHTFlowCache::set_queue(ipx_ring_t *queue)
 
 void NHTFlowCache::export_flow(size_t index)
 {
+   m_total_exported++;
+   update_flow_end_reason_stats(m_flow_table[index]->m_flow.end_reason);
+   update_flow_record_stats(
+      m_flow_table[index]->m_flow.src_packets 
+      + m_flow_table[index]->m_flow.dst_packets);
+   m_flows_in_cache--;
+   
    ipx_ring_push(m_export_queue, &m_flow_table[index]->m_flow);
    std::swap(m_flow_table[index], m_flow_table[m_cache_size + m_qidx]);
    m_flow_table[index]->erase();
@@ -419,6 +426,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
    }
 
    if (flow->is_empty()) {
+      m_flows_in_cache++;
       flow->create(pkt, hashval);
       ret = plugins_post_create(flow->m_flow, pkt);
 
@@ -566,5 +574,80 @@ void NHTFlowCache::print_report()
    cout << "Variance Lookup: " << float(m_lookups2) / m_hits - tmp * tmp << endl;
 }
 #endif /* FLOW_CACHE_STATS */
+
+void NHTFlowCache::set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir)
+{
+   telemetry::FileOps statsOps = {[=]() { return get_cache_telemetry(); }, nullptr};
+   register_file(dir, "cache-stats", statsOps);
+
+   if (m_enable_fragmentation_cache) {
+      m_fragmentation_cache.set_telemetry_dir(dir);
+   }
+}
+
+void NHTFlowCache::update_flow_record_stats(uint64_t packets_count)
+{
+   if (packets_count == 1) {
+      m_flow_record_stats.packets_count_1++;
+   } else if (packets_count >= 2 && packets_count <= 5) {
+      m_flow_record_stats.packets_count_2_5++;
+   } else if (packets_count >= 6 && packets_count <= 10) {
+      m_flow_record_stats.packets_count_6_10++;
+   } else if (packets_count >= 11 && packets_count <= 20) {
+      m_flow_record_stats.packets_count_11_20++;
+   } else if (packets_count >= 21 && packets_count <= 50) {
+      m_flow_record_stats.packets_count_21_50++;
+   } else {
+      m_flow_record_stats.packets_count_51_plus++;
+   }
+}
+
+void NHTFlowCache::update_flow_end_reason_stats(uint8_t reason)
+{
+   switch (reason) {
+   case FLOW_END_ACTIVE:
+      m_flow_end_reason_stats.active_timeout++;
+      break;
+   case FLOW_END_INACTIVE:
+      m_flow_end_reason_stats.inactive_timeout++;
+      break;
+   case FLOW_END_EOF:
+      m_flow_end_reason_stats.end_of_flow++;
+      break;
+   case FLOW_END_NO_RES:
+      m_flow_end_reason_stats.collision++;
+      break;
+   case FLOW_END_FORCED:
+      m_flow_end_reason_stats.forced++;
+      break;
+   default:
+      break;
+   }
+}
+
+telemetry::Content NHTFlowCache::get_cache_telemetry()
+{
+   telemetry::Dict dict;
+
+   dict["FlowEndReason:ActiveTimeout"] = m_flow_end_reason_stats.active_timeout;
+   dict["FlowEndReason:InactiveTimeout"] = m_flow_end_reason_stats.inactive_timeout;
+   dict["FlowEndReason:EndOfFlow"] = m_flow_end_reason_stats.end_of_flow;
+   dict["FlowEndReason:Collision"] = m_flow_end_reason_stats.collision;
+   dict["FlowEndReason:Forced"] = m_flow_end_reason_stats.forced;
+
+   dict["FlowsInCache"] = m_flows_in_cache;
+   dict["FlowCacheUsage"] = telemetry::ScalarWithUnit {double(m_flows_in_cache) / m_cache_size * 100, "%"};
+
+   dict["FlowRecordStats:1packet"] = m_flow_record_stats.packets_count_1;
+   dict["FlowRecordStats:2-5packets"] = m_flow_record_stats.packets_count_2_5;
+   dict["FlowRecordStats:6-10packets"] = m_flow_record_stats.packets_count_6_10;
+   dict["FlowRecordStats:11-20packets"] = m_flow_record_stats.packets_count_11_20;
+   dict["FlowRecordStats:21-50packets"] = m_flow_record_stats.packets_count_21_50;
+   dict["FlowRecordStats:51-plusPackets"] = m_flow_record_stats.packets_count_51_plus;
+
+   dict["TotalExportedFlows"] = m_total_exported;
+
+   return dict;
+}
 
 }

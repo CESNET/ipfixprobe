@@ -9,9 +9,9 @@ bin_PROGRAMS=ipfixprobe ipfixprobe_stats
 
 DISTCHECK_CONFIGURE_FLAGS="--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)"
 
-ipfixprobe_LDFLAGS=-lpthread -ldl -latomic
-ipfixprobe_CFLAGS=-I$(srcdir)/include/ -fPIC
-ipfixprobe_CXXFLAGS=-std=gnu++17 -Wno-write-strings -I$(srcdir)/include/ -fPIC
+ipfixprobe_LDFLAGS=-lpthread -ldl -latomic -ltelemetry -lappFs
+ipfixprobe_CFLAGS=-I$(srcdir)/include/ -fPIC -DFUSE_USE_VERSION=30
+ipfixprobe_CXXFLAGS=-std=gnu++17 -Wno-write-strings -I$(srcdir)/include/ -fPIC -DFUSE_USE_VERSION=30
 
 if OS_CYGWIN
 ipfixprobe_CXXFLAGS+=-Wl,--export-all-symbols
@@ -20,6 +20,7 @@ ipfixprobe_CXXFLAGS+=-Wl,--export-dynamic
 endif
 
 ipfixprobe_input_src=\
+        input/input.cpp \
 		input/benchmark.cpp \
 		input/benchmark.hpp \
 		input/parser.cpp \
@@ -200,7 +201,9 @@ ipfixprobe_headers_src=\
 		include/ipfixprobe/ring.h \
 		include/ipfixprobe/byte-utils.hpp \
 		include/ipfixprobe/ipfix-elements.hpp \
-		include/ipfixprobe/rtp.hpp
+		include/ipfixprobe/rtp.hpp \
+		include/ipfixprobe/telemetry-utils.hpp \
+		include/ipfixprobe/parser-stats.hpp
 
 ipfixprobe_src=\
 		$(ipfixprobe_input_src) \
@@ -228,7 +231,7 @@ endif
 
 ipfixprobe_SOURCES=$(ipfixprobe_src) main.cpp
 
-ipfixprobe_stats_CXXFLAGS=-std=gnu++11 -Wno-write-strings -I$(srcdir)/include/
+ipfixprobe_stats_CXXFLAGS=-std=gnu++17 -Wno-write-strings -I$(srcdir)/include/
 ipfixprobe_stats_SOURCES=ipfixprobe_stats.cpp \
 		include/ipfixprobe/options.hpp \
 		include/ipfixprobe/utils.hpp \

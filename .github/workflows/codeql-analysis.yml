@@ -30,11 +30,12 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get -y install git build-essential autoconf libtool libpcap-dev pkg-config libxml2-dev
+        sudo apt-get -y install git build-essential autoconf libtool libpcap-dev pkg-config libxml2-dev libfuse3-dev fuse3 cmake
         ( git clone --depth 1 https://github.com/CESNET/nemea-framework /tmp/nemea-framework; cd /tmp/nemea-framework; ./bootstrap.sh &&./configure --bindir=/usr/bin/nemea/ -q &&make -j10 && sudo make install; sudo ldconfig)
+        ( git clone -b release --depth 1 https://github.com/CESNET/telemetry /tmp/telemetry; cd /tmp/telemetry; mkdir build && cd build; cmake -DCMAKE_INSTALL_PREFIX=/usr .. &&make -j10 && sudo make install; )
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
         # If you wish to specify custom queries, you can do so here or in a config file.
@@ -45,7 +46,7 @@ jobs:
     # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
     # If this step fails, then you should remove it and run the build manually (see below)
     #- name: Autobuild
-    #  uses: github/codeql-action/autobuild@v1
+    #  uses: github/codeql-action/autobuild@v2
 
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 https://git.io/JvXDl
@@ -64,4 +65,4 @@ jobs:
         make
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v2

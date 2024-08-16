@@ -16,9 +16,10 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get -y install git build-essential autoconf libtool libpcap-dev pkg-config libxml2-dev
+        sudo apt-get -y install git build-essential autoconf libtool libpcap-dev pkg-config libxml2-dev libfuse3-dev fuse3 cmake
         ( git clone --depth 1 https://github.com/CESNET/nemea-framework /tmp/nemea-framework; cd /tmp/nemea-framework; ./bootstrap.sh &&./configure --bindir=/usr/bin/nemea/ -q &&make -j10 && sudo make install; sudo ldconfig)
         ( git clone --depth 1 https://github.com/CESNET/nemea-modules /tmp/nemea-modules; cd /tmp/nemea-modules; ./bootstrap.sh &&./configure --bindir=/usr/bin/nemea/ -q &&make -j10 && sudo make install; )
+        ( git clone -b release --depth 1 https://github.com/CESNET/telemetry /tmp/telemetry; cd /tmp/telemetry; mkdir build && cd build; cmake -DCMAKE_INSTALL_PREFIX=/usr .. &&make -j10 && sudo make install; )
     - name: autoreconf
       run: autoreconf -i
     - name: configure

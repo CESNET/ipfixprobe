@@ -35,6 +35,9 @@
 #include <future>
 #include <atomic>
 #include <csignal>
+#include <telemetry.hpp>
+#include <memory>
+#include <appFs.hpp>
 
 #include <ipfixprobe/input.hpp>
 #include <ipfixprobe/storage.hpp>
@@ -77,6 +80,7 @@ public:
    std::vector<std::string> m_output;
    std::vector<std::string> m_process;
    std::string m_pid;
+   std::string m_appfs_mount_point;
    bool m_daemon;
    uint32_t m_iqueue;
    uint32_t m_oqueue;
@@ -88,7 +92,7 @@ public:
    bool m_version;
 
    IpfixprobeOptParser() : OptionsParser("ipfixprobe", "flow exporter supporting various custom IPFIX elements"),
-                           m_pid(""), m_daemon(false),
+                           m_pid(""), m_appfs_mount_point(""), m_daemon(false),
                            m_iqueue(DEFAULT_IQUEUE_SIZE), m_oqueue(DEFAULT_OQUEUE_SIZE), m_fps(DEFAULT_FPS),
                            m_pkt_bufsize(1600), m_max_pkts(0), m_help(false), m_help_str(""), m_version(false)
    {
@@ -112,6 +116,11 @@ public:
       register_option("-p", "--process", "ARGS", "Activate processing plugin (-h process for help)",
                       [this](const char *arg) {
                           m_process.push_back(arg);
+                          return true;
+                      }, OptionFlags::RequiredArgument);
+      register_option("-t", "--telemetry", "ARGS", "Mount point of AppFs telemetry directory (default: disabled)",
+                      [this](const char *arg) {
+                          m_appfs_mount_point = arg;
                           return true;
                       }, OptionFlags::RequiredArgument);
       register_option("-q", "--iqueue", "SIZE", "Size of queue between input and storage plugins",
@@ -187,7 +196,11 @@ struct ipxp_conf_t {
    std::vector<std::atomic<OutputStats> *> output_stats;
 
    std::vector<std::shared_future<WorkerResult>> input_fut;
-   std::vector<std::future<WorkerResult>> output_fut;  
+   std::vector<std::future<WorkerResult>> output_fut;
+
+   std::shared_ptr<telemetry::Directory> telemetry_root_node;
+   std::unique_ptr<telemetry::appFs::AppFsFuse> appFs;
+   telemetry::Holder holder;
 
    size_t pkt_bufsize;
    size_t blocks_cnt;
