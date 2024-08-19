@@ -31,6 +31,7 @@
 #include <cstring>
 #include <iostream>
 #include <sys/types.h>
+#include <limits>
 
 #include "parser.hpp"
 #include "headers.hpp"
@@ -352,7 +353,7 @@ uint16_t skip_ipv6_ext_hdrs(const u_char *data_ptr, uint16_t data_len, Packet *p
 {
    struct ip6_ext *ext = (struct ip6_ext *) data_ptr;
    uint8_t next_hdr = pkt->ip_proto;
-   uint16_t hdrs_len = 0;
+   uint32_t hdrs_len = 0;
 
    /* Skip/parse extension headers... */
    while (1) {
@@ -385,6 +386,8 @@ uint16_t skip_ipv6_ext_hdrs(const u_char *data_ptr, uint16_t data_len, Packet *p
       } else {
          break;
       }
+      if (hdrs_len > std::numeric_limits<uint16_t>::max())
+          throw "Parser detected malformed packet";
       DEBUG_MSG("\tIPv6 extension header:\t%u\n", next_hdr);
       DEBUG_MSG("\t\tLength:\t%u\n", ext->ip6e_len);
 
@@ -392,7 +395,8 @@ uint16_t skip_ipv6_ext_hdrs(const u_char *data_ptr, uint16_t data_len, Packet *p
       ext = (struct ip6_ext *) (data_ptr + hdrs_len);
       pkt->ip_proto = next_hdr;
    }
-
+   if (hdrs_len > std::numeric_limits<uint16_t>::max())
+       throw "Parser detected malformed packet";
    pkt->ip_payload_len -= hdrs_len;
    return hdrs_len;
 }
