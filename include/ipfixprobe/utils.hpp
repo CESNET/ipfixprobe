@@ -39,6 +39,8 @@
 #include <stdexcept>
 #include <cstdint>
 #include <sys/time.h>
+#include <vector>
+#include <sstream>
 
 namespace ipxp {
 
@@ -151,6 +153,23 @@ T str2num(std::string str, typename std::enable_if<is_uint<T>()>::type * = nullp
  * @brief Convert struct Timeval to microseconds
  */
 uint64_t timeval2usec(const struct timeval& tv);
+
+/**
+ * @brief Convert vector to string, e.g. for error messages
+ */
+template <typename T>
+std::string vec2str(const std::vector<T> &vec) {
+   std::stringstream ss;
+   bool first = true;
+   for (auto &item : vec)
+   {
+      if (!first) 
+         ss << ", ";
+      ss << item;
+      first = false;
+   }
+   return ss.str();
+}
 
 }
 

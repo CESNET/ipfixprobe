@@ -90,6 +90,7 @@ public:
    bool m_help;
    std::string m_help_str;
    bool m_version;
+   std::vector<int> m_cpu_mask;
 
    IpfixprobeOptParser() : OptionsParser("ipfixprobe", "flow exporter supporting various custom IPFIX elements"),
                            m_pid(""), m_appfs_mount_point(""), m_daemon(false),
@@ -170,6 +171,18 @@ public:
           m_version = true;
           return true;
       }, OptionFlags::NoArgument);
+      register_option("-C", "--cpus", "CPU_LIST", "Set global CPU mask for main thread and subthreads", [this](const char *arg) {
+         try {
+            std::stringstream ss(arg);
+            std::string tmp;
+            while (std::getline(ss, tmp, ',')) {
+               m_cpu_mask.emplace_back(str2num<uint16_t>(tmp));
+            }
+            return true;
+         } catch (std::invalid_argument &e) {
+            return false;
+         }
+      });
    }
 };
 

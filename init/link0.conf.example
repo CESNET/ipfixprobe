@@ -64,6 +64,11 @@
 # Set mapping of DPDK lcores to threads:
 #DPDK_LCORES="(0-7)@(0,2,4,6,8,10,12,14)"
 
+# Set input workers CPU affinity, each worker is mapped on single core
+# array must have the same size as DPDK_QUEUES_COUNT
+# when DPDK_INPUT_WORKER_CPUS is specified, DPDK_LCORES does not affect input workers
+#DPDK_INPUT_WORKER_CPUS=(0 2 4 6 8 10 12 14)
+
 # Extra options for DPDK EAL, passed to e= option of `dpdk` or `dpdk-ring` plugin.
 # * Use --file-prefix to separate DPDK application into new namespace.
 # * Use --proc-type=secondary for Option B) to receive packets via mrings created
@@ -189,7 +194,13 @@ NON_BLOCKING_TCP=no
 # Export ipfix template every N seconds (UDP)
 TEMPLATE_REFRESH_RATE=300
 
+# Define output worker (thread) affinity, e.g. CPU core isolated from the scheduler
+#OUTPUT_WORKER_CPU=12
+
 ####### Fuse telemetry
 
 USE_FUSE=0
 FUSE_MOUNT_POINT="/var/run/ipfixprobe"
+
+# Specify any extra global arguments, e.g. size of input queue
+#EXTRA_ARGS="-q 2048"
