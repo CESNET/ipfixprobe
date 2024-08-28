@@ -197,6 +197,9 @@ TEMPLATE_REFRESH_RATE=300
 # Define output worker (thread) affinity, e.g. CPU core isolated from the scheduler
 #OUTPUT_WORKER_CPU=12
 
+# Enable LZ4 compression (only with TCP)
+LZ4_COMPRESSION=no
+
 ####### Fuse telemetry
 
 USE_FUSE=0

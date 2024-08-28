@@ -118,7 +118,12 @@ if [ -e "$CONFFILE" ]; then
       output_affinity="@$OUTPUT_WORKER_CPU"
    fi
 
-   output="-o ipfix$output_affinity;host=${HOST:-127.0.0.1};port=${PORT:-4739};id=${LINK:-0};dir=${DIR:-0};${UDP_PARAM};${NON_BLOCKING_TCP_PARAM};template=${TEMPLATE_REFRESH_RATE:-300}"
+   LZ4_COMPRESSION_PARAM=""
+   if [[ $LZ4_COMPRESSION == "yes" ]]; then
+        LZ4_COMPRESSION_PARAM="lz4-compression";
+   fi
+
+   output="-o ipfix$output_affinity;host=${HOST:-127.0.0.1};port=${PORT:-4739};id=${LINK:-0};dir=${DIR:-0};${UDP_PARAM};${NON_BLOCKING_TCP_PARAM};${LZ4_COMPRESSION_PARAM};template=${TEMPLATE_REFRESH_RATE:-300}"
 
    telemetry=""
    if [ "$USE_FUSE" = "1" ]; then
