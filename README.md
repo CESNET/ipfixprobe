@@ -114,6 +114,9 @@ The output flow records are composed of information provided by the enabled plug
 
 See `ipfixprobe -h output` for more information and complete list of output plugins and their parameters.
 
+LZ4 compression:
+ipfix plugin supports LZ4 compression algorithm over tcp. See plugin's help for more information.
+
 ## Parameters
 ### Module specific parameters
 - `-i ARGS`       Activate input plugin  (-h input for help)
