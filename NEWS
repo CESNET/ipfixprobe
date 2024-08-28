@@ -1,3 +1,94 @@
+2024-08-28 (Pavel Siska): ipfixprobed - add new option LZ4_COMPRESSION to init script and config example
+2024-08-28 (Pavel Siska): README.md - add LZ4 compression info
+2024-08-28 (Jakub Antonín Štigler): ipfix plugin: add lz4 compression
+2024-08-23 (Tomas Cejka): actions: add lz4 package for build
+2024-08-23 (Tomas Cejka): debian: add lz4 dependency
+2024-08-23 (Tomas Cejka): build: add dependency on liblz4 due to IPFIX compression feature
+2024-08-19 (Jan Sobol): ipfixprobed - introduce EXTRA_ARGS to specify any global ipfixprobe parameters
+2024-08-19 (Jan Sobol): ipfixprobed - consistency of DPDK_OPTS parameter with examples and dpdk-ring
+2024-08-19 (Jan Sobol): ipfixprobed - make DPDK_LCORES parameter optional
+2024-08-19 (Jan Sobol): ipfixprobed - introduce DPDK_INPUT_WORKER_CPUS and OUTPUT_WORKER_CPU parameters to set workers affinity
+2024-08-19 (Jan Sobol): ipfixprobed - fix duplicate rows around exec part
+2024-08-19 (Jan Sobol): introduce parameter to set affinity CPU list
+2024-08-19 (Jan Sobol): introduce ability to define CPU affinity for input and output workers
+2024-08-19 (Jan Sobol): utils - introduce vec2str utility
+2024-08-18 (Damir Zainullin): Fix ipv6 extension header parsing
+2024-08-16 (Pavel Siska): ipfixprobed - add new option NON_BLOCKING_TCP to init script and config example
+2024-08-16 (Pavel Siska): ipfix - add option to use non-blocking TCP socket
+2024-08-16 (Pavel Siska): README.md - add telemetry section
+2024-08-16 (Pavel Siska): github-ci - add build requirements
+2024-08-16 (Pavel Siska): parser-stats - add parser stats to input plugins
+2024-08-16 (Pavel Siska): introduce output queue telemetry
+2024-08-16 (Pavel Siska): ipfixprobed - add telemetry to init script
+2024-08-16 (Pavel Siska): integrate fuse telemetry to ipfixprobe
+2024-08-16 (Pavel Siska): ipfixprobe spec file - add telemetry library as dependency
+2024-08-16 (Pavel Siska): dpdk-ring - introduce support for plugin telemetry
+2024-08-16 (Pavel Siska): ndp - introduce support for plugin telemetry
+2024-08-16 (Pavel Siska): dpdk - introduce support for plugin telemetry
+2024-08-16 (Pavel Siska): InputPlugin - introduce telemetry support for base plugin
+2024-08-16 (Pavel Siska): parser-stats - introduce structure of Parser stats
+2024-08-16 (Pavel Siska): FragmentationCache - introduce support for plugin telemetry
+2024-08-16 (Pavel Siska): flowCache - introduce support for storage plugin telemetry
+2024-07-29 (Pavel Siska): StoragePlugin - introduce telemetry support for base plugin
+2024-07-29 (Pavel Siska): telemetry-utils - introduce TelemetryUtils class
+2024-07-29 (Pavel Siska): Makefile - set ipfixprobe c++ standard to gnu++17
+2024-07-16 (Damir Zainullin): Fix code formatting
+2024-07-08 (Karel Hynek): phists -  FIX IPT calculation for negative IPT
+2024-07-04 (Damir Zainullin): Add MQTT plugin description to README
+2024-07-04 (Damir Zainullin): Add get_text() for mqtt plugin
+2024-07-03 (Damir Zainullin): Change c++ version to c++17
+2024-07-03 (Damir Zainullin): Add mqtt plugin tests
+2024-07-03 (Damir Zainullin): Add mqtt process plugin
+2024-06-20 (Jan Sobol): dpdk - call rte_eth_dev_set_mtu to set MTU on interface The MTU setting in rte_eth_dev_configure turned out to be insufficient.
+2024-06-20 (Jan Sobol): dpdk - fix mbuf dataroom size MTU is increased by eth header len.
+2024-06-11 (Jan Sobol): dpdk - update DEFAULT_MBUF_BURST_SIZE to 64 which is default value for input packet queue
+2024-06-04 (Tomas Cejka): github-action: insert CODECOV_TOKEN into pipeline
+2024-06-04 (Tomas Cejka): github-actions: increase version of codecov-action
+2024-06-04 (Karel Hynek): tls plugin: fix extensionlists IPFIX enterprise number
+2024-05-31 (Jan Sobol): dpdk - configure MTU size in dpdkDevice
+2024-05-31 (Jan Sobol): dpdk - introduce MTU parameter
+2024-05-31 (jmuecke): <tls> Update README
+2024-05-29 (Karel Hynek): <tls> Update reference test file
+2024-05-28 (jmuecke): <tls> Update IE IDs
+2024-05-27 (jmuecke): <tls> extract CH TLS extensions
+2024-04-22 (Pavel Siska): test - update reference file of quic test
+2024-04-16 (jmuecke): <quic> Only act on first retry packet
+2024-04-12 (Pavel Siska): quic - fix code format
+2024-04-03 (Pavel Siska): dpdk - update memory pool creation to use device socket ID
+2024-02-20 (jmuecke): <quic> Change payload_len only if previously modified.
+2024-02-20 (Pavel Siska): ndp - refactored processing of timestamps Ndp plugin is now able to process timestamps from different fw packet headers. If fw timestamp is invalid SW timestamp is used.
+2024-02-20 (Pavel Siska): ndp - set booted firmware and timestamp position information
+2024-02-15 (Karel Hynek): QUIC - Fix IPFIX IDs for basic list elements
+2024-02-13 (jmuecke): <quic> Return proper QUIC version.
+2024-02-12 (Karel Hynek): QUIC - Avoid source buffer overflow in crypto frame copy
+2024-02-12 (Karel Hynek): QUIC - Fix payload len underflow, when smaller than expected
+2024-02-12 (Karel Hynek): QUIC - Fix required output IPFIX buffer size
+2024-01-24 (jmuecke): <quic> Fix text output
+2024-01-23 (jmuecke): <quic> Restrict TLS extraction to alpn and quic_transport parameters
+2024-01-18 (jmuecke): <quic> tested and improved quic module
+2023-12-16 (Pavel Valach): tests/functional/wg: added more regular traffic, also with max length 1420
+2023-12-16 (Pavel Valach): process/wg: do not check if transport data length is divisible by 16
+2023-11-07 (Jakub Antonín Štigler): Fragmentation cache - Add parameters to service
+2023-11-07 (Jakub Antonín Štigler): Add missing include
+2023-11-07 (Pavel Siska): FlowCache - integrate fragmentation cache
+2023-11-07 (Pavel Siska): fragmentationCache - introduce fragmentation Cache class
+2023-11-07 (Pavel Siska): fragmentationCache - introduce FragmentationTable class
+2023-11-07 (Pavel Siska): fragmentationCache - introduce Fragmentation data structures
+2023-11-07 (Pavel Siska): fragmentationCache - introduce utilities for timeval structure
+2023-11-07 (Pavel Siska): FragmentationCache - introduce Ring Buffer class
+2023-11-07 (Pavel Siska): parser - support extraction of IPv4/6 packet fragmentation info
+2023-11-02 (jmuecke): Fix processing of version negotiation eliciting version.
+2023-11-02 (jmuecke): quic versions: Support all versions triggering vns.
+2023-11-02 (jmuecke): vn: Add server port before flushing flow
+2023-11-02 (jmuecke): Export detected quic server port.
+2023-11-02 (jmuecke): Enforce CID lengths are within the defined spec. Parse packet type last.
+2023-11-02 (jmuecke): <quic> Add quic packet type information for each datagram.
+2023-11-01 (jmuecke): <quic> 0-RTT collect client CID. But no other CIDs or version.
+2023-10-31 (jmuecke): <README> Use correct type for CID fields.
+2023-10-31 (jmuecke): VN: Add QUIC extension if FLOW_FLUSH. Version = VN is not an error.
+2023-10-31 (jmuecke): Fix IPFIX ID collision of QUIC_ZERO_RTT.
+2023-10-26 (jmuecke): QUIC: Extract more QUIC flow details
+
 2023-10-25 (Tomas Cejka): openwrt: fix missing byteorder in RTP plugin
 2023-10-25 (Tomas Cejka): openwrt: add missing include of time.h
 
