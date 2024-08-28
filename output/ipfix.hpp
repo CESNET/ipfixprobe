@@ -40,6 +40,9 @@
 
 #include <vector>
 #include <map>
+#include <cstdint>
+
+#include <lz4.h>
 
 #include <ipfixprobe/output.hpp>
 #include <ipfixprobe/process.hpp>
@@ -78,10 +81,13 @@ public:
    uint32_t m_dir;
    uint32_t m_template_refresh_time;
    bool m_verbose;
+   int m_lz4_buffer_size;
+   bool m_lz4_compression;
+
 
    IpfixOptParser() : OptionsParser("ipfix", "Output plugin for ipfix export"),
       m_host("127.0.0.1"), m_port(4739), m_mtu(DEFAULT_MTU), m_udp(false), m_non_blocking_tcp(false), m_id(DEFAULT_EXPORTER_ID), m_dir(0), 
-      m_template_refresh_time(TEMPLATE_REFRESH_TIME), m_verbose(false)
+      m_template_refresh_time(TEMPLATE_REFRESH_TIME), m_verbose(false), m_lz4_buffer_size(0), m_lz4_compression(false)
    {
       register_option("h", "host", "ADDR", "Remote collector address", [this](const char *arg){m_host = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("p", "port", "PORT", "Remote collector port",
@@ -102,6 +108,10 @@ public:
          [this](const char *arg){try {m_template_refresh_time = str2num<decltype(m_template_refresh_time)>(arg);} 
          catch(std::invalid_argument &e) {return false;} return true;}, OptionFlags::RequiredArgument);
       register_option("v", "verbose", "", "Enable verbose mode", [this](const char *arg){m_verbose = true; return true;}, OptionFlags::NoArgument);
+      register_option("c", "lz4-compression", "", "Enable lz4 compression", [this](const char *arg){m_lz4_compression = true; return true;}, OptionFlags::NoArgument);
+      register_option("s", "lz4-buffer-size", "", "Lz4 compression buffer size (default (minimum): mtu*3)",
+         [this](const char *arg){try {m_lz4_buffer_size = str2num<decltype(m_lz4_buffer_size)>(arg);} catch(std::invalid_argument &e) {return false;} return true;}, 
+         OptionFlags::RequiredArgument);
    }
 };
 
@@ -231,6 +241,217 @@ typedef struct ipfix_template_set_header {
 
 } ipfix_template_set_header_t;
 
+/**
+ * @brief the header used for compressed data, all values are in big-endian
+ *
+ */
+typedef struct {
+   /**
+    * size of the data after it is decompressed (not including this header)
+    */
+   uint16_t uncompressedSize;
+
+   /**
+    * size of the data after when it is compressed (not including this header)
+    */
+   uint16_t compressedSize;
+} ipfix_compress_header_t;
+
+/**
+ * @brief the header that is used when the compress stream is reset to
+ *        allow the reciever to use synchronized buffers when decompressing
+ *
+ */
+typedef struct {
+   /**
+    * @brief size of the used curcullar buffer, allows synchronization of the
+    *        reciever buffer with the sender buffer
+    *
+    */
+   uint32_t bufferSize;
+} ipfix_start_compress_header_t;
+
+/**
+ * circular buffer with compression, it can also work in non-compression mode
+ * as a regural buffer
+ */
+class CompressBuffer {
+   // In non-compression mode:
+   //
+   // Acts as a buffer that can be extended by calls to getWriteBuffer().
+   // You can call compress() to get all the data written since last call
+   // to compress().
+   //
+   // In compression mode:
+   //
+   // This is circular buffer of blocks of memory where the blocks cannot be
+   // wrapped (part of the block on the end and part on the start of the
+   // buffer).
+   //
+   // Each block is single compression block and so the blocks
+   // are separated by calls to compress().
+   //
+   // Data to the buffer is written using getWriteBuffer(), this
+   // requests block of memory in the buffer of the given size.
+   // If getWriteBuffer() is called again before calling compress() the
+   // block is extended. Extending the block may require moving the block
+   // or reallocation so rather request more memory and than call shrinkTo().
+   //
+   // You can shorten the last block using the method shrinkTo(), this
+   // is valid only if no data has been written to the end of the block that
+   // will be discarded by this call.
+   //
+   // The compression can be reset using requestConnectionReset(), this will make it so
+   // that when decompressing you don't need the previous blocks, but the
+   // compression will be less effective.
+   //
+   // If you wan't to 'undo' the last compressed block you can call
+   // reviveLast(), this will reset the last block as if compress() was not
+   // called, and return the pointer to the block, but it will reset the
+   // compression.
+   //
+   // Ideal workflow:
+   //
+   // 1. init the buffer with init()
+   // 2. reset if needed with requestConnectionReset()
+   // 3. write to the buffer with getWriteBuffer()
+   //    you can call getWriteBuffer() only once
+   // 4. shrink the data if needed with shrinkTo()
+   // 5. get the written data with compress() and getCompressed()
+   // 6. try to avoid calling reviveLast()
+   // 7. repeat from 2.
+   // 8. free all resources by calling close()
+   //
+   // this workflow works as expected in both compression and non-compression
+   // modes.
+public:
+   /**
+    * @brief create uninitialized compressin buffer. Initialize it with the
+    *        method init()
+    *
+    */
+   CompressBuffer();
+   ~CompressBuffer()
+   {
+      close();
+   }
+
+   /**
+    * @brief init the compression buffer, when it fails, you should call close
+    *
+    * @param compress when false, the buffer will be in non-compression mode
+    * @param compressSize size of the compress buffer, ignored in non-compression mode
+    *                     (the buffer will be resized automatically if needed)
+    * @param writeSize size of the write buffer
+    *                  (the buffer will be resized automatically if needed)
+    *
+    * @return 0 on success
+    */
+   int init(bool compress, size_t compressSize, size_t writeSize);
+
+   /**
+    * @brief Gets buffer to write to with the required size
+    *
+    * Note: calling this motehod multiple times before calling
+    *       compress can be quite slow. (one call with larger required
+    *       size may be faster than multiple calls that add up to the
+    *       same size)
+    *
+    * @param requiredSize required size of the buffer
+    * @return pointer to the buffer with the required size, null on failure
+    */
+   uint8_t *getWriteBuffer(size_t requiredSize);
+
+   /**
+    * @brief compresses data written after last compress() call
+    *
+    *        In non-compression mode returns the size of the written data.
+    *        and prepares the uncompressed data for getCompressed()
+    *
+    * @return size of the data returned by getCompressed(), valid only until
+    *         another call to compress().
+    *         Negative on error.
+    *
+    *         In non-compression mode, the data returned by getCompressed() may
+    *         be also invalid after a call to getWriteBuffer()
+    */
+   int compress();
+
+   /**
+    * @brief gets the data compressed by call to compress(), the pointer and
+    *        data is valid only until another call to compress().
+    *        The size of the data is the value returned by compress.
+    *
+    *        In non-compression mode, returns the data written since the last
+    *        compress() call, and the data is invalidated with call to
+    *        getWriteBuffer().
+    *
+    * @return compressed data of size returned by compress()
+    */
+   const uint8_t *getCompressed() const;
+
+   /**
+    * @brief sets the last compressed block as for compression and requests reset
+    */
+   uint8_t *reviveLast();
+
+   /**
+    * @brief shrinks the uncompressed data size
+    *
+    * @param size size to shrink to
+    */
+   void shrinkTo(size_t size);
+
+   /**
+    * @brief requests that the compression is reset
+    *
+    */
+   void requestConnectionReset();
+
+   /**
+    * @brief frees all allocated memory
+    *
+    */
+   void close();
+
+   // the maximum aditional size required to send metadata that are needed to
+   // to decompress the data, the +4 is there for four 0 bytes that identify
+   // ipfix_start_compress_header_t
+   static constexpr size_t C_ADD_SIZE =
+      sizeof(ipfix_compress_header_t)
+      + sizeof(ipfix_start_compress_header_t)
+      + sizeof(uint32_t) * 2;
+
+   // LZ4c
+   static constexpr uint32_t LZ4_MAGIC = 0x4c5a3463;
+
+private:
+
+   // false if the buffer is in non-compression mode
+   bool shouldCompress;
+   // true if the lz4Stream should be reset
+   bool shouldResetConnection;
+
+   // the buffer with uncompressed data
+   uint8_t *uncompressed;
+   size_t uncompressedSize;
+
+   // the buffer with compressed data
+   uint8_t *compressed;
+   size_t compressedSize;
+
+   // index to the uncompressed block of data
+   size_t readIndex;
+   size_t readSize;
+
+   // last compressed data position
+   size_t lastReadIndex;
+   size_t lastReadSize;
+
+   // compression stream used by lz4
+   LZ4_stream_t *lz4Stream;
+};
+
 class IPFIXExporter : public OutputPlugin
 {
 public:
@@ -271,6 +492,8 @@ private:
    int flags; /**< getaddrinfo flags */
    bool non_blocking_tcp;
 
+   CompressBuffer packetDataBuffer;
+
    uint32_t reconnectTimeout; /**< Timeout between connection retries */
    time_t lastReconnect; /**< Time in seconds of last connection retry */
    uint32_t odid; /**< Observation Domain ID */
@@ -279,7 +502,6 @@ private:
    uint32_t dir_bit_field;     /**< Direction bit field value. */
 
    uint16_t mtu; /**< Max size of packet payload sent */
-   uint8_t *packetDataBuffer; /**< Data buffer to store packet */
    uint16_t tmpltMaxBufferSize; /**< Size of template buffer, tmpltBufferSize < packetDataBuffer */
 
    void init_template_buffer(template_t *tmpl);

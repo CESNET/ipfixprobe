@@ -57,8 +57,8 @@ Vendor: CESNET, z.s.p.o.
 Packager: @USERNAME@ <@USERMAIL@>
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}
 Summary: IPFIX flow exporter with various extending IPFIX elements exported by plugins.
-Requires: libatomic fuse3 telemetry
-BuildRequires: gcc gcc-c++ make doxygen pkgconfig libatomic telemetry
+Requires: libatomic fuse3 telemetry lz4
+BuildRequires: gcc gcc-c++ make doxygen pkgconfig libatomic telemetry lz4-devel
 Provides: ipfixprobe
 
 %if %{with ndp}
