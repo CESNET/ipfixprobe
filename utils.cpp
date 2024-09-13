@@ -29,6 +29,7 @@
 
 #include <arpa/inet.h>
 #include <cstring>
+#include <endian.h>
 #include <string>
 #include <utility>
 
@@ -136,6 +137,11 @@ uint64_t timeval2usec(const struct timeval& tv)
 {
    constexpr size_t usec_in_sec = 1000000;
    return tv.tv_sec * usec_in_sec + tv.tv_usec;
+}
+
+void memcpy_le32toh(uint32_t* dest, const uint32_t* src)
+{
+    *dest = le32toh(*src);
 }
 
 } // namespace ipxp
