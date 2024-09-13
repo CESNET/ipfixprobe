@@ -29,6 +29,8 @@
 #include <iostream>
 #include <cstring>
 
+#include <ipfixprobe/utils.hpp>
+
 #include "wg.hpp"
 
 namespace ipxp {
@@ -145,14 +147,14 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
          // compare the current dst_peer and see if it matches the original source.
          // If not, the flow flush may be needed to create a new flow.
          cmp_peer = source_pkt ? ext->src_peer : ext->dst_peer;
-         memcpy(&cmp_new_peer, (data + 4), sizeof(uint32_t));
+         memcpy_le32toh(&cmp_new_peer, reinterpret_cast<const uint32_t*>(data + 4));
 
          if (cmp_peer != 0 && cmp_peer != cmp_new_peer) {
             flow_flush = true;
             return false;
          }
 
-         memcpy(source_pkt ? &(ext->src_peer) : &(ext->dst_peer), (data + 4), sizeof(uint32_t));
+         memcpy_le32toh(source_pkt ? &(ext->src_peer) : &(ext->dst_peer), reinterpret_cast<const uint32_t*>(data + 4));
          break;
 
       case WG_PACKETTYPE_RESP_TO_INIT:
@@ -160,8 +162,8 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
             return false;
          }
 
-         memcpy(&(ext->src_peer), (data + 4), sizeof(uint32_t));
-         memcpy(&(ext->dst_peer), (data + 8), sizeof(uint32_t));
+         memcpy_le32toh(&(ext->src_peer), reinterpret_cast<const uint32_t*>(data + 4));
+         memcpy_le32toh(&(ext->dst_peer), reinterpret_cast<const uint32_t*>(data + 8));
 
          // let's swap for the opposite direction
          if (!source_pkt) {
@@ -174,7 +176,7 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
             return false;
          }
 
-         memcpy(source_pkt ? &(ext->dst_peer) : &(ext->src_peer), (data + 4), sizeof(uint32_t));
+         memcpy_le32toh(source_pkt ? &(ext->dst_peer) : &(ext->src_peer), reinterpret_cast<const uint32_t*>(data + 4));
          break;
 
       case WG_PACKETTYPE_TRANSPORT_DATA:
@@ -182,7 +184,7 @@ bool WGPlugin::parse_wg(const char *data, unsigned int payload_len, bool source_
             return false;
          }
 
-         memcpy(source_pkt ? &(ext->dst_peer) : &(ext->src_peer), (data + 4), sizeof(uint32_t));
+         memcpy_le32toh(source_pkt ? &(ext->dst_peer) : &(ext->src_peer), reinterpret_cast<const uint32_t*>(data + 4));
          break;
    }
 
