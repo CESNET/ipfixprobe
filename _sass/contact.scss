@@ -5,10 +5,9 @@
 }
 
 .contact-box {
-	@extend %flexbox;
-	@include flex-flow(wrap);
 	max-width: 750px;
 	margin: 0 auto;
+	text-align: center;
 
 	form {
 		width: 100%
@@ -16,17 +15,5 @@
 
 	p {
 		margin: 0;
-	}
-
-	.contact-form, .contact-details  {
-		@media #{$desktop} {
-			-webkit-flex: 1;
-			flex: 1;
-		}
-		margin: 0 30px;
-	}
-
-	.contact-details {
-		font-size: .9em;
 	}
 }
