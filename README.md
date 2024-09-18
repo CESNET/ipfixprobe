@@ -1,15 +1,6 @@
-# Hydra [ LEGACY TEMPLATE NO LONGER MAINTAINED ]
+# ipfixprobe website Hydra
 
-Marketing site template for Jekyll. Browse through a [live demo](https://proud-alligator.cloudvent.net/).
-Increase the web presence of your brand with this configurable theme.
-
-![Hydra template screenshot](images/_screenshot.png)
-
-Hydra was made by [CloudCannon](http://cloudcannon.com/), the Cloud CMS for Jekyll.
-
-Find more templates, themes and step-by-step Jekyll tutorials at [CloudCannon Academy](https://learn.cloudcannon.com/).
-
-[![Deploy to CloudCannon](https://buttons.cloudcannon.com/deploy.svg)](https://app.cloudcannon.com/register#sites/connect/github/CloudCannon/hydra-jekyll-template)
+Based on Hydra opensource template [live demo](https://proud-alligator.cloudvent.net/)
 
 ## Features
 
