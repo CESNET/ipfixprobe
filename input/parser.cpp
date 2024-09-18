@@ -503,7 +503,9 @@ inline uint16_t parse_tcp_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
       uint8_t opt_len = (opt_kind <= 1 ? 1 : *(opt_ptr + 1));
       DEBUG_MSG("\t\t%u: len=%u\n", opt_kind, opt_len);
 
-      pkt->tcp_options |= ((uint64_t) 1 << opt_kind);
+      // according to ipfix standard, tcp option flags are reversed from the bit indices in each byte
+      // see https://www.iana.org/assignments/ipfix/ipfix.xhtml, entity no. 209 - tcpOptions
+      pkt->tcp_options |= uint64_t(1) << ((opt_kind & 0xF8) + (0x07 - (opt_kind&0x07)));
       if (opt_kind == 0x00) {
          break;
       } else if (opt_kind == 0x02) {
