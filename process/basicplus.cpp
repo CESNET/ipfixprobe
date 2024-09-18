@@ -93,10 +93,11 @@ int BASICPLUSPlugin::pre_update(Flow &rec, Packet &pkt)
       p->ip_ttl[1]  = pkt.ip_ttl;
       p->ip_flg[1]  = pkt.ip_flags;
       p->tcp_mss[1] = pkt.tcp_mss;
-      p->tcp_opt[1] = pkt.tcp_options;
       p->tcp_win[1] = pkt.tcp_window;
       p->dst_filled = true;
    }
+   // update tcp options mask across the tcp flow
+   p->tcp_opt[dir] |= pkt.tcp_options;
    return 0;
 }
 
