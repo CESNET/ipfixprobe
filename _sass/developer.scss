@@ -12,8 +12,16 @@ th, td {
 	border: 1px solid black; 
 	padding: 8px; 
 	text-align: left; 
-	}
-	
+	}	
 .hidden {
 	display: none;
 	}
+.clickable {
+    cursor: pointer;
+	padding: 0.2em;
+  }
+.clickable:hover {
+	color: #D3163C;
+	background-color: #CCCCCC;
+	padding: 0.2em;
+  }
