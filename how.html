@@ -18,7 +18,7 @@ heading: ipfixprobe usage
         <h2> {{ option.title }}</h2>
         <p>{{ option.description }}</p>
 		{% if plugin.options %}
-			<span style="background-color: #ffe59e;" >
+			<span style="background-color: #ffe59e; " >
 			Command line parameters used by <b>{{ option.title }} plugin</b>:<br>
 			{% for parameter in option.parameters  %}
 				<b>{{ parameter.name | raw }}</b> : {{ parameter.description}}<br>
