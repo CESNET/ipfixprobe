@@ -171,6 +171,11 @@ std::string vec2str(const std::vector<T> &vec) {
    return ss.str();
 }
 
+/**
+ * @brief Copy uint32 in little endian byte order to destination in host byte order
+ */
+void memcpy_le32toh(uint32_t* dest, const uint32_t* src);
+
 }
 
 #endif /* IPXP_UTILS_HPP */

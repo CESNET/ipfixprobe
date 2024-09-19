@@ -29,6 +29,7 @@
 #ifndef IPXP_PROCESS_WG_HPP
 #define IPXP_PROCESS_WG_HPP
 
+#include <endian.h>
 #include <string>
 #include <sstream>
 
@@ -112,9 +113,11 @@ struct RecordExtWG : public RecordExt {
 
       memcpy(buffer, &possible_wg, sizeof(possible_wg));
       buffer += sizeof(possible_wg);
-      memcpy(buffer, &src_peer, sizeof(src_peer));
+      uint32_t src_peer_be = htobe32(src_peer);
+      memcpy(buffer, &src_peer_be, sizeof(src_peer));
       buffer += sizeof(src_peer);
-      memcpy(buffer, &dst_peer, sizeof(dst_peer));
+      uint32_t dst_peer_be = htobe32(dst_peer);
+      memcpy(buffer, &dst_peer_be, sizeof(dst_peer));
       buffer += sizeof(dst_peer);
 
       return requiredLen;
