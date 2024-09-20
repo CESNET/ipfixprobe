@@ -262,7 +262,8 @@ EXTRA_DIST=README.md \
 	pcaps/quic_initial-sample.pcap \
 	debian/control debian/changelog debian/watch debian/copyright debian/patches debian/patches/series \
 	debian/source debian/source/format debian/source/local-options debian/source/include-binaries \
-	debian/rules debian/README.Debian debian/compat
+	debian/rules debian/README.Debian debian/compat \
+	docker/Dockerfile docker/ipfixprobe_wrapper.sh docker/process_script.sh docker/README.md
 
 bashcompl_DATA=ipfixprobe.bash
 
