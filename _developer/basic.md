@@ -33,9 +33,10 @@ fields:
     ipfix: "29305/1"
     value:  "number of bytes in data flow (dst to src)"
   - 
-    name: "LINK_BIT_FIELD" 
-    type: "or"
-    value: "ODID  uint64 or uint32  exporter identification"
+    name: "LINK_BIT_FIELD or ODID"  
+    type: "uint64 or uint32"
+    ipfix: "-/-"
+    value:  "exporter identification"
   - 
     name: "TIME_FIRST"  
     type: "time"
