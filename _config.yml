@@ -33,7 +33,7 @@ collections:
   how:
     _hide_content: true
     output: true
-  developer:
+  export:
     _hide_content: true
 
 paginate: 10

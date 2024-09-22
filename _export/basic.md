@@ -35,7 +35,7 @@ fields:
   - 
     name: "LINK_BIT_FIELD or ODID"  
     type: "uint64 or uint32"
-    ipfix: "-/-"
+    ipfix: "-"
     value:  "exporter identification"
   - 
     name: "TIME_FIRST"  
