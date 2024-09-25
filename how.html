@@ -14,7 +14,8 @@ heading: ipfixprobe usage
 			<h1 style="float:'left'"><strong>{{ plugin.title | raw }}</strong></h1>
 			<p>{{ plugin.description | raw }}</p>
 			</div>
-		<h1 class = "clickable" style = "padding: 0;">Command line</h1>
+		<hr class="not-hidden">
+		<h1 class = "clickable" >Command line</h1>
 		<p>The ipfixprobe consists of one <b>input</b>, zero or one <b>output</b>, one <b>storage</b> and zero or more <b>process</b> plugins.	</p>
 		{% for plugin in site.how  %}
 			<div class="text editable">
@@ -24,7 +25,7 @@ heading: ipfixprobe usage
 			</div>	
 			{% for option in plugin.options  %}
 				<hr>
-				<h3> {{ option.title }}</h3>
+				<h4> {{ option.title }}</h4>
 				<p>{{ option.description }}</p>
 				{% if plugin.options %}
 					<span style="background-color: #ffe59e; " >
@@ -42,7 +43,8 @@ heading: ipfixprobe usage
 				{% endfor %}
 			{% endfor %}
 		{% endfor %}
-		<h1 class = "clickable" style = "padding: 0;">One-time convertion of PCAP file to CSV</h1>
+		<hr class="not-hidden">
+		<h1 class = "clickable" >One-time convertion of PCAP file to CSV</h1>
 		<p>The ipfixprobe can be used to convert given PCAP file to the CSV containing flows from that file in the Unirec format.</p>
 		<span style="background-color: #e1afdc; " >
 			<b>Requirements</b>:<br>
@@ -60,13 +62,13 @@ heading: ipfixprobe usage
 				<li>Logs the results in CSV format</li>
 			</ol>
 		</span>
-		<h3>Build</h3>
+		<h4>Build</h4>
 		<p>The script builds the image automatically, but be sure that Dockerfile is in the same directory.<br>
 		To build the manually image, navigate to the directory containing the Dockerfile and run:</p>
 		<span>
 			<p style = "font-family: monospace;">docker build -t docker_ipfixprobe .</p>
 		</span>
-		<h3>Run</h3>
+		<h4>Run</h4>
 		<span style="background-color: #ffe59e; " >
 			<b>Parameters</b>:<br>
 			<ul>
@@ -82,7 +84,8 @@ heading: ipfixprobe usage
 		<span>
 			<p style = "font-family: monospace;">bash ./ipfixprobe_wrapper.sh ./process_script.sh ../pcaps/mixed.pcap ./output.csv</p>
 		</span>
-		<h1 class = "clickable" style = "padding: 0;">ipfixprobe as a service</h1>
+		<hr class="not-hidden">
+		<h1 class = "clickable">ipfixprobe as a service</h1>
 		<p>The ipfxprobe can be set up to be used as a daemon to continuously process incoming packets from the boot up:</p>
 		<h2>On linux server</h2>
 		<p>Install the ipfixprobe:</p>
@@ -165,6 +168,7 @@ heading: ipfixprobe usage
 		<span>
 			<p style = "font-family: monospace;">/etc/init.d/ipfixprobe enable</p>
 		</span>
+		<hr class="not-hidden">
 </div>
 </div>
 </section>
@@ -175,7 +179,7 @@ heading: ipfixprobe usage
 
 		let sibling = firstClickable.nextElementSibling;
 		while (sibling) {
-		  if (sibling.tagName !== 'H1')
+		  if (sibling.tagName !== 'H1' && !sibling.classList.contains('not-hidden'))
 			sibling.classList.add('hidden');
 		  sibling = sibling.nextElementSibling;
 		}
