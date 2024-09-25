@@ -141,11 +141,30 @@ void DpdkRingReader::init(const char* params)
     } else {
         is_reader_ready = true;
     }
+    getDynfieldInfo();
 }
 
 struct timeval DpdkRingReader::getTimestamp(rte_mbuf* mbuf)
 {
     struct timeval tv;
+    if (m_nfbMetadataEnabled) {
+        uint64_t nfb_dynflag_mask = (1ULL << m_nfbMetadataDynfieldInfo.dynflag_bit_index);
+
+        if (mbuf->ol_flags & nfb_dynflag_mask) {
+            const uint16_t ct_hdr_offset = *RTE_MBUF_DYNFIELD(
+                mbuf, m_nfbMetadataDynfieldInfo.dynfield_byte_index, uint16_t*
+            );
+
+            struct NfbMetadata *ct_hdr = (struct NfbMetadata*)
+                ((uint8_t*)mbuf->buf_addr + ct_hdr_offset);
+
+            tv.tv_sec = ct_hdr->timestamp.timestamp_s;
+            tv.tv_usec = ct_hdr->timestamp.timestamp_ns / 1000;
+            return tv;
+        }
+    }
+    
+    // fallback to software timestamp
     auto now = std::chrono::system_clock::now();
     auto now_t = std::chrono::system_clock::to_time_t(now);
 
@@ -208,6 +227,33 @@ void DpdkRingReader::configure_telemetry_dirs(
 {
     telemetry::FileOps statsOps = {[=]() { return get_queue_telemetry(); }, nullptr};
     register_file(queues_dir, "input-stats", statsOps);
+}
+
+void DpdkRingReader::getDynfieldInfo()
+{
+    struct rte_mbuf_dynfield dynfield_params;
+    struct rte_mbuf_dynflag dynflag_param;
+    int ret;
+    bool dynflag_found = false;
+    bool dynfield_found = false;
+
+    rte_errno = 0;
+    ret = rte_mbuf_dynflag_lookup("rte_net_nfb_dynflag_header_vld", &dynflag_param);
+    if (ret >= 0) {
+        m_nfbMetadataDynfieldInfo.dynflag_bit_index = ret;
+        dynflag_found = true;
+    }
+
+    rte_errno = 0;
+    ret = rte_mbuf_dynfield_lookup("rte_net_nfb_dynfield_header_offset", &dynfield_params);
+    if (ret >= 0) {
+        m_nfbMetadataDynfieldInfo.dynfield_byte_index = ret;
+        dynfield_found = true;
+    }
+
+    if (dynflag_found && dynfield_found) {
+        m_nfbMetadataEnabled = true;
+    }
 }
 
 } // namespace ipxp
