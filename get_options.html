@@ -1,8 +1,6 @@
 ---
 title: Get ipfixprobe
 heading: Start using ipfixprobe
-
-
 ---
 
 {% for option in site.get_options  %}
@@ -17,7 +15,7 @@ heading: Start using ipfixprobe
       {% for instruction in option.instructions %}
       <p>{{ instruction.description }}</p>
       <span>
-        {% for line in instruction.code %}
+			{% for line in instruction.code %}
         <code>{{line}}</code> <br>
         {% endfor %}
       </span>

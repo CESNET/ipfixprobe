@@ -10,8 +10,7 @@
   link: /developer/
   new_window: false
   highlight: false
-- name: Contact
-  link: /contact/
+- name: "Export Data"
+  link: /export/
   new_window: false
   highlight: false
-
