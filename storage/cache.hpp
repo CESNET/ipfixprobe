@@ -159,7 +159,7 @@ public:
    }
 };
 
-class FlowRecord
+class alignas(64) FlowRecord
 {
    uint64_t m_hash;
 
@@ -257,6 +257,7 @@ private:
    void update_flow_end_reason_stats(uint8_t reason);
    void update_flow_record_stats(uint64_t packets_count);
    telemetry::Content get_cache_telemetry();
+   void prefetch_export_expired() const;
 
 #ifdef FLOW_CACHE_STATS
    void print_report();

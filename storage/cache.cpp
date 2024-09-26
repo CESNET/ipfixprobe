@@ -327,6 +327,8 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       return 0;
    }
 
+   prefetch_export_expired();
+
    uint64_t hashval = XXH64(m_key, m_keylen, 0); /* Calculates hash value from key created before. */
 
    FlowRecord *flow; /* Pointer to flow we will be working with. */
@@ -650,4 +652,10 @@ telemetry::Content NHTFlowCache::get_cache_telemetry()
    return dict;
 }
 
+void NHTFlowCache::prefetch_export_expired() const
+{
+   for (decltype(m_timeout_idx) i = m_timeout_idx; i < m_timeout_idx + m_line_new_idx; i++) {
+      __builtin_prefetch(m_flow_table[i], 0, 1);
+   }
+}
 }
