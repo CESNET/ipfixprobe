@@ -9,6 +9,12 @@ html, body {
 
 body {
 	font-family: "San Francisco", "Helvetica Neue", "Helvetica", "Arial";
+	word-wrap:break-word;
+}
+
+table {
+	overflow-x: scroll;
+	display:block;
 }
 
 a {
