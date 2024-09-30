@@ -152,6 +152,7 @@ private:
 
     telemetry::Content get_queue_telemetry();
     void getDynfieldInfo();
+    void prefetchPackets();
 
     std::vector<rte_mbuf *> mbufs_;
     std::uint16_t pkts_read_;

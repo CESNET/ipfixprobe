@@ -196,6 +196,7 @@ InputPlugin::Result DpdkRingReader::get(PacketBlock& packets)
     if (pkts_read_ == 0) {
         return Result::TIMEOUT;
     }
+    prefetchPackets();
     for (auto i = 0; i < pkts_read_; i++) {
         parse_packet(&opt,
             m_parser_stats,
@@ -253,6 +254,13 @@ void DpdkRingReader::getDynfieldInfo()
 
     if (dynflag_found && dynfield_found) {
         m_nfbMetadataEnabled = true;
+    }
+}
+
+void DpdkRingReader::prefetchPackets() {
+    for (auto i = 0; i < pkts_read_; i++) {
+        __builtin_prefetch(mbufs_[i], 0, 2);
+        __builtin_prefetch((uint8_t*)mbufs_[i] + 64, 0, 2);
     }
 }
 
