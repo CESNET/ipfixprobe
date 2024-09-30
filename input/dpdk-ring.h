@@ -134,7 +134,24 @@ private:
         uint64_t receivedBytes;
     };
 
+    struct NfbMetadataDynfieldInfo {
+        int dynflag_bit_index;
+        int dynfield_byte_index;
+    };
+
+    struct NfbTimestamp {
+        uint32_t timestamp_ns;
+        uint32_t timestamp_s;
+    } __rte_packed;
+
+    struct NfbMetadata {
+        NfbTimestamp timestamp;
+        uint16_t matched;
+        uint32_t hash;
+    } __rte_packed;
+
     telemetry::Content get_queue_telemetry();
+    void getDynfieldInfo();
 
     std::vector<rte_mbuf *> mbufs_;
     std::uint16_t pkts_read_;
@@ -145,6 +162,8 @@ private:
     rte_ring *m_ring;
     bool is_reader_ready = false;
     DpdkRingStats m_stats = {};
+    bool m_nfbMetadataEnabled = false;
+    NfbMetadataDynfieldInfo m_nfbMetadataDynfieldInfo = {};
 };
 } // namespace ipxp
 
