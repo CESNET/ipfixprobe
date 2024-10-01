@@ -179,20 +179,20 @@ void OVPNPlugin::update_record(RecordExtOVPN* vpn_data, const Packet& pkt)
     return;
 }
 
-int OVPNPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction OVPNPlugin::post_create(Flow& rec, const Packet& pkt)
 {
     RecordExtOVPN* vpn_data = new RecordExtOVPN();
     rec.add_extension(vpn_data);
 
     update_record(vpn_data, pkt);
-    return 0;
+    return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
-int OVPNPlugin::pre_update(Flow& rec, Packet& pkt)
+ProcessPlugin::FlowAction OVPNPlugin::pre_update(Flow& rec, Packet& pkt)
 {
     RecordExtOVPN* vpn_data = (RecordExtOVPN*) rec.get_extension(RecordExtOVPN::REGISTERED_ID);
     update_record(vpn_data, pkt);
-    return 0;
+    return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 void OVPNPlugin::pre_export(Flow& rec)
