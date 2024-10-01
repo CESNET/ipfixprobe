@@ -63,12 +63,12 @@ ProcessPlugin *ICMPPlugin::copy()
    return new ICMPPlugin(*this);
 }
 
-int ICMPPlugin::post_create(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction ICMPPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.ip_proto == IPPROTO_ICMP ||
        pkt.ip_proto == IPPROTO_ICMPV6) {
       if (pkt.payload_len < sizeof(RecordExtICMP::type_code))
-         return 0;
+         return ProcessPlugin::FlowAction::NO_PROCESS;
 
       auto ext = new RecordExtICMP();
 
@@ -77,8 +77,9 @@ int ICMPPlugin::post_create(Flow &rec, const Packet &pkt)
       ext->type_code = *reinterpret_cast<const uint16_t *>(pkt.payload);
 
       rec.add_extension(ext);
+      return ProcessPlugin::FlowAction::GET_ALL_DATA;
    }
-   return 0;
+   return ProcessPlugin::FlowAction::NO_PROCESS;
 }
 
 }
