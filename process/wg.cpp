@@ -70,16 +70,17 @@ ProcessPlugin *WGPlugin::copy()
    return new WGPlugin(*this);
 }
 
-int WGPlugin::post_create(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction WGPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.ip_proto == IPPROTO_UDP) {
       add_ext_wg(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.source_pkt, rec);
+      return ProcessPlugin::FlowAction::GET_ALL_DATA;
    }
 
-   return 0;
+   return ProcessPlugin::FlowAction::NO_PROCESS;
 }
 
-int WGPlugin::pre_update(Flow &rec, Packet &pkt)
+ProcessPlugin::FlowAction WGPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    RecordExtWG *vpn_data = (RecordExtWG *) rec.get_extension(RecordExtWG::REGISTERED_ID);
    if (vpn_data != nullptr && vpn_data->possible_wg) {
@@ -87,15 +88,16 @@ int WGPlugin::pre_update(Flow &rec, Packet &pkt)
       // In case of new flow, flush
       if (flow_flush) {
          flow_flush = false;
-         return FLOW_FLUSH_WITH_REINSERT;
+         return ProcessPlugin::FlowAction::FLUSH_WITH_REINSERT;
       }
       // In other cases, when WG was not detected
       if (!res) {
          vpn_data->possible_wg = 0;
+         return ProcessPlugin::FlowAction::NO_PROCESS;
       }
+      return ProcessPlugin::FlowAction::GET_ALL_DATA;
    }
-
-   return 0;
+   return ProcessPlugin::FlowAction::NO_PROCESS;
 }
 
 void WGPlugin::pre_export(Flow &rec)
