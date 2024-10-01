@@ -85,14 +85,13 @@ ProcessPlugin *NTPPlugin::copy()
  *\param [in] pkt Parsed packet.
  *\return 0 on success or FLOW_FLUSH option.
  */
-int NTPPlugin::post_create(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction NTPPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.dst_port == 123 || pkt.src_port == 123) {
       add_ext_ntp(rec, pkt);
-      return FLOW_FLUSH;
+      return ProcessPlugin::FlowAction::FLUSH;
    }
-
-   return 0;
+   return ProcessPlugin::FlowAction::NO_PROCESS;
 }
 
 /**
