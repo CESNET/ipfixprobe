@@ -532,7 +532,7 @@ public:
    std::string get_name() const { return "osquery"; }
    ProcessPlugin *copy();
 
-   int post_create(Flow &rec, const Packet &pkt);
+   ProcessPlugin::FlowAction post_create(Flow &rec, const Packet &pkt);
    void finish(bool print_stats);
 
 private:
