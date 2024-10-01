@@ -174,7 +174,7 @@ class SSADetectorPlugin : public ProcessPlugin {
    RecordExt* get_ext() const { return new RecordExtSSADetector(); }
    ProcessPlugin* copy();
 
-   int post_update(Flow& rec, const Packet& pkt);
+   ProcessPlugin::FlowAction post_update(Flow& rec, const Packet& pkt);
    void pre_export(Flow& rec);
    void update_record(RecordExtSSADetector* record, const Packet& pkt);
    static inline void
