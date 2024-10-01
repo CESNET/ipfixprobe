@@ -82,21 +82,21 @@ ProcessPlugin *StatsPlugin::copy()
    return new StatsPlugin(*this);
 }
 
-int StatsPlugin::post_create(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction StatsPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    m_packets += 1;
    m_new_flows += 1;
    m_flows_in_cache += 1;
    check_timestamp(pkt);
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
-int StatsPlugin::post_update(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction StatsPlugin::post_update(Flow &rec, const Packet &pkt)
 {
    m_packets += 1;
    m_cache_hits += 1;
    check_timestamp(pkt);
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 void StatsPlugin::pre_export(Flow &rec)
