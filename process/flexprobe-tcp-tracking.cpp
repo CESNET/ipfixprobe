@@ -73,14 +73,14 @@ namespace ipxp
         return direction == 0 ? fs : FlowState::OK;
     }
 
-    int FlexprobeTcpTracking::post_create(Flow& rec, const Packet& pkt)
+    ProcessPlugin::FlowAction FlexprobeTcpTracking::post_create(Flow& rec, const Packet& pkt)
     {
         if (!pkt.custom) {
-            return 0;
+            return ProcessPlugin::FlowAction::NO_PROCESS;
         }
 
         if (pkt.ip_proto != 0x6) { // track only TCP
-            return 0;
+            return ProcessPlugin::FlowAction::NO_PROCESS;
         }
 
         auto data_view = reinterpret_cast<const Flexprobe::FlexprobeData *>(pkt.custom);
@@ -99,17 +99,17 @@ namespace ipxp
             rec.add_extension(td);
         }
 
-        return 0;
+        return ProcessPlugin::FlowAction::GET_ALL_DATA;
     }
 
-    int FlexprobeTcpTracking::post_update(Flow& rec, const Packet& pkt)
+    ProcessPlugin::FlowAction FlexprobeTcpTracking::post_update(Flow& rec, const Packet& pkt)
     {
         if (!pkt.custom) {
-            return 0;
+            return ProcessPlugin::FlowAction::NO_PROCESS;
         }
 
         if (pkt.ip_proto != 0x6) { // track only TCP
-            return 0;
+            return ProcessPlugin::FlowAction::NO_PROCESS;
         }
 
         auto data_view = reinterpret_cast<const Flexprobe::FlexprobeData *>(pkt.custom);
@@ -124,7 +124,7 @@ namespace ipxp
                                                                       data_view->payload_size,
                                                                       pkt.tcp_flags & 0x2,
                                                                       pkt.tcp_flags & 0x1);
-            return 0;
+            return ProcessPlugin::FlowAction::GET_ALL_DATA;
         }
         auto check_result = check_(*tcp_data, next_tcp, direction);
         if (check_result == FlowState::PACKET_LOSS) {
@@ -146,7 +146,7 @@ namespace ipxp
                 break;
         }
 
-        return 0;
+        return ProcessPlugin::FlowAction::GET_ALL_DATA;
     }
 
 }

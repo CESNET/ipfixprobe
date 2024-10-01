@@ -84,10 +84,10 @@ public:
         return new FlexprobeDataProcessing(*this);
     }
 
-    int post_create(Flow &rec, const Packet &pkt) override
+    ProcessPlugin::FlowAction post_create(Flow &rec, const Packet &pkt) override
     {
         if (!pkt.custom) {
-            return 0;
+            return ProcessPlugin::FlowAction::NO_PROCESS;
         }
 
         if (!rec.get_extension(FlexprobeData::REGISTERED_ID)) {
@@ -97,7 +97,7 @@ public:
             fd->interface_in = data_view->interface_in;
             rec.add_extension(fd);
         }
-        return 0;
+        return ProcessPlugin::FlowAction::GET_ALL_DATA;
     }
 };
 

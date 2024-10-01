@@ -40,20 +40,20 @@ __attribute__((constructor)) static void register_this_plugin()
    FlexprobeEncryptionData::REGISTERED_ID = register_extension();
 }
 
-int FlexprobeEncryptionProcessing::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction FlexprobeEncryptionProcessing::post_create(Flow& rec, const Packet& pkt)
 {
     if (!rec.get_extension(FlexprobeEncryptionData::REGISTERED_ID)) {
         auto ext = new FlexprobeEncryptionData();
         rec.add_extension(ext);
     }
 
-    return 0;
+    return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 int FlexprobeEncryptionProcessing::post_update(Flow& rec, const Packet& pkt)
 {
     if (!pkt.custom) {
-        return 0;
+        return ProcessPlugin::FlowAction::NO_PROCESS;
     }
 
     // convert timestamp to decimal
@@ -79,7 +79,7 @@ int FlexprobeEncryptionProcessing::post_update(Flow& rec, const Packet& pkt)
         encr_data->mpe_4bit.update(1, encr_data->mpe4_valid_count);
     }
 
-    return 0;
+    return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 }
