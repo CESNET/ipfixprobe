@@ -38,85 +38,103 @@
 #include "flowifc.hpp"
 
 namespace ipxp {
-
-/**
- * \brief Tell storage plugin to flush (immediately export) current flow.
- * Behavior when called from post_create, pre_update and post_update: flush current Flow and erase FlowRecord.
- */
-#define FLOW_FLUSH                  0x1
-
-/**
- * \brief Tell storage plugin to flush (immediately export) current flow.
- * Behavior when called from post_create: flush current Flow and erase FlowRecord.
- * Behavior when called from pre_update and post_update: flush current Flow, erase FlowRecord and call post_create on packet.
- */
-#define FLOW_FLUSH_WITH_REINSERT    0x3
-
 /**
  * \brief Class template for flow cache plugins.
  */
 class ProcessPlugin : public Plugin
 {
 public:
-   ProcessPlugin() {}
-   virtual ~ProcessPlugin() {}
-   virtual ProcessPlugin *copy() = 0;
+    enum FlowAction : int {
+        /**
+         * \brief Tell storage plugin that process plugin requires all incoming data for given flow.
+         */
+        GET_ALL_DATA = 0,
+        /**
+         * \brief Tell storage plugin that process plugin requires only metadata.
+         * Used to offload the cache when all process plugin return GET_METADATA.
+         */
+        GET_METADATA = 0x2,
+        /**
+         * \brief Tell storage plugin that process plugin has ended up its work and doesn't require
+         * any new data. Used to offload the cache when all process plugin return NO_PROCESS.
+         */
+        NO_PROCESS = 0x4,
+        /**
+         * \brief Tell storage plugin to flush (immediately export) current flow.
+         * Behavior when called from post_create, pre_update and post_update: flush current Flow and
+         * erase FlowRecord.
+         */
+        FLUSH = 0x1,
 
-   virtual RecordExt *get_ext() const
-   {
-      return nullptr;
-   }
+        /**
+         * \brief Tell storage plugin to flush (immediately export) current flow.
+         * Behavior when called from post_create: flush current Flow and erase FlowRecord.
+         * Behavior when called from pre_update and post_update: flush current Flow, erase
+         * FlowRecord and call post_create on packet.
+         */
+        FLUSH_WITH_REINSERT = 0x7
+    };
 
-   /**
-    * \brief Called before a new flow record is created.
-    * \param [in] pkt Parsed packet.
-    * \return 0 on success or FLOW_FLUSH option.
-    */
-   virtual int pre_create(Packet &pkt)
-   {
-      return 0;
-   }
+    ProcessPlugin() {}
+    virtual ~ProcessPlugin() {}
+    virtual ProcessPlugin* copy() = 0;
 
-   /**
-    * \brief Called after a new flow record is created.
-    * \param [in,out] rec Reference to flow record.
-    * \param [in] pkt Parsed packet.
-    * \return 0 on success or FLOW_FLUSH option.
-    */
-   virtual int post_create(Flow &rec, const Packet &pkt)
-   {
-      return 0;
-   }
+    virtual RecordExt *get_ext() const
+    {
+        return nullptr;
+    }
 
-   /**
-    * \brief Called before an existing record is update.
-    * \param [in,out] rec Reference to flow record.
-    * \param [in,out] pkt Parsed packet.
-    * \return 0 on success or FLOW_FLUSH option.
-    */
-   virtual int pre_update(Flow &rec, Packet &pkt)
-   {
-      return 0;
-   }
+    /**
+     * \brief Called before a new flow record is created.
+     * \param [in] pkt Parsed packet.
+     * \return 0 on success or FLOW_FLUSH option.
+     */
+    virtual FlowAction pre_create(Packet& pkt)
+    {
+        return FlowAction::GET_ALL_DATA;
+    }
 
-   /**
-    * \brief Called after an existing record is updated.
-    * \param [in,out] rec Reference to flow record.
-    * \param [in,out] pkt Parsed packet.
-    * \return 0 on success or FLOW_FLUSH option.
-    */
-   virtual int post_update(Flow &rec, const Packet &pkt)
-   {
-      return 0;
-   }
+    /**
+     * \brief Called after a new flow record is created.
+     * \param [in,out] rec Reference to flow record.
+     * \param [in] pkt Parsed packet.
+     * \return 0 on success or FLOW_FLUSH option.
+     */
+    virtual FlowAction post_create(Flow& rec, const Packet& pkt)
+    {
+        return FlowAction::GET_ALL_DATA;
+    }
 
-   /**
-    * \brief Called before a flow record is exported from the cache.
-    * \param [in,out] rec Reference to flow record.
-    */
-   virtual void pre_export(Flow &rec)
-   {
-   }
+    /**
+     * \brief Called before an existing record is update.
+     * \param [in,out] rec Reference to flow record.
+     * \param [in,out] pkt Parsed packet.
+     * \return 0 on success or FLOW_FLUSH option.
+     */
+    virtual FlowAction pre_update(Flow& rec, Packet& pkt)
+    {
+        return FlowAction::GET_ALL_DATA;
+    }
+
+    /**
+     * \brief Called after an existing record is updated.
+     * \param [in,out] rec Reference to flow record.
+     * \param [in,out] pkt Parsed packet.
+     * \return 0 on success or FLOW_FLUSH option.
+     */
+    virtual FlowAction post_update(Flow& rec, const Packet& pkt)
+    {
+        return FlowAction::GET_ALL_DATA;
+    }
+
+    /**
+     * \brief Called before a flow record is exported from the cache.
+     * \param [in,out] rec Reference to flow record.
+     */
+    virtual void pre_export(Flow& rec)
+    {
+
+    }
 };
 
 }
