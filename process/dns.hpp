@@ -188,8 +188,8 @@ public:
    RecordExt *get_ext() const { return new RecordExtDNS(); }
    ProcessPlugin *copy();
 
-   int post_create(Flow &rec, const Packet &pkt);
-   int post_update(Flow &rec, const Packet &pkt);
+   ProcessPlugin::FlowAction post_create(Flow &rec, const Packet &pkt);
+   ProcessPlugin::FlowAction post_update(Flow &rec, const Packet &pkt);
    void finish(bool print_stats);
 
 private:
@@ -201,7 +201,7 @@ private:
    uint32_t data_len;      /**< Length of packet payload. */
 
    bool parse_dns(const char *data, unsigned int payload_len, bool tcp, RecordExtDNS *rec);
-   int  add_ext_dns(const char *data, unsigned int payload_len, bool tcp, Flow &rec);
+   ProcessPlugin::FlowAction add_ext_dns(const char *data, unsigned int payload_len, bool tcp, Flow &rec);
    void process_srv(std::string &str) const;
    void process_rdata(const char *record_begin, const char *data, std::ostringstream &rdata, uint16_t type, size_t length) const;
 
