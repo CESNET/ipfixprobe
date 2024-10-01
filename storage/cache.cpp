@@ -289,7 +289,7 @@ void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int ret, bool source_fl
    m_flushed++;
 #endif /* FLOW_CACHE_STATS */
 
-   if (ret == FLOW_FLUSH_WITH_REINSERT) {
+   if (ret == ProcessPlugin::FlowAction::FLUSH_WITH_REINSERT) {
       FlowRecord *flow = m_flow_table[flow_index];
       flow->m_flow.end_reason = FLOW_END_FORCED;
       ipx_ring_push(m_export_queue, &flow->m_flow);
@@ -306,7 +306,7 @@ void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int ret, bool source_fl
       flow->update(pkt, source_flow); // Set new counters from packet
 
       ret = plugins_post_create(flow->m_flow, pkt);
-      if (ret & FLOW_FLUSH) {
+      if (ret & ProcessPlugin::FlowAction::FLUSH) {
          flush(pkt, flow_index, ret, source_flow);
       }
    } else {
@@ -432,7 +432,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       flow->create(pkt, hashval);
       ret = plugins_post_create(flow->m_flow, pkt);
 
-      if (ret & FLOW_FLUSH) {
+      if (ret & ProcessPlugin::FlowAction::FLUSH) {
          export_flow(flow_index);
 #ifdef FLOW_CACHE_STATS
          m_flushed++;
@@ -462,14 +462,14 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       }
 
       ret = plugins_pre_update(flow->m_flow, pkt);
-      if (ret & FLOW_FLUSH) {
+      if (ret & ProcessPlugin::FlowAction::FLUSH) {
          flush(pkt, flow_index, ret, source_flow);
          return 0;
       } else {
          flow->update(pkt, source_flow);
          ret = plugins_post_update(flow->m_flow, pkt);
 
-         if (ret & FLOW_FLUSH) {
+         if (ret & ProcessPlugin::FlowAction::FLUSH) {
             flush(pkt, flow_index, ret, source_flow);
             return 0;
          }
