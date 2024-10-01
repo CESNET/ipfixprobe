@@ -94,19 +94,21 @@ ProcessPlugin *RTSPPlugin::copy()
    return new RTSPPlugin(*this);
 }
 
-int RTSPPlugin::post_create(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction RTSPPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    const char *payload = reinterpret_cast<const char *>(pkt.payload);
    if (is_request(payload, pkt.payload_len)) {
       add_ext_rtsp_request(payload, pkt.payload_len, rec);
+      return ProcessPlugin::FlowAction::GET_ALL_DATA;
    } else if (is_response(payload, pkt.payload_len)) {
       add_ext_rtsp_response(payload, pkt.payload_len, rec);
+      return ProcessPlugin::FlowAction::GET_ALL_DATA;
    }
 
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
-int RTSPPlugin::pre_update(Flow &rec, Packet &pkt)
+ProcessPlugin::FlowAction RTSPPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    RecordExt *ext = nullptr;
    const char *payload = reinterpret_cast<const char *>(pkt.payload);
@@ -114,29 +116,29 @@ int RTSPPlugin::pre_update(Flow &rec, Packet &pkt)
       ext = rec.get_extension(RecordExtRTSP::REGISTERED_ID);
       if (ext == nullptr) { /* Check if header is present in flow. */
          add_ext_rtsp_request(payload, pkt.payload_len, rec);
-         return 0;
+         return ProcessPlugin::FlowAction::GET_ALL_DATA;
       }
 
       parse_rtsp_request(payload, pkt.payload_len, static_cast<RecordExtRTSP *>(ext));
       if (flow_flush) {
          flow_flush = false;
-         return FLOW_FLUSH_WITH_REINSERT;
+         return ProcessPlugin::FlowAction::FLUSH_WITH_REINSERT;
       }
    } else if (is_response(payload, pkt.payload_len)) {
       ext = rec.get_extension(RecordExtRTSP::REGISTERED_ID);
       if (ext == nullptr) { /* Check if header is present in flow. */
          add_ext_rtsp_response(payload, pkt.payload_len, rec);
-         return 0;
+         return ProcessPlugin::FlowAction::GET_ALL_DATA;
       }
 
       parse_rtsp_response(payload, pkt.payload_len, static_cast<RecordExtRTSP *>(ext));
       if (flow_flush) {
          flow_flush = false;
-         return FLOW_FLUSH_WITH_REINSERT;
+         return ProcessPlugin::FlowAction::FLUSH_WITH_REINSERT;
       }
    }
 
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 void RTSPPlugin::finish(bool print_stats)
