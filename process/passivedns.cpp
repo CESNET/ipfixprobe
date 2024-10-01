@@ -107,22 +107,22 @@ ProcessPlugin *PassiveDNSPlugin::copy()
    return new PassiveDNSPlugin(*this);
 }
 
-int PassiveDNSPlugin::post_create(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction PassiveDNSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.src_port == 53) {
       return add_ext_dns(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.ip_proto == IPPROTO_TCP, rec);
    }
 
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
-int PassiveDNSPlugin::post_update(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction PassiveDNSPlugin::post_update(Flow &rec, const Packet &pkt)
 {
    if (pkt.src_port == 53) {
       return add_ext_dns(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.ip_proto == IPPROTO_TCP, rec);
    }
 
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 void PassiveDNSPlugin::finish(bool print_stats)
@@ -494,14 +494,14 @@ bool PassiveDNSPlugin::process_ptr_record(std::string name, RecordExtPassiveDNS 
  * \param [in] tcp DNS over tcp.
  * \param [out] rec Destination Flow.
  */
-int PassiveDNSPlugin::add_ext_dns(const char *data, unsigned int payload_len, bool tcp, Flow &rec)
+ProcessPlugin::FlowAction PassiveDNSPlugin::add_ext_dns(const char *data, unsigned int payload_len, bool tcp, Flow &rec)
 {
    RecordExt *tmp = parse_dns(data, payload_len, tcp);
    if (tmp != nullptr) {
       rec.add_extension(tmp);
    }
 
-   return FLOW_FLUSH;
+   return ProcessPlugin::FlowAction::FLUSH;
 }
 
 }
