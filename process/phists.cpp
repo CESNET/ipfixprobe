@@ -154,22 +154,22 @@ void PHISTSPlugin::pre_export(Flow &rec)
    }
 }
 
-int PHISTSPlugin::post_create(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction PHISTSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtPHISTS *phists_data = new RecordExtPHISTS();
 
    rec.add_extension(phists_data);
 
    update_record(phists_data, pkt);
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
-int PHISTSPlugin::post_update(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction PHISTSPlugin::post_update(Flow &rec, const Packet &pkt)
 {
    RecordExtPHISTS *phists_data = (RecordExtPHISTS *) rec.get_extension(RecordExtPHISTS::REGISTERED_ID);
 
    update_record(phists_data, pkt);
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 }
