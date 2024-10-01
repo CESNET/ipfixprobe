@@ -66,27 +66,29 @@ ProcessPlugin *SMTPPlugin::copy()
    return new SMTPPlugin(*this);
 }
 
-int SMTPPlugin::post_create(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction SMTPPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.src_port == 25 || pkt.dst_port == 25) {
       create_smtp_record(rec, pkt);
+      return ProcessPlugin::FlowAction::GET_ALL_DATA;
    }
 
-   return 0;
+   return ProcessPlugin::FlowAction::NO_PROCESS;
 }
 
-int SMTPPlugin::pre_update(Flow &rec, Packet &pkt)
+ProcessPlugin::FlowAction SMTPPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    if (pkt.src_port == 25 || pkt.dst_port == 25) {
       RecordExt *ext = rec.get_extension(RecordExtSMTP::REGISTERED_ID);
       if (ext == nullptr) {
          create_smtp_record(rec, pkt);
-         return 0;
+         return ProcessPlugin::FlowAction::GET_ALL_DATA;
       }
       update_smtp_record(static_cast<RecordExtSMTP *>(ext), pkt);
+      return ProcessPlugin::FlowAction::GET_ALL_DATA;
    }
 
-   return 0;
+   return ProcessPlugin::FlowAction::NO_PROCESS;
 }
 
 char *strncasestr(const char *str, size_t n, const char *substr)
