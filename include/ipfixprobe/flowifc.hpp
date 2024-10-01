@@ -38,6 +38,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <chrono>
 
 #ifdef WITH_NEMEA
 #include <unirec/unirec.h>
@@ -49,6 +50,7 @@
 #include <arpa/inet.h>
 #include "ipaddr.hpp"
 #include <string>
+#include <bitset>
 
 namespace ipxp {
 
@@ -247,7 +249,29 @@ struct Record {
  * \brief Flow record struct constaining basic flow record data and extension headers.
  */
 struct Flow : public Record {
-   uint64_t flow_hash;
+    static inline const int MAXIMAL_PROCESS_PLUGIN_COUNT = 64;
+    /**
+     * \brief Plugins status struct describes flow information required by process plugins.
+     */
+    struct PluginsStatus {
+        // get_no_data[i] == true -> i-th process plugin requires no flow data
+        // get_no_data[i] == false && get_all_data[i] == true -> i-th process plugin requires all
+        // available flow data
+        // get_no_data[i] == false && get_all_data[i] == false -> i-th process plugin requires
+        // only metadata
+        std::bitset<MAXIMAL_PROCESS_PLUGIN_COUNT> get_all_data;
+        std::bitset<MAXIMAL_PROCESS_PLUGIN_COUNT> get_no_data;
+    };
+
+    uint64_t flow_hash;
+
+    #ifdef WITH_CTT
+      uint64_t flow_hash_ctt;     /**< Flow hash for CTT. */
+    #endif
+
+    PluginsStatus plugins_status; /**< Statuses of the process plugins for this flow, used to check
+                                     if the flow process plugins requires all available data, only
+                                     metadata or nothing of this. */
 
    struct timeval time_first;
    struct timeval time_last;
@@ -272,4 +296,5 @@ struct Flow : public Record {
 };
 
 }
+
 #endif /* IPXP_FLOWIFC_HPP */
