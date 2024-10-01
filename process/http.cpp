@@ -99,19 +99,21 @@ ProcessPlugin* HTTPPlugin::copy()
 	return new HTTPPlugin(*this);
 }
 
-int HTTPPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction HTTPPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	const char* payload = reinterpret_cast<const char*>(pkt.payload);
 	if (is_request(payload, pkt.payload_len)) {
 		add_ext_http_request(payload, pkt.payload_len, rec);
+                return ProcessPlugin::FlowAction::GET_ALL_DATA;
 	} else if (is_response(payload, pkt.payload_len)) {
 		add_ext_http_response(payload, pkt.payload_len, rec);
+                return ProcessPlugin::FlowAction::GET_ALL_DATA;
 	}
 
-	return 0;
+	return ProcessPlugin::FlowAction::NO_PROCESS;
 }
 
-int HTTPPlugin::pre_update(Flow& rec, Packet& pkt)
+ProcessPlugin::FlowAction HTTPPlugin::pre_update(Flow& rec, Packet& pkt)
 {
 	RecordExt* ext = nullptr;
 	const char* payload = reinterpret_cast<const char*>(pkt.payload);
@@ -119,29 +121,29 @@ int HTTPPlugin::pre_update(Flow& rec, Packet& pkt)
 		ext = rec.get_extension(RecordExtHTTP::REGISTERED_ID);
 		if (ext == nullptr) { /* Check if header is present in flow. */
 			add_ext_http_request(payload, pkt.payload_len, rec);
-			return 0;
+			return ProcessPlugin::FlowAction::GET_ALL_DATA;
 		}
 
 		parse_http_request(payload, pkt.payload_len, static_cast<RecordExtHTTP*>(ext));
 		if (flow_flush) {
 			flow_flush = false;
-			return FLOW_FLUSH_WITH_REINSERT;
+			return ProcessPlugin::FlowAction::FLUSH_WITH_REINSERT;
 		}
 	} else if (is_response(payload, pkt.payload_len)) {
 		ext = rec.get_extension(RecordExtHTTP::REGISTERED_ID);
 		if (ext == nullptr) { /* Check if header is present in flow. */
 			add_ext_http_response(payload, pkt.payload_len, rec);
-			return 0;
+			return ProcessPlugin::FlowAction::GET_ALL_DATA;
 		}
 
 		parse_http_response(payload, pkt.payload_len, static_cast<RecordExtHTTP*>(ext));
 		if (flow_flush) {
 			flow_flush = false;
-			return FLOW_FLUSH_WITH_REINSERT;
+			return ProcessPlugin::FlowAction::FLUSH_WITH_REINSERT;
 		}
 	}
 
-	return 0;
+	return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 void HTTPPlugin::finish(bool print_stats)
