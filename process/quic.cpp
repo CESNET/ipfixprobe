@@ -383,7 +383,7 @@ int QUICPlugin::process_quic(
 
         if (version == QUICParser::QUIC_VERSION::version_negotiation) {
             set_cid_fields(quic_data, rec, &process_quic, toServer, new_quic_flow, pkt);
-            return FLOW_FLUSH;
+            return ProcessPlugin::FlowAction::FLUSH;
         }
 
         // export if parsed CH
@@ -483,27 +483,18 @@ int QUICPlugin::process_quic(
     return QUIC_NOT_DETECTED;
 } // QUICPlugin::process_quic
 
-int QUICPlugin::pre_create(Packet& pkt)
-{
-    return 0;
-}
 
-int QUICPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction QUICPlugin::post_create(Flow& rec, const Packet& pkt)
 {
     return add_quic(rec, pkt);
 }
 
-int QUICPlugin::pre_update(Flow& rec, Packet& pkt)
-{
-    return 0;
-}
-
-int QUICPlugin::post_update(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction QUICPlugin::post_update(Flow& rec, const Packet& pkt)
 {
     return add_quic(rec, pkt);
 }
 
-int QUICPlugin::add_quic(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction QUICPlugin::add_quic(Flow& rec, const Packet& pkt)
 {
     RecordExtQUIC* q_ptr = (RecordExtQUIC*) rec.get_extension(RecordExtQUIC::REGISTERED_ID);
     bool new_qptr = false;
@@ -514,7 +505,7 @@ int QUICPlugin::add_quic(Flow& rec, const Packet& pkt)
 
     int ret = process_quic(q_ptr, rec, pkt, new_qptr);
     // Test if QUIC extension is not set
-    if (new_qptr && ((ret == QUIC_DETECTED) || (ret == FLOW_FLUSH))) {
+    if (new_qptr && ((ret == QUIC_DETECTED) || (ret == ProcessPlugin::FlowAction::FLUSH))) {
         rec.add_extension(q_ptr);
     }
     if (new_qptr && (ret == QUIC_NOT_DETECTED)) {
@@ -523,9 +514,9 @@ int QUICPlugin::add_quic(Flow& rec, const Packet& pkt)
     }
     // Correct if QUIC has already been detected
     if (!new_qptr && (ret == QUIC_NOT_DETECTED)) {
-        return QUIC_DETECTED;
+        return ProcessPlugin::FlowAction::GET_ALL_DATA;
     }
-    return ret;
+    return ProcessPlugin::FlowAction::NO_PROCESS;
 }
 
 void QUICPlugin::finish(bool print_stats)

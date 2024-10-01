@@ -374,11 +374,9 @@ public:
 
     ProcessPlugin* copy();
 
-    int pre_create(Packet& pkt);
-    int post_create(Flow& rec, const Packet& pkt);
-    int pre_update(Flow& rec, Packet& pkt);
-    int post_update(Flow& rec, const Packet& pkt);
-    int add_quic(Flow& rec, const Packet& pkt);
+    ProcessPlugin::FlowAction post_create(Flow& rec, const Packet& pkt);
+    ProcessPlugin::FlowAction post_update(Flow& rec, const Packet& pkt);
+    ProcessPlugin::FlowAction add_quic(Flow& rec, const Packet& pkt);
     void finish(bool print_stats);
     void set_packet_type(RecordExtQUIC* quic_data, Flow& rec, uint8_t packets);
 
