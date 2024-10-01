@@ -67,10 +67,6 @@ ProcessPlugin *BSTATSPlugin::copy()
    return new BSTATSPlugin(*this);
 }
 
-int BSTATSPlugin::pre_create(Packet &pkt)
-{
-   return 0;
-}
 
 #define BCOUNT burst_count[direction]
 void BSTATSPlugin::initialize_new_burst(RecordExtBSTATS *bstats_record, uint8_t direction, const Packet &pkt)
@@ -133,26 +129,21 @@ void BSTATSPlugin::update_record(RecordExtBSTATS *bstats_record, const Packet &p
    }
 }
 
-int BSTATSPlugin::post_create(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction BSTATSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtBSTATS *bstats_record = new RecordExtBSTATS();
 
    rec.add_extension(bstats_record);
    update_record(bstats_record, pkt);
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
-int BSTATSPlugin::pre_update(Flow &rec, Packet &pkt)
+ProcessPlugin::FlowAction BSTATSPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    RecordExtBSTATS *bstats_record = static_cast<RecordExtBSTATS *>(rec.get_extension(RecordExtBSTATS::REGISTERED_ID));
 
    update_record(bstats_record, pkt);
-   return 0;
-}
-
-int BSTATSPlugin::post_update(Flow &rec, const Packet &pkt)
-{
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 void BSTATSPlugin::pre_export(Flow &rec)
