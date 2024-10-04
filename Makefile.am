@@ -42,6 +42,12 @@ ipfixprobe_input_src+=\
 		input/ndp.hpp
 endif
 
+if WITH_NDPCTT
+ipfixprobe_input_src +=\
+		input/ndp-ctt.cpp \
+		input/ndp-ctt.hpp
+endif
+
 if WITH_RAW
 ipfixprobe_input_src+=\
 		input/raw.cpp \
