@@ -193,6 +193,15 @@ struct FlowRecordStats {
    uint64_t packets_count_11_20;
    uint64_t packets_count_21_50;
    uint64_t packets_count_51_plus;
+
+   uint64_t bytes_count_1;
+   uint64_t bytes_count_2_5;
+   uint64_t bytes_count_6_10;
+   uint64_t bytes_count_11_20;
+   uint64_t bytes_count_21_50;
+   uint64_t bytes_count_51_plus;
+
+   uint64_t dns_1_packets;
 };
 
 class NHTFlowCache : TelemetryUtils, public StoragePlugin
@@ -255,7 +264,7 @@ private:
    void finish();
 
    void update_flow_end_reason_stats(uint8_t reason);
-   void update_flow_record_stats(uint64_t packets_count);
+   void update_flow_record_stats(uint64_t packets_count, Flow &flow);
    telemetry::Content get_cache_telemetry();
    void prefetch_export_expired() const;
 

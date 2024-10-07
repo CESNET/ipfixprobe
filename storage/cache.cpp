@@ -260,7 +260,7 @@ void NHTFlowCache::export_flow(size_t index)
    update_flow_end_reason_stats(m_flow_table[index]->m_flow.end_reason);
    update_flow_record_stats(
       m_flow_table[index]->m_flow.src_packets 
-      + m_flow_table[index]->m_flow.dst_packets);
+      + m_flow_table[index]->m_flow.dst_packets, m_flow_table[index]->m_flow);
    m_flows_in_cache--;
    
    ipx_ring_push(m_export_queue, &m_flow_table[index]->m_flow);
@@ -587,20 +587,29 @@ void NHTFlowCache::set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir)
    }
 }
 
-void NHTFlowCache::update_flow_record_stats(uint64_t packets_count)
+void NHTFlowCache::update_flow_record_stats(uint64_t packets_count, Flow &flow)
 {
    if (packets_count == 1) {
       m_flow_record_stats.packets_count_1++;
+      m_flow_record_stats.bytes_count_1 += flow.src_bytes + flow.dst_bytes;
+      if (flow.src_port == 53 || flow.dst_port == 53) {
+         m_flow_record_stats.dns_1_packets++;
+      }
    } else if (packets_count >= 2 && packets_count <= 5) {
       m_flow_record_stats.packets_count_2_5++;
+      m_flow_record_stats.bytes_count_2_5 += flow.src_bytes + flow.dst_bytes;
    } else if (packets_count >= 6 && packets_count <= 10) {
       m_flow_record_stats.packets_count_6_10++;
+      m_flow_record_stats.bytes_count_6_10 += flow.src_bytes + flow.dst_bytes;
    } else if (packets_count >= 11 && packets_count <= 20) {
       m_flow_record_stats.packets_count_11_20++;
+      m_flow_record_stats.bytes_count_11_20 += flow.src_bytes + flow.dst_bytes;
    } else if (packets_count >= 21 && packets_count <= 50) {
       m_flow_record_stats.packets_count_21_50++;
+      m_flow_record_stats.bytes_count_21_50 += flow.src_bytes + flow.dst_bytes;
    } else {
       m_flow_record_stats.packets_count_51_plus++;
+      m_flow_record_stats.bytes_count_51_plus += flow.src_bytes + flow.dst_bytes;
    }
 }
 
@@ -646,6 +655,16 @@ telemetry::Content NHTFlowCache::get_cache_telemetry()
    dict["FlowRecordStats:11-20packets"] = m_flow_record_stats.packets_count_11_20;
    dict["FlowRecordStats:21-50packets"] = m_flow_record_stats.packets_count_21_50;
    dict["FlowRecordStats:51-plusPackets"] = m_flow_record_stats.packets_count_51_plus;
+
+   dict["FlowRecordStats:1bytes"] = m_flow_record_stats.bytes_count_1;
+   dict["FlowRecordStats:2-5bytes"] = m_flow_record_stats.bytes_count_2_5;
+   dict["FlowRecordStats:6-10bytes"] = m_flow_record_stats.bytes_count_6_10;
+   dict["FlowRecordStats:11-20bytes"] = m_flow_record_stats.bytes_count_11_20;
+   dict["FlowRecordStats:21-50bytes"] = m_flow_record_stats.bytes_count_21_50;
+   dict["FlowRecordStats:51-plusBytes"] = m_flow_record_stats.bytes_count_51_plus;
+
+   dict["FlowRecordStats:DNS1packets"] = m_flow_record_stats.dns_1_packets;
+
 
    dict["TotalExportedFlows"] = m_total_exported;
 
