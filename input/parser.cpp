@@ -357,7 +357,7 @@ uint16_t skip_ipv6_ext_hdrs(const u_char *data_ptr, uint16_t data_len, Packet *p
 
    /* Skip/parse extension headers... */
    while (1) {
-      if ((int)sizeof(struct ip6_ext) > data_len - hdrs_len) {
+      if (hdrs_len > data_len || sizeof(struct ip6_ext) > data_len - hdrs_len) {
          throw "Parser detected malformed packet";
       }
       if (next_hdr == IPPROTO_HOPOPTS ||
