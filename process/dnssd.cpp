@@ -113,16 +113,16 @@ ProcessPlugin *DNSSDPlugin::copy()
    return new DNSSDPlugin(*this);
 }
 
-int DNSSDPlugin::post_create(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction DNSSDPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.dst_port == 5353 || pkt.src_port == 5353) {
       return add_ext_dnssd(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.ip_proto == IPPROTO_TCP, rec);
    }
 
-   return 0;
+   return ProcessPlugin::FlowAction::NO_PROCESS;
 }
 
-int DNSSDPlugin::post_update(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction DNSSDPlugin::post_update(Flow &rec, const Packet &pkt)
 {
    if (pkt.dst_port == 5353 || pkt.src_port == 5353) {
       RecordExt *ext = rec.get_extension(RecordExtDNSSD::REGISTERED_ID);
@@ -133,10 +133,10 @@ int DNSSDPlugin::post_update(Flow &rec, const Packet &pkt)
          parse_dns(reinterpret_cast<const char *>(pkt.payload), pkt.payload_len, pkt.ip_proto == IPPROTO_TCP,
                    static_cast<RecordExtDNSSD *>(ext));
       }
-      return 0;
+      return ProcessPlugin::FlowAction::GET_ALL_DATA;
    }
 
-   return 0;
+   return ProcessPlugin::FlowAction::NO_PROCESS;
 }
 
 void DNSSDPlugin::finish(bool print_stats)
@@ -677,18 +677,17 @@ void DNSSDPlugin::filtered_append(RecordExtDNSSD *rec, std::string name, uint16_
  * \param [in] tcp DNS over tcp.
  * \param [out] rec Destination Flow.
  */
-int DNSSDPlugin::add_ext_dnssd(const char *data, unsigned int payload_len, bool tcp, Flow &rec)
+ProcessPlugin::FlowAction DNSSDPlugin::add_ext_dnssd(const char *data, unsigned int payload_len, bool tcp, Flow &rec)
 {
    RecordExtDNSSD *ext = new RecordExtDNSSD();
 
    if (!parse_dns(data, payload_len, tcp, ext)) {
       delete ext;
-
-      return 0;
+      return ProcessPlugin::FlowAction::NO_PROCESS;
    } else {
       rec.add_extension(ext);
    }
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 }

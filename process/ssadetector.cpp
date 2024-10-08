@@ -119,11 +119,11 @@ void SSADetectorPlugin::update_record(RecordExtSSADetector* record, const Packet
 }
 
 
-int SSADetectorPlugin::post_update(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction SSADetectorPlugin::post_update(Flow& rec, const Packet& pkt)
 {
    RecordExtSSADetector *record = nullptr;
    if (rec.src_packets + rec.dst_packets < MIN_PKT_IN_FLOW) {
-      return 0;
+      return ProcessPlugin::FlowAction::GET_ALL_DATA;
    }
 
    record = (RecordExtSSADetector *) rec.get_extension(RecordExtSSADetector::REGISTERED_ID);
@@ -133,7 +133,7 @@ int SSADetectorPlugin::post_update(Flow& rec, const Packet& pkt)
    }
    
    update_record(record, pkt);
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 double classes_ratio(uint8_t* syn_pkts, uint8_t size)

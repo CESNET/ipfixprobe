@@ -242,10 +242,8 @@ public:
    RecordExt *get_ext() const { return new RecordExtBSTATS(); }
    ProcessPlugin *copy();
 
-   int pre_create(Packet &pkt);
-   int post_create(Flow &rec, const Packet &pkt);
-   int pre_update(Flow &rec, Packet &pkt);
-   int post_update(Flow &rec, const Packet &pkt);
+   ProcessPlugin::FlowAction post_create(Flow &rec, const Packet &pkt);
+   ProcessPlugin::FlowAction pre_update(Flow &rec, Packet &pkt);
    void pre_export(Flow &rec);
 
    static const struct timeval min_packet_in_burst;

@@ -193,8 +193,8 @@ public:
    RecordExt *get_ext() const { return new RecordExtPHISTS(); }
    ProcessPlugin *copy();
 
-   int post_create(Flow &rec, const Packet &pkt);
-   int post_update(Flow &rec, const Packet &pkt);
+   ProcessPlugin::FlowAction post_create(Flow &rec, const Packet &pkt);
+   ProcessPlugin::FlowAction post_update(Flow &rec, const Packet &pkt);
 
 private:
    bool use_zeros;

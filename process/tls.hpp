@@ -230,12 +230,12 @@ public:
 
    ProcessPlugin *copy();
 
-   int post_create(Flow &rec, const Packet &pkt);
-   int pre_update(Flow &rec, Packet &pkt);
+   ProcessPlugin::FlowAction post_create(Flow &rec, const Packet &pkt);
+   ProcessPlugin::FlowAction pre_update(Flow &rec, Packet &pkt);
    void finish(bool print_stats);
 
 private:
-   void add_tls_record(Flow&, const Packet&);
+   ProcessPlugin::FlowAction add_tls_record(Flow&, const Packet&);
    bool parse_tls(const uint8_t *, uint16_t, RecordExtTLS *);
    bool obtain_tls_data(TLSData&, RecordExtTLS *, std::string&, uint8_t);
 

@@ -171,9 +171,9 @@ public:
         return new FlexprobeEncryptionProcessing(*this);
     }
 
-    int post_create(Flow &rec, const Packet &pkt) override;
+    ProcessPlugin::FlowAction post_create(Flow &rec, const Packet &pkt) override;
 
-    int post_update(Flow& rec, const Packet& pkt) override;
+    ProcessPlugin::FlowAction post_update(Flow& rec, const Packet& pkt) override;
 };
 
 }

@@ -218,8 +218,8 @@ public:
    std::string get_name() const { return "pstats"; }
    RecordExt *get_ext() const { return new RecordExtPSTATS(); }
    ProcessPlugin *copy();
-   int post_create(Flow &rec, const Packet &pkt);
-   int post_update(Flow &rec, const Packet &pkt);
+   ProcessPlugin::FlowAction post_create(Flow &rec, const Packet &pkt);
+   ProcessPlugin::FlowAction post_update(Flow &rec, const Packet &pkt);
    void update_record(RecordExtPSTATS *pstats_data, const Packet &pkt);
    void pre_export(Flow &rec);
 

@@ -46,17 +46,17 @@ ProcessPlugin *MPLSPlugin::copy()
    return new MPLSPlugin(*this);
 }
 
-int MPLSPlugin::post_create(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction MPLSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    if (pkt.mplsTop == 0) {
-      return 0;
+      return ProcessPlugin::FlowAction::NO_PROCESS;
    }
 
    auto ext = new RecordExtMPLS();
    ext->mpls = pkt.mplsTop;
 
    rec.add_extension(ext);
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 }

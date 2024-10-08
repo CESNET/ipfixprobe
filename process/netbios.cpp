@@ -67,32 +67,31 @@ ProcessPlugin *NETBIOSPlugin::copy()
    return new NETBIOSPlugin(*this);
 }
 
-int NETBIOSPlugin::post_create(Flow &rec, const Packet &pkt) {
+ProcessPlugin::FlowAction NETBIOSPlugin::post_create(Flow &rec, const Packet &pkt) {
     if (pkt.dst_port == 137 || pkt.src_port == 137) {
         return add_netbios_ext(rec, pkt);
     }
 
-    return 0;
+    return ProcessPlugin::FlowAction::NO_PROCESS;
 }
 
-int NETBIOSPlugin::post_update(Flow &rec, const Packet &pkt) {
+ProcessPlugin::FlowAction NETBIOSPlugin::post_update(Flow &rec, const Packet &pkt) {
     if (pkt.dst_port == 137 || pkt.src_port == 137) {
         return add_netbios_ext(rec, pkt);
     }
-
-    return 0;
+    return ProcessPlugin::FlowAction::NO_PROCESS;
 }
 
-int NETBIOSPlugin::add_netbios_ext(Flow &rec, const Packet &pkt) {
+ProcessPlugin::FlowAction NETBIOSPlugin::add_netbios_ext(Flow &rec, const Packet &pkt) {
     RecordExtNETBIOS *ext = new RecordExtNETBIOS();
     if (parse_nbns(ext, pkt)) {
         total_netbios_packets++;
         rec.add_extension(ext);
     } else {
         delete ext;
+        return ProcessPlugin::FlowAction::NO_PROCESS;
     }
-
-    return 0;
+    return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 bool NETBIOSPlugin::parse_nbns(RecordExtNETBIOS *rec, const Packet &pkt) {

@@ -146,13 +146,13 @@ void PSTATSPlugin::update_record(RecordExtPSTATS *pstats_data, const Packet &pkt
    }
 }
 
-int PSTATSPlugin::post_create(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction PSTATSPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtPSTATS *pstats_data = new RecordExtPSTATS();
    rec.add_extension(pstats_data);
 
    update_record(pstats_data, pkt);
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 void PSTATSPlugin::pre_export(Flow &rec)
@@ -163,14 +163,13 @@ void PSTATSPlugin::pre_export(Flow &rec)
    if (packets <= PSTATS_MINLEN && (flags & 0x02)) { //tcp SYN set
       rec.remove_extension(RecordExtPSTATS::REGISTERED_ID);
    }
-
 }
 
-int PSTATSPlugin::post_update(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction PSTATSPlugin::post_update(Flow &rec, const Packet &pkt)
 {
    RecordExtPSTATS *pstats_data = (RecordExtPSTATS *) rec.get_extension(RecordExtPSTATS::REGISTERED_ID);
    update_record(pstats_data, pkt);
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 }

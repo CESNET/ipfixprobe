@@ -79,21 +79,21 @@ void IDPCONTENTPlugin::update_record(RecordExtIDPCONTENT *idpcontent_data, const
    }
 }
 
-int IDPCONTENTPlugin::post_create(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction IDPCONTENTPlugin::post_create(Flow &rec, const Packet &pkt)
 {
    RecordExtIDPCONTENT *idpcontent_data = new RecordExtIDPCONTENT();
    memset(idpcontent_data->pkt_export_flg, 0, 2 * sizeof(uint8_t));
    rec.add_extension(idpcontent_data);
 
    update_record(idpcontent_data, pkt);
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
-int IDPCONTENTPlugin::post_update(Flow &rec, const Packet &pkt)
+ProcessPlugin::FlowAction IDPCONTENTPlugin::post_update(Flow &rec, const Packet &pkt)
 {
    RecordExtIDPCONTENT *idpcontent_data = static_cast<RecordExtIDPCONTENT *>(rec.get_extension(RecordExtIDPCONTENT::REGISTERED_ID));
    update_record(idpcontent_data, pkt);
-   return 0;
+   return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 }
