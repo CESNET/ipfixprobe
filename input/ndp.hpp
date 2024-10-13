@@ -39,18 +39,41 @@
 
 namespace ipxp {
 
+struct Metadata_CTT {
+    uint16_t vlan_tci;
+    uint8_t vlan_vld : 1;
+    uint8_t vlan_stripped : 1;
+    uint8_t l3_csum_status : 2;
+    uint8_t l4_csum_status : 2;
+    uint8_t parser_status : 2;
+    uint8_t ifc;
+    uint16_t filter_bitmap;
+    uint8_t ctt_export_trig : 1;
+    uint8_t ctt_rec_matched : 1;
+    uint8_t ctt_rec_created : 1;
+    uint8_t ctt_rec_deleted : 1;
+    uint64_t flow_hash;
+    uint64_t l2_len : 7;
+    uint64_t l3_len : 9;
+    uint64_t l4_len : 8;
+    uint64_t l2_ptype : 4;
+    uint64_t l3_ptype : 4;
+    uint64_t l4_ptype : 4;
+};
+
 class NdpOptParser : public OptionsParser
 {
 public:
    std::string m_dev;
    uint64_t m_id;
+   std::string m_metadata;
 
-   NdpOptParser() : OptionsParser("ndp", "Input plugin for reading packets from a ndp device"), m_dev(""), m_id(0)
+   NdpOptParser() : OptionsParser("ndp", "Input plugin for reading packets from a ndp device"), m_dev(""), m_id(0), m_metadata("")
    {
       register_option("d", "dev", "PATH", "Path to a device file", [this](const char *arg){m_dev = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("I", "id", "NUM", "Link identifier number",
-         [this](const char *arg){try {m_id = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
+         [this](const char *arg){try {m_id = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;}, OptionFlags::RequiredArgument);
+      register_option("M", "meta", "Metadata type", "Choose metadata type if any", [this](const char *arg){m_metadata = arg; return true;}, OptionFlags::RequiredArgument);
    }
 };
 
@@ -81,7 +104,10 @@ private:
    NdpReader ndpReader;
    RxStats m_stats = {};
 
+   bool m_ctt_metadata = false;
+
    void init_ifc(const std::string &dev);
+   void parse_ctt_metadata(const struct ndp_packet *ndp_packet);
 };
 
 }

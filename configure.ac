@@ -211,17 +211,6 @@ AC_ARG_WITH([ndp],
         ], [withndp="no"]
 )
 
-AC_ARG_WITH([ndpctt],
-         AC_HELP_STRING([--with-ndpctt],[Compile ipfixprobe with ndpctt plugin for capturing using netcope-common library with Connection Tracking Table]),
-         [
-         if test "$withval" = "yes"; then
-          withndpctt="yes"
-         else
-          withndpctt="no"
-         fi
-         ], [withndpctt="no"]
-)
-
 if test x${withndp} = xyes; then
         AC_CHECK_HEADER(nfb/nfb.h, AC_CHECK_LIB(nfb, nfb_open, [libnfb=yes],
           [AC_MSG_ERROR([libnfb not found. Try installing netcope-common])]
@@ -231,15 +220,6 @@ fi
 AM_CONDITIONAL(WITH_NDP,  test x${libnfb} = xyes && test x${withndp} = xyes)
 if [[ -z "$WITH_NDP_TRUE" ]]; then
    AC_DEFINE([WITH_NDP], [1], [Define to 1 if the ndp is available])
-   CPPFLAGS="$CPPFLAGS -DIPXP_FLOW_CACHE_SIZE=19 -DIPXP_FLOW_LINE_SIZE=2" # 524288 cache records, 4 record per line
-   LIBS="-lnfb $LIBS"
-   RPM_REQUIRES+=" netcope-common"
-   RPM_BUILDREQ+=" netcope-common-devel"
-fi
-
-AM_CONDITIONAL(WITH_NDPCTT,  test x${libnfb} = xyes && test x${withndpctt} = xyes)
-if [[ -z "$WITH_NDPCTT_TRUE" ]]; then
-   AC_DEFINE([WITH_NDPCTT], [1], [Define to 1 if the ndp is available])
    CPPFLAGS="$CPPFLAGS -DIPXP_FLOW_CACHE_SIZE=19 -DIPXP_FLOW_LINE_SIZE=2" # 524288 cache records, 4 record per line
    LIBS="-lnfb $LIBS"
    RPM_REQUIRES+=" netcope-common"
