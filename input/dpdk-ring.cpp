@@ -211,7 +211,7 @@ InputPlugin::Result DpdkRingReader::get(PacketBlock& packets)
     m_stats.receivedPackets += pkts_read_;
     m_stats.receivedBytes += packets.bytes;
 
-    return Result::PARSED;
+    return opt.pblock->cnt ? Result::PARSED : Result::NOT_PARSED;
 }
 
 telemetry::Content DpdkRingReader::get_queue_telemetry()
