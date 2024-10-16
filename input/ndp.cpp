@@ -42,26 +42,17 @@
 
 namespace ipxp {
 
-template <typename T>
-T extract(const uint8_t* metadata, size_t bit_position, size_t num_bits) {
-    uint64_t result = 0;
-    size_t bit_offset = bit_position % 8;
-    size_t byte_index = bit_position / 8;
-    size_t bits_extracted = 0;
-
-    while (bits_extracted < num_bits) {
-        uint8_t byte = metadata[byte_index++];
-        uint8_t bits_in_this_byte = std::min(8 - bit_offset, num_bits - bits_extracted);
-
-        uint8_t mask = ((1 << bits_in_this_byte) - 1) << (8 - bit_offset - bits_in_this_byte);
-        uint8_t extracted_bits = (byte & mask) >> (8 - bit_offset - bits_in_this_byte);
-
-        result = (result << bits_in_this_byte) | extracted_bits;
-
-        bits_extracted += bits_in_this_byte;
-        bit_offset = 0;
-    }
-    return static_cast<T>(result);
+uint64_t extract(const uint8_t* bitvec, size_t start_bit, size_t bit_length) {
+   size_t start_byte = start_bit / 8;
+   size_t end_bit = start_bit + bit_length;
+   size_t end_byte = (end_bit + 7) / 8;
+   uint64_t value = 0;
+   for (size_t i = 0; i < end_byte - start_byte; ++i) {
+      value |= static_cast<uint64_t>(bitvec[start_byte + i]) << (8 * i);
+   }
+   value >>= (start_bit % 8);
+   uint64_t mask = (bit_length == 64) ? ~0ULL : ((1ULL << bit_length) - 1);
+   return value & mask;
 }
 
 telemetry::Content NdpPacketReader::get_queue_telemetry()
@@ -117,9 +108,8 @@ void NdpPacketReader::init_ifc(const std::string &dev)
    }
 }
 
-void NdpPacketReader::parse_ctt_metadata(const struct ndp_packet *ndp_packet)
+void NdpPacketReader::parse_ctt_metadata(const ndp_packet *ndp_packet, Metadata_CTT &ctt)
 {
-   Metadata_CTT ctt;
    if (ndp_packet->header_length != 32) {
       throw PluginError("Metadata bad length, cannot parse, length: " + std::to_string(ndp_packet->header_length));
    }
@@ -129,52 +119,52 @@ void NdpPacketReader::parse_ctt_metadata(const struct ndp_packet *ndp_packet)
    }
    printf("\n");
 
-   uint32_t timestamp_nanosec = *((uint32_t*)metadata);
-   uint32_t timestamp_sec = *((uint32_t*)metadata+1);
-   timeval tv;
-   tv.tv_sec = timestamp_sec;
-   tv.tv_usec = timestamp_nanosec / 1000;
+   ctt.ts.tv_usec = extract(metadata, 0, 32);
+   ctt.ts.tv_sec = extract(metadata, 32, 32);
+   ctt.vlan_tci = extract(metadata, 64, 16);
+   ctt.vlan_vld = extract(metadata, 80, 1);
+   ctt.vlan_stripped = extract(metadata, 81, 1);
+   ctt.ip_csum_status = extract(metadata, 82, 2);
+   ctt.l4_csum_status = extract(metadata, 84, 2);
+   ctt.parser_status = extract(metadata, 86, 2);
+   ctt.ifc = extract(metadata, 88, 8);
+   ctt.filter_bitmap = extract(metadata, 96, 16);
+   ctt.ctt_export_trig = extract(metadata, 112, 1);
+   ctt.ctt_rec_matched = extract(metadata, 113, 1);
+   ctt.ctt_rec_created = extract(metadata, 114, 1);
+   ctt.ctt_rec_deleted = extract(metadata, 115, 1);
+   ctt.flow_hash = extract(metadata, 128, 64);
+   ctt.l2_len = extract(metadata, 192, 7);
+   ctt.l3_len = extract(metadata, 199, 9);
+   ctt.l4_len = extract(metadata, 208, 8);
+   ctt.l2_ptype = extract(metadata, 216, 4);
+   ctt.l3_ptype = extract(metadata, 220, 4);
+   ctt.l4_ptype = extract(metadata, 224, 4);
 
-   ctt.vlan_tci         = extract<uint16_t>(metadata,  64,  16);
-   ctt.vlan_vld         = extract<uint8_t>(metadata,   80,   1);
-   ctt.vlan_stripped    = extract<uint8_t>(metadata,   81,   1);
-   ctt.l3_csum_status   = extract<uint8_t>(metadata,   82,   2);
-   ctt.l4_csum_status   = extract<uint8_t>(metadata,   84,   2);
-   ctt.parser_status    = extract<uint8_t>(metadata,   86,   2);
-   ctt.ifc              = extract<uint8_t>(metadata,   88,   8);
-   ctt.filter_bitmap    = extract<uint16_t>(metadata,  96,  16);
-   ctt.ctt_export_trig  = extract<uint8_t>(metadata,  112,   1);
-   ctt.ctt_rec_matched  = extract<uint8_t>(metadata,  113,   1);
-   ctt.ctt_rec_created  = extract<uint8_t>(metadata,  114,   1);
-   ctt.ctt_rec_deleted  = extract<uint8_t>(metadata,  115,   1);
-   ctt.flow_hash        = extract<uint64_t>(metadata, 128,  64);
-   ctt.l2_len           = extract<uint16_t>(metadata, 192,   7);
-   ctt.l3_len           = extract<uint16_t>(metadata, 199,   9);
-   ctt.l4_len           = extract<uint8_t>(metadata,  208,   8);
-   ctt.l2_ptype         = extract<uint8_t>(metadata,  216,   4);
-   ctt.l3_ptype         = extract<uint8_t>(metadata,  220,   4);
-   ctt.l4_ptype         = extract<uint8_t>(metadata,  224,   4);
+   // show time
+   printf("Metadata:\n");
+   printf("\t microseconds: %08x\n", (uint32_t)ctt.ts.tv_usec);
+   printf("\t seconds: %08x\n", (uint32_t)ctt.ts.tv_sec);
+   printf("\t tci: %04x\n", ctt.vlan_tci);
+   printf("\t vlan_vld: %d\n", ctt.vlan_vld);
+   printf("\t vlan_stripped: %d\n", ctt.vlan_stripped);
+   printf("\t ip_csum_status: %d\n", ctt.ip_csum_status);
+   printf("\t l4_csum_status: %d\n", ctt.l4_csum_status);
+   printf("\t parser_status: %d\n", ctt.parser_status);
+   printf("\t ifc: %d\n", ctt.ifc);
+   printf("\t filter_bitmap: %04x\n", ctt.filter_bitmap);
+   printf("\t ctt_export_trig: %d\n", ctt.ctt_export_trig);
+   printf("\t ctt_rec_matched: %d\n", ctt.ctt_rec_matched);
+   printf("\t ctt_rec_created: %d\n", ctt.ctt_rec_created);
+   printf("\t ctt_rec_deleted: %d\n", ctt.ctt_rec_deleted);
+   printf("\t flow_hash: %016" PRIx64 "\n", ctt.flow_hash);
+   printf("\t l2_len: %d\n", ctt.l2_len );
+   printf("\t l3_len: %d\n", ctt.l3_len);
+   printf("\t l4_len: %d\n", ctt.l4_len);
+   printf("\t l2_ptype: %x\n", ctt.l2_ptype);
+   printf("\t l3_ptype: %x\n", ctt.l3_ptype);
+   printf("\t l4_ptype: %x\n", ctt.l4_ptype);
 
-   printf("Timestamp: %u.%u\n", timestamp_sec, timestamp_nanosec);
-   printf("VLAN TCI: %" PRIu16 " (0x%" PRIx16 ")\n", ctt.vlan_tci, ctt.vlan_tci);
-   printf("VLAN VLD: %" PRIu8 " (0x%" PRIx8 ")\n", ctt.vlan_vld, ctt.vlan_vld);
-   printf("VLAN STRIPPED: %" PRIu8 " (0x%" PRIx8 ")\n", ctt.vlan_stripped, ctt.vlan_stripped);
-   printf("L3 CSUM STATUS: %" PRIu8 " (0x%" PRIx8 ")\n", ctt.l3_csum_status, ctt.l3_csum_status);
-   printf("L4 CSUM STATUS: %" PRIu8 " (0x%" PRIx8 ")\n", ctt.l4_csum_status, ctt.l4_csum_status);
-   printf("PARSER STATUS: %" PRIu8 " (0x%" PRIx8 ")\n", ctt.parser_status, ctt.parser_status);
-   printf("IFC: %" PRIu8 " (0x%" PRIx8 ")\n", ctt.ifc, ctt.ifc);
-   printf("FILTER BITMAP: %" PRIu16 " (0x%" PRIx16 ")\n", ctt.filter_bitmap, ctt.filter_bitmap);
-   printf("CTT EXPORT TRIG: %" PRIu8 " (0x%" PRIx8 ")\n", ctt.ctt_export_trig, ctt.ctt_export_trig);
-   printf("CTT REC MATCHED: %" PRIu8 " (0x%" PRIx8 ")\n", ctt.ctt_rec_matched, ctt.ctt_rec_matched);
-   printf("CTT REC CREATED: %" PRIu8 " (0x%" PRIx8 ")\n", ctt.ctt_rec_created, ctt.ctt_rec_created);
-   printf("CTT REC DELETED: %" PRIu8 " (0x%" PRIx8 ")\n", ctt.ctt_rec_deleted, ctt.ctt_rec_deleted);
-   printf("FLOW HASH: %" PRIu64 " (0x%" PRIx64 ")\n", ctt.flow_hash, ctt.flow_hash);
-   printf("L2 LEN: %" PRIu16 " (0x%" PRIx16 ")\n", ctt.l2_len, ctt.l2_len);
-   printf("L3 LEN: %" PRIu16 " (0x%" PRIx16 ")\n", ctt.l3_len, ctt.l3_len);
-   printf("L4 LEN: %" PRIu8 " (0x%" PRIx8 ")\n", ctt.l4_len, ctt.l4_len);
-   printf("L2 PTYPE: %" PRIu8 " (0x%" PRIx8 ")\n", ctt.l2_ptype, ctt.l2_ptype);
-   printf("L3 PTYPE: %" PRIu8 " (0x%" PRIx8 ")\n", ctt.l3_ptype, ctt.l3_ptype);
-   printf("L4 PTYPE: %" PRIu8 " (0x%" PRIx8 ")\n", ctt.l4_ptype, ctt.l4_ptype);
    return;
 }
 
@@ -200,9 +190,14 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
       }
       read_pkts++;
       if (m_ctt_metadata) {
-         parse_ctt_metadata(ndp_packet);
+         Metadata_CTT ctt;
+         printf("--------------------\n");
+         parse_ctt_metadata(ndp_packet, ctt);
+         parse_packet(&opt, m_parser_stats, timestamp, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
+         printf("--------------------\n");
+      } else {
+         parse_packet(&opt, m_parser_stats, timestamp, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
       }
-      parse_packet(&opt, m_parser_stats, timestamp, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
    }
 
    m_seen += read_pkts;

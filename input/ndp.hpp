@@ -30,6 +30,7 @@
 #ifndef IPXP_INPUT_NDP_HPP
 #define IPXP_INPUT_NDP_HPP
 
+#include <bits/types/struct_timeval.h>
 #include <ndpreader.hpp>
 
 #include <ipfixprobe/input.hpp>
@@ -40,25 +41,26 @@
 namespace ipxp {
 
 struct Metadata_CTT {
-    uint16_t vlan_tci;
-    uint8_t vlan_vld : 1;
-    uint8_t vlan_stripped : 1;
-    uint8_t l3_csum_status : 2;
-    uint8_t l4_csum_status : 2;
-    uint8_t parser_status : 2;
-    uint8_t ifc;
-    uint16_t filter_bitmap;
-    uint8_t ctt_export_trig : 1;
-    uint8_t ctt_rec_matched : 1;
-    uint8_t ctt_rec_created : 1;
-    uint8_t ctt_rec_deleted : 1;
-    uint64_t flow_hash;
-    uint64_t l2_len : 7;
-    uint64_t l3_len : 9;
-    uint64_t l4_len : 8;
-    uint64_t l2_ptype : 4;
-    uint64_t l3_ptype : 4;
-    uint64_t l4_ptype : 4;
+   timeval ts;
+   uint16_t vlan_tci;
+   bool vlan_vld : 1;
+   bool vlan_stripped : 1;
+   uint8_t ip_csum_status : 2;
+   uint8_t l4_csum_status : 2;
+   uint8_t parser_status : 2;
+   uint8_t ifc;
+   uint16_t filter_bitmap;
+   uint8_t ctt_export_trig : 1;
+   uint8_t ctt_rec_matched : 1;
+   uint8_t ctt_rec_created : 1;
+   uint8_t ctt_rec_deleted : 1;
+   uint64_t flow_hash;
+   uint8_t l2_len : 7;
+   uint16_t l3_len : 9;
+   uint8_t l4_len : 8;
+   uint8_t l2_ptype : 4;
+   uint8_t l3_ptype : 4;
+   uint8_t l4_ptype : 4;
 };
 
 class NdpOptParser : public OptionsParser
@@ -107,7 +109,7 @@ private:
    bool m_ctt_metadata = false;
 
    void init_ifc(const std::string &dev);
-   void parse_ctt_metadata(const struct ndp_packet *ndp_packet);
+   void parse_ctt_metadata(const ndp_packet *ndp_packet, Metadata_CTT &ctt);
 };
 
 }

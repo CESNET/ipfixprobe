@@ -653,6 +653,7 @@ void parse_packet(parser_opt_t *opt, ParserStats& stats, struct timeval ts, cons
    }
    Packet *pkt = &opt->pblock->pkts[opt->pblock->cnt];
    uint16_t data_offset = 0;
+   printf("Packet parser\n");
 
    DEBUG_MSG("---------- packet parser  #%u -------------\n", ++s_total_pkts);
    DEBUG_CODE(
@@ -701,6 +702,7 @@ void parse_packet(parser_opt_t *opt, ParserStats& stats, struct timeval ts, cons
       }
    #else
       data_offset = parse_eth_hdr(data, caplen, pkt);
+      printf("\t eth header: %d\n", data_offset);
    #endif /* WITH_PCAP */
 
       if (pkt->ethertype == ETH_P_TRILL) {
@@ -774,6 +776,11 @@ void parse_packet(parser_opt_t *opt, ParserStats& stats, struct timeval ts, cons
    opt->packet_valid = true;
    opt->pblock->cnt++;
    opt->pblock->bytes += len;
+
+   printf("\t l2_len %d\n", l3_hdr_offset);
+   printf("\t l3_len %d\n", l4_hdr_offset-l3_hdr_offset);
+   printf("\t l4_len %d\n", data_offset-l4_hdr_offset);
+
 }
 
 }
