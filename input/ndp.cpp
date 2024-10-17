@@ -31,12 +31,14 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <netinet/in.h>
 #include <sys/types.h>
 #include <cstdint>
 #include <cstddef>
 #include <inttypes.h>
 
 #include "ndp.hpp"
+#include "ipfixprobe/packet.hpp"
 #include "ipfixprobe/plugin.hpp"
 #include "parser.hpp"
 
@@ -114,56 +116,28 @@ void NdpPacketReader::parse_ctt_metadata(const ndp_packet *ndp_packet, Metadata_
       throw PluginError("Metadata bad length, cannot parse, length: " + std::to_string(ndp_packet->header_length));
    }
    const uint8_t *metadata = ndp_packet->header;
-   for (int i = 0; i < 32; i++) {
-      printf("%02x ", metadata[i]);
-   }
-   printf("\n");
 
-   ctt.ts.tv_usec = extract(metadata, 0, 32);
-   ctt.ts.tv_sec = extract(metadata, 32, 32);
-   ctt.vlan_tci = extract(metadata, 64, 16);
-   ctt.vlan_vld = extract(metadata, 80, 1);
-   ctt.vlan_stripped = extract(metadata, 81, 1);
-   ctt.ip_csum_status = extract(metadata, 82, 2);
-   ctt.l4_csum_status = extract(metadata, 84, 2);
-   ctt.parser_status = extract(metadata, 86, 2);
-   ctt.ifc = extract(metadata, 88, 8);
-   ctt.filter_bitmap = extract(metadata, 96, 16);
+   ctt.ts.tv_usec      = extract(metadata, 0,   32);
+   ctt.ts.tv_sec       = extract(metadata, 32,  32);
+   ctt.vlan_tci        = extract(metadata, 64,  16);
+   ctt.vlan_vld        = extract(metadata, 80,  1);
+   ctt.vlan_stripped   = extract(metadata, 81,  1);
+   ctt.ip_csum_status  = extract(metadata, 82,  2);
+   ctt.l4_csum_status  = extract(metadata, 84,  2);
+   ctt.parser_status   = extract(metadata, 86,  2);
+   ctt.ifc             = extract(metadata, 88,  8);
+   ctt.filter_bitmap   = extract(metadata, 96,  16);
    ctt.ctt_export_trig = extract(metadata, 112, 1);
    ctt.ctt_rec_matched = extract(metadata, 113, 1);
    ctt.ctt_rec_created = extract(metadata, 114, 1);
    ctt.ctt_rec_deleted = extract(metadata, 115, 1);
-   ctt.flow_hash = extract(metadata, 128, 64);
-   ctt.l2_len = extract(metadata, 192, 7);
-   ctt.l3_len = extract(metadata, 199, 9);
-   ctt.l4_len = extract(metadata, 208, 8);
-   ctt.l2_ptype = extract(metadata, 216, 4);
-   ctt.l3_ptype = extract(metadata, 220, 4);
-   ctt.l4_ptype = extract(metadata, 224, 4);
-
-   // show time
-   printf("Metadata:\n");
-   printf("\t microseconds: %08x\n", (uint32_t)ctt.ts.tv_usec);
-   printf("\t seconds: %08x\n", (uint32_t)ctt.ts.tv_sec);
-   printf("\t tci: %04x\n", ctt.vlan_tci);
-   printf("\t vlan_vld: %d\n", ctt.vlan_vld);
-   printf("\t vlan_stripped: %d\n", ctt.vlan_stripped);
-   printf("\t ip_csum_status: %d\n", ctt.ip_csum_status);
-   printf("\t l4_csum_status: %d\n", ctt.l4_csum_status);
-   printf("\t parser_status: %d\n", ctt.parser_status);
-   printf("\t ifc: %d\n", ctt.ifc);
-   printf("\t filter_bitmap: %04x\n", ctt.filter_bitmap);
-   printf("\t ctt_export_trig: %d\n", ctt.ctt_export_trig);
-   printf("\t ctt_rec_matched: %d\n", ctt.ctt_rec_matched);
-   printf("\t ctt_rec_created: %d\n", ctt.ctt_rec_created);
-   printf("\t ctt_rec_deleted: %d\n", ctt.ctt_rec_deleted);
-   printf("\t flow_hash: %016" PRIx64 "\n", ctt.flow_hash);
-   printf("\t l2_len: %d\n", ctt.l2_len );
-   printf("\t l3_len: %d\n", ctt.l3_len);
-   printf("\t l4_len: %d\n", ctt.l4_len);
-   printf("\t l2_ptype: %x\n", ctt.l2_ptype);
-   printf("\t l3_ptype: %x\n", ctt.l3_ptype);
-   printf("\t l4_ptype: %x\n", ctt.l4_ptype);
+   ctt.flow_hash       = extract(metadata, 128, 64);
+   ctt.l2_len          = extract(metadata, 192, 7);
+   ctt.l3_len          = extract(metadata, 199, 9);
+   ctt.l4_len          = extract(metadata, 208, 8);
+   ctt.l2_ptype        = extract(metadata, 216, 4);
+   ctt.l3_ptype        = extract(metadata, 220, 4);
+   ctt.l4_ptype        = extract(metadata, 224, 4);
 
    return;
 }
@@ -191,10 +165,25 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
       read_pkts++;
       if (m_ctt_metadata) {
          Metadata_CTT ctt;
-         printf("--------------------\n");
          parse_ctt_metadata(ndp_packet, ctt);
          parse_packet(&opt, m_parser_stats, timestamp, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
-         printf("--------------------\n");
+
+         Packet *pkt = &opt.pblock->pkts[opt.pblock->cnt - 1];
+
+         // verify metadata with original parser
+         if(ctt.l2_len + ctt.l3_len + ctt.l4_len != pkt->packet_len - pkt->payload_len) {
+            printf("Error: ctt.l2_len (%d) + ctt.l3_len (%d) + ctt.l4_len (%d) != pkt->packet_len (%d) - pkt->payload_len (%d)\n", ctt.l2_len, ctt.l3_len, ctt.l4_len, pkt->packet_len, pkt->payload_len);
+         }
+         if(pkt->ip_proto == IPPROTO_TCP) {
+            if(ctt.l4_ptype != 0x1) {
+               printf("Error: ctt.l4_ptype != 0x1 but protocol is TCP\n");
+            }
+         }
+         if(pkt->ip_proto == IPPROTO_UDP) {
+            if(ctt.l4_ptype != 0x2) {
+               printf("Error: ctt.l4_ptype != 0x2 but protocol is UDP\n");
+            }
+         }
       } else {
          parse_packet(&opt, m_parser_stats, timestamp, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
       }
