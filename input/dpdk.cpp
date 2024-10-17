@@ -292,7 +292,7 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
     m_stats.receivedPackets += receivedPackets;
     m_stats.receivedBytes += packets.bytes;
 
-    return Result::PARSED;
+    return packets.cnt ? Result::PARSED : Result::NOT_PARSED;
 }
 
 }

@@ -1,3 +1,23 @@
+2024-10-17 (Tomas Cejka): doc: include generated Doxyfile to create documentation
+2024-10-17 (Tomas Cejka): doc: add doxygen comment for parse_packet()
+2024-10-16 (Jan Sobol): dpdk-ring - fix checking if any packet has actually been parsed
+2024-10-16 (Jan Sobol): dpdk - fix checking if any packet has actually been parsed
+2024-10-02 (Damir Zainullin): Fix IPv6 header parsing
+2024-09-30 (Pavel Šiška): Merge pull request #220 from CESNET/prefetch-optimizations
+2024-09-30 (Pavel Šiška): Merge pull request #219 from CESNET/dpdk-ring-metadata-timestamp
+2024-09-30 (Pavel Šiška): Merge pull request #215 from CESNET/new-version
+2024-09-26 (Jan Sobol): cache - prefetch flow records before checking their expiration
+2024-09-26 (Jan Sobol): dpdk-ring - prefetch dequeued packets before processing
+2024-09-25 (Jan Sobol): dpdk-ring - read timestamp from hw metadata if available
+2024-09-20 (Tomas Cejka): Merge pull request #216 from CESNET/ipfixprobe-docker-wrapper
+2024-09-19 (Tomas Cejka): dist: include docker/ files into distribution archive
+2024-09-19 (Jan Sobol): wg - fix parsing and exporting byte order
+2024-09-19 (Jan Sobol): utils - introduce memcpy_le32toh function
+2024-09-18 (Jan Sobol): basicplus test - fix reference values of tcp options
+2024-09-18 (Jan Sobol): basicplus - update tcp options mask across flow packets
+2024-09-18 (Jan Sobol): parser - fix order of tcp options flags according to ipfix standard https://www.iana.org/assignments/ipfix/ipfix.xhtml, entity 209 - tcpOptions
+2024-09-17 (Jaroslav Pesek): process container - introduce docker/podman container wrapper for processing pcaps to csvs
+
 2024-08-28 (Pavel Siska): ipfixprobed - add new option LZ4_COMPRESSION to init script and config example
 2024-08-28 (Pavel Siska): README.md - add LZ4 compression info
 2024-08-28 (Jakub Antonín Štigler): ipfix plugin: add lz4 compression
