@@ -1,3 +1,14 @@
+2024-10-17 ipfixprobe-4.13.0
+	* usability: introduce docker/podman container to convert PCAP files to CSV
+	* IPFIX: fix order of TCP options flags
+	* basicplus: update TCP options mask across flow packets
+	* utils: introduce memcpy_le32toh() for ipfix representation
+	* wg: fix parsing and exporting byte order (IPFIX)
+	* DPDK-ring: optimization: prefetch; read timestamp from HW metadata if available
+	* cache: optimization - prefetch
+	* IPv6: fix header parsing
+	* DPDK&DPDK-ring: fix use of parse_packet(), skip invalid packets causing crash
+
 2024-08-28 ipfixprobe-4.12.0
 	* ipfix plugin: support lz4 compression
 	* ipfixprobe: possibility to set workers affinity
