@@ -336,3 +336,7 @@ deb:
 else
 endif
 
+.PHONY: doc
+doc:
+	doxygen
+
