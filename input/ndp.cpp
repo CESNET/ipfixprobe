@@ -27,14 +27,35 @@
  *
  */
 
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <cstdint>
+#include <cstddef>
+#include <inttypes.h>
 
 #include "ndp.hpp"
+#include "ipfixprobe/packet.hpp"
+#include "ipfixprobe/plugin.hpp"
 #include "parser.hpp"
 
 namespace ipxp {
+
+uint64_t extract(const uint8_t* bitvec, size_t start_bit, size_t bit_length) {
+   size_t start_byte = start_bit / 8;
+   size_t end_bit = start_bit + bit_length;
+   size_t end_byte = (end_bit + 7) / 8;
+   uint64_t value = 0;
+   for (size_t i = 0; i < end_byte - start_byte; ++i) {
+      value |= static_cast<uint64_t>(bitvec[start_byte + i]) << (8 * i);
+   }
+   value >>= (start_bit % 8);
+   uint64_t mask = (bit_length == 64) ? ~0ULL : ((1ULL << bit_length) - 1);
+   return value & mask;
+}
 
 telemetry::Content NdpPacketReader::get_queue_telemetry()
 {
@@ -71,6 +92,9 @@ void NdpPacketReader::init(const char *params)
    if (parser.m_dev.empty()) {
       throw PluginError("specify device path");
    }
+   if (parser.m_metadata == "ctt") {
+      m_ctt_metadata = true;
+   }
    init_ifc(parser.m_dev);
 }
 
@@ -84,6 +108,38 @@ void NdpPacketReader::init_ifc(const std::string &dev)
    if (ndpReader.init_interface(dev) != 0) {
       throw PluginError(ndpReader.error_msg);
    }
+}
+
+void NdpPacketReader::parse_ctt_metadata(const ndp_packet *ndp_packet, Metadata_CTT &ctt)
+{
+   if (ndp_packet->header_length != 32) {
+      throw PluginError("Metadata bad length, cannot parse, length: " + std::to_string(ndp_packet->header_length));
+   }
+   const uint8_t *metadata = ndp_packet->header;
+
+   ctt.ts.tv_usec      = extract(metadata, 0,   32);
+   ctt.ts.tv_sec       = extract(metadata, 32,  32);
+   ctt.vlan_tci        = extract(metadata, 64,  16);
+   ctt.vlan_vld        = extract(metadata, 80,  1);
+   ctt.vlan_stripped   = extract(metadata, 81,  1);
+   ctt.ip_csum_status  = extract(metadata, 82,  2);
+   ctt.l4_csum_status  = extract(metadata, 84,  2);
+   ctt.parser_status   = extract(metadata, 86,  2);
+   ctt.ifc             = extract(metadata, 88,  8);
+   ctt.filter_bitmap   = extract(metadata, 96,  16);
+   ctt.ctt_export_trig = extract(metadata, 112, 1);
+   ctt.ctt_rec_matched = extract(metadata, 113, 1);
+   ctt.ctt_rec_created = extract(metadata, 114, 1);
+   ctt.ctt_rec_deleted = extract(metadata, 115, 1);
+   ctt.flow_hash       = extract(metadata, 128, 64);
+   ctt.l2_len          = extract(metadata, 192, 7);
+   ctt.l3_len          = extract(metadata, 199, 9);
+   ctt.l4_len          = extract(metadata, 208, 8);
+   ctt.l2_ptype        = extract(metadata, 216, 4);
+   ctt.l3_ptype        = extract(metadata, 220, 4);
+   ctt.l4_ptype        = extract(metadata, 224, 4);
+
+   return;
 }
 
 InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
@@ -107,7 +163,30 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
          throw PluginError(ndpReader.error_msg);
       }
       read_pkts++;
-      parse_packet(&opt, m_parser_stats, timestamp, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
+      if (m_ctt_metadata) {
+         Metadata_CTT ctt;
+         parse_ctt_metadata(ndp_packet, ctt);
+         parse_packet(&opt, m_parser_stats, timestamp, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
+
+         Packet *pkt = &opt.pblock->pkts[opt.pblock->cnt - 1];
+
+         // verify metadata with original parser
+         if(ctt.l2_len + ctt.l3_len + ctt.l4_len != pkt->packet_len - pkt->payload_len) {
+            printf("Error: ctt.l2_len (%d) + ctt.l3_len (%d) + ctt.l4_len (%d) != pkt->packet_len (%d) - pkt->payload_len (%d)\n", ctt.l2_len, ctt.l3_len, ctt.l4_len, pkt->packet_len, pkt->payload_len);
+         }
+         if(pkt->ip_proto == IPPROTO_TCP) {
+            if(ctt.l4_ptype != 0x1) {
+               printf("Error: ctt.l4_ptype (%d) != 0x1 but protocol is TCP (%d)\n", ctt.l4_ptype, pkt->ip_proto);
+            }
+         }
+         if(pkt->ip_proto == IPPROTO_UDP) {
+            if(ctt.l4_ptype != 0x2) {
+               printf("Error: ctt.l4_ptype (%d) != 0x2 but protocol is UDP (%d)\n", ctt.l4_ptype, pkt->ip_proto);
+            }
+         }
+      } else {
+         parse_packet(&opt, m_parser_stats, timestamp, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
+      }
    }
 
    m_seen += read_pkts;
