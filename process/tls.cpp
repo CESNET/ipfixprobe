@@ -15,12 +15,15 @@
 
 
 #include <iostream>
-#include <sstream>
-
+#include <numeric>
 #include <stdio.h>
+#include <algorithm>
+#include <functional>
+#include <cctype>
 
-#include "tls.hpp"
 #include "md5.hpp"
+#include "tls.hpp"
+#include "sha256.hpp"
 
 namespace ipxp {
 int RecordExtTLS::REGISTERED_ID = -1;
@@ -49,8 +52,20 @@ __attribute__((constructor)) static void register_this_plugin()
 # define DEBUG_CODE(code)
 #endif
 
-TLSPlugin::TLSPlugin() : ext_ptr(nullptr), parsed_sni(0), flow_flush(false)
-{ }
+OptionsParser* TLSPlugin::get_parser() const
+{
+    return new OptionsParser("tls", "Parse SNI from TLS traffic");
+}
+
+std::string TLSPlugin::get_name() const
+{
+    return "tls";
+}
+
+RecordExtTLS *TLSPlugin::get_ext() const
+{
+    return new RecordExtTLS();
+}
 
 TLSPlugin::~TLSPlugin()
 {
@@ -58,7 +73,8 @@ TLSPlugin::~TLSPlugin()
 }
 
 void TLSPlugin::init(const char *params)
-{ }
+{
+}
 
 void TLSPlugin::close()
 {
@@ -81,12 +97,12 @@ int TLSPlugin::post_create(Flow &rec, const Packet &pkt)
 
 int TLSPlugin::pre_update(Flow &rec, Packet &pkt)
 {
-   RecordExtTLS *ext = static_cast<RecordExtTLS *>(rec.get_extension(RecordExtTLS::REGISTERED_ID));
+   auto *ext = static_cast<RecordExtTLS *>(rec.get_extension(RecordExtTLS::REGISTERED_ID));
 
    if (ext != nullptr) {
-      if (ext->server_hello_parsed == false) {
+      if (!ext->server_hello_parsed) {
          // Add ALPN from server packet
-         parse_tls(pkt.payload, pkt.payload_len, ext);
+         parse_tls(pkt.payload, pkt.payload_len, ext, rec.ip_proto);
       }
       return 0;
    }
@@ -95,127 +111,259 @@ int TLSPlugin::pre_update(Flow &rec, Packet &pkt)
    return 0;
 }
 
-bool TLSPlugin::obtain_tls_data(TLSData &payload, RecordExtTLS *rec, std::string &ja3, uint8_t hs_type)
+static std::string concatenate_vector_to_string(const std::vector<uint16_t>& vector){
+    if (vector.empty()) {
+        return "";
+    }
+    return std::accumulate(
+       std::next(vector.begin()), vector.end(), std::to_string(vector[0]),
+       [](const std::string& a, uint16_t b) {
+    return a + "-" + std::to_string(b);
+       });
+}
+
+static std::string concatenate_vector_to_hex_string(const std::vector<uint16_t>& vector){
+    auto res = std::accumulate(
+        vector.begin(),
+        vector.end(),
+        std::string {},
+        [](const std::string& acc, uint16_t value) {
+            std::array<char, 6> buffer = {};
+            std::snprintf(buffer.data(), buffer.size(), "%04x,", value);
+            return acc + buffer.data();
+        });
+    res.pop_back();
+    return res;
+}
+
+static std::string concatenate_extensions_vector_to_string(const std::vector<TLSExtension>& extensions){
+    auto res = std::accumulate(
+        extensions.begin(), extensions.end(), std::string{},
+        [](const std::string& a, const auto& extension) {
+            if (TLSParser::is_grease_value(extension.type)) {
+                return a;
+            }
+            return a + std::to_string(extension.type) + "-";
+        });
+    res.pop_back();
+    return res;
+}
+
+static const char* convert_version_to_label(uint16_t version)
 {
-   std::string ecliptic_curves;
-   std::string ec_point_formats;
+    switch(version) {
+    case 0x0304:
+        return "13";
+    case 0x0303:
+        return "12";
+    case 0x0302:
+        return "11";
+    case 0x0301:
+        return "10";
+    case 0x0300:
+        return "s3";
+    case 0x0002:
+        return "s2";
+    case 0xfeff:
+        return "d1";
+    case 0xfefd:
+        return "d2";
+    case 0xfefc:
+        return "d3";
+    default:
+        return "00";
+    }
+}
 
-   while (payload.start + sizeof(tls_ext) <= payload.end) {
-      tls_ext *ext    = (tls_ext *) payload.start;
-      uint16_t length = ntohs(ext->length);
-      uint16_t type   = ntohs(ext->type);
-
-      payload.start += sizeof(tls_ext);
-      if (payload.start + length > payload.end) {
-         break;
-      }
-
-      if (hs_type == TLS_HANDSHAKE_CLIENT_HELLO) {
-         if (type == TLS_EXT_SERVER_NAME) {
-            tls_parser.tls_get_server_name(payload, rec->sni, sizeof(rec->sni));
-         } else if (type == TLS_EXT_ECLIPTIC_CURVES) {
-            ecliptic_curves = tls_parser.tls_get_ja3_ecpliptic_curves(payload);
-         } else if (type == TLS_EXT_EC_POINT_FORMATS) {
-            ec_point_formats = tls_parser.tls_get_ja3_ec_point_formats(payload);
-         }
-
-          if (!rec->tls_ext_len_set && !rec->tls_ext_type_set) {
-                // Store extension type
-                if (rec->tls_ext_type_len < MAX_TLS_EXT_LEN) {
-                    rec->tls_ext_type[rec->tls_ext_type_len] = type;
-                    rec->tls_ext_type_len += 1;
-                }
-
-                // Store extension type length
-                if (rec->tls_ext_len_len < MAX_TLS_EXT_LEN) {
-                    rec->tls_ext_len[rec->tls_ext_len_len] = length;
-                    rec->tls_ext_len_len += 1;
-                }
-          }
-      } else if (hs_type == TLS_HANDSHAKE_SERVER_HELLO) {
-         rec->server_hello_parsed = true;
-         if (type == TLS_EXT_ALPN) {
-            tls_parser.tls_get_alpn(payload, rec->alpn, BUFF_SIZE);
-            // not sure, but probably don`t return yet, as 
-            // this is not only field we want to parse
-            //return true;
-         } else if (type == TLS_EXT_SUPPORTED_VER){
-            tls_parser.tls_get_supp_ver(payload, rec->version);
-         }
-      }
-      payload.start += length;
-      if (!tls_parser.tls_is_grease_value(type)) {
-         ja3 += std::to_string(type);
-
-         if (payload.start + sizeof(tls_ext) <= payload.end) {
-            ja3 += '-';
-         }
-      }
-   }
-   if (rec->tls_ext_type_len > 0 ) {
-      rec->tls_ext_type_set = true;
-      rec->tls_ext_len_set = true;
-   }
-
-
-   if (hs_type == TLS_HANDSHAKE_SERVER_HELLO) {
-      return false;
-   }
-   ja3 += ',' + ecliptic_curves + ',' + ec_point_formats;
-   md5_get_bin(ja3, rec->ja3_hash_bin);
-   return true;
-} // TLSPlugin::obtain_tls_data
-
-bool TLSPlugin::parse_tls(const uint8_t *data, uint16_t payload_len, RecordExtTLS *rec)
+static std::string get_ja3_string(const TLSParser& parser)
 {
-   TLSData payload = {
-      payload.start = data,
-      payload.end   = data + payload_len,
-      payload.obejcts_parsed = 0,
-   };
-   std::string ja3;
+    std::string ja3_string = std::to_string(parser.get_handshake()->version.version) + ',';
+    ja3_string += concatenate_vector_to_string(parser.get_cipher_suits()) + ',';
+    ja3_string += concatenate_extensions_vector_to_string(parser.get_extensions()) + ',';
+    ja3_string += concatenate_vector_to_string(parser.get_elliptic_curves()) + ',';
+    ja3_string += concatenate_vector_to_string(parser.get_elliptic_curve_point_formats());
+    return ja3_string;
+}
 
+static char convert_alpn_byte_to_label(char alpn_byte, bool high_nibble)
+{
+    if (std::isalnum(alpn_byte)) {
+        return alpn_byte;
+    } else {
+        uint8_t nibble = high_nibble ? alpn_byte >> 4 : alpn_byte & 0x0F;
+        return nibble < 0xA ? (char)('0' + nibble) : (char)('A' + nibble - 0xA);
+    }
+}
 
-   if (!tls_parser.tls_check_rec(payload)) {
-      return false;
-   }
-   if (!tls_parser.tls_check_handshake(payload)) {
-      return false;
-   }
-   tls_handshake tls_hs = tls_parser.tls_get_handshake();
+static const char* get_version_label(const TLSParser& parser)
+{
+    uint16_t version;
+    if (parser.get_supported_versions().empty()) {
+        version = parser.get_handshake()->version.version;
+    } else {
+        const auto* versions = (const int16_t*)parser.get_supported_versions().data();
+        version = *std::max_element(versions, versions + parser.get_supported_versions().size());
+    }
+    return convert_version_to_label(version);
+}
 
-   rec->version = (rec->version == 0)?(((uint16_t) tls_hs.version.major << 8) | tls_hs.version.minor) : rec->version;
-   ja3 += std::to_string((uint16_t) tls_hs.version.version) + ',';
+static std::string get_truncated_hash_hex(const std::string& str)
+{
+    std::array<char, 32 > hash{};
+    sha256::hash_it((const uint8_t*)str.c_str(), str.length(), (uint8_t*)hash.data());
+    std::ostringstream oss;
+    for (auto i = 0U; i < 6; ++i) {
+        oss << std::hex << std::setw(2) << std::setfill('0')
+            << ((uint16_t)hash[i] & 0xFF);
+    }
+    return oss.str();
+}
 
-   if (!tls_parser.tls_skip_random(payload)) {
-      return false;
-   }
-   if (!tls_parser.tls_skip_sessid(payload)) {
-      return false;
+static std::string get_truncated_cipher_hash(const TLSParser& parser)
+{
+    std::string cipher_string;
+    std::vector<uint16_t> cipher_suits = parser.get_cipher_suits();
+    std::sort(cipher_suits.begin(), cipher_suits.end());
+
+    if (cipher_suits.empty()) {
+        cipher_string.assign(12, '0');
+        return cipher_string;
+    }
+    cipher_string = concatenate_vector_to_hex_string(cipher_suits);
+    return get_truncated_hash_hex(cipher_string);
+}
+
+static std::string get_truncated_extensions_hash(const TLSParser& parser)
+{
+    std::vector<uint16_t> extensions;
+    std::transform(parser.get_extensions().begin(), parser.get_extensions().end(), std::back_inserter(extensions),
+                   [](const TLSExtension& extension) { return extension.type; });
+    extensions.erase(std::remove_if(extensions.begin(), extensions.end(), [](uint16_t extension_type){
+        return extension_type == TLS_EXT_ALPN || extension_type == TLS_EXT_SERVER_NAME || TLSParser::is_grease_value(extension_type);
+    }), extensions.end());
+    std::sort(extensions.begin(), extensions.end());
+
+    auto extensions_string = concatenate_vector_to_hex_string(extensions);
+    std::vector<uint16_t> signature_algorithms = parser.get_signature_algorithms();
+    if (!signature_algorithms.empty()) {
+        signature_algorithms.erase(signature_algorithms.begin());
+    }
+    auto signature_algorithms_string = concatenate_vector_to_hex_string(signature_algorithms);
+
+    auto extensions_and_algorithms_string = extensions_string + '_' + signature_algorithms_string;
+    return get_truncated_hash_hex(extensions_and_algorithms_string);
+}
+
+static std::string get_alpn_label(const TLSParser& parser)
+{
+    std::string alpn_label;
+    if (parser.get_alpns().empty() || parser.get_alpns()[0].empty()) {
+        alpn_label = "00";
+    } else {
+        const auto& alpn_string = parser.get_alpns()[0];
+        alpn_label += convert_alpn_byte_to_label(alpn_string[0], true);
+        alpn_label += convert_alpn_byte_to_label(alpn_string[alpn_string.length() - 1], false);
+    }
+    return alpn_label;
+}
+
+static std::string get_ja4_string(const TLSParser& parser, uint8_t ip_proto)
+{
+    constexpr const uint8_t UDP_ID = 17;
+    const char protocol = ip_proto == UDP_ID ? 'q' : 't';
+
+    char version_label[3];
+    *(uint16_t*)version_label = *(uint16_t*)get_version_label(parser);
+    version_label[2] = 0;
+
+    const char sni_label = parser.get_server_names().empty() ? 'i' : 'd';
+
+    const uint8_t ciphers_count = std::min(parser.get_cipher_suits().size(), 99UL);
+
+    const uint8_t extension_count = std::min(parser.get_extensions().size(), 99UL);
+
+    const auto alpn_label = get_alpn_label(parser);
+
+    const auto truncated_cipher_hash = get_truncated_cipher_hash(parser);
+
+    const auto truncated_extensions_hash = get_truncated_extensions_hash(parser);
+
+    return std::string{} + protocol + version_label + sni_label + std::to_string(ciphers_count)
+        + std::to_string(extension_count) + alpn_label + '_' + truncated_cipher_hash + '_'
+        + truncated_extensions_hash;
+}
+
+static bool parse_client_hello_extensions(TLSParser& parser) noexcept
+{
+    return parser.parse_extensions([&parser](uint16_t extension_type, const uint8_t* extension_payload, uint16_t extension_length){
+        if (extension_type == TLS_EXT_SERVER_NAME) {
+            parser.parse_server_names(extension_payload, extension_length);
+        } else if (extension_type == TLS_EXT_ECLIPTIC_CURVES) {
+            parser.parse_elliptic_curves(extension_payload, extension_length);
+        } else if (extension_type == TLS_EXT_EC_POINT_FORMATS) {
+            parser.parse_elliptic_curve_point_formats(extension_payload, extension_length);
+        } else if (extension_type == TLS_EXT_ALPN) {
+            parser.parse_alpn(extension_payload, extension_length);
+        } else if (extension_type == TLS_EXT_SIGNATURE_ALGORITHMS) {
+            parser.parse_signature_algorithms(extension_payload, extension_length);
+        } else if (extension_type == TLS_EXT_SUPPORTED_VER) {
+            parser.parse_supported_versions(extension_payload, extension_length);
+        }
+        parser.add_extension(extension_type, extension_length);
+    });
+}
+
+static bool parse_server_hello_extensions(TLSParser& parser) noexcept
+{
+    return parser.parse_extensions([&parser](
+                                       uint16_t extension_type,
+                                       const uint8_t* extension_payload,
+                                       uint16_t extension_length) {
+        if (extension_type == TLS_EXT_ALPN) {
+            parser.parse_alpn(extension_payload, extension_length);
+        } else if (extension_type == TLS_EXT_SUPPORTED_VER) {
+            parser.parse_supported_versions(extension_payload, extension_length);
+        }
+    });
+}
+
+bool TLSPlugin::parse_tls(const uint8_t *data, uint16_t payload_len, RecordExtTLS *rec, uint8_t ip_proto)
+{
+   TLSParser parser;
+   if (!parser.parse_tls(data, payload_len)) {
+       return false;
    }
 
-   if (tls_hs.type == TLS_HANDSHAKE_CLIENT_HELLO) {
-      if (!tls_parser.tls_get_ja3_cipher_suites(ja3, payload)) {
-         return false;
-      }
-      if (!tls_parser.tls_skip_compression_met(payload)) {
-         return false;
-      }
-   } else if (tls_hs.type == TLS_HANDSHAKE_SERVER_HELLO) {
-      payload.start += 2; // Skip cipher suite
-      payload.start += 1; // Skip compression method
-   } else   {
-      return false;
+   if (parser.is_client_hello()) {
+       if (!parse_client_hello_extensions(parser)) {
+           return false;
+       }
+       if (rec->extensions_buffer_size == 0) {
+           const auto count_to_copy = std::min(rec->extension_types.size(), parser.get_extensions().size());
+           std::transform(parser.get_extensions().begin(), parser.get_extensions().begin() + count_to_copy, rec->extension_types.begin(),[](const auto& typeLength){
+               return typeLength.type;
+           });
+           std::transform(parser.get_extensions().begin(), parser.get_extensions().begin() + count_to_copy, rec->extension_lengths.begin(),[](const auto& typeLength){
+               return typeLength.length;
+           });
+           rec->extensions_buffer_size = count_to_copy;
+       }
+       rec->version = parser.get_handshake()->version.version;
+       parser.save_server_names(rec->sni, sizeof(rec->sni));
+       md5_get_bin(get_ja3_string(parser), rec->ja3);
+       auto ja4 = get_ja4_string(parser, ip_proto);
+       std::memcpy(rec->ja4, ja4.c_str(), ja4.length());
+       return true;
+   } else if (parser.is_server_hello()) {
+       if (!parse_server_hello_extensions(parser)) {
+           return false;
+       }
+       rec->server_hello_parsed = true;
+       parser.save_alpns(rec->alpn, sizeof(rec->alpn));
+       rec->version = parser.get_supported_versions().empty() ? rec->version : parser.get_supported_versions()[0];
    }
-   if (!tls_parser.tls_check_ext_len(payload)) {
-      return false;
-   }
-   if (!obtain_tls_data(payload, rec, ja3, tls_hs.type)) {
-      return false;
-   }
-   parsed_sni = payload.obejcts_parsed;
-   return payload.obejcts_parsed != 0 || !ja3.empty();
-} // TLSPlugin::parse_sni
+   return false;
+}
 
 void TLSPlugin::add_tls_record(Flow &rec, const Packet &pkt)
 {
@@ -223,9 +371,9 @@ void TLSPlugin::add_tls_record(Flow &rec, const Packet &pkt)
       ext_ptr = new RecordExtTLS();
    }
 
-   if (parse_tls(pkt.payload, pkt.payload_len, ext_ptr)) {
+   if (parse_tls(pkt.payload, pkt.payload_len, ext_ptr, rec.ip_proto)) {
       DEBUG_CODE(for (int i = 0; i < 16; i++) {
-            DEBUG_MSG("%02x", ext_ptr->ja3_hash_bin[i]);
+            DEBUG_MSG("%02x", ext_ptr->ja3[i]);
          }
       )
       DEBUG_MSG("\n");
