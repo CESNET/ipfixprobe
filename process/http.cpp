@@ -143,7 +143,7 @@ ProcessPlugin::FlowAction HTTPPlugin::pre_update(Flow& rec, Packet& pkt)
 		}
 	}
 
-	return ProcessPlugin::FlowAction::NO_PROCESS;
+	return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 void HTTPPlugin::finish(bool print_stats)
