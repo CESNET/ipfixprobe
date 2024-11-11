@@ -35,7 +35,6 @@
 
 #include "parser.hpp"
 #include "headers.hpp"
-#include "ipfixprobe/cttmeta.hpp"
 #include <ipfixprobe/packet.hpp>
 
 namespace ipxp {

@@ -38,7 +38,7 @@
 
 #include <ipfixprobe/ipaddr.hpp>
 #include <ipfixprobe/flowifc.hpp>
-#include "ipfixprobe/cttmeta.hpp"
+#include <ipfixprobe/cttmeta.hpp>
 
 namespace ipxp {
 

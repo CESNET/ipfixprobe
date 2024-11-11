@@ -31,8 +31,7 @@
 
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/parser-stats.hpp>
-
-#include "ctt.hpp"
+#include <ipfixprobe/cttmeta.hpp>
 
 #ifdef WITH_PCAP
 #include <pcap/pcap.h>
