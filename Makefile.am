@@ -203,7 +203,8 @@ ipfixprobe_headers_src=\
 		include/ipfixprobe/ipfix-elements.hpp \
 		include/ipfixprobe/rtp.hpp \
 		include/ipfixprobe/telemetry-utils.hpp \
-		include/ipfixprobe/parser-stats.hpp
+		include/ipfixprobe/parser-stats.hpp \
+		include/ipfixprobe/cttmeta.hpp
 
 ipfixprobe_src=\
 		$(ipfixprobe_input_src) \
@@ -335,4 +336,8 @@ deb:
 	make dist && make distdir && ln -fs ipfixprobe-@VERSION@.tar.gz ipfixprobe_@VERSION@ubuntu@RELEASE@.orig.tar.gz && cd ipfixprobe-@VERSION@ && debuild
 else
 endif
+
+.PHONY: doc
+doc:
+	doxygen
 
