@@ -203,7 +203,8 @@ ipfixprobe_headers_src=\
 		include/ipfixprobe/ipfix-elements.hpp \
 		include/ipfixprobe/rtp.hpp \
 		include/ipfixprobe/telemetry-utils.hpp \
-		include/ipfixprobe/parser-stats.hpp
+		include/ipfixprobe/parser-stats.hpp \
+		include/ipfixprobe/cttmeta.hpp
 
 ipfixprobe_src=\
 		$(ipfixprobe_input_src) \
