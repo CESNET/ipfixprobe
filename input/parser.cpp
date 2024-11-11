@@ -27,14 +27,15 @@
  */
 
 #include <config.h>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <iostream>
 #include <sys/types.h>
 #include <limits>
 
 #include "parser.hpp"
 #include "headers.hpp"
+#include "ipfixprobe/cttmeta.hpp"
 #include <ipfixprobe/packet.hpp>
 
 namespace ipxp {
@@ -746,6 +747,112 @@ void parse_packet(parser_opt_t *opt, ParserStats& stats, struct timeval ts, cons
       stats.ipv4_packets++;
    } else if (pkt->ethertype == ETH_P_IPV6) {
       stats.ipv6_packets++;
+   }
+
+   uint16_t pkt_len = caplen;
+   pkt->packet = data;
+   pkt->packet_len = caplen;
+
+   if (l4_hdr_offset != l3_hdr_offset) {
+      if (l4_hdr_offset + pkt->ip_payload_len < 64) {
+         // Packet contains 0x00 padding bytes, do not include them in payload
+         pkt_len = l4_hdr_offset + pkt->ip_payload_len;
+      }
+      pkt->payload_len_wire = pkt->ip_payload_len - (data_offset - l4_hdr_offset);
+   } else {
+      pkt->payload_len_wire = pkt_len - data_offset;
+   }
+
+   pkt->payload_len = pkt->payload_len_wire;
+   if (pkt->payload_len + data_offset > pkt_len) {
+      // Set correct size when payload length is bigger than captured payload length
+      pkt->payload_len = pkt_len - data_offset;
+   }
+   pkt->payload = pkt->packet + data_offset;
+
+   DEBUG_MSG("Payload length:\t%u\n", pkt->payload_len);
+   DEBUG_MSG("Packet parser exits: packet parsed\n");
+   opt->packet_valid = true;
+   opt->pblock->cnt++;
+   opt->pblock->bytes += len;
+}
+
+void parse_packet_ctt_metadata(parser_opt_t *opt, ParserStats& stats, const Metadata_CTT& metadata, const uint8_t *data, uint16_t len, uint16_t caplen)
+{
+   if (opt->pblock->cnt >= opt->pblock->size) {
+      return;
+   }
+   Packet *pkt = &opt->pblock->pkts[opt->pblock->cnt];
+   pkt->cttmeta = metadata;
+
+   pkt->packet_len_wire = len;
+   pkt->ts = metadata.ts;
+   pkt->src_port = 0;
+   pkt->dst_port = 0;
+   pkt->ip_proto = 0;
+   pkt->ip_ttl = 0;
+   pkt->ip_flags = 0;
+   pkt->ip_version = 0;
+   pkt->ip_payload_len = 0;
+   pkt->tcp_flags = 0;
+   pkt->tcp_window = 0;
+   pkt->tcp_options = 0;
+   pkt->tcp_mss = 0;
+   pkt->mplsTop = 0;
+
+   stats.seen_packets++;
+
+   uint16_t data_offset;
+   uint32_t l3_hdr_offset = metadata.l2_len;
+   uint32_t l4_hdr_offset = metadata.l2_len + metadata.l3_len;
+
+   try {
+   // L2
+   data_offset = parse_eth_hdr(data, caplen, pkt);
+   if (pkt->ethertype == ETH_P_TRILL) {
+      data_offset += parse_trill(data + metadata.l2_len, metadata.l2_len, pkt);
+      stats.trill_packets++;
+      data_offset += parse_eth_hdr(data + metadata.l2_len, metadata.l2_len, pkt);
+   }
+
+   // L3
+   if (metadata.l2_ptype == L2_ETHER_IP) {
+      if (metadata.l3_ptype == L3_IPV4 || metadata.l3_ptype == L3_IPV4_EXT) {
+         data_offset += parse_ipv4_hdr(data + metadata.l2_len, metadata.l3_len, pkt);
+         stats.ipv4_packets++;
+      } else if (metadata.l3_ptype == L3_IPV6 || metadata.l3_ptype == L3_IPV4_EXT) {
+         data_offset += parse_ipv6_hdr(data + metadata.l2_len, metadata.l3_len, pkt);
+         stats.ipv6_packets++;
+      }
+   } else if (metadata.l2_ptype == L2_ETHER_MPLS) {
+      data_offset += process_mpls(data + data_offset, caplen - data_offset, pkt);
+      stats.mpls_packets++;
+   } else if (metadata.l2_ptype == L2_ETHER_PPPOE) {
+      data_offset += process_pppoe(data + data_offset, caplen - data_offset, pkt);
+      stats.pppoe_packets++;
+   } else { // if not previous, we try delegate to original parser
+      parse_packet(opt, stats, metadata.ts, data, len, caplen);
+      return;
+   }
+
+   // L4
+   if (metadata.l4_ptype == L4_TCP) {
+      data_offset += parse_tcp_hdr(data + l4_hdr_offset, metadata.l4_len, pkt);
+      stats.tcp_packets++;
+   } else if (metadata.l4_ptype == L4_UDP) {
+      data_offset += parse_udp_hdr(data + l4_hdr_offset, metadata.l4_len, pkt);
+      stats.udp_packets++;
+   } else { // if not previous, we try delegate to original parser
+      parse_packet(opt, stats, metadata.ts, data, len, caplen);
+      return;
+   }
+   } catch (const char *err) {
+      DEBUG_MSG("%s\n", err);
+      return;
+   }
+
+   if (pkt->vlan_id) {
+      stats.vlan_packets++;
    }
 
    uint16_t pkt_len = caplen;

@@ -32,6 +32,8 @@
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/parser-stats.hpp>
 
+#include "ctt.hpp"
+
 #ifdef WITH_PCAP
 #include <pcap/pcap.h>
 #include <pcap/sll.h>
@@ -84,6 +86,8 @@ typedef struct parser_opt_s {
  * \param [in] caplen   Capture length - actual size of the packet, i.e., number of bytes that are available in data.
  */
 void parse_packet(parser_opt_t *opt, ParserStats& stats, struct timeval ts, const uint8_t *data, uint16_t len, uint16_t caplen);
+
+void parse_packet_ctt_metadata(parser_opt_t *opt, ParserStats& stats, const Metadata_CTT& metadata, const uint8_t *data, uint16_t len, uint16_t caplen);
 
 }
 #endif /* IPXP_INPUT_PARSER_HPP */

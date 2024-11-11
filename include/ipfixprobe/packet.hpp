@@ -38,6 +38,7 @@
 
 #include <ipfixprobe/ipaddr.hpp>
 #include <ipfixprobe/flowifc.hpp>
+#include "ipfixprobe/cttmeta.hpp"
 
 namespace ipxp {
 
@@ -45,6 +46,7 @@ namespace ipxp {
  * \brief Structure for storing parsed packet fields
  */
 struct Packet : public Record {
+   Metadata_CTT cttmeta; /**< Metadata from CTT */
    struct timeval ts;
 
    uint8_t     dst_mac[6];
