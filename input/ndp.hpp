@@ -37,8 +37,7 @@
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/options.hpp>
 #include <ipfixprobe/utils.hpp>
-
-#include "ipfixprobe/cttmeta.hpp"
+#include <ipfixprobe/cttmeta.hpp>
 
 namespace ipxp {
 
