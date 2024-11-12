@@ -54,7 +54,7 @@ DpdkDevice::DpdkDevice(
 	recognizeDriver();
 	configurePort();
 	initMemPools(memPoolSize);
-	setupRxQueues();
+	setupRxQueues(memPoolSize);
 	configureRSS();
 	enablePort();
 }
@@ -194,13 +194,13 @@ void DpdkDevice::initMemPools(uint16_t memPoolSize)
 	}
 }
 
-void DpdkDevice::setupRxQueues()
+void DpdkDevice::setupRxQueues(uint16_t memPoolSize)
 {
 	for (uint16_t rxQueueID = 0; rxQueueID < m_rxQueueCount; rxQueueID++) {
 		int ret = rte_eth_rx_queue_setup(
 			m_portID,
 			rxQueueID,
-			m_mBufsCount,
+			memPoolSize,
 			rte_eth_dev_socket_id(m_portID),
 			nullptr,
 			m_memPools[rxQueueID]);

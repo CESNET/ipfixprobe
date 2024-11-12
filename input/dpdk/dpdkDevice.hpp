@@ -76,7 +76,7 @@ private:
 	void configurePort();
 	rte_eth_conf createPortConfig();
 	void initMemPools(uint16_t memPoolSize);
-	void setupRxQueues();
+	void setupRxQueues(uint16_t memPoolSize);
 	void configureRSS();
 	void enablePort();
 	void createRteMempool(uint16_t mempoolSize);
