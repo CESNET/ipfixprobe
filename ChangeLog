@@ -1,3 +1,6 @@
+2024-11-14 ipfixprobe-4.14.0
+	* dpdk: set mempool size as rx queue size
+
 2024-10-17 ipfixprobe-4.13.0
 	* usability: introduce docker/podman container to convert PCAP files to CSV
 	* IPFIX: fix order of TCP options flags
