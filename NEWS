@@ -1,3 +1,6 @@
+2024-11-12 (Jan Sobol): dpdkDevice: use mempool size as rx queue size instead of burst size
+2024-11-12 (Jan Sobol): dpdk: reduce value of DEFAULT_MBUF_POOL_SIZE to use it also as rx queue size
+
 2024-10-17 (Tomas Cejka): doc: include generated Doxyfile to create documentation
 2024-10-17 (Tomas Cejka): doc: add doxygen comment for parse_packet()
 2024-10-16 (Jan Sobol): dpdk-ring - fix checking if any packet has actually been parsed
