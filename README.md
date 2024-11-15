@@ -1,121 +1,20 @@
-# ipfixprobe - IPFIX flow exporter
+<p align="center">
+    <img src="https://raw.githubusercontent.com/CESNET/ipfixprobe/refs/heads/docs/docs/images/ipfixprobe-horizontal.svg" width="450">
+</p>
 
-## Description
-This application creates biflows from packet input and exports them to output interface.
+[![](https://img.shields.io/badge/license-BSD-blue.svg)](https://github.com/CESNET/ipfixprobe/blob/master/LICENSE)
+![Coverity Scan](https://img.shields.io/coverity/scan/22112)
+![GitHub top language](https://img.shields.io/github/languages/top/CESNET/ipfixprobe)
 
-## Requirements
-- libatomic
-- kernel version at least 3.19 when using raw sockets input plugin enabled by default (disable with `--without-raw` parameter for `./configure`)
-- [libpcap](http://www.tcpdump.org/) when compiling with pcap plugin (`--with-pcap` parameter)
-- netcope-common [COMBO cards](https://www.liberouter.org/technologies/cards/) when compiling with ndp plugin (`--with-ndp` parameter)
-- libunwind-devel when compiling with stack unwind on crash feature (`--with-unwind` parameter)
-- [nemea](http://github.com/CESNET/Nemea-Framework) when compiling with unirec output plugin (`--with-nemea` parameter)
-- cloned submodule with googletest framework to enabled optional tests (`--with-gtest` parameter)
+ipfixprobe is a high-performance flow exporter. It creates bidirectional flows from packet input and exports them to output interface. The ipfixprobe support vide variety of flow extenstion for application layer protocol information. The flow extension can be turned on with process plugins. We support TLS, QUIC, HTTP, DNS and many more. Just check our [documentation](#).
 
-To compile DPDK interfaces, make sure you have DPDK libraries (and development files) installed and set the `PKG_CONFIG_PATH` environment variable if necessary. You can obtain the latest DPDK at http://core.dpdk.org/download/ Use `--with-dpdk` parameter of the `configure` script to enable it.
-
-## Build & Installation
-
-### Source codes
-
-This project uses a standard process of:
+## Installation
+The RPM packages for RHEL based distributions can be downloaded from our  [copr repository](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/package/ipfixprobe/). Or just simply run:
 
 ```
-git clone --recurse-submodules https://github.com/CESNET/ipfixprobe
-cd ipfixprobe
-autoreconf -i
-./configure
-make
-sudo make install
+dnf install -y dnf-plugins-core && dnf copr -y enable @CESNET/NEMEA
+dnf install ipfixprobe
 ```
-
-Check `./configure --help` for more details and settings.
-
-### RPM packages
-
-RPM package can be created in the following versions using `--with` parameter of `rpmbuild`:
-- `--with pcap` enables RPM with pcap input plugin
-- `--with ndp` enables RPM with netcope-common, i.e., ndp input plugin
-- `--with nemea` enables RPM with unirec output plugin
-- `--without raw` disables RPM with default raw socket input plugin
-- `--with unwind` enables RPM with stack unwinding feature
-
-These parameters affect required dependencies of the RPM and build process.
-
-The default configuration of the RPM can be created using simply: `make rpm`
-
-Alternative versions (described in the following section) can be created by:
-- NEMEA version of RPM: `make rpm-nemea`
-- NDP version of RPM: `make rpm-ndp`
-
-We use [COPR infrastructure](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/) to build and serve RPM packages for EPEL7 and EPEL8.
-It is not possible to pass arguments to rpmbuild, so there is an option in configure to enforce NEMEA dependency:
-
-`./configure --enable-coprrpm && make srpm`
-
-The output source RPM can be uploaded to copr.
-
-To install ipfixprobe with NEMEA dependency from binary RPM packages, it is possible to follow instructions on:
-[https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/)
-
-### Windows 10 CygWin
-
-Install CygWin and the following packages:
-- git
-- pkg-config
-- make
-- automake
-- autoconf
-- libtool
-- binutils
-- gcc-core
-- gcc-g++
-- libunwind-devel
-
-Download npcap SDK [https://nmap.org/npcap/dist/npcap-sdk-1.07.zip](https://nmap.org/npcap/dist/npcap-sdk-1.07.zip) and copy content of the `Include` folder to `/usr/include` folder in your cygwin root installation folder (`C:\cygwin64\usr\include` for example). Then copy files of the `Lib` folder to `/lib` folder (or `Lib/x64/` based on your architecture).
-
-Download npcap library [https://nmap.org/npcap/dist/npcap-1.31.exe](https://nmap.org/npcap/dist/npcap-1.31.exe) and install.
-
-Add the following line to the `~/.bashrc` file
-```
-export PATH="/cygdrive/c/Windows/system32/Npcap:$PATH"
-```
-
-Build project using commands in previous sections. Tested on cygwin version 2.908
-
-
-## Input / Output of the flow exporter
-
-Input and output interfaces are dependent on the configuration (by `configure`).
-The default setting uses raw sockets input plugin and the output is in IPFIX format only.
-
-When the project is configured with `./configure --with-nemea`, the flow
-exporter supports NEMEA output via TRAP IFC besides the default IPFIX output.
-For more information about NEMEA, visit
-[https://nemea.liberouter.org](https://nemea.liberouter.org).
-
-The flow exporter supports compilation with libpcap (`./configure --with-pcap`), which allows for receiving packets
-from PCAP file or network interface card.
-
-When the project is configured with `./configure --with-ndp`, it is prepared for high-speed packet transfer
-from special HW acceleration FPGA cards.  For more information about the cards,
-visit [COMBO cards](https://www.liberouter.org/technologies/cards/) or contact
-us.
-
-### Output
-
-There are several currently available output plugins, such as:
-
-- `ipfix` standard IPFIX [RFC 5101](https://tools.ietf.org/html/rfc5101)
-- `unirec` data source for the [NEMEA system](https://nemea.liberouter.org), the output is in the UniRec format sent via a configurable interface using [https://nemea.liberouter.org/trap-ifcspec/](https://nemea.liberouter.org/trap-ifcspec/)
-- `text` output in human readable text format on standard output file descriptor (stdout)
-
-The output flow records are composed of information provided by the enabled plugins (using `-p` parameter, see [Flow Data Extension - Processing Plugins](./README.md#flow-data-extension---processing-plugins)).
-
-See `ipfixprobe -h output` for more information and complete list of output plugins and their parameters.
-
-LZ4 compression:
-ipfix plugin supports LZ4 compression algorithm over tcp. See plugin's help for more information.
 
 ## Parameters
 ### Module specific parameters
@@ -172,24 +71,98 @@ Here are the examples of various plugins usage:
 `./ipfixprobe -i 'dpdk-ring;r=rx_ipfixprobe_0;e= --proc-type=secondary' -i 'dpdk-ring;r=rx_ipfixprobe_1' -i 'dpdk-ring;r=rx_ipfixprobe_2' -i 'dpdk-ring;r=rx_ipfixprobe_3' -o 'text'`
 ```
 
+## Build 
+
+### Requirements
+- libatomic
+- kernel version at least 3.19 when using raw sockets input plugin enabled by default (disable with `--without-raw` parameter for `./configure`)
+- [libpcap](http://www.tcpdump.org/) when compiling with pcap plugin (`--with-pcap` parameter)
+- netcope-common [COMBO cards](https://www.liberouter.org/technologies/cards/) when compiling with ndp plugin (`--with-ndp` parameter)
+- libunwind-devel when compiling with stack unwind on crash feature (`--with-unwind` parameter)
+- [nemea](http://github.com/CESNET/Nemea-Framework) when compiling with unirec output plugin (`--with-nemea` parameter)
+- cloned submodule with googletest framework to enabled optional tests (`--with-gtest` parameter)
+
+To compile DPDK interfaces, make sure you have DPDK libraries (and development files) installed and set the `PKG_CONFIG_PATH` environment variable if necessary. You can obtain the latest DPDK at http://core.dpdk.org/download/ Use `--with-dpdk` parameter of the `configure` script to enable it.
+
+### Source codes
+
+This project uses a standard process of:
+
+```
+git clone --recurse-submodules https://github.com/CESNET/ipfixprobe
+cd ipfixprobe
+autoreconf -i
+./configure
+make
+sudo make install
+```
+
+Check `./configure --help` for more details and settings.
+
+### RPM packages
+
+RPM package can be created in the following versions using `--with` parameter of `rpmbuild`:
+- `--with pcap` enables RPM with pcap input plugin
+- `--with ndp` enables RPM with netcope-common, i.e., ndp input plugin
+- `--with nemea` enables RPM with unirec output plugin
+- `--without raw` disables RPM with default raw socket input plugin
+- `--with unwind` enables RPM with stack unwinding feature
+
+These parameters affect required dependencies of the RPM and build process.
+
+The default configuration of the RPM can be created using simply: `make rpm`
+
+Alternative versions (described in the following section) can be created by:
+- NEMEA version of RPM: `make rpm-nemea`
+- NDP version of RPM: `make rpm-ndp`
+
+We use [COPR infrastructure](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/) to build and serve RPM packages for EPEL9.
+It is not possible to pass arguments to rpmbuild, so there is an option in configure to enforce NEMEA dependency:
+
+`./configure --enable-coprrpm && make srpm`
+
+The output source RPM can be uploaded to copr.
+
+To install ipfixprobe with NEMEA dependency from binary RPM packages, it is possible to follow instructions on:
+[https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/)
+
 ## Telemetry
 
 `ipfixprobe` can expose telemetry data using the appFs library, which leverages the fuse3 library (filesystem in userspace) to allow telemetry data to be accessed and manipulated 
 through standard filesystem operations.
 
-## Flow Data Extension - Processing Plugins
+## Input / Output of the flow exporter
 
-`ipfixprobe` can be extended by new plugins for exporting various new information from flow.
-There are already some existing plugins that export e.g. `DNS`, `HTTP`, `SIP`, `NTP`, `PassiveDNS`.
+The availability of the input and output interfaces depends on the ipfixprobe build settings. By default, we provide RPM package with pcap and raw inputs. The default provided outpus are ipfix and text.
 
-To enable a plugin, add `-p` option with argument (it can be used multiple times). Each plugin provides a set of information described in section Output data.
+When the project is configured with `./configure --with-nemea`, the flow
+exporter supports NEMEA output via TRAP IFC besides the default IPFIX output.
+For more information about NEMEA, visit
+[https://nemea.liberouter.org](https://nemea.liberouter.org).
 
-See `ipfixprobe -h process` for more information and complete list of processing plugins and their parameters.
+The flow exporter supports compilation with libpcap (`./configure --with-pcap`), which allows for receiving packets
+from PCAP file or network interface card.
 
-## Adding new plugin
+When the project is configured with `./configure --with-ndp`, it is prepared for high-speed packet transfer
+from special HW acceleration FPGA cards.  For more information about the cards,
+visit [COMBO cards](https://www.liberouter.org/technologies/cards/) or contact
+us.
 
-To create new plugin use [process/create_plugin.sh](process/create_plugin.sh) script. This interactive script will generate .cpp and .h
-file template and will also print `TODO` guide what needs to be done.
+### Output
+
+There are several currently available output plugins, such as:
+
+- `ipfix` standard IPFIX [RFC 5101](https://tools.ietf.org/html/rfc5101)
+- `unirec` data source for the [NEMEA system](https://nemea.liberouter.org), the output is in the UniRec format sent via a configurable interface using [https://nemea.liberouter.org/trap-ifcspec/](https://nemea.liberouter.org/trap-ifcspec/)
+- `text` output in human readable text format on standard output file descriptor (stdout)
+
+The output flow records are composed of information provided by the enabled plugins (using `-p` parameter, see [Flow Data Extension - Processing Plugins](./README.md#flow-data-extension---processing-plugins)).
+
+See `ipfixprobe -h output` for more information and complete list of output plugins and their parameters.
+
+LZ4 compression:
+ipfix plugin supports LZ4 compression algorithm over tcp. See plugin's help for more information.
+
 
 ## Possible issues
 ### Flows are not send to output interface when reading small pcap file (NEMEA output)
@@ -200,548 +173,3 @@ Turn off message buffering using `buffer=off` option and set `timeout=WAIT` on o
 ./ipfixprobe -i 'pcap;file=traffic.pcap' -o 'unirec;i=u:out:timeout=WAIT:buffer=off'
 ```
 
-## Output data
-
-The following sections describe set of information fields provided by the processing plugins.
-The columns `Output field` and `Type` represent the name and type of UniRec elements (NEMEA output); however, the equivalent fields are exported in other output plugins as well --- e.g., in IPFIX format.
-
-Note: to lookup IPFIX enterprise id and element id have a look into [header file](https://github.com/CESNET/ipfixprobe/blob/master/include/ipfixprobe/ipfix-elements.hpp#L85) with the mapping to IPFIX elements.
-
-### Basic
-Basic unirec fields exported on interface with basic (pseudo) plugin. These fields are also exported on interfaces where HTTP, DNS, SIP and NTP plugins are active.
-
-| Output field           | Type             | Description                                         |
-|:----------------------:|:----------------:|:---------------------------------------------------:|
-| DST_MAC                | macaddr          | destination MAC address                             |
-| SRC_MAC                | macaddr          | source MAC address                                  |
-| DST_IP                 | ipaddr           | destination IP address                              |
-| SRC_IP                 | ipaddr           | source IP address                                   |
-| BYTES                  | uint64           | number of bytes in data flow (src to dst)           |
-| BYTES_REV              | uint64           | number of bytes in data flow (dst to src)           |
-| LINK_BIT_FIELD or ODID | uint64 or uint32 | exporter identification                             |
-| TIME_FIRST             | time             | first time stamp                                    |
-| TIME_LAST              | time             | last time stamp                                     |
-| PACKETS                | uint32           | number of packets in data flow (src to dst)         |
-| PACKETS_REV            | uint32           | number of packets in data flow (dst to src)         |
-| DST_PORT               | uint16           | transport layer destination port                    |
-| SRC_PORT               | uint16           | transport layer source port                         |
-| DIR_BIT_FIELD          | uint8            | bit field for determining outgoing/incoming traffic |
-| PROTOCOL               | uint8            | transport protocol                                  |
-| TCP_FLAGS              | uint8            | TCP protocol flags (src to dst)                     |
-| TCP_FLAGS_REV          | uint8            | TCP protocol flags (dst to src)                     |
-
-### Basic plus
-List of unirec fields exported together with basic flow fields on interface by basicplus plugin.
-Fields without `_REV` suffix are fields from source flow. Fields with `_REV` are from the opposite direction.
-
-| Output field | Type   | Description                 |
-|:------------:|:------:|:---------------------------:|
-| IP_TTL       | uint8  | IP TTL field                |
-| IP_TTL_REV   | uint8  | IP TTL field                |
-| IP_FLG       | uint8  | IP FLAGS                    |
-| IP_FLG_REV   | uint8  | IP FLAGS                    |
-| TCP_WIN      | uint16 | TCP window size             |
-| TCP_WIN_REV  | uint16 | TCP window size             |
-| TCP_OPT      | uint64 | TCP options bitfield        |
-| TCP_OPT_REV  | uint64 | TCP options bitfield        |
-| TCP_MSS      | uint32 | TCP maximum segment size    |
-| TCP_MSS_REV  | uint32 | TCP maximum segment size    |
-| TCP_SYN_SIZE | uint16 | TCP SYN packet size         |
-
-### NetTiSA
-List of unirec fields exported together with NetTiSA flow fields on interface by nettisa plugin.
-
-| Output field | Type   | Description                 |
-|:------------:|:------:|:---------------------------:|
-| NTS_MEAN               | float   |  The mean of the payload lengths of packets                                   |
-| NTS_MIN                | uint16   |  Minimal value from all packet payload lengths                |
-| NTS_MAX                | uint16   |  Maximum value from all packet payload lengths                    |
-| NTS_STDEV              | float   |  Represents a switching ratio between different values of the sequence of observation.                    |
-| NTS_KURTOSIS           | float  |  The standard deviation is measure of the variation of data from the mean.             |
-| NTS_ROOT_MEAN_SQUARE   | float  |  The measure of the magnitude of payload lengths of packets.             |
-| NTS_AVERAGE_DISPERSION | float  |  The average absolute difference between each payload length of packet and the mean value.        |
-| NTS_MEAN_SCALED_TIME   | float  |  The kurtosis is the measure describing the extent to which the tails of a distribution differ from the tails of a normal distribution.   |
-| NTS_MEAN_DIFFTIMES     | float  | The scaled times is defined as sequence $\{st\} = \{ t_1 - t_1, t_2 - t_1, \dots, t_n - t_1 \}$. We compute the mean of the value with same method as for feature \textit{Mean}.     |
-| NTS_MIN_DIFFTIMES      | float  | The time differences is defined as sequence $ \{dt\} = \{ t_j - t_i \| j = i + 1, i \in \{1, 2, \dots, n - 1\}\}$. We compute the mean of the value with same method as for feature \textit{Mean}.     |
-| NTS_MAX_DIFFTIMES      | float  | Minimal value from all time differences, i.e., min space between packets.          |
-| NTS_TIME_DISTRIBUTION  | float  | Maximum value from all time differences, i.e., max space between packets.          |
-| NTS_SWITCHING_RATIO    | float  | Describes the distribution of time differences between individual packets.          |
-
-### HTTP
-List of unirec fields exported together with basic flow fields on interface by HTTP plugin.
-
-| Output field                   | Type   | Description                                                 |
-|:------------------------------:|:------:|:-----------------------------------------------------------:|
-| HTTP_REQUEST_METHOD            | string | HTTP request method                                         |
-| HTTP_REQUEST_HOST              | string | HTTP request host                                           |
-| HTTP_REQUEST_URL               | string | HTTP request url                                            |
-| HTTP_REQUEST_AGENT             | string | HTTP request user agent                                     |
-| HTTP_REQUEST_REFERER           | string | HTTP request referer                                        |
-| HTTP_RESPONSE_STATUS_CODE      | uint16 | HTTP response code                                          |
-| HTTP_RESPONSE_CONTENT_TYPE     | string | HTTP response content type                                  |
-| HTTP_RESPONSE_SERVER           | string | HTTP response server                                        |
-| HTTP_RESPONSE_SET_COOKIE_NAMES | string | HTTP response all set-cookie names separated by a delimiter |
-
-### RTSP
-List of unirec fields exported together with basic flow fields on interface by RTSP plugin.
-
-| Output field                 | Type   | Description                 |
-|:----------------------------:|:------:|:---------------------------:|
-| RTSP_REQUEST_METHOD          | string | RTSP request method name    |
-| RTSP_REQUEST_AGENT           | string | RTSP request user agent     |
-| RTSP_REQUEST_URI             | string | RTSP request URI            |
-| RTSP_RESPONSE_STATUS_CODE    | uint16 | RTSP response status code   |
-| RTSP_RESPONSE_SERVER         | string | RTSP response server field  |
-| RTSP_RESPONSE_CONTENT_TYPE   | string | RTSP response content type  |
-
-### TLS
-List of unirec fields exported together with basic flow fields on interface by TLS plugin.
-
-| Output field |   Type   |                         Description                          |
-|:------------:|:--------:|:------------------------------------------------------------:|
-|   TLS_SNI    |  string  |         TLS server name indication field from client         |
-|   TLS_ALPN   |  string  | TLS application protocol layer negotiation field from server |
-| TLS_VERSION  |  uint16  |                 TLS client protocol version                  |
-|   TLS_JA3    | string   |                  TLS client JA3 fingerprint                  |
-| TLS_EXT_TYPE | uint16\* |          TLS extensions in the TLS Client Hello              |
-| TLS_EXT_LEN  | uint16\* |                 Length of each TLS extension                 |
-
-### DNS
-List of unirec fields exported together with basic flow fields on interface by DNS plugin.
-
-| Output field | Type   | Description                     |
-|:------------:|:------:|:-------------------------------:|
-| DNS_ID       | uint16 | transaction ID                  |
-| DNS_ANSWERS  | uint16 | number of DNS answer records    |
-| DNS_RCODE    | uint8  | response code field             |
-| DNS_NAME     | string | question domain name            |
-| DNS_QTYPE    | uint16 | question type field             |
-| DNS_CLASS    | uint16 | class field of DNS question     |
-| DNS_RR_TTL   | uint32 | resource record TTL field       |
-| DNS_RLENGTH  | uint16 | length of DNS_RDATA             |
-| DNS_RDATA    | bytes  | resource record specific data   |
-| DNS_PSIZE    | uint16 | requestor's payload size        |
-| DNS_DO       | uint8  | DNSSEC OK bit                   |
-
-#### DNS_RDATA format
-
-DNS_RDATA formatting is implemented for some base DNS RR Types in human-readable output.
-Same as [here](https://www.liberouter.org/technologies/exporter/dns-plugin/):
-
-| Record | Format |
-|:------:|:------:|
-| A      | <IPv4 in dotted decimal representation\> |
-| AAAA   | <IPv6 represented as groups separated by semicolons\> |
-| NS     | <parsed hostname\> |
-| CNAME  | <parsed hostname\> |
-| PTR    | <parsed hostname\> |
-| DNAME  | <parsed hostname\> |
-| SOA    | <mname\> <rname\> <serial\> <refresh\> <retry\> <expire\> <min ttl\> |
-| SRV    | <service\> <protocol\> <name\> <target\> <priority\> <weight\> <port\> |
-| MX     | <priority\> <mx hostname\> |
-| TXT    | <txt string\> |
-| MINFO  | <rmailbx\> <emailbx\> |
-| HINFO  | <txt string\> |
-| ISDN   | <txt string\> |
-| DS     | <keytag\> <algorithm\> <digest\> <publickey\>\* |
-| RRSIG  | <type_covered\> <algorithm\> <labels\> <original_ttl\> <signature_exp\> <signature_inc\> <keytag\> <signer_signature\>\* |
-| DNSKEY | <flags\> <protocol\> <algorithm\> <publickey\>\* |
-| other  | <not impl\>\* |
-
- \* binary data are skipped and not printed
-
-### PassiveDNS
-List of unirec fields exported together with basic flow fields on interface by PassiveDNS plugin.
-
-| Output field | Type   | Description                             |
-|:------------:|:------:|:---------------------------------------:|
-| DNS_ID       | uint16 | transaction ID                          |
-| DNS_ATYPE    | uint8  | response record type                    |
-| DNS_NAME     | string | question domain name                    |
-| DNS_RR_TTL   | uint32 | resource record TTL field               |
-| DNS_IP       | ipaddr | IP address from PTR, A or AAAA record   |
-
-
-### MQTT
-List of unirec fields exported together with basic flow fields on interface by MQTT plugin.
-
-|         Output field          | Type   |                      Description                      |
-|:-----------------------------:|:------:|:-----------------------------------------------------:|
-|     MQTT_TYPE_CUMULATIVE      | uint16 | types of packets  and session present flag cumulative |
-|         MQTT_VERSION          | uint8 |                     MQTT version                      |
-|     MQTT_CONNECTION_FLAGS     | uint8  |               last CONNECT packet flags               |
-|        MQTT_KEEP_ALIVE        | uint16 |                last CONNECT keep alive                |
-|  MQTT_CONNECTION_RETURN_CODE  | uint8 |               last CONNECT return code                |
-|      MQTT_PUBLISH_FLAGS       | uint8 |          cumulative of PUBLISH packet flags           |
-|          MQTT_TOPICS          | string |          topics from PUBLISH packets headers          |
-
-### SIP
-List of unirec fields exported together with basic flow fields on interface by SIP plugin.
-
-| Output field      | Type   | Description                     |
-|:-----------------:|:------:|:-------------------------------:|
-| SIP_MSG_TYPE      | uint16 | SIP message code                |
-| SIP_STATUS_CODE   | uint16 | status of the SIP request       |
-| SIP_CSEQ          | string | CSeq field of SIP packet        |
-| SIP_CALLING_PARTY | string | calling party (from) URI        |
-| SIP_CALLED_PARTY  | string | called party (to) URI           |
-| SIP_CALL_ID       | string | call ID                         |
-| SIP_USER_AGENT    | string | user agent field of SIP packet  |
-| SIP_REQUEST_URI   | string | SIP request URI                 |
-| SIP_VIA           | string | via field of SIP packet         |
-
-### NTP
-List of unirec fields exported together with basic flow fields on interface by NTP plugin.
-
-| Output field   | Type   | Description               |
-|:--------------:|:------:|:-------------------------:|
-| NTP_LEAP       | uint8  | NTP leap field            |
-| NTP_VERSION    | uint8  | NTP message version       |
-| NTP_MODE       | uint8  | NTP mode field            |
-| NTP_STRATUM    | uint8  | NTP stratum field         |
-| NTP_POLL       | uint8  | NTP poll interval         |
-| NTP_PRECISION  | uint8  | NTP precision field       |
-| NTP_DELAY      | uint32 | NTP root delay            |
-| NTP_DISPERSION | uint32 | NTP root dispersion       |
-| NTP_REF_ID     | string | NTP reference ID          |
-| NTP_REF        | string | NTP reference timestamp   |
-| NTP_ORIG       | string | NTP origin timestamp      |
-| NTP_RECV       | string | NTP receive timestamp     |
-| NTP_SENT       | string | NTP transmit timestamp    |
-
-### SMTP
-List of unirec fields exported on interface by SMTP plugin
-
-| Output field              | Type   | Description                         |
-|:-------------------------:|:------:|:-----------------------------------:|
-| SMTP_2XX_STAT_CODE_COUNT  | uint32 | number of 2XX status codes          |
-| SMTP_3XX_STAT_CODE_COUNT  | uint32 | number of 3XX status codes          |
-| SMTP_4XX_STAT_CODE_COUNT  | uint32 | number of 4XX status codes          |
-| SMTP_5XX_STAT_CODE_COUNT  | uint32 | number of 5XX status codes          |
-| SMTP_COMMAND_FLAGS        | uint32 | bit array of commands present       |
-| SMTP_MAIL_CMD_COUNT       | uint32 | number of MAIL commands             |
-| SMTP_RCPT_CMD_COUNT       | uint32 | number of RCPT commands             |
-| SMTP_STAT_CODE_FLAGS      | uint32 | bit array of status codes present   |
-| SMTP_DOMAIN               | string | domain name of the SMTP client      |
-| SMTP_FIRST_SENDER         | string | first sender in MAIL command        |
-| SMTP_FIRST_RECIPIENT      | string | first recipient in RCPT command     |
-
-#### SMTP\_COMMAND\_FLAGS
-The following table shows bit values of `SMTP\_COMMAND\_FLAGS` for each SMTP command present in communication.
-
-| Command  | Value  |
-|:--------:|:------:|
-| EHLO     | 0x0001 |
-| HELO     | 0x0002 |
-| MAIL     | 0x0004 |
-| RCPT     | 0x0008 |
-| DATA     | 0x0010 |
-| RSET     | 0x0020 |
-| VRFY     | 0x0040 |
-| EXPN     | 0x0080 |
-| HELP     | 0x0100 |
-| NOOP     | 0x0200 |
-| QUIT     | 0x0400 |
-| UNKNOWN  | 0x8000 |
-
-#### SMTP\_STAT\_CODE\_FLAGS
-The following table shows bit values of `SMTP\_STAT_CODE\_FLAGS` for each present in communication.
-
-| Status code | Value      |
-|:-----------:|:----------:|
-| 211         | 0x00000001 |
-| 214         | 0x00000002 |
-| 220         | 0x00000004 |
-| 221         | 0x00000008 |
-| 250         | 0x00000010 |
-| 251         | 0x00000020 |
-| 252         | 0x00000040 |
-| 354         | 0x00000080 |
-| 421         | 0x00000100 |
-| 450         | 0x00000200 |
-| 451         | 0x00000400 |
-| 452         | 0x00000800 |
-| 455         | 0x00001000 |
-| 500         | 0x00002000 |
-| 501         | 0x00004000 |
-| 502         | 0x00008000 |
-| 503         | 0x00010000 |
-| 504         | 0x00020000 |
-| 550         | 0x00040000 |
-| 551         | 0x00080000 |
-| 552         | 0x00100000 |
-| 553         | 0x00200000 |
-| 554         | 0x00400000 |
-| 555         | 0x00800000 |
-| *           | 0x40000000 |
-| UNKNOWN     | 0x80000000 |
-
-* Bit is set if answer contains SPAM keyword.
-
-### PSTATS
-List of unirec fields exported on interface by PSTATS plugin.  The plugin is compiled to gather statistics for the first `PSTATS_MAXELEMCOUNT` (30 by default) packets in the biflow record.
-Note: the following fields are UniRec arrays (or basicList in IPFIX).
-
-| Output field               | Type     | Description                            |
-|:--------------------------:|:--------:|:--------------------------------------:|
-| PPI_PKT_LENGTHS            | uint16\* | sizes of the first packets             |
-| PPI_PKT_TIMES              | time\*   | timestamps of the first packets        |
-| PPI_PKT_DIRECTIONS         | int8\*   | directions of the first packets        |
-| PPI_PKT_FLAGS              | uint8\*  | TCP flags for each packet              |
-
-#### Plugin parameters:
-- includezeros - Include zero-length packets in the lists.
-- skipdup - Skip retransmitted (duplicated) TCP packets.
-
-##### Example:
-```
-ipfixprobe 'pcap;file=pcaps/http.pcap' -p "pstats;includezeros" -o 'unirec;i=u:stats:timeout=WAIT;p=stats'"
-```
-
-### OSQUERY
-List of unirec fields exported together with basic flow fields on interface by OSQUERY plugin.
-
-| Output field               | Type     | Description                                         |
-|:--------------------------:|:--------:|:---------------------------------------------------:|
-| PROGRAM_NAME               | string   | The name of the program that handles the connection |
-| USERNAME                   | string   | The name of the user who starts the process         |
-| OS_NAME                    | string   | Distribution or product name                        |
-| OS_MAJOR                   | uint16   | Major release version                               |
-| OS_MINOR                   | uint16   | Minor release version                               |
-| OS_BUILD                   | string   | Optional build-specific or variant string           |
-| OS_PLATFORM                | string   | OS Platform or ID                                   |
-| OS_PLATFORM_LIKE           | string   | Closely related platforms                           |
-| OS_ARCH                    | string   | OS Architecture                                     |
-| KERNEL_VERSION             | string   | Kernel version                                      |
-| SYSTEM_HOSTNAME            | string   | Network hostname including domain                   |
-
-### SSDP
-List of unirec fields exported together with basic flow fields on interface by SSDP plugin.
-
-| Output field       | Type   | Description                     |
-|:------------------:|:------:|:-------------------------------:|
-| SSDP_LOCATION_PORT | uint16 | service port                    |
-| SSDP_NT            | string | list of advertised service urns |
-| SSDP_SERVER        | string | server info                     |
-| SSDP_ST            | string | list of queried service urns    |
-| SSDP_USER_AGENT    | string | list of user agents             |
-
-All lists are semicolon separated.
-
-### DNS-SD
-List of unirec fields exported together with basic flow fields on interface by DNS-SD plugin.
-
-| Output field    | Type   | Description                     |
-|:---------------:|:------:|:-------------------------------:|
-| DNSSD_QUERIES   | string | list of queries for services    |
-| DNSSD_RESPONSES | string | list of advertised services     |
-
-Format of DNSSD_QUERIES: [service_instance_name;][...]
-
-Format of DNSSD_RESPONSES: [service_instance_name;service_port;service_target;hinfo;txt;][...]
-
-#### Plugin parameters:
-- txt - Activates processing of txt records.
-    - Allows to pass a filepath to .csv file with whitelist filter of txt records.
-   - File line format: service.domain,txt_key1,txt_key2,...
-   - If no filepath is provided, all txt records will be aggregated.
-
-### OVPN (OpenVPN)
-
-List of fields exported together with basic flow fields on interface by OVPN plugin.
-
-| Output field       | Type   | Description                     |
-|:------------------:|:------:|:-------------------------------:|
-| OVPN_CONF_LEVEL    | uint8  | level of confidence that the flow record is an OpenVPN tunnel |
-
-
-### IDPContent (Initial Data Packets Content)
-
-List of fields exported together with basic flow fields on the interface by IDPContent plugin.
-The plugin is compiled to export `IDPCONTENT_SIZE` (100 by default) bytes from the first data packet in SRC -> DST direction,
-and the first data packet in DST -> SRC direction.
-
-| Output field       | Type   | Description                     |
-|:------------------:|:------:|:-------------------------------:|
-| IDP_CONTENT        | bytes  | Content of first data packet from SRC -> DST|
-| IDP_CONTENT_REV    | bytes  | Content of first data packet from DST -> SRC|
-
-### NetBIOS
-
-List of fields exported together with basic flow fields on interface by NetBIOS plugin.
-
-| Output field  | Type   | Description                 |
-|:-------------:|:------:|:---------------------------:|
-| NB_NAME       | string | NetBIOS Name Service name   |
-| NB_SUFFIX     | uint8  | NetBIOS Name Service suffix |
-
-### PHISTS
-
-List of fields exported together with basic flow fields on the interface by PHISTS plugin.
-The plugin exports the histograms of Payload sizes and Inter-Packet-Times for each direction. The
-histograms bins are scaled logarithmicaly and are shown in following table:
-
-| Bin Number | Size Len   | Inter Packet Time |
-|:----------:|:----------:|:-----------------:|
-| 1          | 0-15 B     |  0-15 ms          |
-| 2          | 16-31 B    |  16-31 ms         |
-| 3          | 32-63 B    |  32-63 ms         |
-| 4          | 64-127 B   |  64-127 ms        |
-| 5          | 128-255 B  |  128-255 ms       |
-| 6          | 256-511 B  |  256-511 ms       |
-| 7          | 512-1023 B |  512-1023 ms      |
-| 8          | > 1024 B   |  > 1024 ms        |
-
-The exported unirec fields and IPFIX basiclists is shown in following table:
-
-| Output field        | Type    | Description                             |
-|:-------------------:|:-------:|:---------------------------------------:|
-| D_PHISTS_IPT        | uint32\*| DST->SRC: Histogram of interpacket times|
-| D_PHISTS_SIZES      | uint32\*| DST->SRC: Histogram of packet sizes     |
-| S_PHISTS_IPT        | uint32\*| SRC->DST: Histogram of interpacket times|
-| S_PHISTS_SIZES      | uint32\*| SRC->DST: Histogram of packet sizes     |
-
-#### Plugin parameters:
-- includezeros - Include zero-length packets in the lists.
-
-##### Example:
-```
-ipfixprobe 'pcap;file=pcaps/http.pcap' -p "phists;includezeros" -o 'unirec;i=u:hists:timeout=WAIT;p=phists'"
-```
-### BSTATS
-
-List of fields exported together with basic flow fields on the interface by BSTATS plugin.
-The plugin is compiled to export the first `BSTATS_MAXELENCOUNT` (15 by default) burst in each direction.
-The bursts are computed separately for each direction. Burst is defined by `MINIMAL_PACKETS_IN_BURST` (3 by default) and by `MAXIMAL_INTERPKT_TIME` (1000 ms by default) between packets to be included in a burst. When the flow contains less then `MINIMAL_PACKETS_IN_BURST` packets, the fields are not exported to reduce output bandwidth.
-
-| Output field        | Type    | Description                                                     |
-|:-------------------:|:-------:|:---------------------------------------------------------------:|
-| SBI_BRST_PACKETS    | uint32\* | SRC->DST: Number of packets transmitted in i<sup>th</sup> burst|
-| SBI_BRST_BYTES      | uint32\* | SRC->DST: Number of bytes transmitted in i<sup>th</sup> burst  |
-| SBI_BRST_TIME_START | time\*   | SRC->DST: Start time of the i<sup>th</sup> burst               |
-| SBI_BRST_TIME_STOP  | time\*   | SRC->DST: End time of the i<sup>th</sup> burst                 |
-| DBI_BRST_PACKETS    | uint32\* | DST->SRC: Number of packets transmitted in i<sup>th</sup> burst|
-| DBI_BRST_BYTES      | uint32\* | DST->SRC: Number of bytes transmitted in i<sup>th</sup> burst  |
-| DBI_BRST_TIME_START | time\*   | DST->SRC: Start time of the i<sup>th</sup> burst               |
-| DBI_BRST_TIME_STOP  | time\*   | DST->SRC: End time of the i<sup>th</sup> burst                 |
-
-### WG (WireGuard)
-
-List of fields exported together with basic flow fields on interface by WG plugin.
-
-| Output field       | Type   | Description                     |
-|:------------------:|:------:|:-------------------------------:|
-| WG_CONF_LEVEL      | uint8  | level of confidence that the flow record is a WireGuard tunnel|
-| WG_SRC_PEER        | uint32 | ephemeral SRC peer identifier                                 |
-| WG_DST_PEER        | uint32 | ephemeral DST peer identifier                                 |
-
-### QUIC
-
-List of fields exported together with basic flow fields on interface by quic plugin.
-`-with-quic-ch-full-tls-ext` enables extraction of all TLS extensions in the Client Hello.
-
-|    Output field     |   Type   |                                          Description                                          |
-|:-------------------:|:--------:|:---------------------------------------------------------------------------------------------:|
-|      QUIC_SNI       |  string  |                                     Decrypted server name                                     |
-|   QUIC_USER_AGENT   |  string  |                                     Decrypted user agent                                      |
-|    QUIC_VERSION     |  uint32  |                      QUIC version from first server long header packets                       |
-| QUIC_CLIENT_VERSION |  uint32  |                       QUIC version from first client long header packet                       |
-|  QUIC_TOKEN_LENGTH  |  uint64  |                          Token length from Initial and Retry packets                          |
-|     QUIC_OCCID      |  bytes   |                         Source Connection ID from first client packet                         |
-|     QUIC_OSCID      |  bytes   |                      Destination Connection ID from first client packet                       |
-|      QUIC_SCID      |  bytes   |                         Source Connection ID from first server packet                         |
-|   QUIC_RETRY_SCID   |  bytes   |                            Source Connection ID from Retry packet                             |
-|  QUIC_MULTIPLEXED   |  uint8   |                > 0 if multiplexed (at least two different QUIC_OSCIDs or SNIs)                |
-|    QUIC_ZERO_RTT    |  uint8   |                               Number of 0-RTT packets in flow.                                |
-| QUIC_SERVER_PORT    |  uint16  |                  TODO Server Port determined by packet type and TLS message                   |
-|    QUIC_PACKETS     | uint8\*  |           QUIC long header packet type (v1 encoded), version negotiation, QUIC bit            |
-|   QUIC_CH_PARSED    |  uint8   |                         >0 if TLS Client Hello parsed without errors                          |
-|  QUIC_TLS_EXT_TYPE  | uint16\* |                            TLS extensions in the TLS Client Hello                             |
-|  QUIC_TLS_EXT_LEN   | uint16\* |                                 Length of each TLS extension                                  |
-|    QUIC_TLS_EXT     |  string  | Payload of all/application_layer_protocol_negotiation and quic_transport params TLS extension |
-
-### ICMP
-
-List of fields exported together with basic flow fields on interface by icmp plugin.
-
-| Output field       | Type   | Description                     |
-|:------------------:|:------:|:-------------------------------:|
-| L4_ICMP_TYPE_CODE  | uint16 | ICMP type (MSB) and code (LSB)  |
-
-### SSADetector
-
-List of fields exported together with basic flow fields on interface by ssadetector plugin.
-The detector search for the SYN SYN-ACK ACK pattern in packet lengths. Multiple occurrences of this pattern suggest a tunneled connection.
-
-| Output field       | Type   | Description                             |
-|:------------------:|:------:|:---------------------------------------:|
-| SSA_CONF_LEVEL     | uint8  | 1 if SSA sequence detected, 0 otherwise |
-
-### VLAN
-
-List of fields exported together with basic flow fields on the interface by VLAN plugin.
-
-| Output field | Type   | Description                |
-|:------------:|:------:|:--------------------------:|
-| VLAN_ID      | uint16 | Vlan ID (used in flow key) |
-
-### Flow Hash
-
-List of fields exported together with basic flow fields on interface by flow_hash plugin.
-
-| Output field       | Type   | Description                       |
-|:------------------:|:------:|:---------------------------------:|
-| FLOW_ID            | uint64 | Hash of the flow - unique flow id |
-
-### MPLS
-
-List of fields exported together with basic flow fields on interface by mpls plugin.
-
-| Output field                 | Type  | Description                                      |
-|:----------------------------:|:-----:|:------------------------------------------------:|
-| MPLS_TOP_LABEL_STACK_SECTION | bytes | MPLS label section (without TTL), always 3 bytes |
-
-## Simplified function diagram
-Diagram below shows how `ipfixprobe` works.
-
-1. `Packet` is read from pcap file or network interface
-2. `Packet` is processed by PcapReader and is about to put to flow cache
-3. Flow cache create or update flow and call `pre_create`, `post_create`, `pre_update`, `post_update` and `pre_export` functions for each active plugin at appropriate time
-4. `Flow` is put into exporter when considered as expired, flow cache is full or is forced to by a plugin
-5. Exporter fills `unirec record`, which is then send it to output libtrap interface
-
-```
-       +--------------------------------+
-       | pcap file or network interface |
-       +-----+--------------------------+
-             |
-          1. |
-             |                                  +-----+
-    +--------v---------+                              |
-    |                  |             +-----------+    |
-    |    PcapReader    |      +------>  Plugin1  |    |
-    |                  |      |      +-----------+    |
-    +--------+---------+      |                       |
-             |                |      +-----------+    |
-          2. |                +------>  Plugin2  |    |
-             |                |      +-----------+    |
-    +--------v---------+      |                       |
-    |                  |  3.  |      +-----------+    +----+ active plugins
-    |   NHTFlowCache   +------------->  Plugin3  |    |
-    |                  |      |      +-----------+    |
-    +--------+---------+      |                       |
-             |                |            .          |
-          4. |                |            .          |
-             |                |            .          |
-    +--------v---------+      |                       |
-    |                  |      |      +-----------+    |
-    |  UnirecExporter  |      +------>  PluginN  |    |
-    |                  |             +-----------+    |
-    +--------+---------+                              |
-             |                                  +-----+
-          5. |
-             |
-       +-----v--------------------------+
-       |    libtrap output interface    |
-       +--------------------------------+
-```

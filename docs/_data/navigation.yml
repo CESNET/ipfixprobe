@@ -1,0 +1,16 @@
+- name: "Get Ipfixprobe"
+  link: /get_options/
+  new_window: false
+  highlight: false
+- name: "How to use it"
+  link: /how/
+  new_window: false
+  highlight: false
+- name: "Developer"
+  link: /developer/
+  new_window: false
+  highlight: false
+- name: "Export Data"
+  link: /export/
+  new_window: false
+  highlight: false

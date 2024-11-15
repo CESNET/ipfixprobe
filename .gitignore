@@ -116,4 +116,8 @@ tests/unit/utils
 # vscode settings files
 .vscode
 
-
+# jekyll files
+docs/_site/
+docs/.sass-cache/
+docs/.jekyll-metadata/
+docs/.jekyll-cache/
