@@ -265,6 +265,7 @@ struct Flow : public Record {
     uint64_t flow_hash;
     uint64_t flow_hash_ctt; /**< Flow hash for CTT. */
     bool ctt_valid; /**< CTT validity flag. */
+    int ctt_state; /**< CTT - offload or not. */
     PluginsStatus plugins_status; /**< Statuses of the process plugins for this flow, used to check
                                      if the flow process plugins requires all available data, only
                                      metadata or nothing of this. */
