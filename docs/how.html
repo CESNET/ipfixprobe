@@ -5,7 +5,33 @@ heading: ipfixprobe usage
 
 <section style="padding:0px; padding-bottom:100px">
 <div class="container">	
+	This guide expects ipfixprobe is already installed, see <a href="{% link get_options.html %}">installation step</a>.
+
+	The following sections describe alternative ways how to run ipfixprobe.
+
 	<div class="blog-post text-container">
+		<hr class="not-hidden">
+		<h1 class = "clickable">Systemd service (recommended)</h1>
+		<p>The ipfixprobe can be set up to be used as a daemon to continuously process incoming packets from the boot up:</p>
+		<p>Create your <b>instance.conf</b> configuration, and save it in <b>/etc/ipfixprobe/</b><br>
+		
+		<span style="background-color: #ffe59e; " >All settings are explained in the <a href="https://github.com/CESNET/ipfixprobe/blob/master/init/link0.conf.example">example file</a></span>
+
+		<p>To start the systemd service, use:</p>
+		<span>
+			<p style = "font-family: monospace;">sudo systemctl start ipfixprobe@instance.service</p>
+		</span>
+
+		<span style="background-color: #ffe59e; " >"instance" serves as Your identifier of ipfixprobe instance, it must be equal in the name of the configuration file and in the systemctl command.</span>
+
+		<p>To enable the service at system startup, run:</p>
+		<span>
+			<p style = "font-family: monospace;">sudo systemctl enable ipfixprobe@instance.service</p>
+		</span>
+
+		<hr class="not-hidden">
+
+		<h1 class = "clickable">Command line &mdash; starting manually</h1>
 		<p>The simplest way to use ipfixprobe is to process PCAP file using PCAP plugin (need to be <b>./configure</b>d with --with-pcap) </p>
 		<div class="text editable">
 			<span>
@@ -14,8 +40,6 @@ heading: ipfixprobe usage
 			<h1 style="float:'left'"><strong>{{ plugin.title | raw }}</strong></h1>
 			<p>{{ plugin.description | raw }}</p>
 			</div>
-		<hr class="not-hidden">
-		<h1 class = "clickable" >Command line</h1>
 		<p>The ipfixprobe consists of one <b>input</b>, zero or one <b>output</b>, one <b>storage</b> and zero or more <b>process</b> plugins.	</p>
 		{% for plugin in site.how  %}
 			<div class="text editable">
@@ -43,6 +67,7 @@ heading: ipfixprobe usage
 				{% endfor %}
 			{% endfor %}
 		{% endfor %}
+
 		<hr class="not-hidden">
 		<h1 class = "clickable" >One-time convertion of PCAP file to CSV</h1>
 		<p>The ipfixprobe can be used to convert given PCAP file to the CSV containing flows from that file in the Unirec format.</p>
@@ -84,29 +109,9 @@ heading: ipfixprobe usage
 		<span>
 			<p style = "font-family: monospace;">bash ./ipfixprobe_wrapper.sh ./process_script.sh ../pcaps/mixed.pcap ./output.csv</p>
 		</span>
+
 		<hr class="not-hidden">
-		<h1 class = "clickable">ipfixprobe as a service</h1>
-		<p>The ipfxprobe can be set up to be used as a daemon to continuously process incoming packets from the boot up:</p>
-		<h2>On linux server</h2>
-		<p>Install the ipfixprobe:</p>
-		<span>
-			<p style = "font-family: monospace;">sudo make install</p>
-		</span>
-		<p>Create your <b>instance.conf</b> configuration inspired by example configurations from the <b>init</b> directory and save it into the <b>/etc/ipfixprobe/</b><br>
-		Prepare the service configuration file:</p>
-		<span>
-			<p style = "font-family: monospace;">sudo mv init/ipfixprobe@.service /etc/systemd/system/ipfixprobe@instance.service</p>
-		</span>
-		<p>Set up the <b>ExecStart</b> from <b>ipfixprobe@instance.service</b> to point to the <b>ipfixprobed</b> script.</p>
-		<p>To start the service use:</p>
-		<span>
-			<p style = "font-family: monospace;">sudo systemctl start ipfixprobe@instance.service</p>
-		</span>
-		<p>To start the service at system startup, run:</p>
-		<span>
-			<p style = "font-family: monospace;">sudo systemctl enable ipfixprobe@instance.service</p>
-		</span>
-		<h2>OpenWRT</h2>
+		<h1 class = "clickable">OpenWrt / Turris</h1>
 		<p>Create and save the configuration file to the <b>/etc/config/ipfixprobe</b>. Example of configuration file:<br></p>
 		<span>
 			<p style = "font-family: monospace; white-space: pre-line;"> NEMEA ipfixprobe

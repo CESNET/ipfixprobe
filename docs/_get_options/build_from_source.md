@@ -1,12 +1,12 @@
 ---
-title: Build ipfixprobe from source!
+title: Build from source codes
 description: You can build ipfixprobe from source codes available at <a href="https://github.com/CESNET/ipfixprobe">github</a>. 
 
 instructions: 
     - 
       description: "Install requirements"
       code: 
-        - "yum -y install wget curl net-tools gcc gcc-c++ git libtool libpcap-devel libunwind libssl-devel libpcap-devel"
+        - "dnf -y install wget curl net-tools gcc gcc-c++ git libtool libpcap-devel libunwind libssl-devel libpcap-devel"
     - 
        description: "Now get the ipfixprobe source codes"
        code: 
