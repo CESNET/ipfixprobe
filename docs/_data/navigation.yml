@@ -1,4 +1,4 @@
-- name: "Get Ipfixprobe"
+- name: "Installation"
   link: /get_options/
   new_window: false
   highlight: false
