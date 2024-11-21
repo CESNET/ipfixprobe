@@ -33,6 +33,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <cstring>
+#include <ratio>
 #include <sys/time.h>
 
 #include <ipfixprobe/ring.h>
@@ -192,6 +193,9 @@ void NHTFlowCache::init(const char *params)
    m_timeout_idx = 0;
    m_line_mask = (m_cache_size - 1) & ~(m_line_size - 1);
    m_line_new_idx = m_line_size / 2;
+   #ifdef WITH_CTT
+   m_ctt_controller.init(parser.m_dev, 0);
+   #endif /* WITH_CTT */
 
    if (m_export_queue == nullptr) {
       throw PluginError("output queue must be set before init");
@@ -658,4 +662,68 @@ void NHTFlowCache::prefetch_export_expired() const
       __builtin_prefetch(m_flow_table[i], 0, 1);
    }
 }
+
+#ifdef WITH_CTT
+
+void CttController::create_record(uint64_t flow_hash_ctt, const struct timeval& ts)
+{
+    try {
+        std::vector<std::byte> key = assemble_key(flow_hash_ctt);
+        std::vector<std::byte> state = assemble_state(
+            OffloadMode::PACKET_OFFLOAD,
+            MetaType::FULL,
+            ts);
+        
+        std::cout << "Created record\n\tkey: " << flow_hash_ctt << "\n\tstate: ";
+        for (auto& byte : state) {
+            std::cout << std::hex << static_cast<int>(byte) << " ";
+        }
+         std::cout << std::endl;
+        m_commander->write_record(std::move(key), std::move(state));
+    }
+    catch (const std::exception& e) {
+        throw;
+    }
+}
+
+void CttController::export_record(uint64_t flow_hash_ctt)
+{
+    try {
+        std::vector<std::byte> key = assemble_key(flow_hash_ctt);
+        m_commander->export_and_delete_record(std::move(key));
+        std::cout << "Exported record with key: " << flow_hash_ctt << std::endl;
+    }
+    catch (const std::exception& e) {
+        throw;
+    }
+}
+
+std::vector<std::byte> CttController::assemble_key(uint64_t flow_hash_ctt)
+{
+    std::vector<std::byte> key(key_size_bytes, std::byte(0));
+    for (size_t i = 0; i < sizeof(flow_hash_ctt) && i < key_size_bytes; ++i) {
+        key[i] = static_cast<std::byte>((flow_hash_ctt >> (8 * i)) & 0xFF);
+    }
+    return key;
+}
+
+std::vector<std::byte> CttController::assemble_state(
+    OffloadMode offload_mode, MetaType meta_type, const struct timeval& ts)
+{
+    std::vector<std::byte> state(state_size_bytes, std::byte(0));
+    std::vector<std::byte> state_mask(state_mask_size_bytes, std::byte(0));
+
+    state[0] = static_cast<std::byte>(offload_mode);
+    state[1] = static_cast<std::byte>(meta_type);
+
+    // timestamp in sec/ns format, 32+32 bits - 64 bits in total
+    for (size_t i = 0; i < sizeof(ts.tv_sec) && i < 4; ++i) {
+        state[2 + i] = static_cast<std::byte>((ts.tv_sec >> (8 * i)) & 0xFF);
+    }
+    for (size_t i = 0; i < sizeof(ts.tv_usec) && i < 4; ++i) {
+        state[6 + i] = static_cast<std::byte>((ts.tv_usec >> (8 * i)) & 0xFF);
+    }
+    return state;
+}
+#endif // WITH_CTT
 }
