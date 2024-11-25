@@ -1,16 +1,17 @@
 # ----
 # Site
 
-title: ipfixprobe
-url: "https://hynekkar.github.io/ipfixprobe-docs/"
-baseurl: 
+title: ipfixprobe - High-performance IPFIX probe
+url: "https://cesnet.github.io/ipfixprobe/"
+baseurl: https://cesnet.github.io/ipfixprobe/ # comment out for local development
+#baseurl: # uncomment for local development
 google_analytics_key:
 google_maps_javascript_api_key:
 disqus_shortname:
 
 # Values for the jekyll-seo-tag gem (https://github.com/jekyll/jekyll-seo-tag)
 logo: /siteicon.svg
-description: "ipfixprobe is a tool for collecting and processing IPFIX data."
+description: "ipfixprobe is a tool for creating network flows and exporting them to a remote collector using the IPFIX protocol. It is an essential tool for maintinaing network security."
 author: 
   name: "Karel Hynek (CESNET z.s.p.o.)"
   email: "hynekkar@cesnet.cz"
@@ -106,12 +107,3 @@ _select_data:
     - YouTube
     - RSS
 
-_comments:
-  map: Update the map location and display settings.
-  latitude: Coordinates for the center marker on the map.
-  longitude: Coordinates for the center marker on the map.
-  zoom: The zoom level for the map.
-  pricing_table: Update the information in the pricing tables.
-  highlight: Emphasis the text
-  color: The background colour used in the plan name and call to action.
-  new_window: Open link in new window
