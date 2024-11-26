@@ -128,8 +128,99 @@ To install ipfixprobe with NEMEA dependency from binary RPM packages, it is poss
 
 ## Telemetry
 
-`ipfixprobe` can expose telemetry data using the appFs library, which leverages the fuse3 library (filesystem in userspace) to allow telemetry data to be accessed and manipulated 
+`ipfixprobe` exports statistics and other diagnostic information through a telemetry interface based on appFs library, which leverages the fuse3 library (filesystem in userspace) to allow telemetry data to be accessed and manipulated 
 through standard filesystem operations.
+
+```
+/var/run/ipfixprobe/
+├── output
+│   └── ipxRing
+│       └── stats
+└── pipeline
+    └── queues
+        ├── 0
+        │   ├── cache-stats
+        │   ├── fragmentation-cache-stats
+        │   ├── input-stats
+        │   └── parser-stats
+        ├── 1
+        ...
+```
+
+From telemetry stats you can read:
+
+**Output Directory:**
+
+In the output directory, you can monitor the capacity and current usage of the ipxRing. This helps determine whether the output plugin can export flows quickly enough or if there are bottlenecks caused by insufficient ring capacity.
+
+***Example: ipxRing/stats***
+```
+count: 204
+size:  16536
+usage: 1.23 (%)
+```
+
+**Pipeline Directory:**
+
+The pipeline directory provides statistics for all worker queues. Each queue is identified by its ID (e.g., 0, 1) and includes the following files:
+- cache-stats: Provides detailed metrics about flow cache usage and exported flow statistics.
+
+    ***Example:***
+
+    ```
+    FlowCacheUsage:                 3.81 (%)
+    FlowEndReason:ActiveTimeout:    34666654
+    FlowEndReason:Collision:        4272143
+    FlowEndReason:EndOfFlow:        486129363
+    FlowEndReason:Forced:           58905
+    FlowEndReason:InactiveTimeout:  2169352600
+    FlowRecordStats:11-20packets:   178735501
+    FlowRecordStats:1packet:        1824500140
+    FlowRecordStats:2-5packets:     376268956
+    FlowRecordStats:21-50packets:   87971544
+    FlowRecordStats:51-plusPackets: 55424342
+    FlowRecordStats:6-10packets:    171579322
+    FlowsInCache:                   39986
+    TotalExportedFlows:             2694479805
+    ```
+
+- fragmentation-cache-stats: Provides metrics related to packet fragmentation.
+
+    ***Example:***
+
+    ```
+    firstFragments:    163634416
+    fragmentedPackets: 395736897
+    fragmentedTraffic: 0.13 (%)
+    notFoundFragments: 85585913
+    totalPackets:      314829930486
+    ```
+
+- input-stats: Provides metrics on the data received by by the queue.
+
+    ***Example:***
+    ```
+    received_bytes:   388582006601530
+    received_packets: 314788702409
+    ```
+
+
+- parser-stats: Provides detailed information about the types of packets processed by the parser.
+
+    ***Example:***
+    ```
+    ipv4_packets:    193213761481
+    ipv6_packets:    121566104060
+    mpls_packets:    0
+    pppoe_packets:   0
+    seen_packets:    314791928764
+    tcp_packets:     301552123188
+    trill_packets:   0
+    udp_packets:     12783568334
+    unknown_packets: 11601117
+    vlan_packets:    31477986554
+    ```
+
 
 ## Input / Output of the flow exporter
 
