@@ -32,6 +32,9 @@
 #ifndef IPXP_STORAGE_CACHE_HPP
 #define IPXP_STORAGE_CACHE_HPP
 
+#include <bits/types/struct_timeval.h>
+#include <chrono>
+#include <ctime>
 #include <string>
 
 #include <ipfixprobe/storage.hpp>
@@ -49,6 +52,8 @@
 #include <ctt_exceptions.hpp>
 #include <ctt_modes.hpp>
 #include <ctt.hpp>
+#include <queue>
+#include <tuple>
 #endif /* WITH_CTT */
 
 namespace ipxp {
@@ -269,6 +274,10 @@ class alignas(64) FlowRecord
 
 public:
    Flow m_flow;
+   #ifdef WITH_CTT
+      Flow m_delayed_flow;
+      bool m_delayed_flow_waiting;
+   #endif /* WITH_CTT */
 
    FlowRecord();
    ~FlowRecord();
@@ -322,29 +331,42 @@ public:
 
    int plugins_post_create(Flow &rec, Packet &pkt) {
       int ret = StoragePlugin::plugins_post_create(rec, pkt);
-      rec.ctt_state = static_cast<int>(CttController::OffloadMode::NO_OFFLOAD);
-      if (no_data_required(rec)) {
-         m_ctt_controller.create_record(rec.flow_hash_ctt, rec.time_first);
-         rec.ctt_state = static_cast<int>(CttController::OffloadMode::PACKET_OFFLOAD);
-      }
+         rec.record_in_ctt = false;
+         //if (only_metadata_required(rec)) {
+         if (only_metadata_required(rec)) {
+            m_ctt_controller.create_record(rec.flow_hash_ctt, rec.time_first);
+            rec.record_in_ctt = true;
+         }
       return ret;
    }
 
    // override post_update method
    int plugins_post_update(Flow &rec, Packet &pkt) {
       int ret = StoragePlugin::plugins_post_update(rec, pkt);
-      if (no_data_required(rec) && (rec.ctt_state == static_cast<int>(CttController::OffloadMode::NO_OFFLOAD))) {
-         m_ctt_controller.create_record(rec.flow_hash_ctt, rec.time_first);
-         rec.ctt_state = static_cast<int>(CttController::OffloadMode::PACKET_OFFLOAD);
-      }
+         //if (only_metadata_required(rec) && !rec.ctt_state) {
+         if (!rec.record_in_ctt) { // only for debug!!!!! line above is correct for production
+            m_ctt_controller.create_record(rec.flow_hash_ctt, rec.time_first);
+            rec.record_in_ctt = true;
+         }
       return ret;
    }
 
    // override pre_export method
    void plugins_pre_export(Flow &rec) {
-      StoragePlugin::plugins_pre_export(rec);
-      m_ctt_controller.export_record(rec.flow_hash_ctt);
+      if (rec.record_in_ctt) {
+         rec.is_delayed = true;
+         rec.delay_time = time(nullptr) + 1;
+         m_ctt_controller.export_record(rec.flow_hash_ctt);
+         rec.record_in_ctt = false;
+         return;
+      }
+      if (rec.is_delayed) {
+         return;
+      } else {
+         StoragePlugin::plugins_pre_export(rec);
+      }
    }
+
    #endif /* WITH_CTT */
 
 private:

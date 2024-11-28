@@ -46,8 +46,10 @@ namespace ipxp {
  * \brief Structure for storing parsed packet fields
  */
 struct Packet : public Record {
-   Metadata_CTT cttmeta; /**< Metadata from CTT */
-   bool cttmeta_valid; /**< True if CTT metadata is valid */
+   #ifdef WITH_CTT
+      Metadata_CTT cttmeta; /**< Metadata from CTT */
+      bool cttmeta_valid; /**< True if CTT metadata is valid */
+   #endif /* WITH_CTT */
    struct timeval ts;
 
    uint8_t     dst_mac[6];
