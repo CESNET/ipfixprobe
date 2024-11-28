@@ -139,10 +139,22 @@ void FlowRecord::create(const Packet &pkt, uint64_t hash)
       m_flow.src_port = pkt.src_port;
       m_flow.dst_port = pkt.dst_port;
    }
+   #ifdef WITH_CTT
+   m_flow.is_delayed = false;
+   m_delayed_flow_waiting = false;
+   #endif /* WITH_CTT */
 }
 
 void FlowRecord::update(const Packet &pkt, bool src)
 {
+   if (m_flow.is_delayed && !pkt.cttmeta.ctt_rec_matched) { // it means, the flow is waiting for export and it is not matched in CTT -> it must be new flow
+      auto flow_hash = m_hash;
+      m_delayed_flow = m_flow;
+      m_delayed_flow_waiting = true;
+      erase(); // erase the old flow, keeping the delayed flow
+      create(pkt, flow_hash);
+      return;
+   }
    m_flow.time_last = pkt.ts;
    if (src) {
       m_flow.src_packets++;
@@ -260,6 +272,17 @@ void NHTFlowCache::set_queue(ipx_ring_t *queue)
 
 void NHTFlowCache::export_flow(size_t index)
 {
+   if (m_flow_table[index]->m_flow.is_delayed) {
+      return;
+   }
+   if (m_flow_table[index]->m_delayed_flow_waiting && !m_flow_table[index]->m_delayed_flow.is_delayed) {
+      m_total_exported++;
+      update_flow_end_reason_stats(m_flow_table[index]->m_delayed_flow.end_reason);
+      update_flow_record_stats(
+         m_flow_table[index]->m_delayed_flow.src_packets 
+         + m_flow_table[index]->m_delayed_flow.dst_packets);
+      ipx_ring_push(m_export_queue, &m_flow_table[index]->m_delayed_flow);
+   }
    m_total_exported++;
    update_flow_end_reason_stats(m_flow_table[index]->m_flow.end_reason);
    update_flow_record_stats(
@@ -506,6 +529,16 @@ void NHTFlowCache::export_expired(time_t ts)
          m_flow_table[i]->m_flow.end_reason = get_export_reason(m_flow_table[i]->m_flow);
          plugins_pre_export(m_flow_table[i]->m_flow);
          export_flow(i);
+      if (!m_flow_table[i]->is_empty() && m_flow_table[i]->m_flow.is_delayed && m_flow_table[i]->m_flow.delay_time >= ts) {
+         m_flow_table[i]->m_flow.is_delayed = false;
+         plugins_pre_export(m_flow_table[i]->m_flow);
+         export_flow(i);
+      }
+      if(!m_flow_table[i]->is_empty() && m_flow_table[i]->m_delayed_flow_waiting && m_flow_table[i]->m_delayed_flow.delay_time >= ts) {
+         m_flow_table[i]->m_delayed_flow_waiting = false;
+         plugins_pre_export(m_flow_table[i]->m_delayed_flow);
+         export_flow(i);
+      }
 #ifdef FLOW_CACHE_STATS
          m_expired++;
 #endif /* FLOW_CACHE_STATS */
@@ -668,18 +701,12 @@ void NHTFlowCache::prefetch_export_expired() const
 void CttController::create_record(uint64_t flow_hash_ctt, const struct timeval& ts)
 {
     try {
-        std::vector<std::byte> key = assemble_key(flow_hash_ctt);
-        std::vector<std::byte> state = assemble_state(
+      std::vector<std::byte> key = assemble_key(flow_hash_ctt);
+      std::vector<std::byte> state = assemble_state(
             OffloadMode::PACKET_OFFLOAD,
             MetaType::FULL,
             ts);
-        
-        std::cout << "Created record\n\tkey: " << flow_hash_ctt << "\n\tstate: ";
-        for (auto& byte : state) {
-            std::cout << std::hex << static_cast<int>(byte) << " ";
-        }
-         std::cout << std::endl;
-        m_commander->write_record(std::move(key), std::move(state));
+      m_commander->write_record(std::move(key), std::move(state));
     }
     catch (const std::exception& e) {
         throw;
@@ -691,7 +718,6 @@ void CttController::export_record(uint64_t flow_hash_ctt)
     try {
         std::vector<std::byte> key = assemble_key(flow_hash_ctt);
         m_commander->export_and_delete_record(std::move(key));
-        std::cout << "Exported record with key: " << flow_hash_ctt << std::endl;
     }
     catch (const std::exception& e) {
         throw;

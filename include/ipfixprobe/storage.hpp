@@ -191,10 +191,7 @@ protected:
     {
         // if metadata are valid, add flow hash ctt to the flow record
         if (pkt.cttmeta_valid) {
-            rec.ctt_valid = true;
             rec.flow_hash_ctt = pkt.cttmeta.flow_hash;
-        } else {
-            rec.ctt_valid = false;
         }
         PluginStatusConverter plugin_status_converter(m_plugins_status);
         int ret = 0;
