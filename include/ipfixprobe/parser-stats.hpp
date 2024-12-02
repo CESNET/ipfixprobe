@@ -25,7 +25,9 @@
 
 #pragma once
 
+#include "../../input/countminsketch.hpp"
 #include <cstdint>
+#include <array>
 
 namespace ipxp {
 
@@ -46,6 +48,20 @@ struct ParserStats {
 
    uint64_t seen_packets;
    uint64_t unknown_packets;
+
+   CountMinSketch<uint16_t, 2> top_ports{
+        {std::hash<uint16_t>{},
+           [](uint16_t port) {
+            constexpr size_t prime1 = 54059UL;
+            constexpr size_t prime2 = 76963UL;
+            constexpr size_t prime3 = 86969UL;
+            size_t res = 37;
+            res = (res * prime1) ^ ((port >> 8) * prime2);
+            res = (res * prime1) ^ (static_cast<uint8_t>(port) * prime2);
+            return res % prime3;
+        },
+        }
+   };
 };
 
 } // namespace ipxp
