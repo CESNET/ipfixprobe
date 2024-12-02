@@ -24,6 +24,10 @@
  */
 
 #include <ipfixprobe/input.hpp>
+#include <iterator>
+#include <string>
+#include <sstream>
+#include <numeric>
 
 namespace ipxp {
 
@@ -51,6 +55,17 @@ static telemetry::Content get_parser_stats_content(const ParserStats& parserStat
 
    dict["seen_packets"] = parserStats.seen_packets;
    dict["unknown_packets"] = parserStats.unknown_packets;
+
+   const auto& [ports, size] = parserStats.top_ports.get_top_events();
+   if (size == 0) {
+      dict["top_10_ports"] = "";
+   } else {
+       std::string top_ports = std::to_string(ports[0].event) + ": " + std::to_string(ports[0].frequency);
+       dict["top_10_ports"] = std::accumulate(ports.begin() + 1, ports.begin() + size, top_ports,
+                       [](std::string& acc, const auto& portFrequency) {
+                           return acc + ", " + std::to_string(portFrequency.event) + ": " + std::to_string(portFrequency.frequency);
+                       });
+   }
 
    return dict;
 }
