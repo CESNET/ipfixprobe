@@ -35,6 +35,7 @@
 
 #include "parser.hpp"
 #include "headers.hpp"
+#include <ipfixprobe/cttmeta.hpp>
 #include <ipfixprobe/packet.hpp>
 
 namespace ipxp {
@@ -776,12 +777,21 @@ void parse_packet(parser_opt_t *opt, ParserStats& stats, struct timeval ts, cons
    opt->pblock->bytes += len;
 }
 
-void parse_packet_ctt_metadata(parser_opt_t *opt, ParserStats& stats, const Metadata_CTT& metadata, const uint8_t *data, uint16_t len, uint16_t caplen)
+int parse_packet_ctt_metadata(parser_opt_t *opt, ParserStats& stats, const Metadata_CTT& metadata, const uint8_t *data, uint16_t len, uint16_t caplen)
 {
    if (opt->pblock->cnt >= opt->pblock->size) {
-      return;
+      return 0;
    }
    Packet *pkt = &opt->pblock->pkts[opt->pblock->cnt];
+
+   // check metadata validity
+   if (metadata.parser_status == PA_OK) {
+      pkt->cttmeta_valid = true;
+   } else {
+      pkt->cttmeta_valid = false;
+      return -1;
+   }
+
    pkt->cttmeta = metadata;
 
    pkt->packet_len_wire = len;
@@ -831,7 +841,7 @@ void parse_packet_ctt_metadata(parser_opt_t *opt, ParserStats& stats, const Meta
       stats.pppoe_packets++;
    } else { // if not previous, we try delegate to original parser
       parse_packet(opt, stats, metadata.ts, data, len, caplen);
-      return;
+      return 0;
    }
 
    // L4
@@ -843,11 +853,11 @@ void parse_packet_ctt_metadata(parser_opt_t *opt, ParserStats& stats, const Meta
       stats.udp_packets++;
    } else { // if not previous, we try delegate to original parser
       parse_packet(opt, stats, metadata.ts, data, len, caplen);
-      return;
+      return 0;
    }
    } catch (const char *err) {
       DEBUG_MSG("%s\n", err);
-      return;
+      return 0;
    }
 
    if (pkt->vlan_id) {
@@ -880,6 +890,7 @@ void parse_packet_ctt_metadata(parser_opt_t *opt, ParserStats& stats, const Meta
    opt->packet_valid = true;
    opt->pblock->cnt++;
    opt->pblock->bytes += len;
+   return 0;
 }
 
 }

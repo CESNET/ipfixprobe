@@ -46,7 +46,10 @@ namespace ipxp {
  * \brief Structure for storing parsed packet fields
  */
 struct Packet : public Record {
-   Metadata_CTT cttmeta; /**< Metadata from CTT */
+   #ifdef WITH_CTT
+      Metadata_CTT cttmeta; /**< Metadata from CTT */
+      bool cttmeta_valid; /**< True if CTT metadata is valid */
+   #endif /* WITH_CTT */
    struct timeval ts;
 
    uint8_t     dst_mac[6];
@@ -108,7 +111,7 @@ struct Packet : public Record {
     * \brief Constructor.
     */
    Packet() :
-      ts({0}),
+      cttmeta_valid(false), ts({0}),
       dst_mac(), src_mac(), ethertype(0),
       ip_len(0), ip_payload_len(0), ip_version(0), ip_ttl(0),
       ip_proto(0), ip_tos(0), ip_flags(0), src_ip({0}), dst_ip({0}), vlan_id(0),

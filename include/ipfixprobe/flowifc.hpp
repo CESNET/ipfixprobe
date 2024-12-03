@@ -38,6 +38,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <chrono>
 
 #ifdef WITH_NEMEA
 #include <unirec/unirec.h>
@@ -263,6 +264,14 @@ struct Flow : public Record {
     };
 
     uint64_t flow_hash;
+
+    #ifdef WITH_CTT
+      uint64_t flow_hash_ctt;     /**< Flow hash for CTT. */
+      bool record_in_ctt;         /**< CTT - offload or not. */
+      bool is_delayed;            /**< Delayed export flag. */
+      time_t delay_time;          /**< Time until export of the flow is delayed. */
+    #endif
+
     PluginsStatus plugins_status; /**< Statuses of the process plugins for this flow, used to check
                                      if the flow process plugins requires all available data, only
                                      metadata or nothing of this. */
@@ -290,4 +299,5 @@ struct Flow : public Record {
 };
 
 }
+
 #endif /* IPXP_FLOWIFC_HPP */

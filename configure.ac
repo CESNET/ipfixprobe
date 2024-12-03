@@ -226,6 +226,32 @@ if [[ -z "$WITH_NDP_TRUE" ]]; then
    RPM_BUILDREQ+=" netcope-common-devel"
 fi
 
+AC_ARG_WITH([ctt],
+        AC_HELP_STRING([--with-ctt],[Compile ipfixprobe with ctt plugin for using Connection Tracking Table]),
+        [
+      if test "$withval" = "yes"; then
+         withctt="yes"
+      else
+         withctt="no"
+      fi
+        ], [withctt="no"]
+)
+
+if test x${withctt} = xyes; then
+   AC_LANG_PUSH([C++])
+   CXXFLAGS="$CXXFLAGS -std=c++17"
+   AC_CHECK_HEADERS([ctt.hpp], [libctt=yes], AC_MSG_ERROR([ctt.hpp not found. Try installing libctt-devel]))
+   AC_LANG_POP([C++])
+fi
+
+AM_CONDITIONAL(WITH_CTT, test x${libctt} = xyes && test x${withctt} = xyes)
+if [[ -z "$WITH_CTT_TRUE" ]]; then
+   AC_DEFINE([WITH_CTT], [1], [Define to 1 if the ctt is available])
+   LIBS="-lctt $LIBS"
+   RPM_REQUIRES+=" libctt"
+   RPM_BUILDREQ+=" libctt-devel"
+fi
+
 AC_ARG_WITH([pcap],
         AC_HELP_STRING([--with-pcap],[Compile ipfixprobe with pcap plugin for capturing using libpcap library]),
         [
