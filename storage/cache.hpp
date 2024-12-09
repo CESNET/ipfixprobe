@@ -32,6 +32,9 @@
 #ifndef IPXP_STORAGE_CACHE_HPP
 #define IPXP_STORAGE_CACHE_HPP
 
+#include <bits/types/struct_timeval.h>
+#include <chrono>
+#include <ctime>
 #include <string>
 
 #include <ipfixprobe/storage.hpp>
@@ -42,7 +45,100 @@
 
 #include "fragmentationCache/fragmentationCache.hpp"
 
+#ifdef WITH_CTT
+#include <sys/time.h>
+#include <ctt_async.hpp>
+#include <ctt_factory.hpp>
+#include <ctt_exceptions.hpp>
+#include <ctt_modes.hpp>
+#include <ctt.hpp>
+#include <queue>
+#include <tuple>
+#endif /* WITH_CTT */
+
 namespace ipxp {
+
+#ifdef WITH_CTT
+
+class CttController {
+public:
+    enum class OffloadMode : uint8_t {
+        NO_OFFLOAD = 0x0,
+        PACKET_OFFLOAD = 0x1,
+        META_EXPORT = 0x2,
+        PACKET_OFFLOAD_WITH_EXPORT = 0x3
+    };
+    enum class MetaType : uint8_t {
+        FULL = 0x0,
+        HALF = 0x1,
+        TS_ONLY = 0x2,
+        NO_META = 0x3
+    };
+    /**
+     * @brief init the CTT.
+     *
+     * @param nfb_dev          The NFB device file (e.g., "/dev/nfb0").
+     * @param ctt_comp_index   The index of the CTT component.
+     */
+    void init(const std::string& nfb_dev, unsigned ctt_comp_index) {
+      m_commander = std::make_unique<ctt::AsyncCommander>(ctt::NfbParams{nfb_dev, ctt_comp_index});
+      try {
+        // Get UserInfo to determine key, state, and state_mask sizes
+        ctt::UserInfo user_info = m_commander->get_user_info();
+        key_size_bytes = (user_info.key_bit_width + 7) / 8;
+        state_size_bytes = (user_info.state_bit_width + 7) / 8;
+        state_mask_size_bytes = (user_info.state_mask_bit_width + 7) / 8;
+
+        // Enable the CTT
+        std::future<void> enable_future = m_commander->enable(true);
+        enable_future.wait(); 
+      }
+      catch (const std::exception& e) {
+         throw;
+      }
+    }
+
+    /**
+     * @brief Command: mark a flow for offload.
+     *
+     * @param flow_hash_ctt    The flow hash to be offloaded.
+     */
+    void create_record(uint64_t flow_hash_ctt, const struct timeval& timestamp_first);
+
+    /**
+     * @brief Command: export a flow from the CTT.
+     *
+     * @param flow_hash_ctt    The flow hash to be exported.
+     */
+    void export_record(uint64_t flow_hash_ctt);
+
+private:
+    std::unique_ptr<ctt::AsyncCommander> m_commander;
+    size_t key_size_bytes;
+    size_t state_size_bytes;
+    size_t state_mask_size_bytes;
+
+    /**
+     * @brief Assembles the state vector from the given values.
+     *
+     * @param offload_mode     The offload mode.
+     * @param meta_type        The metadata type.
+     * @param timestamp_first  The first timestamp of the flow.
+     * @return A byte vector representing the assembled state vector.
+     */
+    std::vector<std::byte> assemble_state(
+        OffloadMode offload_mode, MetaType meta_type,
+        const struct timeval& timestamp_first);
+    
+    /**
+     * @brief Assembles the key vector from the given flow hash.
+     *
+     * @param flow_hash_ctt    The flow hash.
+     * @return A byte vector representing the assembled key vector.
+     */
+    std::vector<std::byte> assemble_key(uint64_t flow_hash_ctt);
+};
+#endif /* WITH_CTT */
 
 struct __attribute__((packed)) flow_key_v4_t {
    uint16_t src_port;
@@ -99,6 +195,9 @@ public:
    bool m_enable_fragmentation_cache;
    std::size_t m_frag_cache_size;
    time_t m_frag_cache_timeout;
+   #ifdef WITH_CTT
+   std::string m_dev;
+   #endif /* WITH_CTT */
 
    CacheOptParser() : OptionsParser("cache", "Storage plugin implemented as a hash table"),
       m_cache_size(1 << DEFAULT_FLOW_CACHE_SIZE), m_line_size(1 << DEFAULT_FLOW_LINE_SIZE),
@@ -156,6 +255,16 @@ public:
          }
          return true;
       });
+
+      #ifdef WITH_CTT
+      register_option("d", "dev", "DEV", "Device name",
+         [this](const char *arg) {
+            m_dev = arg;
+            return true;
+         },
+         OptionFlags::RequiredArgument);
+      #endif /* WITH_CTT */
+
    }
 };
 
@@ -165,6 +274,10 @@ class alignas(64) FlowRecord
 
 public:
    Flow m_flow;
+   #ifdef WITH_CTT
+      Flow m_delayed_flow;
+      bool m_delayed_flow_waiting;
+   #endif /* WITH_CTT */
 
    FlowRecord();
    ~FlowRecord();
@@ -214,6 +327,48 @@ public:
      */
    void set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir) override;
 
+   #ifdef WITH_CTT
+
+   int plugins_post_create(Flow &rec, Packet &pkt) {
+      int ret = StoragePlugin::plugins_post_create(rec, pkt);
+         rec.record_in_ctt = false;
+         //if (only_metadata_required(rec)) {
+         if (only_metadata_required(rec)) {
+            m_ctt_controller.create_record(rec.flow_hash_ctt, rec.time_first);
+            rec.record_in_ctt = true;
+         }
+      return ret;
+   }
+
+   // override post_update method
+   int plugins_post_update(Flow &rec, Packet &pkt) {
+      int ret = StoragePlugin::plugins_post_update(rec, pkt);
+         //if (only_metadata_required(rec) && !rec.ctt_state) {
+         if (!rec.record_in_ctt) { // only for debug!!!!! line above is correct for production
+            m_ctt_controller.create_record(rec.flow_hash_ctt, rec.time_first);
+            rec.record_in_ctt = true;
+         }
+      return ret;
+   }
+
+   // override pre_export method
+   void plugins_pre_export(Flow &rec) {
+      if (rec.record_in_ctt) {
+         rec.is_delayed = true;
+         rec.delay_time = time(nullptr) + 1;
+         m_ctt_controller.export_record(rec.flow_hash_ctt);
+         rec.record_in_ctt = false;
+         return;
+      }
+      if (rec.is_delayed) {
+         return;
+      } else {
+         StoragePlugin::plugins_pre_export(rec);
+      }
+   }
+
+   #endif /* WITH_CTT */
+
 private:
    uint32_t m_cache_size;
    uint32_t m_line_size;
@@ -242,7 +397,9 @@ private:
    char m_key_inv[MAX_KEY_LENGTH];
    FlowRecord **m_flow_table;
    FlowRecord *m_flow_records;
-
+#ifdef WITH_CTT
+   CttController m_ctt_controller;
+#endif /* WITH_CTT */
    FragmentationCache m_fragmentation_cache;
    FlowEndReasonStats m_flow_end_reason_stats = {};
    FlowRecordStats m_flow_record_stats = {};
