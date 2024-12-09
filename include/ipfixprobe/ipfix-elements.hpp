@@ -51,9 +51,8 @@ namespace ipxp {
 
 /**
  * Conversion from microseconds to NTP fraction (resolution 1/(2^32)s,  ~233 picoseconds).
- * Division by 1000000 would lead to wrong value when converting fraction back to microseconds, so 999999 is used.
  */
-#define NTP_USEC_TO_FRAC(usec) (uint32_t)(((uint64_t) usec << 32) / 999999)
+#define NTP_USEC_TO_FRAC(usec) (uint32_t)(((uint64_t) usec << 32) / 1000000)
 
 /**
  * Create 64 bit NTP timestamp which consist of 32 bit seconds part and 32 bit fraction part.
