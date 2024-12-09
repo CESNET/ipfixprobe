@@ -197,6 +197,7 @@ public:
    time_t m_frag_cache_timeout;
    #ifdef WITH_CTT
    std::string m_dev;
+   uint16_t m_component_index;
    #endif /* WITH_CTT */
 
    CacheOptParser() : OptionsParser("cache", "Storage plugin implemented as a hash table"),
@@ -263,6 +264,14 @@ public:
             return true;
          },
          OptionFlags::RequiredArgument);
+      register_option("ci", "compidx", "NUM", "Index of the ctt component", [this](const char *arg) {
+         try {
+            m_component_index = str2num<decltype(m_component_index)>(arg)/16;
+         } catch(std::invalid_argument &e) {
+            return false;
+         }
+         return true;
+      });
       #endif /* WITH_CTT */
 
    }

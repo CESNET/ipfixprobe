@@ -206,7 +206,8 @@ void NHTFlowCache::init(const char *params)
    m_line_mask = (m_cache_size - 1) & ~(m_line_size - 1);
    m_line_new_idx = m_line_size / 2;
    #ifdef WITH_CTT
-   m_ctt_controller.init(parser.m_dev, 0);
+   std::cout << "Cache created with device=" << parser.m_dev << " and component index=" << parser.m_component_index << "\n";
+   m_ctt_controller.init(parser.m_dev, parser.m_component_index);
    #endif /* WITH_CTT */
 
    if (m_export_queue == nullptr) {

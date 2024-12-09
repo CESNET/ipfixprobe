@@ -359,6 +359,20 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
             throw IPXPError("invalid storage plugin " + storage_name);
          }
          storage_plugin->set_queue(output_queue);
+	 #ifdef WITH_CTT
+	 size_t device_start = std::min(input_params.find("dev"), input_params.find("d"));
+    	 if (device_start == std::string::npos) {
+            throw PluginError("device name is not found");
+	 }
+	 size_t queue_start = input_params.find(":", device_start);
+	 size_t queue_end = input_params.find(";", device_start);
+	 size_t device_end = std::min(queue_end, queue_start);
+	 std::string queue = "0";
+	 if (queue_start != std::string::npos && queue_start < queue_end) {
+	    queue = input_params.substr(queue_start + 1, queue_end);
+	 }
+	 storage_params += std::string(";ci=") + queue + ";" + input_params.substr(device_start, device_end);
+	 #endif /* WITH_CTT */
          storage_plugin->init(storage_params.c_str());
          storage_plugin->set_telemetry_dir(pipeline_queue_dir);
          conf.active.storage.push_back(storage_plugin);
