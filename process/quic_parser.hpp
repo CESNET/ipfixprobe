@@ -119,7 +119,7 @@ private:
     uint64_t quic_get_variable_length(const uint8_t*, uint64_t&);
     bool quic_check_version(uint32_t, uint8_t);
     bool quic_check_pointer_pos(const uint8_t*, const uint8_t*);
-    bool quic_obtain_tls_data(TLSData&);
+    bool quic_parse_tls_extensions();
     bool quic_set_server_port(const Packet& pkt);
     bool quic_check_min_initial_size(const Packet& pkt);
     bool quic_check_supported_version(const uint32_t version);
