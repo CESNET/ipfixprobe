@@ -195,9 +195,6 @@ public:
    bool m_enable_fragmentation_cache;
    std::size_t m_frag_cache_size;
    time_t m_frag_cache_timeout;
-   #ifdef WITH_CTT
-   std::string m_dev;
-   #endif /* WITH_CTT */
 
    CacheOptParser() : OptionsParser("cache", "Storage plugin implemented as a hash table"),
       m_cache_size(1 << DEFAULT_FLOW_CACHE_SIZE), m_line_size(1 << DEFAULT_FLOW_LINE_SIZE),
@@ -255,16 +252,6 @@ public:
          }
          return true;
       });
-
-      #ifdef WITH_CTT
-      register_option("d", "dev", "DEV", "Device name",
-         [this](const char *arg) {
-            m_dev = arg;
-            return true;
-         },
-         OptionFlags::RequiredArgument);
-      #endif /* WITH_CTT */
-
    }
 };
 
@@ -398,6 +385,14 @@ private:
    FlowRecord **m_flow_table;
    FlowRecord *m_flow_records;
 #ifdef WITH_CTT
+
+   void set_ctt_config(const std::string& device_name, unsigned comp_index) {
+      m_ctt_device = device_name;
+      m_ctt_comp_index = comp_index;
+   }
+
+   std::string m_ctt_device;
+   unsigned m_ctt_comp_index;
    CttController m_ctt_controller;
 #endif /* WITH_CTT */
    FragmentationCache m_fragmentation_cache;

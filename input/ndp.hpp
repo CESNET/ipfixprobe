@@ -73,6 +73,10 @@ public:
       std::shared_ptr<telemetry::Directory> plugin_dir, 
       std::shared_ptr<telemetry::Directory> queues_dir) override;
 
+#ifdef WITH_CTT
+   virtual std::pair<std::string, unsigned> get_ctt_config() const override;
+#endif /* WITH_CTT */
+
 private:
    struct RxStats {
         uint64_t receivedPackets;
@@ -86,6 +90,8 @@ private:
    RxStats m_stats = {};
 
    bool m_ctt_metadata = false;
+
+   std::string m_device;
 
    void init_ifc(const std::string &dev);
    int parse_ctt_metadata(const ndp_packet *ndp_packet, Metadata_CTT &ctt);
