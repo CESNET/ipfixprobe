@@ -382,6 +382,20 @@ AC_ARG_WITH([stem],
          [withstem="no"]
 )
 
+# Check if the telemetry library is available
+AC_CHECK_LIB([telemetry], [main],
+  [AC_MSG_RESULT([Found telemetry library.])],
+  [AC_MSG_ERROR([The telemetry library is required but was not found. Try to install telemetry.])])
+
+# Check if the appfs library is available
+AC_CHECK_LIB([appFs], [main],
+  [AC_MSG_RESULT([Found appfs library.])],
+  [AC_MSG_ERROR([The appfs library is required but was not found. Try to install telemetry])])
+
+LIBS="-lappFs -ltelemetry $LIBS"
+RPM_REQUIRES+=" telemetry"
+RPM_BUILDREQ+=" telemetry"
+
 AM_CONDITIONAL(WITH_STEM, test x${withstem} = xyes)
 if [[ -z "$WITH_STEM_TRUE" ]]; then
    AC_DEFINE([WITH_STEM], [1], [Define to 1 to use flexprobe testing interface])
