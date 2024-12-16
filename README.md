@@ -75,6 +75,7 @@ Here are the examples of various plugins usage:
 
 ### Requirements
 - libatomic
+- [telemetry](https://github.com/CESNET/telemetry) (mandatory) — can be installed from the [COPR repository](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA-stable/package/telemetry/) or built from source code
 - kernel version at least 3.19 when using raw sockets input plugin enabled by default (disable with `--without-raw` parameter for `./configure`)
 - [libpcap](http://www.tcpdump.org/) when compiling with pcap plugin (`--with-pcap` parameter)
 - netcope-common [COMBO cards](https://www.liberouter.org/technologies/cards/) when compiling with ndp plugin (`--with-ndp` parameter)
