@@ -138,7 +138,7 @@ public:
     */
    bool all_data_required(const Flow& flow) const noexcept
    {
-       return m_plugins_status.get_all_data.any();
+       return flow.plugins_status.get_all_data.any();
    }
 
    /**
@@ -148,7 +148,7 @@ public:
     */
    bool no_data_required(const Flow& flow) const noexcept
    {
-       return m_plugins_status.get_no_data.all();
+       return flow.plugins_status.get_no_data.all();
    }
 
    /**
@@ -161,6 +161,9 @@ public:
        return !all_data_required(flow) && !no_data_required(flow);
    }
 protected:
+    uint32_t get_plugin_count() const noexcept {
+        return m_plugin_cnt;
+    }
    //Every StoragePlugin implementation should call these functions at appropriate places
 
     /**
