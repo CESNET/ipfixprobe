@@ -70,6 +70,14 @@ ipfixprobe_storage_src=\
 		storage/fragmentationCache/fragmentationCache.cpp \
 		storage/cache.cpp \
 		storage/cache.hpp \
+		storage/cacheOptParser.hpp \
+		storage/cacheOptParser.cpp \
+		storage/flowRecord.hpp \
+		storage/flowRecord.cpp \
+		storage/cttController.hpp \
+		storage/cttController.cpp \
+		storage/cacheRowSpan.hpp \
+		storage/cacheRowSpan.cpp \
 		storage/xxhash.c \
 		storage/xxhash.h
 
