@@ -133,22 +133,22 @@ public:
 
    /**
      * \brief Checks if process plugins require all available data.
-     * \param [in] rec Stored flow record.
+     * \param [in] flow Stored flow record.
      * \return True if all data required, false otherwise.
     */
    bool all_data_required(const Flow& flow) const noexcept
    {
-       return m_plugins_status.get_all_data.any();
+       return flow.plugins_status.get_all_data.any();
    }
 
    /**
      * \brief Checks if process plugins don't require any data.
-     * \param [in] rec Stored flow record.
+     * \param [in] flow Stored flow record.
      * \return True if no data required, false otherwise.
     */
    bool no_data_required(const Flow& flow) const noexcept
    {
-       return m_plugins_status.get_no_data.all();
+       return flow.plugins_status.get_no_data.all();
    }
 
    /**
@@ -190,9 +190,11 @@ protected:
     int plugins_post_create(Flow& rec, const Packet& pkt)
     {
         // if metadata are valid, add flow hash ctt to the flow record
+#ifdef WITH_CTT
         if (pkt.cttmeta_valid) {
             rec.flow_hash_ctt = pkt.cttmeta.flow_hash;
         }
+#endif /* WITH_CTT */
         PluginStatusConverter plugin_status_converter(m_plugins_status);
         int ret = 0;
         for (unsigned int i = 0; i < m_plugin_cnt; i++) {

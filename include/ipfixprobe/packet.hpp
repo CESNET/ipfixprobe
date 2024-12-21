@@ -31,6 +31,7 @@
 
 #ifndef IPXP_PACKET_HPP
 #define IPXP_PACKET_HPP
+//#define WITH_CTT 1 // TODO REMOVE
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -46,10 +47,6 @@ namespace ipxp {
  * \brief Structure for storing parsed packet fields
  */
 struct Packet : public Record {
-   #ifdef WITH_CTT
-      Metadata_CTT cttmeta; /**< Metadata from CTT */
-      bool cttmeta_valid; /**< True if CTT metadata is valid */
-   #endif /* WITH_CTT */
    struct timeval ts;
 
    uint8_t     dst_mac[6];
@@ -106,12 +103,16 @@ struct Packet : public Record {
    uint16_t    buffer_size; /**< Size of buffer */
 
    bool        source_pkt; /**< Direction of packet from flow point of view */
+#ifdef WITH_CTT
+   Metadata_CTT cttmeta; /**< Metadata from CTT */
+   bool cttmeta_valid; /**< True if CTT metadata is valid */
+#endif /* WITH_CTT */
 
    /**
     * \brief Constructor.
     */
    Packet() :
-      cttmeta_valid(false), ts({0}),
+      ts({0}),
       dst_mac(), src_mac(), ethertype(0),
       ip_len(0), ip_payload_len(0), ip_version(0), ip_ttl(0),
       ip_proto(0), ip_tos(0), ip_flags(0), src_ip({0}), dst_ip({0}), vlan_id(0),
@@ -123,6 +124,9 @@ struct Packet : public Record {
       custom(nullptr), custom_len(0),
       buffer(nullptr), buffer_size(0),
       source_pkt(true)
+#ifdef WITH_CTT
+      ,cttmeta_valid(false)
+#endif /* WITH_CTT */
    {
    }
 };

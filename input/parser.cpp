@@ -777,6 +777,7 @@ void parse_packet(parser_opt_t *opt, ParserStats& stats, struct timeval ts, cons
    opt->pblock->bytes += len;
 }
 
+#ifdef WITH_CTT
 int parse_packet_ctt_metadata(parser_opt_t *opt, ParserStats& stats, const Metadata_CTT& metadata, const uint8_t *data, uint16_t len, uint16_t caplen)
 {
    if (opt->pblock->cnt >= opt->pblock->size) {
@@ -892,5 +893,5 @@ int parse_packet_ctt_metadata(parser_opt_t *opt, ParserStats& stats, const Metad
    opt->pblock->bytes += len;
    return 0;
 }
-
+#endif /* WITH_CTT */
 }
