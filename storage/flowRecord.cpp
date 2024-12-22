@@ -1,7 +1,32 @@
+/**
+* \file
+ * \author Damir Zainullin <zaidamilda@gmail.com>
+ * \brief FlowRecord implementation.
+ */
+/*
+ * Copyright (C) 2023 CESNET
+ *
+ * LICENSE TERMS
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of the Company nor the names of its contributors
+ *    may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ */
+
+#include "flowRecord.hpp"
+
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <cstring>
-#include "flowRecord.hpp"
 
 namespace ipxp {
 
@@ -33,6 +58,9 @@ void FlowRecord::erase()
    m_flow.dst_bytes = 0;
    m_flow.src_tcp_flags = 0;
    m_flow.dst_tcp_flags = 0;
+#ifdef WITH_CTT
+   is_waiting_for_export = false;
+#endif /* WITH_CTT */
 }
 void FlowRecord::reuse()
 {
@@ -44,6 +72,9 @@ void FlowRecord::reuse()
    m_flow.dst_bytes = 0;
    m_flow.src_tcp_flags = 0;
    m_flow.dst_tcp_flags = 0;
+#ifdef WITH_CTT
+   is_waiting_for_export = false;
+#endif /* WITH_CTT */
 }
 
 bool FlowRecord::is_empty() const noexcept
@@ -95,24 +126,15 @@ void FlowRecord::create(const Packet &pkt, uint64_t hash)
       m_flow.src_port = pkt.src_port;
       m_flow.dst_port = pkt.dst_port;
    }
-   #ifdef WITH_CTT
-   m_flow.is_delayed = false;
-   m_delayed_flow_waiting = false;
-   #endif /* WITH_CTT */
+#ifdef WITH_CTT
+   is_waiting_for_export = false;
+#endif /* WITH_CTT */
 }
 
-void FlowRecord::update(const Packet &pkt, bool src)
+void FlowRecord::update(const Packet &pkt)
 {
-   /*if (m_flow.is_delayed && !pkt.cttmeta.ctt_rec_matched) { // it means, the flow is waiting for export and it is not matched in CTT -> it must be new flow
-      auto flow_hash = m_hash;
-      m_delayed_flow = m_flow;
-      m_delayed_flow_waiting = true;
-      erase(); // erase the old flow, keeping the delayed flow
-      create(pkt, flow_hash);
-      return;
-   }*/
    m_flow.time_last = pkt.ts;
-   if (src) {
+   if (pkt.source_pkt) {
       m_flow.src_packets++;
       m_flow.src_bytes += pkt.ip_len;
 

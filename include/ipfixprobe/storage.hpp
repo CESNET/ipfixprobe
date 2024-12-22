@@ -93,6 +93,7 @@ public:
    virtual void export_expired(time_t ts)
    {
    }
+
    virtual void finish()
    {
    }
@@ -189,12 +190,6 @@ protected:
      */
     int plugins_post_create(Flow& rec, const Packet& pkt)
     {
-        // if metadata are valid, add flow hash ctt to the flow record
-#ifdef WITH_CTT
-        if (pkt.cttmeta_valid) {
-            rec.flow_hash_ctt = pkt.cttmeta.flow_hash;
-        }
-#endif /* WITH_CTT */
         PluginStatusConverter plugin_status_converter(m_plugins_status);
         int ret = 0;
         for (unsigned int i = 0; i < m_plugin_cnt; i++) {

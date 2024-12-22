@@ -31,7 +31,6 @@
 
 #ifndef IPXP_PACKET_HPP
 #define IPXP_PACKET_HPP
-//#define WITH_CTT 1 // TODO REMOVE
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -47,7 +46,7 @@ namespace ipxp {
  * \brief Structure for storing parsed packet fields
  */
 struct Packet : public Record {
-   struct timeval ts;
+   timeval ts;
 
    uint8_t     dst_mac[6];
    uint8_t     src_mac[6];

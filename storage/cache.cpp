@@ -29,19 +29,19 @@
  *
  *
  */
+#include "cache.hpp"
 
+#include <ipfixprobe/ring.h>
 #include <cstdlib>
 #include <iostream>
 #include <cstring>
 #include <ratio>
 #include <sys/time.h>
-
-#include <ipfixprobe/ring.h>
-#include "cache.hpp"
-
 #include <optional>
+
 #include "cacheRowSpan.hpp"
 #include "xxhash.h"
+#include "fragmentationCache/timevalUtils.hpp"
 
 namespace ipxp {
 
@@ -72,6 +72,7 @@ NHTFlowCache::NHTFlowCache() :
 NHTFlowCache::~NHTFlowCache()
 {
    close();
+   print_report();
 }
 
 void NHTFlowCache::get_parser_options(CacheOptParser& parser) noexcept
@@ -151,27 +152,14 @@ void NHTFlowCache::export_flow(size_t flow_index)
 
 void NHTFlowCache::export_flow(size_t flow_index, int reason)
 {
-   /*if (m_flow_table[index]->m_flow.is_delayed) {
-      return;
-   }
-   if (m_flow_table[index]->m_delayed_flow_waiting && !m_flow_table[index]->m_delayed_flow.is_delayed) {
-      m_total_exported++;
-      update_flow_end_reason_stats(m_flow_table[index]->m_delayed_flow.end_reason);
-      update_flow_record_stats(
-         m_flow_table[index]->m_delayed_flow.src_packets 
-         + m_flow_table[index]->m_delayed_flow.dst_packets);
-      ipx_ring_push(m_export_queue, &m_flow_table[index]->m_delayed_flow);
-   }
-   m_total_exported++;
-   update_flow_end_reason_stats(m_flow_table[index]->m_flow.end_reason);
-   update_flow_record_stats(
-      m_flow_table[index]->m_flow.src_packets 
-      + m_flow_table[index]->m_flow.dst_packets);
-   m_flows_in_cache--;*/
    m_flow_table[flow_index]->m_flow.end_reason = reason;
-   m_cache_stats.expired++;
+   update_flow_record_stats(m_flow_table[flow_index]->m_flow.src_packets + m_flow_table[flow_index]->m_flow.dst_packets);
+   update_flow_end_reason_stats(m_flow_table[flow_index]->m_flow.end_reason);
+   m_cache_stats.exported++;
    push_to_export_queue(flow_index);
    m_flow_table[flow_index]->erase();
+   m_cache_stats.flows_in_cache--;
+   m_cache_stats.total_exported++;
 }
 
 void NHTFlowCache::push_to_export_queue(size_t flow_index) noexcept
@@ -193,35 +181,28 @@ void NHTFlowCache::finish()
    }
 }
 
-void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int status, bool source_flow)
+void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int return_flags)
 {
    m_cache_stats.flushed++;
 
-   if (status == ProcessPlugin::FlowAction::FLUSH_WITH_REINSERT) {
-      //FlowRecord *flow = m_flow_table[flow_index];
-      //export_flow(flow_index, FLOW_END_FORCED);
+   if (return_flags == ProcessPlugin::FlowAction::FLUSH_WITH_REINSERT) {
+#ifdef WITH_CTT
+      send_export_request_to_ctt(m_flow_table[flow_index]->m_flow.flow_hash_ctt);
+#endif /* WITH_CTT */
       push_to_export_queue(flow_index);
-      //flow->m_flow.end_reason = FLOW_END_FORCED;
-      //ipx_ring_push(m_export_queue, &flow->m_flow);
-      //std::swap(m_flow_table[flow_index], m_flow_table[m_cache_size + m_queue_index]);
-      //flow = m_flow_table[flow_index];
-
       m_flow_table[flow_index]->m_flow.remove_extensions();
       *m_flow_table[flow_index] = *m_flow_table[m_cache_size + m_queue_index];
-      //m_queue_index = (m_queue_index + 1) % m_queue_size;
-
       m_flow_table[flow_index]->m_flow.m_exts = nullptr;
       m_flow_table[flow_index]->reuse(); // Clean counters, set time first to last
-      m_flow_table[flow_index]->update(pkt, source_flow); // Set new counters from packet
+      m_flow_table[flow_index]->update(pkt); // Set new counters from packet
 
       const size_t post_create_return_flags = plugins_post_create(m_flow_table[flow_index]->m_flow, pkt);
       if (post_create_return_flags & ProcessPlugin::FlowAction::FLUSH) {
-         flush(pkt, flow_index, post_create_return_flags, source_flow);
+         flush(pkt, flow_index, post_create_return_flags);
       }
-   } else {
-      //m_flow_table[flow_index]->m_flow.end_reason = FLOW_END_FORCED;
-      export_flow(flow_index, FLOW_END_FORCED);
+      return;
    }
+   try_to_export(flow_index, false, pkt.ts, FLOW_END_FORCED);
 }
 
 std::tuple<std::optional<size_t>, std::optional<size_t>, bool> NHTFlowCache::find_flow_index(const Packet& packet) noexcept
@@ -240,48 +221,165 @@ std::tuple<std::optional<size_t>, std::optional<size_t>, bool> NHTFlowCache::fin
    const CacheRowSpan raw_span_direct(&m_flow_table[first_flow_in_raw], m_line_size);
    std::optional<size_t> flow_index = raw_span_direct.find_by_hash(direct_hash_value);
    if (flow_index.has_value()) {
-      return {direct_hash_value, flow_index, true};
+      return {direct_hash_value, flow_index.value(), true};
    }
 
    const size_t reversed_hash_value = std::visit(key_hasher, m_key_reversed);
-   const size_t first_flow_in_raw_reversed = direct_hash_value & m_line_mask;
+   const size_t first_flow_in_raw_reversed = reversed_hash_value & m_line_mask;
    const CacheRowSpan raw_span_reverse(&m_flow_table[first_flow_in_raw_reversed], m_line_size);
-   flow_index = raw_span_reverse.find_by_hash(direct_hash_value);
+   flow_index = raw_span_reverse.find_by_hash(reversed_hash_value);
    if (flow_index.has_value()) {
-      return {reversed_hash_value, flow_index, false};
+      return {reversed_hash_value, flow_index.value(), false};
    }
 
    return {direct_hash_value, std::nullopt, false};
 }
 
-static bool isTcpConnectionRestart(const Packet& packet, const Flow& flow, bool source_to_destination) noexcept
+static bool is_tcp_connection_restart(const Packet& packet, const Flow& flow) noexcept
 {
    constexpr uint8_t TCP_FIN = 0x01;
    constexpr uint8_t TCP_RST = 0x04;
    constexpr uint8_t TCP_SYN = 0x02;
-   const uint8_t flags = source_to_destination ? flow.src_tcp_flags : flow.dst_tcp_flags;
+   const uint8_t flags = packet.source_pkt ? flow.src_tcp_flags : flow.dst_tcp_flags;
    return packet.tcp_flags & TCP_SYN && (flags & (TCP_FIN | TCP_RST));
 }
 
-bool NHTFlowCache::export_on_inactive_timeout(size_t flow_index, time_t ts) noexcept
+bool NHTFlowCache::try_to_export_on_inactive_timeout(size_t flow_index, const timeval& now) noexcept
 {
-   if (ts - m_flow_table[flow_index]->m_flow.time_last.tv_sec >= m_inactive) {
-      plugins_pre_export(m_flow_table[flow_index]->m_flow);
-      export_flow(flow_index);
-      return true;
+   if (!m_flow_table[flow_index]->is_empty() && now.tv_sec - m_flow_table[flow_index]->m_flow.time_last.tv_sec >= m_inactive) {
+      return try_to_export(flow_index, false, now);
    }
    return false;
 }
 
-bool NHTFlowCache::export_on_active_timeout(size_t flow_index, time_t ts) noexcept
+void NHTFlowCache::create_record(const Packet& packet, size_t flow_index, size_t hash_value) noexcept
 {
-   if (ts - m_flow_table[flow_index]->m_flow.time_first.tv_sec >= m_active) {
-      m_flow_table[flow_index]->m_flow.end_reason = FLOW_END_ACTIVE;
-      plugins_pre_export(m_flow_table[flow_index]->m_flow);
-      export_flow(flow_index);
-      return true;
+   m_cache_stats.flows_in_cache++;
+   m_flow_table[flow_index]->create(packet, hash_value);
+   const size_t post_create_return_flags = plugins_post_create(m_flow_table[flow_index]->m_flow, packet);
+   if (post_create_return_flags & ProcessPlugin::FlowAction::FLUSH) {
+      if (try_to_export(flow_index, false, packet.ts)) {
+         m_cache_stats.flushed++;
+      }
    }
-   return false;
+#ifdef WITH_CTT
+   // if metadata are valid, add flow hash ctt to the flow record
+   if (packet.cttmeta_valid) {
+      m_flow_table[flow_index]->m_flow.flow_hash_ctt = packet.cttmeta.flow_hash;
+   }
+   if (only_metadata_required(m_flow_table[flow_index]->m_flow)) {
+      m_ctt_controller.create_record(m_flow_table[flow_index]->m_flow.flow_hash_ctt, m_flow_table[flow_index]->m_flow.time_first);
+      m_flow_table[flow_index]->is_in_ctt = true;
+   }
+#endif /* WITH_CTT */
+}
+
+#ifdef WITH_CTT
+void NHTFlowCache::try_to_add_flow_to_ctt(size_t flow_index) noexcept
+{
+   if (m_flow_table[flow_index]->is_in_ctt) {
+      return;
+   }
+   if (only_metadata_required(m_flow_table[flow_index]->m_flow)) {
+      m_ctt_controller.create_record(m_flow_table[flow_index]->m_flow.flow_hash_ctt, m_flow_table[flow_index]->m_flow.time_first);
+      m_flow_table[flow_index]->is_in_ctt = true;
+   }
+}
+#endif /* WITH_CTT */
+
+int NHTFlowCache::process_flow(Packet& packet, size_t flow_index, size_t hash_value, bool flow_is_waiting_for_export) noexcept
+{
+   if (is_tcp_connection_restart(packet, m_flow_table[flow_index]->m_flow) && !flow_is_waiting_for_export) {
+      if (try_to_export(flow_index, false, packet.ts, FLOW_END_EOF)) {
+         put_pkt(packet);
+         return 0;
+      }
+   }
+
+   if (m_flow_table[flow_index]->is_empty()) {
+      create_record(packet, flow_index, hash_value);
+      export_expired(packet.ts);
+      return 0;
+   }
+   /* Check if flow record is expired (inactive timeout). */
+   if (!flow_is_waiting_for_export
+         && try_to_export_on_inactive_timeout(flow_index, packet.ts)) {
+      return put_pkt(packet);
+   }
+
+   if (!flow_is_waiting_for_export
+         && try_to_export_on_active_timeout(flow_index, packet.ts)) {
+      return put_pkt(packet);
+   }
+
+   const size_t pre_update_return_flags = plugins_pre_update(m_flow_table[flow_index]->m_flow, packet);
+   if ((pre_update_return_flags & ProcessPlugin::FlowAction::FLUSH)
+      && !flow_is_waiting_for_export) {
+      flush(packet, flow_index, pre_update_return_flags);
+      return 0;
+   }
+
+   m_flow_table[flow_index]->update(packet);
+#ifdef WITH_CTT
+   try_to_add_flow_to_ctt(flow_index);
+#endif /* WITH_CTT */
+   const size_t post_update_return_flags = plugins_post_update(m_flow_table[flow_index]->m_flow, packet);
+   if ((post_update_return_flags & ProcessPlugin::FlowAction::FLUSH)
+         && !flow_is_waiting_for_export) {
+      flush(packet, flow_index, post_update_return_flags);
+      return 0;
+   }
+
+   export_expired(packet.ts);
+   return 0;
+}
+#ifdef WITH_CTT
+bool NHTFlowCache::try_to_export_delayed_flow(const Packet& packet, const std::optional<size_t>& flow_index,
+   size_t row_begin) noexcept
+{
+   const bool flow_is_waiting_for_export = flow_index.has_value()
+      && m_flow_table[row_begin + flow_index.value()]->is_waiting_for_export;
+   if (flow_index.has_value() && flow_is_waiting_for_export
+      && (!packet.cttmeta.ctt_rec_matched || packet.ts > m_flow_table[row_begin + flow_index.value()]->export_time)) {
+      plugins_pre_export(m_flow_table[row_begin + flow_index.value()]->m_flow);
+      export_flow(row_begin + flow_index.value());
+      return false;
+   }
+   return flow_is_waiting_for_export;
+}
+#endif /* WITH_CTT */
+
+bool NHTFlowCache::try_to_export(size_t flow_index, bool call_pre_export, const timeval& now) noexcept
+{
+   return try_to_export(flow_index, call_pre_export, now, get_export_reason(m_flow_table[flow_index]->m_flow));
+}
+
+#ifdef WITH_CTT
+void NHTFlowCache::send_export_request_to_ctt(size_t ctt_flow_hash) noexcept
+{
+   m_ctt_controller.export_record(ctt_flow_hash);
+}
+#endif /* WITH_CTT */
+
+bool NHTFlowCache::try_to_export(size_t flow_index, bool call_pre_export, const timeval& now, int reason) noexcept
+{
+#ifdef WITH_CTT
+   if (!m_flow_table[flow_index]->is_waiting_for_export) {
+      m_flow_table[flow_index]->is_waiting_for_export = true;
+      send_export_request_to_ctt(m_flow_table[flow_index]->m_flow.flow_hash_ctt);
+      m_flow_table[flow_index]->export_time = {now.tv_sec + 1, now.tv_usec};
+      return false;
+   }
+   if (m_flow_table[flow_index]->export_time > now) {
+      return false;
+   }
+   m_flow_table[flow_index]->is_waiting_for_export = false;
+#endif /* WITH_CTT */
+   if (call_pre_export) {
+      plugins_pre_export(m_flow_table[flow_index]->m_flow);
+   }
+   export_flow(flow_index, reason);
+   return true;
 }
 
 int NHTFlowCache::put_pkt(Packet &pkt)
@@ -293,6 +391,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
    }
 
    auto [hash_value, flow_index, source_to_destination] = find_flow_index(pkt);
+   pkt.source_pkt = source_to_destination;
    const bool hash_created = hash_value.has_value();
    const bool flow_found = flow_index.has_value();
    if (!hash_created) {
@@ -301,75 +400,53 @@ int NHTFlowCache::put_pkt(Packet &pkt)
    const size_t row_begin = hash_value.value() & m_line_mask;
    CacheRowSpan row_span(&m_flow_table[row_begin], m_line_size);
 
+#ifdef WITH_CTT
+   const bool flow_is_waiting_for_export = try_to_export_delayed_flow(pkt, flow_index, row_begin);
+#else
+   constexpr bool flow_is_waiting_for_export = false;
+#endif /* WITH_CTT */
+
    prefetch_export_expired();
 
    if (flow_found) {
       /* Existing flow record was found, put flow record at the first index of flow line. */
-      m_cache_stats.lookups += (flow_index.value() - row_begin + 1);
-      m_cache_stats.lookups2 += (flow_index.value() - row_begin + 1) * (flow_index.value() - row_begin + 1);
+      m_cache_stats.lookups += flow_index.value() + 1;
+      m_cache_stats.lookups2 += (flow_index.value() + 1) * (flow_index.value() + 1);
       m_cache_stats.hits++;
 
       row_span.advance_flow(flow_index.value());
+      flow_index = row_begin;
+      return process_flow(pkt, flow_index.value(), hash_value.value(), flow_is_waiting_for_export);
+   }
+   /* Existing flow record was not found. Find free place in flow line. */
+   const std::optional<size_t> empty_index = row_span.find_empty();
+   const bool empty_found = empty_index.has_value();
+   if (empty_found) {
+      flow_index = empty_index.value() + row_begin;
+      m_cache_stats.empty++;
    } else {
-      /* Existing flow record was not found. Find free place in flow line. */
-      const std::optional<size_t> empty_index = row_span.find_empty();
-      const bool empty_found = empty_index.has_value();
-      if (empty_found) {
-         flow_index = empty_index.value() + row_begin;
-         m_cache_stats.empty++;
-      } else {
+#ifdef WITH_CTT
+      flow_index = row_span.find_if_export_timeout_expired(pkt.ts);
+      if (!flow_index.has_value()) {
+#endif /* WITH_CTT */
          row_span.advance_flow_to(m_line_size - 1, m_new_flow_insert_index);
          flow_index = row_begin + m_new_flow_insert_index;
-         plugins_pre_export(m_flow_table[flow_index.value()]->m_flow);
-         m_flow_table[flow_index.value()]->m_flow.end_reason = FLOW_END_NO_RES;
-         export_flow(flow_index.value());
-         m_cache_stats.expired++;
-         m_cache_stats.not_empty++;
+#ifdef WITH_CTT
       }
+#endif /* WITH_CTT */
+      plugins_pre_export(m_flow_table[flow_index.value()]->m_flow);
+      export_flow(flow_index.value(), FLOW_END_NO_RES);
+      m_cache_stats.not_empty++;
    }
+   return process_flow(pkt, flow_index.value(), hash_value.value(), false);
+}
 
-   pkt.source_pkt = source_to_destination;
-   if (isTcpConnectionRestart(pkt, m_flow_table[flow_index.value()]->m_flow, source_to_destination)) {
-      //m_flow_table[flow_index.value()]->m_flow.end_reason = FLOW_END_EOF;
-      export_flow(flow_index.value(), FLOW_END_EOF);
-      put_pkt(pkt);
-      return 0;
+bool NHTFlowCache::try_to_export_on_active_timeout(size_t flow_index, const timeval& now) noexcept
+{
+   if (!m_flow_table[flow_index]->is_empty() && now.tv_sec - m_flow_table[flow_index]->m_flow.time_first.tv_sec >= m_active) {
+      return try_to_export(flow_index, true, now, FLOW_END_ACTIVE);
    }
-
-   if (m_flow_table[flow_index.value()]->is_empty()) {
-      m_cache_stats.flows_in_cache++;
-      m_flow_table[flow_index.value()]->create(pkt, hash_value.value());
-      if (plugins_post_create(m_flow_table[flow_index.value()]->m_flow, pkt) & ProcessPlugin::FlowAction::FLUSH) {
-         export_flow(flow_index.value());
-         m_cache_stats.flushed++;
-      }
-      export_expired(pkt.ts.tv_sec);
-      return 0;
-   }
-   /* Check if flow record is expired (inactive timeout). */
-   if (export_on_inactive_timeout(flow_index.value(), pkt.ts.tv_sec)) {
-      return put_pkt(pkt);
-   }
-
-   if (export_on_active_timeout(flow_index.value(), pkt.ts.tv_sec)) {
-      return put_pkt(pkt);
-   }
-
-   const size_t pre_update_return_flags = plugins_pre_update(m_flow_table[flow_index.value()]->m_flow, pkt);
-   if (pre_update_return_flags & ProcessPlugin::FlowAction::FLUSH) {
-      flush(pkt, flow_index.value(), pre_update_return_flags, source_to_destination);
-      return 0;
-   }
-   m_flow_table[flow_index.value()]->update(pkt, source_to_destination);
-   const size_t post_update_return_flags = plugins_post_update(m_flow_table[flow_index.value()]->m_flow, pkt);
-
-   if (post_update_return_flags & ProcessPlugin::FlowAction::FLUSH) {
-      flush(pkt, flow_index.value(), post_update_return_flags, source_to_destination);
-      return 0;
-   }
-
-   export_expired(pkt.ts.tv_sec);
-   return 0;
+   return false;
 }
 
 void NHTFlowCache::try_to_fill_ports_to_fragmented_packet(Packet& packet)
@@ -384,32 +461,20 @@ uint8_t NHTFlowCache::get_export_reason(const Flow& flow)
    if ((flow.src_tcp_flags | flow.dst_tcp_flags) & (TCP_FIN | TCP_RST)) {
       // When FIN or RST is set, TCP connection ended naturally
       return FLOW_END_EOF;
-   } else {
-      return FLOW_END_INACTIVE;
    }
+   return FLOW_END_INACTIVE;
 }
 
-void NHTFlowCache::export_expired(time_t ts)
+void NHTFlowCache::export_expired(time_t now)
 {
-   for (decltype(m_last_exported_on_timeout_index) i = m_last_exported_on_timeout_index; i < m_last_exported_on_timeout_index + m_new_flow_insert_index; i++) {
-      if (!m_flow_table[i]->is_empty() && ts - m_flow_table[i]->m_flow.time_last.tv_sec >= m_inactive) {
-         m_flow_table[i]->m_flow.end_reason = get_export_reason(m_flow_table[i]->m_flow);
-         plugins_pre_export(m_flow_table[i]->m_flow);
-         export_flow(i);
-         /*if (!m_flow_table[i]->is_empty() && m_flow_table[i]->m_flow.is_delayed && m_flow_table[i]->m_flow.delay_time >= ts) {
-            m_flow_table[i]->m_flow.is_delayed = false;
-            plugins_pre_export(m_flow_table[i]->m_flow);
-            export_flow(i);
-         }
-         if(!m_flow_table[i]->is_empty() && m_flow_table[i]->m_delayed_flow_waiting && m_flow_table[i]->m_delayed_flow.delay_time >= ts) {
-            m_flow_table[i]->m_delayed_flow_waiting = false;
-            plugins_pre_export(m_flow_table[i]->m_delayed_flow);
-            export_flow(i);
-         }*/
-         m_cache_stats.expired++;
-      }
-   }
+   export_expired({now, 0});
+}
 
+void NHTFlowCache::export_expired(const timeval& now)
+{
+   for (size_t i = m_last_exported_on_timeout_index; i < m_last_exported_on_timeout_index + m_new_flow_insert_index; i++) {
+      try_to_export_on_inactive_timeout(i, now);
+   }
    m_last_exported_on_timeout_index = (m_last_exported_on_timeout_index + m_new_flow_insert_index) & (m_cache_size - 1);
 }
 
@@ -419,12 +484,6 @@ static std::array<uint8_t, ArraySize> pointerToByteArray(const Type* pointer) no
    std::array<uint8_t, ArraySize> res;
    std::copy_n(reinterpret_cast<const uint8_t*>(pointer), ArraySize, res.begin());
    return res;
-}
-
-template<typename ScalarType>
-static const uint8_t* scalarToArrayEnd(const ScalarType& scalar) noexcept
-{
-    return scalarToArrayBegin(scalar) + sizeof(scalar);
 }
 
 bool NHTFlowCache::create_hash_key(const Packet& packet)
@@ -454,17 +513,17 @@ bool NHTFlowCache::create_hash_key(const Packet& packet)
    return false;
 }
 
-void NHTFlowCache::print_report()
+void NHTFlowCache::print_report() const
 {
-   /*1float tmp = float(m_cache_stats.lookups) / m_cache_stats.hits;
+   const float tmp = static_cast<float>(m_cache_stats.lookups) / m_cache_stats.hits;
 
-   cout << "Hits: " << m_cache_stats.hits << endl;
-   cout << "Empty: " << m_cache_stats.empty << endl;
-   cout << "Not empty: " << m_cache_stats.not_empty << endl;
-   cout << "Expired: " << m_cache_stats.expired << endl;
-   cout << "Flushed: " << m_cache_stats.flushed << endl;
-   cout << "Average Lookup:  " << tmp << endl;
-   cout << "Variance Lookup: " << float(m_cache_stats.lookups2) / m_cache_stats.hits - tmp * tmp << endl;*/
+   std::cout << "Hits: " << m_cache_stats.hits << std::endl;
+   std::cout << "Empty: " << m_cache_stats.empty << std::endl;
+   std::cout << "Not empty: " << m_cache_stats.not_empty << std::endl;
+   std::cout << "Expired: " << m_cache_stats.exported << std::endl;
+   std::cout << "Flushed: " << m_cache_stats.flushed << std::endl;
+   std::cout << "Average Lookup:  " << tmp << std::endl;
+   std::cout << "Variance Lookup: " << static_cast<float>(m_cache_stats.lookups2) / m_cache_stats.hits - tmp * tmp << std::endl;
 }
 
 void NHTFlowCache::set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir)
