@@ -32,51 +32,20 @@
 #ifndef IPXP_STORAGE_CACHE_HPP
 #define IPXP_STORAGE_CACHE_HPP
 
-#include <bits/types/struct_timeval.h>
-#include <chrono>
 #include <ctime>
 #include <string>
-
 #include <ipfixprobe/storage.hpp>
-//#include <ipfixprobe/options.hpp>
 #include <optional>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/telemetry-utils.hpp>
 
 #include "fragmentationCache/fragmentationCache.hpp"
-
 #include "cacheOptParser.hpp"
 #include "flowKey.tpp"
 #include "flowRecord.hpp"
 #include "cttController.hpp"
 
-
 namespace ipxp {
-
-
-
-/*struct __attribute__((packed)) flow_key_v4_t {
-   uint16_t src_port;
-   uint16_t dst_port;
-   uint8_t proto;
-   uint8_t ip_version;
-   uint32_t src_ip;
-   uint32_t dst_ip;
-   uint16_t vlan_id;
-};
-
-struct __attribute__((packed)) flow_key_v6_t {
-   uint16_t src_port;
-   uint16_t dst_port;
-   uint8_t proto;
-   uint8_t ip_version;
-   uint8_t src_ip[16];
-   uint8_t dst_ip[16];
-   uint16_t vlan_id;
-};*/
-
-//#define MAX_KEY_LENGTH (std::max<size_t>(sizeof(flow_key_v4_t), sizeof(flow_key_v6_t)))
-
 
 struct FlowEndReasonStats {
    uint64_t active_timeout;
@@ -99,10 +68,10 @@ struct FlowCacheStats{
    uint64_t empty;
    uint64_t not_empty;
    uint64_t hits;
-   uint64_t expired;
+   uint64_t exported{0};
    uint64_t flushed;
-   uint64_t lookups;
-   uint64_t lookups2;
+   uint64_t lookups{0};
+   uint64_t lookups2{0};
    uint64_t flows_in_cache;
    uint64_t total_exported;
 };
@@ -119,7 +88,7 @@ public:
    std::string get_name() const noexcept override;
 
    int put_pkt(Packet& pkt) override;
-   void export_expired(time_t ts) override;
+   void export_expired(time_t now) override;
 
    /**
      * @brief Set and configure the telemetry directory where cache stats will be stored.
@@ -139,11 +108,8 @@ private:
    uint32_t m_inactive;
    bool m_split_biflow;
    bool m_enable_fragmentation_cache;
-   //uint8_t m_keylen;
-   //std::array<uint8_t, std::max(sizeof(FlowKeyv4), sizeof(FlowKeyv6))> m_key_hash_buffer;
    std::variant<FlowKeyv4, FlowKeyv6> m_key;
    std::variant<FlowKeyv4, FlowKeyv6> m_key_reversed;
-   //std::array<uint8_t, std::max(sizeof(FlowKeyv4), sizeof(FlowKeyv6))> m_key_reversed_hash_buffer;
    std::vector<FlowRecord*> m_flow_table;
    std::vector<FlowRecord> m_flows;
 
@@ -155,9 +121,8 @@ private:
    CttController m_ctt_controller;
 #endif /* WITH_CTT */
 
-
    void try_to_fill_ports_to_fragmented_packet(Packet& packet);
-   void flush(Packet &pkt, size_t flow_index, int ret, bool source_flow);
+   void flush(Packet &pkt, size_t flow_index, int return_flags);
    bool create_hash_key(const Packet &packet);
    static uint8_t get_export_reason(const Flow &flow);
    void finish();
@@ -169,11 +134,20 @@ private:
    void get_parser_options(CacheOptParser& parser) noexcept;
    void push_to_export_queue(size_t flow_index) noexcept;
    std::tuple<std::optional<size_t>, std::optional<size_t>, bool> find_flow_index(const Packet& packet) noexcept;
-   bool export_on_inactive_timeout(size_t flow_index, time_t ts) noexcept;
-   bool export_on_active_timeout(size_t flow_index, time_t ts) noexcept;
+   bool try_to_export_on_inactive_timeout(size_t flow_index, const timeval& now) noexcept;
+   bool try_to_export_on_active_timeout(size_t flow_index, const timeval& now) noexcept;
    void export_flow(size_t flow_index, int reason);
    void export_flow(size_t flow_index);
-   void print_report();
+   int process_flow(Packet& packet, size_t flow_index, size_t hash_value, bool flow_is_waiting_for_export) noexcept;
+   bool try_to_export_delayed_flow(const Packet& packet, const std::optional<size_t>& flow_index,
+                                   size_t row_begin) noexcept;
+   void create_record(const Packet& packet, size_t flow_index, size_t hash_value) noexcept;
+   bool try_to_export(size_t flow_index, bool call_pre_export, const timeval& now, int reason) noexcept;
+   bool try_to_export(size_t flow_index, bool call_pre_export, const timeval& now) noexcept;
+   void print_report() const;
+   void send_export_request_to_ctt(size_t ctt_flow_hash) noexcept;
+   void export_expired(const timeval& now);
+   void try_to_add_flow_to_ctt(size_t flow_index) noexcept;
 };
 
 }

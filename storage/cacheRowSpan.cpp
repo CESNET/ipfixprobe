@@ -1,5 +1,30 @@
-#include <algorithm>
+/**
+* \file
+ * \author Damir Zainullin <zaidamilda@gmail.com>
+ * \brief CacheRowSpan implementation.
+ */
+/*
+ * Copyright (C) 2023 CESNET
+ *
+ * LICENSE TERMS
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of the Company nor the names of its contributors
+ *    may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ */
+
 #include "cacheRowSpan.hpp"
+
+#include <algorithm>
 
 namespace ipxp {
 
@@ -38,5 +63,18 @@ std::optional<size_t> CacheRowSpan::find_empty() const noexcept
    }
    return it - m_begin;
 }
+
+#ifdef WITH_CTT
+std::optional<size_t> CacheRowSpan::find_if_export_timeout_expired(const timeval& now) const noexcept
+{
+   auto it = std::find_if(m_begin, m_begin + m_count, [&now](const FlowRecord* flow) {
+      return flow->is_waiting_for_export && now > flow->export_time;
+   });
+   if (it == m_begin + m_count) {
+      return std::nullopt;
+   }
+   return it - m_begin;
+}
+#endif /* WITH_CTT */
 
 } // ipxp
