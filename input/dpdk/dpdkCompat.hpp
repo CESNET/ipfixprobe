@@ -89,6 +89,7 @@
 #define RTE_ETH_RSS_VXLAN              ETH_RSS_VXLAN
 #define RTE_ETH_RSS_NVGRE              ETH_RSS_NVGRE
 #define RTE_ETH_RSS_GTPU               ETH_RSS_GTPU
+#define RTE_ETH_RSS_GENEVE             ETH_RSS_GENEVE
 
 #define RTE_BIT64(nr)   (UINT64_C(1) << (nr))
 
