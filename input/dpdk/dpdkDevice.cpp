@@ -148,11 +148,7 @@ rte_eth_conf DpdkDevice::createPortConfig()
 #endif
 
 	if (m_supportedRSS) {
-#if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
 		portConfig.rxmode.mq_mode = RTE_ETH_MQ_RX_RSS;
-#else
-		portConfig.rxmode.mq_mode = ETH_MQ_RX_RSS;
-#endif
 	} else {
 		portConfig.rxmode.mq_mode = RTE_ETH_MQ_RX_NONE;
 	}
@@ -219,25 +215,36 @@ void DpdkDevice::configureRSS()
 		return;
 	}
 
-	constexpr size_t RSS_KEY_LEN = 40;
-	// biflow hash key
-	static uint8_t rssKey[RSS_KEY_LEN]
-		= {0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A,
-		   0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A,
-		   0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A, 0x6D, 0x5A};
+	rte_eth_dev_info rteDevInfo;
+	if (rte_eth_dev_info_get(m_portID, &rteDevInfo)) {
+		throw PluginError("DpdkDevice::configureRSS() has failed. Unable to get rte dev info");
+	}
 
-	struct rte_eth_rss_conf rssConfig
-		= {.rss_key = rssKey,
-		   .rss_key_len = RSS_KEY_LEN,
-#if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
-		   .rss_hf = RTE_ETH_RSS_IP,
-#else
-		   .rss_hf = ETH_RSS_IP,
-#endif
-		  };
+	const uint8_t rssHashKeySize = rteDevInfo.hash_key_size;
 
-	if (rte_eth_dev_rss_hash_update(m_portID, &rssConfig)) {
-		std::cerr << "Setting RSS hash for port " << m_portID << "." << std::endl;
+	m_hashKey.resize(rssHashKeySize);
+	std::generate(
+		m_hashKey.begin(),
+		m_hashKey.end(),
+		[idx = static_cast<std::size_t>(0)]() mutable {
+			static const std::array<uint8_t, 2> hashKey = {0x6D, 0x5A};
+			return hashKey[idx++ % sizeof(hashKey)];
+		});
+
+	const uint64_t rssOffloads = rteDevInfo.flow_type_rss_offloads & RTE_ETH_RSS_IP;
+	if (rssOffloads != RTE_ETH_RSS_IP) {
+		std::cerr << "RTE_ETH_RSS_IP is not supported by the card. Used subset: " << rssOffloads << std::endl;
+	}
+
+	struct rte_eth_rss_conf rssConfig = {};
+	rssConfig.rss_key = m_hashKey.data();
+	rssConfig.rss_key_len = rssHashKeySize;
+	rssConfig.rss_hf = rssOffloads;
+
+	int ret = rte_eth_dev_rss_hash_update(m_portID, &rssConfig);
+	if (ret < 0) {
+		std::cerr << "Setting RSS {" << rssOffloads << "} for port " << m_portID << " failed. Errno:" << ret << std::endl;
+		throw PluginError("DpdkDevice::configureRSS() has failed.");
 	}
 }
 
