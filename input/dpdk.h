@@ -31,6 +31,8 @@
 #define IPXP_DPDK_READER_H
 
 #include "dpdk/dpdkDevice.hpp"
+#include "dpdk/dpdkPortTelemetry.hpp"
+#include "dpdk/dpdkTelemetry.hpp"
 
 #include <ipfixprobe/input.hpp>
 #include <ipfixprobe/utils.hpp>
@@ -225,6 +227,9 @@ private:
 
     telemetry::Content get_queue_telemetry();
     telemetry::Content get_port_telemetry(uint16_t portNumber);
+
+    std::vector<DpdkPortTelemetry> m_portsTelemetry;
+    std::unique_ptr<DpdkTelemetry> m_dpdkTelemetry;
 
     struct DpdkRxStats {
         uint64_t receivedPackets;
