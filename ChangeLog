@@ -1,3 +1,11 @@
+2024-12-27 ipfixprobe-4.15.0
+	* dpdk: Add DPDK telemetry
+	* dpdk: add DPDK port telemetry
+	* dpdk: fix RSS configuration
+	* ipfix-elements: fix NTP_USEC_TO_FRAC macro
+	* docs: revision of web page
+	* README: update telemetry section
+
 2024-11-14 ipfixprobe-4.14.0
 	* dpdk: set mempool size as rx queue size
 
