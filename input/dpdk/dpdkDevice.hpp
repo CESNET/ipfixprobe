@@ -26,6 +26,7 @@
 #pragma once
 
 #include "dpdkMbuf.hpp"
+#include "dpdkCompat.hpp"
 
 #include <rte_ethdev.h>
 #include <rte_mempool.h>
@@ -84,7 +85,8 @@ private:
 	void registerRxTimestamp();
 
 	std::vector<rte_mempool*> m_memPools;
-    uint16_t m_portID;
+	std::vector<uint8_t> m_hashKey;
+	uint16_t m_portID;
 	uint16_t m_rxQueueCount;
 	uint16_t m_txQueueCount;
 	uint16_t m_mBufsCount;
