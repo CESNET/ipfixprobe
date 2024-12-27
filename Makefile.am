@@ -183,6 +183,8 @@ ipfixprobe_input_src+=\
 		input/dpdk/dpdkCompat.hpp \
 		input/dpdk/dpdkPortTelemetry.hpp \
 		input/dpdk/dpdkPortTelemetry.cpp \
+		input/dpdk/dpdkTelemetry.hpp \
+		input/dpdk/dpdkTelemetry.cpp \
         input/dpdk.cpp \
         input/dpdk.h \
 	input/dpdk-ring.cpp \

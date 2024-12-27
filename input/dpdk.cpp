@@ -242,6 +242,8 @@ void DpdkReader::configure_telemetry_dirs(
 
     telemetry::FileOps statsOps = {[=]() { return get_queue_telemetry(); }, nullptr};
     register_file(queues_dir, "input-stats", statsOps);
+
+    m_dpdkTelemetry = std::make_unique<DpdkTelemetry>(plugin_dir);
 }
 
 void DpdkReader::init(const char* params)
