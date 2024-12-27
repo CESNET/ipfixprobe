@@ -237,6 +237,7 @@ void DpdkReader::configure_telemetry_dirs(
         auto port_dir = ports_dir->addDir(std::to_string(portID));
         telemetry::FileOps statsOps = {[=]() { return get_port_telemetry(portID); }, nullptr};
         register_file(port_dir, "stats", statsOps);
+        m_portsTelemetry.emplace_back(portID, port_dir);
     }
 
     telemetry::FileOps statsOps = {[=]() { return get_queue_telemetry(); }, nullptr};
