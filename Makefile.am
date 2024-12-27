@@ -180,6 +180,7 @@ ipfixprobe_input_src+=\
 		input/dpdk/dpdkMbuf.cpp \
 		input/dpdk/dpdkDevice.hpp \
 		input/dpdk/dpdkDevice.cpp \
+		input/dpdk/dpdkCompat.hpp \
         input/dpdk.cpp \
         input/dpdk.h \
 	input/dpdk-ring.cpp \
