@@ -296,12 +296,7 @@ int NHTFlowCache::process_flow(Packet& packet, size_t flow_index, size_t hash_va
          return 0;
       }
    }
-
-   if (m_flow_table[flow_index]->is_empty()) {
-      create_record(packet, flow_index, hash_value);
-      export_expired(packet.ts);
-      return 0;
-   }
+   
    /* Check if flow record is expired (inactive timeout). */
    if (!flow_is_waiting_for_export
          && try_to_export_on_inactive_timeout(flow_index, packet.ts)) {
@@ -418,7 +413,9 @@ int NHTFlowCache::put_pkt(Packet &pkt)
 
       row_span.advance_flow(flow_index.value());
       flow_index = row_begin;
-      return process_flow(pkt, flow_index.value(), hash_value.value(), flow_is_waiting_for_export);
+      create_record(pkt, flow_index.value(), hash_value.value());
+      export_expired(pkt.ts);
+      return 0;
    }
    /* Existing flow record was not found. Find free place in flow line. */
    const std::optional<size_t> empty_index = row_span.find_empty();
