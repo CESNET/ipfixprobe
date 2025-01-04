@@ -288,7 +288,7 @@ void NHTFlowCache::try_to_add_flow_to_ctt(size_t flow_index) noexcept
 }
 #endif /* WITH_CTT */
 
-int NHTFlowCache::process_flow(Packet& packet, size_t flow_index, size_t hash_value, bool flow_is_waiting_for_export) noexcept
+int NHTFlowCache::process_flow(Packet& packet, size_t flow_index, bool flow_is_waiting_for_export) noexcept
 {
    if (is_tcp_connection_restart(packet, m_flow_table[flow_index]->m_flow) && !flow_is_waiting_for_export) {
       if (try_to_export(flow_index, false, packet.ts, FLOW_END_EOF)) {
@@ -296,7 +296,7 @@ int NHTFlowCache::process_flow(Packet& packet, size_t flow_index, size_t hash_va
          return 0;
       }
    }
-   
+
    /* Check if flow record is expired (inactive timeout). */
    if (!flow_is_waiting_for_export
          && try_to_export_on_inactive_timeout(flow_index, packet.ts)) {
@@ -413,9 +413,7 @@ int NHTFlowCache::put_pkt(Packet &pkt)
 
       row_span.advance_flow(flow_index.value());
       flow_index = row_begin;
-      create_record(pkt, flow_index.value(), hash_value.value());
-      export_expired(pkt.ts);
-      return 0;
+      return process_flow(pkt, flow_index.value(), flow_is_waiting_for_export);
    }
    /* Existing flow record was not found. Find free place in flow line. */
    const std::optional<size_t> empty_index = row_span.find_empty();
@@ -435,7 +433,9 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       export_flow(flow_index.value(), FLOW_END_NO_RES);
       m_cache_stats.not_empty++;
    }
-   return process_flow(pkt, flow_index.value(), hash_value.value(), false);
+   create_record(pkt, flow_index.value(), hash_value.value());
+   export_expired(pkt.ts);
+   return 0;
 }
 
 bool NHTFlowCache::try_to_export_on_active_timeout(size_t flow_index, const timeval& now) noexcept
