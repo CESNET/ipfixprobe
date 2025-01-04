@@ -72,6 +72,8 @@ public:
     * \return Index of the flow record with an expired export timeout if found, std::nullopt otherwise.
     */
    std::optional<size_t> find_if_export_timeout_expired(const timeval& now) const noexcept;
+
+   size_t find_victim(const timeval& now) const noexcept;
 #endif /* WITH_CTT */
 private:
    FlowRecord** m_begin;
