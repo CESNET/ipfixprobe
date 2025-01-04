@@ -340,7 +340,7 @@ bool NHTFlowCache::try_to_export_delayed_flow(const Packet& packet, size_t flow_
       return false;
    }
    if (m_flow_table[flow_index]->is_waiting_for_export
-      && (!packet.cttmeta.ctt_rec_matched || packet.ts > m_flow_table[row_begin + flow_index.value()]->export_time)) {
+      && (!packet.cttmeta.ctt_rec_matched || packet.ts > m_flow_table[flow_index]->export_time)) {
       plugins_pre_export(m_flow_table[flow_index]->m_flow);
       export_flow(flow_index);
       return false;
