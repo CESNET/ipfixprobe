@@ -264,9 +264,10 @@ void NHTFlowCache::create_record(const Packet& packet, size_t flow_index, size_t
    }
 #ifdef WITH_CTT
    // if metadata are valid, add flow hash ctt to the flow record
-   if (packet.cttmeta_valid) {
-      m_flow_table[flow_index]->m_flow.flow_hash_ctt = packet.cttmeta.flow_hash;
+   if (!packet.cttmeta_valid) {
+      return;
    }
+   m_flow_table[flow_index]->m_flow.flow_hash_ctt = packet.cttmeta.flow_hash;
    if (only_metadata_required(m_flow_table[flow_index]->m_flow)) {
       m_ctt_controller.create_record(m_flow_table[flow_index]->m_flow.flow_hash_ctt, m_flow_table[flow_index]->m_flow.time_first);
       m_flow_table[flow_index]->is_in_ctt = true;
