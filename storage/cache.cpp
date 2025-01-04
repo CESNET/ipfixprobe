@@ -334,18 +334,18 @@ int NHTFlowCache::process_flow(Packet& packet, size_t flow_index, size_t hash_va
    return 0;
 }
 #ifdef WITH_CTT
-bool NHTFlowCache::try_to_export_delayed_flow(const Packet& packet, const std::optional<size_t>& flow_index,
-   size_t row_begin) noexcept
+bool NHTFlowCache::try_to_export_delayed_flow(const Packet& packet, size_t flow_index) noexcept
 {
-   const bool flow_is_waiting_for_export = flow_index.has_value()
-      && m_flow_table[row_begin + flow_index.value()]->is_waiting_for_export;
-   if (flow_index.has_value() && flow_is_waiting_for_export
-      && (!packet.cttmeta.ctt_rec_matched || packet.ts > m_flow_table[row_begin + flow_index.value()]->export_time)) {
-      plugins_pre_export(m_flow_table[row_begin + flow_index.value()]->m_flow);
-      export_flow(row_begin + flow_index.value());
+   if (!m_flow_table[flow_index]->is_in_ctt) {
       return false;
    }
-   return flow_is_waiting_for_export;
+   if (m_flow_table[flow_index]->is_waiting_for_export
+      && (!packet.cttmeta.ctt_rec_matched || packet.ts > m_flow_table[row_begin + flow_index.value()]->export_time)) {
+      plugins_pre_export(m_flow_table[flow_index]->m_flow);
+      export_flow(flow_index);
+      return false;
+   }
+   return m_flow_table[flow_index]->is_waiting_for_export;
 }
 #endif /* WITH_CTT */
 
@@ -364,16 +364,18 @@ void NHTFlowCache::send_export_request_to_ctt(size_t ctt_flow_hash) noexcept
 bool NHTFlowCache::try_to_export(size_t flow_index, bool call_pre_export, const timeval& now, int reason) noexcept
 {
 #ifdef WITH_CTT
-   if (!m_flow_table[flow_index]->is_waiting_for_export) {
-      m_flow_table[flow_index]->is_waiting_for_export = true;
-      send_export_request_to_ctt(m_flow_table[flow_index]->m_flow.flow_hash_ctt);
-      m_flow_table[flow_index]->export_time = {now.tv_sec + 1, now.tv_usec};
-      return false;
+   if (m_flow_table[flow_index]->is_in_ctt) {
+      if (!m_flow_table[flow_index]->is_waiting_for_export) {
+         m_flow_table[flow_index]->is_waiting_for_export = true;
+         send_export_request_to_ctt(m_flow_table[flow_index]->m_flow.flow_hash_ctt);
+         m_flow_table[flow_index]->export_time = {now.tv_sec + 1, now.tv_usec};
+         return false;
+      }
+      if (m_flow_table[flow_index]->export_time > now) {
+         return false;
+      }
+      m_flow_table[flow_index]->is_waiting_for_export = false;
    }
-   if (m_flow_table[flow_index]->export_time > now) {
-      return false;
-   }
-   m_flow_table[flow_index]->is_waiting_for_export = false;
 #endif /* WITH_CTT */
    if (call_pre_export) {
       plugins_pre_export(m_flow_table[flow_index]->m_flow);
@@ -400,15 +402,14 @@ int NHTFlowCache::put_pkt(Packet &pkt)
    const size_t row_begin = hash_value.value() & m_line_mask;
    CacheRowSpan row_span(&m_flow_table[row_begin], m_line_size);
 
-#ifdef WITH_CTT
-   const bool flow_is_waiting_for_export = try_to_export_delayed_flow(pkt, flow_index, row_begin);
-#else
-   constexpr bool flow_is_waiting_for_export = false;
-#endif /* WITH_CTT */
-
    prefetch_export_expired();
 
    if (flow_found) {
+#ifdef WITH_CTT
+      const bool flow_is_waiting_for_export = try_to_export_delayed_flow(pkt, flow_index.value() + row_begin);
+#else
+      constexpr bool flow_is_waiting_for_export = false;
+#endif /* WITH_CTT */
       /* Existing flow record was found, put flow record at the first index of flow line. */
       m_cache_stats.lookups += flow_index.value() + 1;
       m_cache_stats.lookups2 += (flow_index.value() + 1) * (flow_index.value() + 1);
@@ -426,14 +427,12 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       m_cache_stats.empty++;
    } else {
 #ifdef WITH_CTT
-      flow_index = row_span.find_if_export_timeout_expired(pkt.ts);
-      if (!flow_index.has_value()) {
+      const size_t victim_index = row_span.find_victim(pkt.ts);
+#else
+      const size_t victim_index = m_line_size - 1;
 #endif /* WITH_CTT */
-         row_span.advance_flow_to(m_line_size - 1, m_new_flow_insert_index);
-         flow_index = row_begin + m_new_flow_insert_index;
-#ifdef WITH_CTT
-      }
-#endif /* WITH_CTT */
+      row_span.advance_flow_to(victim_index, m_new_flow_insert_index);
+      flow_index = row_begin + m_new_flow_insert_index;
       plugins_pre_export(m_flow_table[flow_index.value()]->m_flow);
       export_flow(flow_index.value(), FLOW_END_NO_RES);
       m_cache_stats.not_empty++;
