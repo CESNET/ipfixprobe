@@ -138,7 +138,7 @@ private:
    bool try_to_export_on_active_timeout(size_t flow_index, const timeval& now) noexcept;
    void export_flow(size_t flow_index, int reason);
    void export_flow(size_t flow_index);
-   int process_flow(Packet& packet, size_t flow_index, size_t hash_value, bool flow_is_waiting_for_export) noexcept;
+   int process_flow(Packet& packet, size_t flow_index, bool flow_is_waiting_for_export) noexcept;
    bool try_to_export_delayed_flow(const Packet& packet, size_t flow_index) noexcept;
    void create_record(const Packet& packet, size_t flow_index, size_t hash_value) noexcept;
    bool try_to_export(size_t flow_index, bool call_pre_export, const timeval& now, int reason) noexcept;
