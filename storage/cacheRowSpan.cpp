@@ -26,6 +26,8 @@
 
 #include <algorithm>
 
+#include "fragmentationCache/timevalUtils.hpp"
+
 namespace ipxp {
 
 CacheRowSpan::CacheRowSpan(FlowRecord** begin, size_t count) noexcept
@@ -45,6 +47,10 @@ std::optional<size_t> CacheRowSpan::find_by_hash(uint64_t hash) const noexcept
 
 void CacheRowSpan::advance_flow_to(size_t from, size_t to) noexcept
 {
+   if (from < to) {
+      std::rotate(m_begin + from, m_begin + from + 1, m_begin + to + 1);
+      return;
+   }
    std::rotate(m_begin + to, m_begin + from, m_begin + from + 1);
 }
 
@@ -75,6 +81,22 @@ std::optional<size_t> CacheRowSpan::find_if_export_timeout_expired(const timeval
    }
    return it - m_begin;
 }
+
+size_t CacheRowSpan::find_victim(const timeval& now) const noexcept
+{
+   const FlowRecord** victim = const_cast<const FlowRecord**>(m_begin) + m_count - 1;
+   auto it = std::find_if(m_begin, m_begin + m_count, [&](const FlowRecord* flow) {
+      if (!flow->is_in_ctt) {
+         victim = &flow;
+      }
+      return flow->is_waiting_for_export && now > flow->export_time;
+   });
+   if (it == m_begin + m_count) {
+      return victim - const_cast<const FlowRecord**>(m_begin);
+   }
+   return it - m_begin;
+}
+
 #endif /* WITH_CTT */
 
 } // ipxp
