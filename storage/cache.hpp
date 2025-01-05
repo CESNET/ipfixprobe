@@ -118,10 +118,7 @@ private:
    FlowRecordStats m_flow_record_stats = {};
    FlowCacheStats m_cache_stats = {};
 #ifdef WITH_CTT
-   void set_ctt_config(const std::string& device_name, unsigned comp_index) {
-      m_ctt_device = device_name;
-      m_ctt_comp_index = comp_index;
-   }
+   void set_ctt_config(const std::string& device_name, unsigned comp_index) override;
    std::string m_ctt_device;
    unsigned m_ctt_comp_index;
    CttController m_ctt_controller;
