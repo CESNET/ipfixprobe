@@ -67,12 +67,11 @@ public:
    std::optional<size_t> find_empty() const noexcept;
 #ifdef WITH_CTT
    /**
-    * \brief Find a flow record with an export timeout that has expired.
+    * \brief Find a flow record to be evicted.
     * \param now Current time.
-    * \return Index of the flow record with an expired export timeout if found, std::nullopt otherwise.
+    * \return Index of flow from ctt which has delayed export timeout expired if found,
+    * last record which is not in ctt, or last record otherwise
     */
-   std::optional<size_t> find_if_export_timeout_expired(const timeval& now) const noexcept;
-
    size_t find_victim(const timeval& now) const noexcept;
 #endif /* WITH_CTT */
 private:
