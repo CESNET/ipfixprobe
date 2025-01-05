@@ -604,5 +604,12 @@ void NHTFlowCache::prefetch_export_expired() const
       __builtin_prefetch(m_flow_table[i], 0, 1);
    }
 }
+#ifdef WITH_CTT
+void NHTFlowCache::set_ctt_config(const std::string& device_name, unsigned comp_index) override;
+{
+   m_ctt_device = device_name;
+   m_ctt_comp_index = comp_index;
+}
+#endif /* WITH_CTT */
 
 }
