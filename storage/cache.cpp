@@ -39,9 +39,10 @@
 #include <sys/time.h>
 #include <optional>
 
-#include "cacheRowSpan.hpp"
 #include "xxhash.h"
 #include "fragmentationCache/timevalUtils.hpp"
+
+#include "cacheRowSpan.cpp"
 
 namespace ipxp {
 
@@ -135,10 +136,6 @@ void NHTFlowCache::init(const char *params)
    m_ctt_controller.init(m_ctt_device, m_ctt_comp_index);
 #endif /* WITH_CTT */
 }
-
-#ifdef WITH_CTT
-   void NHTFlowCache::set_ctt(const std::string& device_name, uint16_t queue_id) override {}
-#endif /* WITH_CTT */
 
 void NHTFlowCache::close()
 {
