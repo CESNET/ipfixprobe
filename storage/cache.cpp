@@ -174,9 +174,7 @@ void NHTFlowCache::finish()
    for (decltype(m_cache_size) i = 0; i < m_cache_size; i++) {
       if (!m_flow_table[i]->is_empty()) {
          plugins_pre_export(m_flow_table[i]->m_flow);
-         //m_flow_table[i]->m_flow.end_reason = FLOW_END_FORCED;
          export_flow(i, FLOW_END_FORCED);
-         //m_cache_stats.expired++;
       }
    }
 }
@@ -278,7 +276,7 @@ void NHTFlowCache::create_record(const Packet& packet, size_t flow_index, size_t
 #ifdef WITH_CTT
 void NHTFlowCache::try_to_add_flow_to_ctt(size_t flow_index) noexcept
 {
-   if (m_flow_table[flow_index]->is_in_ctt) {
+   if (m_flow_table[flow_index]->is_in_ctt || m_flow_table[flow_index]->m_flow.flow_hash_ctt == 0) {
       return;
    }
    if (only_metadata_required(m_flow_table[flow_index]->m_flow)) {
@@ -485,26 +483,48 @@ static std::array<uint8_t, ArraySize> pointerToByteArray(const Type* pointer) no
 
 bool NHTFlowCache::create_hash_key(const Packet& packet)
 {
+   auto commonFieldsAssigner = [&](auto& key)
+   {
+      key.src_port = packet.src_port;
+      key.dst_port = packet.dst_port;
+      key.ip_proto = packet.ip_proto;
+      key.ip_version = packet.ip_version;
+      //key.src_ip = packet.src_ip;
+      //key.dst_ip = packet.dst_ip;
+      key.vlan_id = packet.vlan_id;
+
+   };
+   std::visit(commonFieldsAssigner, m_key);
+   std::visit(commonFieldsAssigner, m_key_reversed);
+   std::visit([](auto& key){std::swap(key.src_port, key.dst_port);}, m_key_reversed);
    if (packet.ip_version == IP::v4) {
-      m_key = FlowKeyv4{ packet.src_port, packet.dst_port, packet.ip_proto, IP::v4,
-         pointerToByteArray<uint32_t, sizeof(uint32_t)>(&packet.src_ip.v4),
-         pointerToByteArray<uint32_t, sizeof(uint32_t)>(&packet.dst_ip.v4),
+      /*m_key = FlowKeyv4{ packet.src_port, packet.dst_port, packet.ip_proto, IP::v4,
+         packet.src_ip.v4,
+         packet.dst_ip.v4,
          static_cast<uint16_t>(packet.vlan_id)};
       m_key_reversed = FlowKeyv4{ packet.dst_port, packet.src_port, packet.ip_proto, IP::v4,
-         pointerToByteArray<uint32_t, sizeof(uint32_t)>(&packet.dst_ip.v4),
-         pointerToByteArray<uint32_t, sizeof(uint32_t)>(&packet.src_ip.v4),
-         static_cast<uint16_t>(packet.vlan_id)};
+         packet.dst_ip.v4,
+         packet.src_ip.v4,
+         static_cast<uint16_t>(packet.vlan_id)};*/
+      std::get<FlowKeyv4>(m_key).src_ip = packet.src_ip.v4;
+      std::get<FlowKeyv4>(m_key).dst_ip = packet.dst_ip.v4;
+      std::get<FlowKeyv4>(m_key_reversed).src_ip = packet.dst_ip.v4;
+      std::get<FlowKeyv4>(m_key_reversed).dst_ip = packet.src_ip.v4;
       return true;
    }
    if (packet.ip_version == IP::v6) {
-      m_key = FlowKeyv6{ packet.src_port, packet.dst_port, packet.ip_proto, IP::v6,
-         pointerToByteArray<uint8_t, sizeof(packet.src_ip.v6)>(packet.src_ip.v6),
-         pointerToByteArray<uint8_t, sizeof(packet.dst_ip.v6)>(packet.dst_ip.v6),
+      /*m_key = FlowKeyv6{ packet.src_port, packet.dst_port, packet.ip_proto, IP::v6,
+         packet.src_ip.v6,
+         packet.dst_ip.v6,
          static_cast<uint16_t>(packet.vlan_id)};
       m_key_reversed = FlowKeyv6{ packet.dst_port, packet.src_port, packet.ip_proto, IP::v6,
-         pointerToByteArray<uint8_t, sizeof(packet.dst_ip.v6)>(packet.dst_ip.v6),
-         pointerToByteArray<uint8_t, sizeof(packet.src_ip.v6)>(packet.src_ip.v6),
-         static_cast<uint16_t>(packet.vlan_id)};
+         packet.dst_ip.v6,
+         packet.src_ip.v6,
+         static_cast<uint16_t>(packet.vlan_id)};*/
+      std::memcpy(std::get<FlowKeyv6>(m_key).src_ip.data(), packet.src_ip.v6, sizeof(packet.src_ip.v6));
+      std::memcpy(std::get<FlowKeyv6>(m_key).dst_ip.data(), packet.dst_ip.v6, sizeof(packet.dst_ip.v6));
+      std::memcpy(std::get<FlowKeyv6>(m_key_reversed).src_ip.data(), packet.dst_ip.v6, sizeof(packet.dst_ip.v6));
+      std::memcpy(std::get<FlowKeyv6>(m_key_reversed).dst_ip.data(), packet.src_ip.v6, sizeof(packet.src_ip.v6));
       return true;
    }
    return false;
