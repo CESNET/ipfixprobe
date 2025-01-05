@@ -85,9 +85,6 @@ void NHTFlowCache::get_parser_options(CacheOptParser& parser) noexcept
     m_new_flow_insert_index = m_line_size / 2;
     m_split_biflow = parser.m_split_biflow;
     m_enable_fragmentation_cache = parser.m_enable_fragmentation_cache;
-#ifdef WITH_CTT
-    m_ctt_controller.init(parser.m_dev, 0);
-#endif /* WITH_CTT */
 }
 
 void NHTFlowCache::allocate_table()
@@ -131,7 +128,17 @@ void NHTFlowCache::init(const char *params)
          throw PluginError("not enough memory for fragment cache allocation");
       }
    }
+#ifdef WITH_CTT
+   if (m_ctt_device.empty()) {
+      throw PluginError("CTT device must be set before init");
+   }
+   m_ctt_controller.init(m_ctt_device, m_ctt_comp_index);
+#endif /* WITH_CTT */
 }
+
+#ifdef WITH_CTT
+   void NHTFlowCache::set_ctt(const std::string& device_name, uint16_t queue_id) override {}
+#endif /* WITH_CTT */
 
 void NHTFlowCache::close()
 {
@@ -473,39 +480,23 @@ void NHTFlowCache::export_expired(const timeval& now)
    m_last_exported_on_timeout_index = (m_last_exported_on_timeout_index + m_new_flow_insert_index) & (m_cache_size - 1);
 }
 
-template<typename Type, size_t ArraySize>
-static std::array<uint8_t, ArraySize> pointerToByteArray(const Type* pointer) noexcept
-{
-   std::array<uint8_t, ArraySize> res;
-   std::copy_n(reinterpret_cast<const uint8_t*>(pointer), ArraySize, res.begin());
-   return res;
-}
-
 bool NHTFlowCache::create_hash_key(const Packet& packet)
 {
    auto commonFieldsAssigner = [&](auto& key)
    {
       key.src_port = packet.src_port;
       key.dst_port = packet.dst_port;
-      key.ip_proto = packet.ip_proto;
+      key.proto = packet.ip_proto;
       key.ip_version = packet.ip_version;
-      //key.src_ip = packet.src_ip;
-      //key.dst_ip = packet.dst_ip;
       key.vlan_id = packet.vlan_id;
-
    };
    std::visit(commonFieldsAssigner, m_key);
    std::visit(commonFieldsAssigner, m_key_reversed);
-   std::visit([](auto& key){std::swap(key.src_port, key.dst_port);}, m_key_reversed);
+   std::visit([&](auto& key){
+                     key.src_port = packet.dst_port;
+                     key.dst_port = packet.src_port;
+                  }, m_key_reversed);
    if (packet.ip_version == IP::v4) {
-      /*m_key = FlowKeyv4{ packet.src_port, packet.dst_port, packet.ip_proto, IP::v4,
-         packet.src_ip.v4,
-         packet.dst_ip.v4,
-         static_cast<uint16_t>(packet.vlan_id)};
-      m_key_reversed = FlowKeyv4{ packet.dst_port, packet.src_port, packet.ip_proto, IP::v4,
-         packet.dst_ip.v4,
-         packet.src_ip.v4,
-         static_cast<uint16_t>(packet.vlan_id)};*/
       std::get<FlowKeyv4>(m_key).src_ip = packet.src_ip.v4;
       std::get<FlowKeyv4>(m_key).dst_ip = packet.dst_ip.v4;
       std::get<FlowKeyv4>(m_key_reversed).src_ip = packet.dst_ip.v4;
@@ -513,14 +504,6 @@ bool NHTFlowCache::create_hash_key(const Packet& packet)
       return true;
    }
    if (packet.ip_version == IP::v6) {
-      /*m_key = FlowKeyv6{ packet.src_port, packet.dst_port, packet.ip_proto, IP::v6,
-         packet.src_ip.v6,
-         packet.dst_ip.v6,
-         static_cast<uint16_t>(packet.vlan_id)};
-      m_key_reversed = FlowKeyv6{ packet.dst_port, packet.src_port, packet.ip_proto, IP::v6,
-         packet.dst_ip.v6,
-         packet.src_ip.v6,
-         static_cast<uint16_t>(packet.vlan_id)};*/
       std::memcpy(std::get<FlowKeyv6>(m_key).src_ip.data(), packet.src_ip.v6, sizeof(packet.src_ip.v6));
       std::memcpy(std::get<FlowKeyv6>(m_key).dst_ip.data(), packet.dst_ip.v6, sizeof(packet.dst_ip.v6));
       std::memcpy(std::get<FlowKeyv6>(m_key_reversed).src_ip.data(), packet.dst_ip.v6, sizeof(packet.dst_ip.v6));
