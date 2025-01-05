@@ -97,12 +97,28 @@ void NdpPacketReader::init(const char *params)
       m_ctt_metadata = true;
    }
    init_ifc(parser.m_dev);
+   m_device = parser.m_dev;
 }
 
 void NdpPacketReader::close()
 {
    ndpReader.close();
 }
+
+#ifdef WITH_CTT
+   std::pair<std::string, unsigned> NdpPacketReader::get_ctt_config() const
+{
+   std::string dev = m_device;
+   int channel_id = 0;
+   std::size_t delimiter_found = m_device.find_last_of(":");
+   if (delimiter_found != std::string::npos) {
+      std::string channel_str = m_device.substr(delimiter_found + 1);
+      dev = m_device.substr(0, delimiter_found);
+      channel_id = std::stoi(channel_str);
+   }
+   return std::make_pair(dev, channel_id);
+}
+#endif /* WITH_CTT */
 
 void NdpPacketReader::init_ifc(const std::string &dev)
 {
