@@ -30,18 +30,22 @@
 
 namespace ipxp {
 
-template <size_t IPSize>
 struct FlowKey {
-    uint16_t src_port;
-    uint16_t dst_port;
-    uint8_t proto;
-    uint8_t ip_version;
-    std::array<uint8_t, IPSize> src_ip;
-    std::array<uint8_t, IPSize> dst_ip;
-    uint16_t vlan_id;
+   uint16_t src_port;
+   uint16_t dst_port;
+   uint8_t proto;
+   uint8_t ip_version;
+   uint16_t vlan_id;
 } __attribute__((packed));
 
-using FlowKeyv4 = FlowKey<4>;
-using FlowKeyv6 = FlowKey<16>;
+struct FlowKeyv4 : FlowKey {
+    uint32_t src_ip;
+    uint32_t dst_ip;
+} __attribute__((packed));
+
+struct FlowKeyv6 : FlowKey {
+   std::array<uint8_t, 16> src_ip;
+   std::array<uint8_t, 16> dst_ip;
+} __attribute__((packed));
 
 } // namespace ipxp
