@@ -37,12 +37,13 @@ CacheRowSpan::CacheRowSpan(FlowRecord** begin, size_t count) noexcept
 
 std::optional<size_t> CacheRowSpan::find_by_hash(uint64_t hash) const noexcept
 {
-   for (size_t i = 0; i < m_count; ++i) {
-      if (m_begin[i]->belongs(hash)) {
-         return i;
-      }
+   auto it = std::find_if(m_begin, m_begin + m_count, [&](const FlowRecord* flow) {
+      return flow->belongs(hash);
+   });
+   if (it == m_begin + m_count) {
+      return std::nullopt;
    }
-   return std::nullopt;
+   return it - m_begin;
 }
 
 void CacheRowSpan::advance_flow_to(size_t from, size_t to) noexcept
@@ -71,17 +72,6 @@ std::optional<size_t> CacheRowSpan::find_empty() const noexcept
 }
 
 #ifdef WITH_CTT
-std::optional<size_t> CacheRowSpan::find_if_export_timeout_expired(const timeval& now) const noexcept
-{
-   auto it = std::find_if(m_begin, m_begin + m_count, [&now](const FlowRecord* flow) {
-      return flow->is_waiting_for_export && now > flow->export_time;
-   });
-   if (it == m_begin + m_count) {
-      return std::nullopt;
-   }
-   return it - m_begin;
-}
-
 size_t CacheRowSpan::find_victim(const timeval& now) const noexcept
 {
    const FlowRecord** victim = const_cast<const FlowRecord**>(m_begin) + m_count - 1;
@@ -96,7 +86,6 @@ size_t CacheRowSpan::find_victim(const timeval& now) const noexcept
    }
    return it - m_begin;
 }
-
 #endif /* WITH_CTT */
 
 } // ipxp
