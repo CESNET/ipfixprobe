@@ -98,6 +98,10 @@ public:
    {
    }
 
+#ifdef WITH_CTT
+    virtual void set_ctt_config(const std::string& device_name, unsigned comp_index);
+#endif /* WITH_CTT */
+
    /**
     * \brief set telemetry directory for the storage
     */
