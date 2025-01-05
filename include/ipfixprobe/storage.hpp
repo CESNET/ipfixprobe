@@ -159,7 +159,7 @@ public:
     */
    bool only_metadata_required(const Flow& flow) const noexcept
    {
-       return !all_data_required(flow) && !no_data_required(flow);
+       return !all_data_required(flow);
    }
 protected:
    //Every StoragePlugin implementation should call these functions at appropriate places
