@@ -108,16 +108,6 @@ CacheOptParser::CacheOptParser() : OptionsParser("cache", "Storage plugin implem
          }
          return true;
       });
-
-      #ifdef WITH_CTT
-      register_option("d", "dev", "DEV", "Device name",
-         [this](const char *arg) {
-            m_dev = arg;
-            return true;
-         },
-         OptionFlags::RequiredArgument);
-      #endif /* WITH_CTT */
-
    }
 
 
