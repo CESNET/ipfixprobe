@@ -37,9 +37,11 @@ class alignas(64) FlowRecord
 public:
     Flow m_flow;
 #ifdef WITH_CTT
-    bool is_in_ctt;                 /**< Flow is ofloaded by CTT if set. */
-    bool is_waiting_for_export;        /**< Flow cant be exported if set. */
-    timeval export_time;            /**< Time until the export of the flow is delayed. */
+    bool is_in_ctt;                 /**< Flow is offloaded by CTT if set. */
+    bool is_waiting_for_export;        /**< Export request of flow was sent to ctt,
+                                                but still has not been processed in ctt. */
+    timeval export_time;            /**< Time point when we sure that the export request has already been processed by ctt,
+                                                and flow is not in ctt anymore. */
 #endif /* WITH_CTT */
 
     FlowRecord();
@@ -48,8 +50,16 @@ public:
     void erase();
     void reuse();
 
-    bool is_empty() const noexcept;
-    bool belongs(uint64_t pkt_hash) const noexcept;
+    __attribute__((always_inline)) bool is_empty() const noexcept
+    {
+        return m_hash == 0;
+    }
+
+    __attribute__((always_inline)) bool belongs(uint64_t hash) const noexcept
+    {
+        return hash == m_hash;
+    }
+
     void create(const Packet &pkt, uint64_t pkt_hash);
     void update(const Packet &pkt);
 };

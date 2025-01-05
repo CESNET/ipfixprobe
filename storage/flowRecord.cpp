@@ -79,16 +79,6 @@ void FlowRecord::reuse()
 #endif /* WITH_CTT */
 }
 
-bool FlowRecord::is_empty() const noexcept
-{
-   return m_hash == 0;
-}
-
- bool FlowRecord::belongs(uint64_t hash) const noexcept
-{
-   return hash == m_hash;
-}
-
 void FlowRecord::create(const Packet &pkt, uint64_t hash)
 {
    m_flow.src_packets = 1;
