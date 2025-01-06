@@ -100,6 +100,11 @@ std::vector<std::byte> CttController::assemble_state(
     return state;
 }
 
+CttController::~CttController() noexcept
+{
+    m_commander.reset();
+}
+
 } // ipxp
 
 #endif /* WITH_CTT */

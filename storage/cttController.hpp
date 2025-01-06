@@ -73,6 +73,8 @@ public:
      */
     void export_record(uint64_t flow_hash_ctt);
 
+    ~CttController() noexcept;
+
 private:
     std::unique_ptr<ctt::AsyncCommander> m_commander;
     size_t key_size_bytes;
