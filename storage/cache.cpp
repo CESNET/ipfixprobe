@@ -300,6 +300,7 @@ void NHTFlowCache::try_to_add_flow_to_ctt(size_t flow_index) noexcept
    }
    if (only_metadata_required(m_flow_table[flow_index]->m_flow)) {
       m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt]++;
+      auto x = m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt];
       m_ctt_controller.create_record(m_flow_table[flow_index]->m_flow.flow_hash_ctt, m_flow_table[flow_index]->m_flow.time_first);
       m_flow_table[flow_index]->is_in_ctt = true;
    }
