@@ -181,6 +181,10 @@ void NHTFlowCache::finish()
          if (m_flow_table[i]->is_in_ctt && !m_flow_table[i]->is_waiting_for_export) {
             send_export_request_to_ctt(m_flow_table[i]->m_flow.flow_hash_ctt);
             m_hashes_in_ctt[m_flow_table[i]->m_flow.flow_hash_ctt] -= 1;
+            if (m_hashes_in_ctt[m_flow_table[i]->m_flow.flow_hash_ctt] < 0)
+            {
+               throw "bad ctt record";
+            }
             if (m_hashes_in_ctt[m_flow_table[i]->m_flow.flow_hash_ctt] == 0) {
                m_hashes_in_ctt.erase(m_flow_table[i]->m_flow.flow_hash_ctt);
             }
