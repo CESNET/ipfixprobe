@@ -180,11 +180,18 @@ void NHTFlowCache::finish()
 #ifdef WITH_CTT
          if (m_flow_table[i]->is_in_ctt) {
             send_export_request_to_ctt(m_flow_table[i]->m_flow.flow_hash_ctt);
+            m_ctt_controller[m_flow_table[i]->m_flow.flow_hash_ctt]--;
+            if (m_ctt_controller[m_flow_table[i]->m_flow.flow_hash_ctt] == 0) {
+               m_ctt_controller.erase(m_flow_table[i]->m_flow.flow_hash_ctt);
+            }
          }
 #endif /* WITH_CTT */
          plugins_pre_export(m_flow_table[i]->m_flow);
          export_flow(i, FLOW_END_FORCED);
       }
+   }
+   if (m_ctt_controller.size() > 0){
+      throw "bad CTT size";
    }
 }
 
