@@ -281,7 +281,7 @@ void NHTFlowCache::create_record(const Packet& packet, size_t flow_index, size_t
    if (only_metadata_required(m_flow_table[flow_index]->m_flow)) {
       if (m_hashes_in_ctt.find(m_flow_table[flow_index]->m_flow.flow_hash_ctt) != m_hashes_in_ctt.end())
       {
-         throw "hash collision in create record!";
+         //throw "hash collision in create record!";
       }
       m_hashes_in_ctt.insert(m_flow_table[flow_index]->m_flow.flow_hash_ctt);
       m_ctt_controller.create_record(m_flow_table[flow_index]->m_flow.flow_hash_ctt, m_flow_table[flow_index]->m_flow.time_first);
@@ -299,7 +299,7 @@ void NHTFlowCache::try_to_add_flow_to_ctt(size_t flow_index) noexcept
    if (only_metadata_required(m_flow_table[flow_index]->m_flow)) {
       if (m_hashes_in_ctt.find(m_flow_table[flow_index]->m_flow.flow_hash_ctt) != m_hashes_in_ctt.end())
       {
-         throw "hash collision in try_to_add_flow_to_ctt!";
+         //throw "hash collision in try_to_add_flow_to_ctt!";
       }
       m_hashes_in_ctt.insert(m_flow_table[flow_index]->m_flow.flow_hash_ctt);
       m_ctt_controller.create_record(m_flow_table[flow_index]->m_flow.flow_hash_ctt, m_flow_table[flow_index]->m_flow.time_first);
