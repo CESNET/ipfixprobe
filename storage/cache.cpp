@@ -194,7 +194,10 @@ void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int return_flags)
 
    if (return_flags == ProcessPlugin::FlowAction::FLUSH_WITH_REINSERT) {
 #ifdef WITH_CTT
-      send_export_request_to_ctt(m_flow_table[flow_index]->m_flow.flow_hash_ctt);
+      if (m_flow_table[flow_index]->is_in_ctt) {
+         m_flow_table[flow_index]->is_waiting_for_export = true;
+         send_export_request_to_ctt(m_flow_table[flow_index]->m_flow.flow_hash_ctt);
+      }
 #endif /* WITH_CTT */
       push_to_export_queue(flow_index);
       m_flow_table[flow_index]->m_flow.remove_extensions();
@@ -456,7 +459,9 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       flow_index = row_begin + m_new_flow_insert_index;
 #ifdef WITH_CTT
       if (m_flow_table[flow_index.value()]->is_in_ctt){
-         send_export_request_to_ctt(m_flow_table[flow_index.value()]->m_flow.flow_hash_ctt);
+         m_flow_table[flow_index]->is_waiting_for_export = true;
+         send_export_request_to_ctt(m_flow_table[flow_index]->m_flow.flow_hash_ctt);
+         m_flow_table[flow_index]->export_time = {pkt.ts.tv_sec + 1, pkt.ts.tv_usec};
       }
 #endif /* WITH_CTT */
       plugins_pre_export(m_flow_table[flow_index.value()]->m_flow);
