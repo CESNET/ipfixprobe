@@ -429,13 +429,13 @@ int NHTFlowCache::put_pkt(Packet &pkt)
    CacheRowSpan row_span(&m_flow_table[row_begin], m_line_size);
 
    prefetch_export_expired();
-
-   if (flow_found) {
 #ifdef WITH_CTT
-      const bool flow_is_waiting_for_export = try_to_export_delayed_flow(pkt, flow_index.value() + row_begin);
+   const bool flow_is_waiting_for_export = flow_found && try_to_export_delayed_flow(pkt, flow_index.value() + row_begin);
 #else
-      constexpr bool flow_is_waiting_for_export = false;
+   constexpr bool flow_is_waiting_for_export = false;
 #endif /* WITH_CTT */
+
+   if (flow_found && !m_flow_table[flow_index.value() + row_begin]->is_empty()) {
       /* Existing flow record was found, put flow record at the first index of flow line. */
       m_cache_stats.lookups += flow_index.value() + 1;
       m_cache_stats.lookups2 += (flow_index.value() + 1) * (flow_index.value() + 1);
@@ -446,7 +446,9 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       return process_flow(pkt, flow_index.value(), flow_is_waiting_for_export);
    }
    /* Existing flow record was not found. Find free place in flow line. */
-   const std::optional<size_t> empty_index = row_span.find_empty();
+   const std::optional<size_t> empty_index = flow_found && m_flow_table[flow_index.value() + row_begin]->is_empty()
+                                                                                          ? flow_index.value()
+                                                                                          : row_span.find_empty();
    const bool empty_found = empty_index.has_value();
    if (empty_found) {
       flow_index = empty_index.value() + row_begin;
