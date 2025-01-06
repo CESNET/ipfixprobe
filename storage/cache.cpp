@@ -267,6 +267,7 @@ void NHTFlowCache::create_record(const Packet& packet, size_t flow_index, size_t
    if (post_create_return_flags & ProcessPlugin::FlowAction::FLUSH) {
       export_flow(flow_index);
       m_cache_stats.flushed++;
+      return;
    }
 #ifdef WITH_CTT
    // if metadata are valid, add flow hash ctt to the flow record
@@ -453,13 +454,14 @@ int NHTFlowCache::put_pkt(Packet &pkt)
 #endif /* WITH_CTT */
       row_span.advance_flow_to(victim_index, m_new_flow_insert_index);
       flow_index = row_begin + m_new_flow_insert_index;
-      plugins_pre_export(m_flow_table[flow_index.value()]->m_flow);
-      export_flow(flow_index.value(), FLOW_END_NO_RES);
 #ifdef WITH_CTT
       if (m_flow_table[flow_index.value()]->is_in_ctt){
          send_export_request_to_ctt(m_flow_table[flow_index.value()]->m_flow.flow_hash_ctt);
       }
 #endif /* WITH_CTT */
+      plugins_pre_export(m_flow_table[flow_index.value()]->m_flow);
+      export_flow(flow_index.value(), FLOW_END_NO_RES);
+
       m_cache_stats.not_empty++;
    }
    create_record(pkt, flow_index.value(), hash_value.value());
