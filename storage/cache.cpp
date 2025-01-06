@@ -175,6 +175,9 @@ void NHTFlowCache::push_to_export_queue(size_t flow_index) noexcept
 
 void NHTFlowCache::finish()
 {
+   auto it = std::find_if(m_hashes_in_ctt.begin(), m_hashes_in_ctt.end(), [](const auto& pair) {
+      return pair.second <= 0;
+   });
    for (decltype(m_cache_size) i = 0; i < m_cache_size; i++) {
       if (!m_flow_table[i]->is_empty()) {
 #ifdef WITH_CTT
