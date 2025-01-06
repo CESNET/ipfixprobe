@@ -38,7 +38,7 @@
 #include <optional>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/telemetry-utils.hpp>
-#include <unordered_set>
+#include <unordered_map>
 #include "fragmentationCache/fragmentationCache.hpp"
 #include "cacheOptParser.hpp"
 #include "flowKey.tpp"
@@ -122,7 +122,7 @@ private:
    std::string m_ctt_device;
    unsigned m_ctt_comp_index;
    CttController m_ctt_controller;
-   std::unordered_set<size_t> m_hashes_in_ctt;
+   std::unordered_map<size_t, size_t> m_hashes_in_ctt;
 #endif /* WITH_CTT */
 
    void try_to_fill_ports_to_fragmented_packet(Packet& packet);
