@@ -177,6 +177,11 @@ void NHTFlowCache::finish()
 {
    for (decltype(m_cache_size) i = 0; i < m_cache_size; i++) {
       if (!m_flow_table[i]->is_empty()) {
+#ifdef WITH_CTT
+         if (m_flow_table[i]->is_in_ctt) {
+            send_export_request_to_ctt(m_flow_table[i]->m_flow.flow_hash_ctt);
+         }
+#endif /* WITH_CTT */
          plugins_pre_export(m_flow_table[i]->m_flow);
          export_flow(i, FLOW_END_FORCED);
       }
@@ -450,6 +455,11 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       flow_index = row_begin + m_new_flow_insert_index;
       plugins_pre_export(m_flow_table[flow_index.value()]->m_flow);
       export_flow(flow_index.value(), FLOW_END_NO_RES);
+#ifdef WITH_CTT
+      if (m_flow_table[flow_index.value()]->is_in_ctt){
+         send_export_request_to_ctt(m_flow_table[flow_index.value()]->m_flow.flow_hash_ctt);
+      }
+#endif /* WITH_CTT */
       m_cache_stats.not_empty++;
    }
    create_record(pkt, flow_index.value(), hash_value.value());
