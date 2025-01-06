@@ -120,6 +120,7 @@ void FlowRecord::create(const Packet &pkt, uint64_t hash)
    }
 #ifdef WITH_CTT
    is_waiting_for_export = false;
+   is_in_ctt = false;
 #endif /* WITH_CTT */
 }
 
