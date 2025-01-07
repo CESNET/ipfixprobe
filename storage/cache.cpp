@@ -291,7 +291,7 @@ void NHTFlowCache::create_record(const Packet& packet, size_t flow_index, size_t
          m_ctt_hash_collision++;
          std::vector<FlowRecord*> filtered;
 
-         std::copy_if(m_flow_table, m_flow_table + m_cache_size, std::back_inserter(filtered),
+         std::copy_if(m_flow_table.begin(), m_flow_table.end(), std::back_inserter(filtered),
                       [&](FlowRecord* flow) { return flow->m_flow.flow_hash_ctt == m_flow_table[flow_index]->m_flow.flow_hash_ctt; });
          filtered.size();
       }
@@ -315,7 +315,7 @@ void NHTFlowCache::try_to_add_flow_to_ctt(size_t flow_index) noexcept
          m_ctt_hash_collision++;
          std::vector<FlowRecord*> filtered;
 
-         std::copy_if(m_flow_table, m_flow_table + m_cache_size, std::back_inserter(filtered),
+         std::copy_if(m_flow_table.begin(), m_flow_table.end(), std::back_inserter(filtered),
                       [&](FlowRecord* flow) { return flow->m_flow.flow_hash_ctt == m_flow_table[flow_index]->m_flow.flow_hash_ctt; });
          filtered.size();
       }
