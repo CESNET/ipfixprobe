@@ -72,7 +72,7 @@ NHTFlowCache::NHTFlowCache() :
 
 NHTFlowCache::~NHTFlowCache()
 {
-   close();
+   NHTFlowCache::close();
    print_report();
 }
 
@@ -192,6 +192,7 @@ void NHTFlowCache::finish()
    if (m_hashes_in_ctt.size() > 0){
       throw "bad CTT size";
    }
+   std::cout << "CTT hash collisions: " << m_ctt_hash_collision << std::endl;
 }
 
 void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int return_flags)
@@ -286,6 +287,14 @@ void NHTFlowCache::create_record(const Packet& packet, size_t flow_index, size_t
    m_flow_table[flow_index]->m_flow.flow_hash_ctt = packet.cttmeta.flow_hash;
    if (only_metadata_required(m_flow_table[flow_index]->m_flow)) {
       m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt]++;
+      if (m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt] >= 2) {
+         m_ctt_hash_collision++;
+         std::vector<FlowRecord*> filtered;
+
+         std::copy_if(m_flow_table, m_flow_table + m_cache_size, std::back_inserter(filtered),
+                      [&](FlowRecord* flow) { return flow->m_flow.flow_hash_ctt == m_flow_table[flow_index]->m_flow.flow_hash_ctt; });
+         filtered.size();
+      }
       auto x = m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt];
       m_ctt_controller.create_record(m_flow_table[flow_index]->m_flow.flow_hash_ctt, m_flow_table[flow_index]->m_flow.time_first);
       m_flow_table[flow_index]->is_in_ctt = true;
@@ -302,6 +311,14 @@ void NHTFlowCache::try_to_add_flow_to_ctt(size_t flow_index) noexcept
    if (only_metadata_required(m_flow_table[flow_index]->m_flow)) {
       m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt]++;
       auto x = m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt];
+      if (m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt] >= 2) {
+         m_ctt_hash_collision++;
+         std::vector<FlowRecord*> filtered;
+
+         std::copy_if(m_flow_table, m_flow_table + m_cache_size, std::back_inserter(filtered),
+                      [&](FlowRecord* flow) { return flow->m_flow.flow_hash_ctt == m_flow_table[flow_index]->m_flow.flow_hash_ctt; });
+         filtered.size();
+      }
       m_ctt_controller.create_record(m_flow_table[flow_index]->m_flow.flow_hash_ctt, m_flow_table[flow_index]->m_flow.time_first);
       m_flow_table[flow_index]->is_in_ctt = true;
    }
