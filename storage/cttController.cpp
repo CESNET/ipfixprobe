@@ -102,6 +102,8 @@ std::vector<std::byte> CttController::assemble_state(
 
 CttController::~CttController() noexcept
 {
+    std::future<void> enable_future = m_commander->enable(false);
+    enable_future.wait();
     m_commander.reset();
 }
 
