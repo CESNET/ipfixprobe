@@ -117,6 +117,7 @@ private:
    FlowEndReasonStats m_flow_end_reason_stats = {};
    FlowRecordStats m_flow_record_stats = {};
    FlowCacheStats m_cache_stats = {};
+   size_t m_ctt_hash_collision{0};
 #ifdef WITH_CTT
    void set_ctt_config(const std::string& device_name, unsigned comp_index) override;
    std::string m_ctt_device;
