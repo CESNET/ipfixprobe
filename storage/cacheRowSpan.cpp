@@ -75,7 +75,7 @@ std::optional<size_t> CacheRowSpan::find_empty() const noexcept
 size_t CacheRowSpan::find_victim(const timeval& now) const noexcept
 {
    const FlowRecord** victim = const_cast<const FlowRecord**>(m_begin) + m_count - 1;
-   auto it = std::find_if(m_begin, m_begin + m_count, [&](const FlowRecord* flow) {
+   auto it = std::find_if(m_begin, m_begin + m_count, [&](const FlowRecord*& flow) {
       if (!flow->is_in_ctt) {
          victim = &flow;
       }
