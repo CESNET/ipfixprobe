@@ -175,9 +175,9 @@ void NHTFlowCache::push_to_export_queue(size_t flow_index) noexcept
 
 void NHTFlowCache::finish()
 {
-   auto it = std::find_if(m_hashes_in_ctt.begin(), m_hashes_in_ctt.end(), [](const auto& pair) {
+   /*auto it = std::find_if(m_hashes_in_ctt.begin(), m_hashes_in_ctt.end(), [](const auto& pair) {
       return pair.second <= 0;
-   });
+   });*/
    for (decltype(m_cache_size) i = 0; i < m_cache_size; i++) {
       if (!m_flow_table[i]->is_empty()) {
 #ifdef WITH_CTT
@@ -189,10 +189,10 @@ void NHTFlowCache::finish()
          export_flow(i, FLOW_END_FORCED);
       }
    }
-   if (m_hashes_in_ctt.size() > 0){
+   /*if (m_hashes_in_ctt.size() > 0){
       throw "bad CTT size";
    }
-   std::cout << "CTT hash collisions: " << m_ctt_hash_collision << std::endl;
+   std::cout << "CTT hash collisions: " << m_ctt_hash_collision << std::endl;*/
 }
 
 void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int return_flags)
@@ -269,6 +269,12 @@ bool NHTFlowCache::try_to_export_on_inactive_timeout(size_t flow_index, const ti
    return false;
 }
 
+bool NHTFlowCache::needs_to_be_offloaded(size_t flow_index) const noexcept
+{
+   return only_metadata_required(m_flow_table[flow_index]->m_flow) && m_flow_table[flow_index]->m_flow.src_packets + m_flow_table[flow_index]->m_flow.dst_packets > 30;
+}
+
+
 void NHTFlowCache::create_record(const Packet& packet, size_t flow_index, size_t hash_value) noexcept
 {
    m_cache_stats.flows_in_cache++;
@@ -285,8 +291,8 @@ void NHTFlowCache::create_record(const Packet& packet, size_t flow_index, size_t
       return;
    }
    m_flow_table[flow_index]->m_flow.flow_hash_ctt = packet.cttmeta.flow_hash;
-   if (only_metadata_required(m_flow_table[flow_index]->m_flow)) {
-      m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt]++;
+   if (needs_to_be_offloaded(flow_index)) {
+      /*m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt]++;
       if (m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt] >= 2) {
          m_ctt_hash_collision++;
          std::vector<FlowRecord*> filtered;
@@ -295,7 +301,7 @@ void NHTFlowCache::create_record(const Packet& packet, size_t flow_index, size_t
                       [&](FlowRecord* flow) { return flow->m_flow.flow_hash_ctt == m_flow_table[flow_index]->m_flow.flow_hash_ctt; });
          filtered.size();
       }
-      auto x = m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt];
+      auto x = m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt];*/
       m_ctt_controller.create_record(m_flow_table[flow_index]->m_flow.flow_hash_ctt, m_flow_table[flow_index]->m_flow.time_first);
       m_flow_table[flow_index]->is_in_ctt = true;
    }
@@ -308,8 +314,8 @@ void NHTFlowCache::try_to_add_flow_to_ctt(size_t flow_index) noexcept
    if (m_flow_table[flow_index]->is_in_ctt || m_flow_table[flow_index]->m_flow.flow_hash_ctt == 0) {
       return;
    }
-   if (only_metadata_required(m_flow_table[flow_index]->m_flow)) {
-      m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt]++;
+   if (needs_to_be_offloaded(flow_index)) {
+      /*m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt]++;
       auto x = m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt];
       if (m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt] >= 2) {
          m_ctt_hash_collision++;
@@ -318,7 +324,7 @@ void NHTFlowCache::try_to_add_flow_to_ctt(size_t flow_index) noexcept
          std::copy_if(m_flow_table.begin(), m_flow_table.end(), std::back_inserter(filtered),
                       [&](FlowRecord* flow) { return flow->m_flow.flow_hash_ctt == m_flow_table[flow_index]->m_flow.flow_hash_ctt; });
          filtered.size();
-      }
+      }*/
       m_ctt_controller.create_record(m_flow_table[flow_index]->m_flow.flow_hash_ctt, m_flow_table[flow_index]->m_flow.time_first);
       m_flow_table[flow_index]->is_in_ctt = true;
    }
@@ -390,13 +396,13 @@ bool NHTFlowCache::try_to_export(size_t flow_index, bool call_pre_export, const 
 #ifdef WITH_CTT
 void NHTFlowCache::send_export_request_to_ctt(size_t ctt_flow_hash) noexcept
 {
-   if (--m_hashes_in_ctt[ctt_flow_hash] < 0)
+   /*if (--m_hashes_in_ctt[ctt_flow_hash] < 0)
    {
       throw "missing hash in send_export_request_to_ctt!";
    }
    if (m_hashes_in_ctt[ctt_flow_hash] == 0) {
       m_hashes_in_ctt.erase(ctt_flow_hash);
-   }
+   }*/
    m_ctt_controller.export_record(ctt_flow_hash);
 }
 #endif /* WITH_CTT */
