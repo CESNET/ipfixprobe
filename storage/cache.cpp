@@ -476,9 +476,6 @@ int NHTFlowCache::put_pkt(Packet &pkt)
    } else {
 #ifdef WITH_CTT
       const size_t victim_index = row_span.find_victim(pkt.ts);
-      if (victim_index >= m_line_size) {
-         asm("int $0x80");
-      }
 #else
       const size_t victim_index = m_line_size - 1;
 #endif /* WITH_CTT */
