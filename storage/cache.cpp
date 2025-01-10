@@ -540,6 +540,16 @@ void NHTFlowCache::export_expired(const timeval& now)
 
 bool NHTFlowCache::create_hash_key(const Packet& packet)
 {
+   if (packet.ip_version == IP::v4) {
+      m_key = FlowKeyv4{};
+      m_key_reversed = FlowKeyv4{};
+   } else if (packet.ip_version == IP::v6) {
+      m_key = FlowKeyv6{};
+      m_key_reversed = FlowKeyv6{};
+   } else {
+      return false;
+   }
+
    auto commonFieldsAssigner = [&](auto& key)
    {
       key.src_port = packet.src_port;
