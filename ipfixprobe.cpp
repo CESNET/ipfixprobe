@@ -358,6 +358,10 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
          if (storage_plugin == nullptr) {
             throw IPXPError("invalid storage plugin " + storage_name);
          }
+#ifdef WITH_CTT
+         const auto& [device, comp_idx] = input_plugin->get_ctt_config();
+         storage_plugin->set_ctt_config(device, comp_idx);
+#endif /* WITH_CTT */
          storage_plugin->set_queue(output_queue);
          storage_plugin->init(storage_params.c_str());
          storage_plugin->set_telemetry_dir(pipeline_queue_dir);

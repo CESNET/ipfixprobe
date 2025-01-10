@@ -267,9 +267,6 @@ struct Flow : public Record {
 
     #ifdef WITH_CTT
       uint64_t flow_hash_ctt;     /**< Flow hash for CTT. */
-      bool record_in_ctt;         /**< CTT - offload or not. */
-      bool is_delayed;            /**< Delayed export flag. */
-      time_t delay_time;          /**< Time until export of the flow is delayed. */
     #endif
 
     PluginsStatus plugins_status; /**< Statuses of the process plugins for this flow, used to check
