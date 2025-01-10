@@ -117,13 +117,13 @@ private:
    FlowEndReasonStats m_flow_end_reason_stats = {};
    FlowRecordStats m_flow_record_stats = {};
    FlowCacheStats m_cache_stats = {};
-   size_t m_ctt_hash_collision{0};
 #ifdef WITH_CTT
    void set_ctt_config(const std::string& device_name, unsigned comp_index) override;
    std::string m_ctt_device;
    unsigned m_ctt_comp_index;
    CttController m_ctt_controller;
-   std::unordered_map<size_t, int> m_hashes_in_ctt;
+   //std::unordered_map<size_t, int> m_hashes_in_ctt;
+   //size_t m_ctt_hash_collision{0};
 #endif /* WITH_CTT */
 
    void try_to_fill_ports_to_fragmented_packet(Packet& packet);
@@ -152,6 +152,7 @@ private:
    void send_export_request_to_ctt(size_t ctt_flow_hash) noexcept;
    void export_expired(const timeval& now);
    void try_to_add_flow_to_ctt(size_t flow_index) noexcept;
+   bool needs_to_be_offloaded(size_t flow_index) const noexcept;
 };
 
 }
