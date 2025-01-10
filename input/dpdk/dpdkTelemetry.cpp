@@ -208,6 +208,9 @@ static std::vector<AppFsFile> getAppFsFiles()
 DpdkTelemetry::DpdkTelemetry(const std::shared_ptr<telemetry::Directory>& dpdkDir)
 {
     for (auto [name, ops] : getAppFsFiles()) {
+        if (dpdkDir->getEntry(name)) {
+            continue;
+        }
         auto file = dpdkDir->addFile(name, ops);
         m_holder.add(file);
     }

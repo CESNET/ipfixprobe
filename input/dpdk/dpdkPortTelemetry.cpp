@@ -328,6 +328,9 @@ DpdkPortTelemetry::DpdkPortTelemetry(
     : M_PORT_ID(portId)
 {
     for (auto [name, ops] : getAppFsFiles(M_PORT_ID)) {
+        if (dir->getEntry(name)) {
+            continue;
+        }
         auto file = dir->addFile(name, ops);
         m_holder.add(file);
     }
