@@ -40,9 +40,12 @@
 
 #include <vector>
 #include <map>
+#include <atomic>
+#include <cstdint>
 #include <cstdint>
 
 #include <lz4.h>
+#include <telemetry.hpp>
 
 #include <ipfixprobe/output.hpp>
 #include <ipfixprobe/process.hpp>
@@ -414,6 +417,8 @@ public:
     */
    void close();
 
+   bool isCompressing() const noexcept { return shouldCompress; }
+
    // the maximum aditional size required to send metadata that are needed to
    // to decompress the data, the +4 is there for four 0 bytes that identify
    // ipfix_start_compress_header_t
@@ -452,13 +457,23 @@ private:
    LZ4_stream_t *lz4Stream;
 };
 
+struct IpfixStats {
+   std::atomic<uint64_t> sent_bytes;
+   std::atomic<uint64_t> sent_flows;
+   std::atomic<uint64_t> dropped_flows;
+   std::atomic<uint64_t> sent_mbps;
+   std::atomic<uint64_t> sent_fps;
+   std::atomic<uint64_t> dropped_fps;
+   std::atomic<uint64_t> timestamp;
+};
+
 class IPFIXExporter : public OutputPlugin
 {
 public:
    IPFIXExporter();
    ~IPFIXExporter();
    void init(const char *params);
-   void init(const char *params, Plugins &plugins);
+   void init_plugin(const char *params, Plugins &plugins, const std::shared_ptr<telemetry::Directory>& dir) override;
    void close();
    OptionsParser *get_parser() const { return new IpfixOptParser(); }
    std::string get_name() const { return "ipfix"; }
@@ -526,6 +541,9 @@ private:
    bool fill_template(const Flow &flow, template_t *tmplt);
    void flush();
    void shutdown();
+
+   telemetry::Content get_ipfix_config();
+   void update_plugin_stats(uint64_t timestamp) override;
 };
 
 }

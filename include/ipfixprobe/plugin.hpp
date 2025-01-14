@@ -60,6 +60,11 @@ public:
    virtual void init(const char *params) {}
    virtual void close() {}
 
+   virtual void update_stats(uint64_t timestamp)
+   {
+      (void) timestamp;
+   }
+
    virtual OptionsParser *get_parser() const = 0;
    virtual std::string get_name() const = 0;
 };

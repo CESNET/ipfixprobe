@@ -232,7 +232,7 @@ void IPFIXExporter::init(const char *params)
    signal(SIGPIPE, SIG_IGN);
 }
 
-void IPFIXExporter::init(const char *params, Plugins &plugins)
+void IPFIXExporter::init_plugin(const char *params, Plugins &plugins, const std::shared_ptr<telemetry::Directory>& dir)
 {
    init(params);
 
@@ -258,6 +258,14 @@ void IPFIXExporter::init(const char *params, Plugins &plugins)
       }
       delete ext;
    }
+
+   auto plugin_config_file = dir->addFile(
+      "config",
+      {.read = [this]() { return get_ipfix_config(); },
+       .clear = nullptr});
+
+   m_holder.add(plugin_config_file);
+
 }
 
 void IPFIXExporter::close()
@@ -398,13 +406,13 @@ bool IPFIXExporter::fill_template(const Flow &flow, template_t *tmplt)
 
 int IPFIXExporter::export_flow(const Flow &flow)
 {
-   m_flows_seen++;
+   m_stats.flows_seen++;
    template_t *tmplt = get_template(flow);
    if (!fill_template(flow, tmplt)) {
       flush();
 
       if (!fill_template(flow, tmplt)) {
-         m_flows_dropped++;
+         m_stats.flows_dropped++;
          return 1;
       }
    }
@@ -833,7 +841,7 @@ void IPFIXExporter::send_data()
          ret = send_packet(&pkt);
       }
       if (ret != 0) {
-         m_flows_dropped += pkt.flows;
+         m_stats.flows_dropped += pkt.flows;
       }
    }
 }
@@ -930,10 +938,12 @@ int IPFIXExporter::send_packet(ipfix_packet_t *packet)
 
       /* No error from sendto(), add sent data count to total */
       sent += ret;
+      m_stats.bytes_exported += ret;
    }
 
    /* Update sequence number for next packet */
    sequenceNum += packet->flows;
+   m_stats.flows_exported += packet->flows;
 
    /* Increase packet counter */
    exportedPackets++;
@@ -1152,6 +1162,26 @@ int IPFIXExporter::reconnect()
    }
 
    return 0;
+}
+
+telemetry::Content IPFIXExporter::get_ipfix_config()
+{
+   telemetry::Dict dict;
+
+   dict["protocol"] = (protocol == IPPROTO_UDP ? "UDP" : "TCP");
+   dict["host"] = host;
+   dict["port"] = static_cast<uint64_t>(port);
+   dict["odid"] = static_cast<uint64_t>(odid);
+   dict["dir_bit_field"] = static_cast<uint64_t>(dir_bit_field);
+   dict["mtu"] = static_cast<uint64_t>(mtu);
+   dict["LZ4_compression"] = (packetDataBuffer.isCompressing() ? "enabled" : "disabled");
+
+   return dict;
+}
+
+void IPFIXExporter::update_plugin_stats(uint64_t timestamp)
+{
+
 }
 
 // compress buffer implementation

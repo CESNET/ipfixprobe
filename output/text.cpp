@@ -77,7 +77,7 @@ void TextExporter::init(const char *params)
    *m_out << "conversation packets bytes tcp-flags time extensions" << std::endl;
 }
 
-void TextExporter::init(const char *params, Plugins &plugins)
+void TextExporter::init_plugin(const char *params, Plugins &plugins, const std::shared_ptr<telemetry::Directory>& dir)
 {
    init(params);
 }
@@ -94,7 +94,7 @@ int TextExporter::export_flow(const Flow &flow)
 {
    RecordExt *ext = flow.m_exts;
 
-   m_flows_seen++;
+   //m_flows_seen++;
    print_basic_flow(flow);
    while (ext != nullptr) {
       *m_out << " " << ext->get_text();

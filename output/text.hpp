@@ -64,7 +64,7 @@ public:
    TextExporter();
    ~TextExporter();
    void init(const char *params);
-   void init(const char *params, Plugins &plugins);
+   void init_plugin(const char *params, Plugins &plugins, const std::shared_ptr<telemetry::Directory>& dir) override;
    void close();
    OptionsParser *get_parser() const { return new TextOptParser(); }
    std::string get_name() const { return "text"; }

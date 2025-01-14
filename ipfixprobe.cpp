@@ -287,7 +287,9 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
          throw IPXPError("invalid output plugin " + output_name);
       }
 
-      output_plugin->init(output_params.c_str(), *process_plugins);
+      auto output_plugin_dir = output_dir->addDir(output_name);
+
+      output_plugin->init(output_params.c_str(), *process_plugins, output_plugin_dir);
       conf.active.output.push_back(output_plugin);
       conf.active.all.push_back(output_plugin);
    } catch (PluginError &e) {

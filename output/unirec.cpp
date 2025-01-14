@@ -346,7 +346,7 @@ int UnirecExporter::export_flow(const Flow &flow)
       trap_send(m_basic_idx, record_ptr, ur_rec_fixlen_size(tmplt_ptr) + ur_rec_varlen_size(tmplt_ptr, record_ptr));
    }
 
-   m_flows_seen++;
+   //m_flows_seen++;
    uint64_t tmplt_dbits = 0; // templates dirty bits
    memset(m_ext_id_flgs, 0, sizeof(int) * m_ext_cnt); // in case one flow has multiple extension of same type
    int ext_processed_cnd = 0;

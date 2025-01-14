@@ -27,6 +27,7 @@
  */
 
 #include <unistd.h>
+#include <iomanip>
 #include <sys/time.h>
 
 #include "workers.hpp"
@@ -36,6 +37,8 @@ namespace ipxp {
 
 #define MICRO_SEC 1000000L
 
+static constexpr std::size_t stats_update_interval = 1 * 1000000000; // [nsecs]
+
 void input_storage_worker(InputPlugin *plugin, StoragePlugin *cache, size_t queue_size, uint64_t pkt_limit,
                   std::promise<WorkerResult> *out, std::atomic<InputStats> *out_stats)
 {
@@ -44,6 +47,7 @@ void input_storage_worker(InputPlugin *plugin, StoragePlugin *cache, size_t queu
    struct timespec begin = {0, 0};
    struct timespec end = {0, 0};
    struct timeval ts = {0, 0};
+   struct timespec last_stats_update = {0, 0};
    bool timeout = false;
    InputPlugin::Result ret;
    InputStats stats = {0, 0, 0, 0, 0};
@@ -57,6 +61,8 @@ void input_storage_worker(InputPlugin *plugin, StoragePlugin *cache, size_t queu
    const clockid_t clk_id = CLOCK_MONOTONIC;
 #endif
 
+   clock_gettime(clk_id, &last_stats_update);
+
    while (!terminate_input) {
       block.cnt = 0;
       block.bytes = 0;
@@ -67,6 +73,7 @@ void input_storage_worker(InputPlugin *plugin, StoragePlugin *cache, size_t queu
          }
          block.size = pkt_limit - plugin->m_parsed;
       }
+
       try {
          ret = plugin->get(block);
       } catch (PluginError &e) {
@@ -74,6 +81,25 @@ void input_storage_worker(InputPlugin *plugin, StoragePlugin *cache, size_t queu
          res.msg = e.what();
          break;
       }
+
+      struct timespec current_time;
+      clock_gettime(clk_id, &current_time);
+
+      struct timespec diff = {current_time.tv_sec - last_stats_update.tv_sec, current_time.tv_nsec - last_stats_update.tv_nsec};
+      if (diff.tv_nsec < 0) {
+         diff.tv_nsec += 1000000000;
+         diff.tv_sec--;
+      }
+
+      uint64_t diff_nsec = static_cast<uint64_t>(diff.tv_sec) * 1000000000 + diff.tv_nsec;
+
+      // update plugins stats every 1 second
+      if (diff_nsec >= stats_update_interval) {
+         plugin->update_stats(diff_nsec);
+         cache->update_stats(diff_nsec);
+         last_stats_update = current_time;
+      }
+
       if (ret == InputPlugin::Result::TIMEOUT) {
          clock_gettime(clk_id, &end);
          if (!timeout) {
@@ -150,8 +176,16 @@ void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<WorkerResu
    struct timeval begin;
    struct timeval end;
    struct timeval last_flush;
+   struct timespec last_stats_update = {0, 0};
+   struct timespec current_time;
    uint32_t pkts_from_begin = 0;
    double time_per_pkt = 0;
+
+   #ifdef __linux__
+      const clockid_t clk_id = CLOCK_MONOTONIC_COARSE;
+   #else
+      const clockid_t clk_id = CLOCK_MONOTONIC;
+   #endif
 
    if (fps != 0) {
       time_per_pkt = 1000000.0 / fps; // [micro seconds]
@@ -160,7 +194,24 @@ void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<WorkerResu
    // Rate limiting algorithm from https://github.com/CESNET/ipfixcol2/blob/master/src/tools/ipfixsend/sender.c#L98
    gettimeofday(&begin, nullptr);
    last_flush = begin;
+
+   clock_gettime(clk_id, &last_stats_update);
+
    while (1) {
+      clock_gettime(clk_id, &current_time);
+      struct timespec stats_diff = {current_time.tv_sec - last_stats_update.tv_sec, current_time.tv_nsec - last_stats_update.tv_nsec};
+      if (stats_diff.tv_nsec < 0) {
+         stats_diff.tv_nsec += 1000000000;
+         stats_diff.tv_sec--;
+      }
+      uint64_t diff_nsec = static_cast<uint64_t>(stats_diff.tv_sec) * 1000000000 + stats_diff.tv_nsec;
+
+      if (diff_nsec >= stats_update_interval) {
+         exp->update_stats(diff_nsec);
+         last_stats_update = current_time;
+      }
+
+
       gettimeofday(&end, nullptr);
 
       Flow *flow = static_cast<Flow *>(ipx_ring_pop(queue));
@@ -178,7 +229,8 @@ void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<WorkerResu
       stats.biflows++;
       stats.bytes += flow->src_bytes + flow->dst_bytes;
       stats.packets += flow->src_packets + flow->dst_packets;
-      stats.dropped = exp->m_flows_dropped;
+      const auto& exp_stats = exp->get_stats();
+      stats.dropped = exp_stats.flows_dropped;
       out_stats->store(stats);
       try {
          exp->export_flow(*flow);
@@ -222,7 +274,8 @@ void output_worker(OutputPlugin *exp, ipx_ring_t *queue, std::promise<WorkerResu
    }
 
    exp->flush();
-   stats.dropped = exp->m_flows_dropped;
+   const auto& exp_stats = exp->get_stats();
+   stats.dropped = exp_stats.flows_dropped;
    out_stats->store(stats);
    out->set_value(res);
 }
