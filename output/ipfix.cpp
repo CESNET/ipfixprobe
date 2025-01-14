@@ -134,6 +134,16 @@ const char *basic_tmplt_v6[] = {
    nullptr
 };
 
+static telemetry::Content getExtendedAtomicStats(const IpfixExtendedAtomicStats& stats)
+{
+   telemetry::Dict dict;
+
+   dict["eagain_problem"] = stats.eagain_problem;
+   dict["lz4_compression_error"] = stats.lz4_compression_error;
+
+   return dict;
+}
+
 IPFIXExporter::IPFIXExporter() :
    extensions(nullptr), extension_cnt(0),
    templates(nullptr), templatesDataSize(0),
@@ -264,7 +274,13 @@ void IPFIXExporter::init_plugin(const char *params, Plugins &plugins, const std:
       {.read = [this]() { return get_ipfix_config(); },
        .clear = nullptr});
 
+   auto plugin_stats_file = dir->addFile(
+      "plugin_stats",
+      {.read = [this]() { return getExtendedAtomicStats(ext_atomic_stats); },
+       .clear = nullptr});
+
    m_holder.add(plugin_config_file);
+   m_holder.add(plugin_stats_file);
 
 }
 
@@ -880,7 +896,15 @@ int IPFIXExporter::send_packet(ipfix_packet_t *packet)
    }
 
    auto dataLen = packetDataBuffer.compress();
+   if (dataLen < 0) {
+      ext_stats.lz4_compression_error++;
+      return -2;
+   }
    auto data = packetDataBuffer.getCompressed();
+
+   static constexpr size_t eagain_limit = 3;
+
+   size_t eagain_count = 0;
 
    /* sendto() does not guarantee that everything will be send in one piece */
    while (sent < dataLen) {
@@ -924,6 +948,11 @@ int IPFIXExporter::send_packet(ipfix_packet_t *packet)
             /* Say that we should try to connect and send data again */
             return 1;
          case EAGAIN:
+            eagain_count++;
+            if (eagain_count == eagain_limit) {
+               ext_stats.eagain_problem++;
+            }
+            usleep(1000);
             // EAGAIN is returned when the socket is non-blocking and the send buffer is full
             // possible wait and stop flag check
             continue;
@@ -1179,9 +1208,14 @@ telemetry::Content IPFIXExporter::get_ipfix_config()
    return dict;
 }
 
+
 void IPFIXExporter::update_plugin_stats(uint64_t timestamp)
 {
+   ext_atomic_stats.eagain_problem.fetch_add(ext_stats.eagain_problem, std::memory_order_relaxed);
+   ext_atomic_stats.lz4_compression_error.fetch_add(ext_stats.lz4_compression_error, std::memory_order_relaxed);
 
+   ext_stats.eagain_problem = 0;
+   ext_stats.lz4_compression_error = 0;
 }
 
 // compress buffer implementation

@@ -457,14 +457,14 @@ private:
    LZ4_stream_t *lz4Stream;
 };
 
-struct IpfixStats {
-   std::atomic<uint64_t> sent_bytes;
-   std::atomic<uint64_t> sent_flows;
-   std::atomic<uint64_t> dropped_flows;
-   std::atomic<uint64_t> sent_mbps;
-   std::atomic<uint64_t> sent_fps;
-   std::atomic<uint64_t> dropped_fps;
-   std::atomic<uint64_t> timestamp;
+struct IpfixExtendedStats {
+  uint64_t eagain_problem = 0;
+  uint64_t lz4_compression_error = 0;
+};
+
+struct IpfixExtendedAtomicStats {
+  std::atomic<uint64_t> eagain_problem = 0;
+  std::atomic<uint64_t> lz4_compression_error = 0;
 };
 
 class IPFIXExporter : public OutputPlugin
@@ -518,6 +518,9 @@ private:
 
    uint16_t mtu; /**< Max size of packet payload sent */
    uint16_t tmpltMaxBufferSize; /**< Size of template buffer, tmpltBufferSize < packetDataBuffer */
+
+   IpfixExtendedStats ext_stats;
+   IpfixExtendedAtomicStats ext_atomic_stats;
 
    void init_template_buffer(template_t *tmpl);
    int fill_template_set_header(uint8_t *ptr, uint16_t size);
