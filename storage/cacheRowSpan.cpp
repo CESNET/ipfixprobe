@@ -74,15 +74,15 @@ std::optional<size_t> CacheRowSpan::find_empty() const noexcept
 #ifdef WITH_CTT
 size_t CacheRowSpan::find_victim(const timeval& now) const noexcept
 {
-   const FlowRecord** victim = const_cast<const FlowRecord**>(m_begin) + m_count - 1;
-   auto it = std::find_if(m_begin, m_begin + m_count, [&](const FlowRecord*& flow) {
+   FlowRecord* const* victim = m_begin + m_count - 1;
+   auto it = std::find_if(m_begin, m_begin + m_count, [&](FlowRecord* const& flow) {
       if (!flow->is_in_ctt) {
          victim = &flow;
       }
       return flow->is_waiting_for_export && now > flow->export_time;
    });
    if (it == m_begin + m_count) {
-      return victim - const_cast<const FlowRecord**>(m_begin);
+      return victim - m_begin;
    }
    return it - m_begin;
 }
