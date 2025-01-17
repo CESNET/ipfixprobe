@@ -118,7 +118,7 @@ private:
    FlowRecordStats m_flow_record_stats = {};
    FlowCacheStats m_cache_stats = {};
 #ifdef WITH_CTT
-   void set_ctt_config(const std::string& device_name, unsigned comp_index) override;
+   void set_ctt_config(const std::string& device_name, unsigned channel_id) override;
    std::string m_ctt_device;
    unsigned m_ctt_comp_index;
    CttController m_ctt_controller;
