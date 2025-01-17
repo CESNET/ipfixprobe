@@ -106,7 +106,7 @@ void NdpPacketReader::close()
 }
 
 #ifdef WITH_CTT
-   std::pair<std::string, unsigned> NdpPacketReader::get_ctt_config() const
+std::pair<std::string, unsigned> NdpPacketReader::get_ctt_config() const
 {
    std::string dev = m_device;
    int channel_id = 0;
