@@ -676,7 +676,7 @@ void NHTFlowCache::prefetch_export_expired() const
 void NHTFlowCache::set_ctt_config(const std::string& device_name, unsigned channel_id)
 {
    m_ctt_device = device_name;
-   m_ctt_comp_index = comp_index/16;
+   m_ctt_comp_index = channel_id/16;
 }
 #endif /* WITH_CTT */
 
