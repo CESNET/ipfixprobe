@@ -93,9 +93,14 @@ public:
    virtual void export_expired(time_t ts)
    {
    }
+
    virtual void finish()
    {
    }
+
+#ifdef WITH_CTT
+    virtual void set_ctt_config(const std::string& device_name, unsigned comp_index) = 0;
+#endif /* WITH_CTT */
 
    /**
     * \brief set telemetry directory for the storage
@@ -133,22 +138,22 @@ public:
 
    /**
      * \brief Checks if process plugins require all available data.
-     * \param [in] rec Stored flow record.
+     * \param [in] flow Stored flow record.
      * \return True if all data required, false otherwise.
     */
    bool all_data_required(const Flow& flow) const noexcept
    {
-       return m_plugins_status.get_all_data.any();
+       return flow.plugins_status.get_all_data.any();
    }
 
    /**
      * \brief Checks if process plugins don't require any data.
-     * \param [in] rec Stored flow record.
+     * \param [in] flow Stored flow record.
      * \return True if no data required, false otherwise.
     */
    bool no_data_required(const Flow& flow) const noexcept
    {
-       return m_plugins_status.get_no_data.all();
+       return flow.plugins_status.get_no_data.all();
    }
 
    /**
@@ -158,7 +163,7 @@ public:
     */
    bool only_metadata_required(const Flow& flow) const noexcept
    {
-       return !all_data_required(flow) && !no_data_required(flow);
+       return !all_data_required(flow);
    }
 protected:
    //Every StoragePlugin implementation should call these functions at appropriate places
@@ -189,10 +194,6 @@ protected:
      */
     int plugins_post_create(Flow& rec, const Packet& pkt)
     {
-        // if metadata are valid, add flow hash ctt to the flow record
-        if (pkt.cttmeta_valid) {
-            rec.flow_hash_ctt = pkt.cttmeta.flow_hash;
-        }
         PluginStatusConverter plugin_status_converter(m_plugins_status);
         int ret = 0;
         for (unsigned int i = 0; i < m_plugin_cnt; i++) {
