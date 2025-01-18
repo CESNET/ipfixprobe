@@ -29,7 +29,7 @@
 namespace ipxp {
 
 void CttController::init(const std::string& nfb_dev, unsigned ctt_comp_index) {
-    m_commander = std::make_unique<ctt::AsyncCommander>(ctt::NfbParams{nfb_dev, ctt_comp_index});
+    m_commander = std::make_unique<ctt::AsyncCommander>(ctt::NfbParamsFast{nfb_dev, ctt_comp_index});
     try {
         // Get UserInfo to determine key, state, and state_mask sizes
         ctt::UserInfo user_info = m_commander->get_user_info();
