@@ -180,6 +180,7 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
          throw PluginError(ndpReader.error_msg);
       }
       read_pkts++;
+#ifdef WITH_CTT
       if (m_ctt_metadata) {
          Metadata_CTT ctt;
          int ret = parse_ctt_metadata(ndp_packet, ctt);
@@ -193,8 +194,11 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock &packets)
             }
          }
       } else {
+#endif /* WITH_CTT */
          parse_packet(&opt, m_parser_stats, timestamp, ndp_packet->data, ndp_packet->data_length, ndp_packet->data_length);
+#ifdef WITH_CTT
       }
+#endif /* WITH_CTT */
    }
 
    m_seen += read_pkts;
