@@ -76,6 +76,8 @@ ipfixprobe_storage_src=\
 		storage/flowRecord.cpp \
 		storage/cttController.hpp \
 		storage/cttController.cpp \
+		storage/cacheRowSpan.hpp \
+		storage/cacheRowSpan.cpp \
 		storage/xxhash.c \
 		storage/xxhash.h
 
