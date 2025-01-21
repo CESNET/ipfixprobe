@@ -36,16 +36,68 @@ struct FlowKey {
    uint8_t proto;
    uint8_t ip_version;
    uint16_t vlan_id;
+protected:
+  void save_direct(const Packet& packet) noexcept
+  {
+    src_port = packet.src_port;
+    dst_port = packet.dst_port;
+    proto = packet.ip_proto;
+    ip_version = packet.ip_version;
+    vlan_id = packet.vlan_id;
+  }
+
+  void save_reversed(const Packet& packet) noexcept
+  {
+    save_direct(packet);
+    std::swap(src_port, dst_port);
+  }
+
 } __attribute__((packed));
 
 struct FlowKeyv4 : FlowKey {
     uint32_t src_ip;
     uint32_t dst_ip;
+
+  static FlowKeyv4 save_direct(const Packet& packet) noexcept
+  {
+    FlowKeyv4 res{};
+    res.FlowKey::save_direct(packet);
+    res.src_ip = packet.src_ip.v4;
+    res.dst_ip = packet.dst_ip.v4;
+    return res;
+  }
+
+  static FlowKeyv4 save_reversed(const Packet& packet) noexcept
+  {
+    FlowKeyv4 res{};
+    res.FlowKey::save_reversed(packet);
+    res.src_ip = packet.dst_ip.v4;
+    res.dst_ip = packet.src_ip.v4;
+  }
+
 } __attribute__((packed));
 
 struct FlowKeyv6 : FlowKey {
    std::array<uint8_t, 16> src_ip;
    std::array<uint8_t, 16> dst_ip;
+
+  static FlowKeyv6 save_direct(const Packet& packet) noexcept
+  {
+    FlowKeyv6 res{};
+    res.FlowKey::save_direct(packet);
+    std::memcpy(res.src_ip.data(), packet.src_ip.v6, sizeof(packet.src_ip.v6));
+    std::memcpy(res.dst_ip.data(), packet.dst_ip.v6, sizeof(packet.dst_ip.v6));
+    return res;
+  }
+
+  static FlowKeyv6 save_reversed(const Packet& packet) noexcept
+  {
+    FlowKeyv6 res{};
+    res.FlowKey::save_reversed(packet);
+    std::memcpy(res.src_ip.data(), packet.dst_ip.v6, sizeof(packet.dst_ip.v6));
+    std::memcpy(res.dst_ip.data(), packet.src_ip.v6, sizeof(packet.src_ip.v6));
+    return res;
+  }
 } __attribute__((packed));
 
 } // namespace ipxp
