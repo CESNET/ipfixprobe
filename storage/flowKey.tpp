@@ -49,7 +49,8 @@ protected:
   void save_reversed(const Packet& packet) noexcept
   {
     save_direct(packet);
-    std::swap(src_port, dst_port);
+    src_port = packet.dst_port;
+    dst_port = packet.src_port;
   }
 
 } __attribute__((packed));
@@ -73,6 +74,7 @@ struct FlowKeyv4 : FlowKey {
     res.FlowKey::save_reversed(packet);
     res.src_ip = packet.dst_ip.v4;
     res.dst_ip = packet.src_ip.v4;
+    return res;
   }
 
 } __attribute__((packed));
