@@ -41,8 +41,7 @@
 
 #include "xxhash.h"
 #include "fragmentationCache/timevalUtils.hpp"
-
-#include "cacheRowSpan.cpp"
+#include "cacheRowSpan.hpp"
 
 namespace ipxp {
 
@@ -538,41 +537,12 @@ void NHTFlowCache::export_expired(const timeval& now)
 bool NHTFlowCache::create_hash_key(const Packet& packet)
 {
    if (packet.ip_version == IP::v4) {
-      m_key = FlowKeyv4{};
-      m_key_reversed = FlowKeyv4{};
-   } else if (packet.ip_version == IP::v6) {
-      m_key = FlowKeyv6{};
-      m_key_reversed = FlowKeyv6{};
-   } else {
-      return false;
-   }
-
-   auto commonFieldsAssigner = [&](auto& key)
-   {
-      key.src_port = packet.src_port;
-      key.dst_port = packet.dst_port;
-      key.proto = packet.ip_proto;
-      key.ip_version = packet.ip_version;
-      key.vlan_id = packet.vlan_id;
-   };
-   std::visit(commonFieldsAssigner, m_key);
-   std::visit(commonFieldsAssigner, m_key_reversed);
-   std::visit([&](auto& key){
-                     key.src_port = packet.dst_port;
-                     key.dst_port = packet.src_port;
-                  }, m_key_reversed);
-   if (packet.ip_version == IP::v4) {
-      std::get<FlowKeyv4>(m_key).src_ip = packet.src_ip.v4;
-      std::get<FlowKeyv4>(m_key).dst_ip = packet.dst_ip.v4;
-      std::get<FlowKeyv4>(m_key_reversed).src_ip = packet.dst_ip.v4;
-      std::get<FlowKeyv4>(m_key_reversed).dst_ip = packet.src_ip.v4;
+      m_key = FlowKeyv4::save_direct(packet);
+      m_key_reversed = FlowKeyv4::save_reversed(packet);
       return true;
-   }
-   if (packet.ip_version == IP::v6) {
-      std::memcpy(std::get<FlowKeyv6>(m_key).src_ip.data(), packet.src_ip.v6, sizeof(packet.src_ip.v6));
-      std::memcpy(std::get<FlowKeyv6>(m_key).dst_ip.data(), packet.dst_ip.v6, sizeof(packet.dst_ip.v6));
-      std::memcpy(std::get<FlowKeyv6>(m_key_reversed).src_ip.data(), packet.dst_ip.v6, sizeof(packet.dst_ip.v6));
-      std::memcpy(std::get<FlowKeyv6>(m_key_reversed).dst_ip.data(), packet.src_ip.v6, sizeof(packet.src_ip.v6));
+   } else if (packet.ip_version == IP::v6) {
+      m_key = FlowKeyv6::save_direct(packet);
+      m_key_reversed = FlowKeyv6::save_reversed(packet);
       return true;
    }
    return false;
