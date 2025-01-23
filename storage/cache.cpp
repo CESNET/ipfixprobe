@@ -248,7 +248,7 @@ std::tuple<std::optional<size_t>, std::optional<size_t>, bool> NHTFlowCache::fin
       return {reversed_hash_value, flow_index.value(), false};
    }
 
-   return {direct_hash_value, std::nullopt, false};
+   return {direct_hash_value, std::nullopt, true};
 }
 
 static bool is_tcp_connection_restart(const Packet& packet, const Flow& flow) noexcept
@@ -262,7 +262,7 @@ static bool is_tcp_connection_restart(const Packet& packet, const Flow& flow) no
 
 bool NHTFlowCache::try_to_export_on_inactive_timeout(size_t flow_index, const timeval& now) noexcept
 {
-   if ((!m_flow_table[flow_index]->is_empty() & (now.tv_sec - m_flow_table[flow_index]->m_flow.time_last.tv_sec)) >= m_inactive) {
+   if (!m_flow_table[flow_index]->is_empty() && now.tv_sec - m_flow_table[flow_index]->m_flow.time_last.tv_sec >= m_inactive) {
       return try_to_export(flow_index, false, now);
    }
    return false;
