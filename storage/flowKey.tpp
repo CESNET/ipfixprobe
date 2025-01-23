@@ -91,9 +91,9 @@ struct FlowKeyv6 : FlowKey<16> {
     return res;
   }
 
-  static FlowKeyv16 save_reversed(const Packet& packet) noexcept
+  static FlowKeyv6 save_reversed(const Packet& packet) noexcept
   {
-    FlowKeyv16 res;
+    FlowKeyv6 res;
     res.FlowKey::save_reversed(packet);
     std::memcpy(res.src_ip.data(), &packet.dst_ip.v4, 16);
     std::memcpy(res.dst_ip.data(), &packet.src_ip.v4, 16);
