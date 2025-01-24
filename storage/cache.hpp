@@ -74,6 +74,7 @@ struct FlowCacheStats{
    uint64_t lookups2{0};
    uint64_t flows_in_cache;
    uint64_t total_exported;
+   uint64_t ctt_offloaded{0};
 };
 
 class NHTFlowCache : TelemetryUtils, public StoragePlugin
