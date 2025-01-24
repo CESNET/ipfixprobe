@@ -437,6 +437,8 @@ int NHTFlowCache::put_pkt(Packet &pkt)
       try_to_fill_ports_to_fragmented_packet(pkt);
    }
 
+   prefetch_export_expired();
+
    auto [hash_value, flow_index, source_to_destination] = find_flow_index(pkt);
    pkt.source_pkt = source_to_destination;
    const bool hash_created = hash_value.has_value();
@@ -447,7 +449,6 @@ int NHTFlowCache::put_pkt(Packet &pkt)
    const size_t row_begin = hash_value.value() & m_line_mask;
    CacheRowSpan row_span(&m_flow_table[row_begin], m_line_size);
 
-   prefetch_export_expired();
 #ifdef WITH_CTT
    const bool flow_is_waiting_for_export = flow_found && try_to_export_delayed_flow(pkt, flow_index.value() + row_begin);
 #else
