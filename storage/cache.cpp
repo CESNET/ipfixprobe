@@ -562,6 +562,9 @@ void NHTFlowCache::print_report() const
    std::cout << "Flushed: " << m_cache_stats.flushed << std::endl;
    std::cout << "Average Lookup:  " << tmp << std::endl;
    std::cout << "Variance Lookup: " << static_cast<float>(m_cache_stats.lookups2) / m_cache_stats.hits - tmp * tmp << std::endl;
+#ifdef WITH_CTT
+    std::cout << "CTT offloaded: " << m_cache_stats.ctt_offloaded << std::endl;
+#endif /* WITH_CTT */
 }
 
 void NHTFlowCache::set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir)
