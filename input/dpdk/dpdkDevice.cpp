@@ -53,7 +53,7 @@ DpdkDevice::DpdkDevice(
 	validatePort();
 	recognizeDriver();
 	configurePort();
-	initMemPools(memPoolSize);
+	initMemPools(2 * memPoolSize);
 	setupRxQueues(memPoolSize);
 	configureRSS();
 	enablePort();
