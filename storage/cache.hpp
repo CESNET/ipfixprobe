@@ -32,151 +32,20 @@
 #ifndef IPXP_STORAGE_CACHE_HPP
 #define IPXP_STORAGE_CACHE_HPP
 
+#include <ctime>
 #include <string>
-
 #include <ipfixprobe/storage.hpp>
-#include <ipfixprobe/options.hpp>
+#include <optional>
 #include <ipfixprobe/flowifc.hpp>
-#include <ipfixprobe/utils.hpp>
 #include <ipfixprobe/telemetry-utils.hpp>
-
+#include <unordered_map>
 #include "fragmentationCache/fragmentationCache.hpp"
+#include "cacheOptParser.hpp"
+#include "flowKey.tpp"
+#include "flowRecord.hpp"
+#include "cttController.hpp"
 
 namespace ipxp {
-
-struct __attribute__((packed)) flow_key_v4_t {
-   uint16_t src_port;
-   uint16_t dst_port;
-   uint8_t proto;
-   uint8_t ip_version;
-   uint32_t src_ip;
-   uint32_t dst_ip;
-   uint16_t vlan_id;
-};
-
-struct __attribute__((packed)) flow_key_v6_t {
-   uint16_t src_port;
-   uint16_t dst_port;
-   uint8_t proto;
-   uint8_t ip_version;
-   uint8_t src_ip[16];
-   uint8_t dst_ip[16];
-   uint16_t vlan_id;
-};
-
-#define MAX_KEY_LENGTH (max<size_t>(sizeof(flow_key_v4_t), sizeof(flow_key_v6_t)))
-
-#ifdef IPXP_FLOW_CACHE_SIZE
-static const uint32_t DEFAULT_FLOW_CACHE_SIZE = IPXP_FLOW_CACHE_SIZE;
-#else
-static const uint32_t DEFAULT_FLOW_CACHE_SIZE = 17; // 131072 records total
-#endif /* IPXP_FLOW_CACHE_SIZE */
-
-#ifdef IPXP_FLOW_LINE_SIZE
-static const uint32_t DEFAULT_FLOW_LINE_SIZE = IPXP_FLOW_LINE_SIZE;
-#else
-static const uint32_t DEFAULT_FLOW_LINE_SIZE = 4; // 16 records per line
-#endif /* IPXP_FLOW_LINE_SIZE */
-
-static const uint32_t DEFAULT_INACTIVE_TIMEOUT = 30;
-static const uint32_t DEFAULT_ACTIVE_TIMEOUT = 300;
-
-static_assert(std::is_unsigned<decltype(DEFAULT_FLOW_CACHE_SIZE)>(), "Static checks of default cache sizes won't properly work without unsigned type.");
-static_assert(bitcount<decltype(DEFAULT_FLOW_CACHE_SIZE)>(-1) > DEFAULT_FLOW_CACHE_SIZE, "Flow cache size is too big to fit in variable!");
-static_assert(bitcount<decltype(DEFAULT_FLOW_LINE_SIZE)>(-1) > DEFAULT_FLOW_LINE_SIZE, "Flow cache line size is too big to fit in variable!");
-
-static_assert(DEFAULT_FLOW_LINE_SIZE >= 1, "Flow cache line size must be at least 1!");
-static_assert(DEFAULT_FLOW_CACHE_SIZE >= DEFAULT_FLOW_LINE_SIZE, "Flow cache size must be at least cache line size!");
-
-class CacheOptParser : public OptionsParser
-{
-public:
-   uint32_t m_cache_size;
-   uint32_t m_line_size;
-   uint32_t m_active;
-   uint32_t m_inactive;
-   bool m_split_biflow;
-   bool m_enable_fragmentation_cache;
-   std::size_t m_frag_cache_size;
-   time_t m_frag_cache_timeout;
-
-   CacheOptParser() : OptionsParser("cache", "Storage plugin implemented as a hash table"),
-      m_cache_size(1 << DEFAULT_FLOW_CACHE_SIZE), m_line_size(1 << DEFAULT_FLOW_LINE_SIZE),
-      m_active(DEFAULT_ACTIVE_TIMEOUT), m_inactive(DEFAULT_INACTIVE_TIMEOUT), m_split_biflow(false),
-      m_enable_fragmentation_cache(true), m_frag_cache_size(10007), // Prime for better distribution in hash table
-      m_frag_cache_timeout(3)
-   {
-      register_option("s", "size", "EXPONENT", "Cache size exponent to the power of two",
-         [this](const char *arg){try {unsigned exp = str2num<decltype(exp)>(arg);
-               if (exp < 4 || exp > 30) {
-                  throw PluginError("Flow cache size must be between 4 and 30");
-               }
-               m_cache_size = static_cast<uint32_t>(1) << exp;
-            } catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
-      register_option("l", "line", "EXPONENT", "Cache line size exponent to the power of two",
-         [this](const char *arg){try {m_line_size = static_cast<uint32_t>(1) << str2num<decltype(m_line_size)>(arg);
-               if (m_line_size < 1) {
-                  throw PluginError("Flow cache line size must be at least 1");
-               }
-            } catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
-      register_option("a", "active", "TIME", "Active timeout in seconds",
-         [this](const char *arg){try {m_active = str2num<decltype(m_active)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
-      register_option("i", "inactive", "TIME", "Inactive timeout in seconds",
-         [this](const char *arg){try {m_inactive = str2num<decltype(m_inactive)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
-      register_option("S", "split", "", "Split biflows into uniflows",
-         [this](const char *arg){ m_split_biflow = true; return true;}, OptionFlags::NoArgument);
-      register_option("fe", "frag-enable", "true|false", "Enable/disable fragmentation cache. Enabled (true) by default.",
-         [this](const char *arg){
-            if (strcmp(arg, "true") == 0) {
-               m_enable_fragmentation_cache = true;
-            } else if (strcmp(arg, "false") == 0) {
-               m_enable_fragmentation_cache = false;
-            } else {
-               return false;
-            }
-            return true;
-         }, OptionFlags::RequiredArgument);
-      register_option("fs", "frag-size", "size", "Size of fragmentation cache, must be at least 1. Default value is 10007.", [this](const char *arg) {
-         try {
-            m_frag_cache_size = str2num<decltype(m_frag_cache_size)>(arg);
-         } catch(std::invalid_argument &e) {
-            return false;
-         }
-         return m_frag_cache_size > 0;
-      });
-      register_option("ft", "frag-timeout", "TIME", "Timeout of fragments in fragmentation cache in seconds. Default value is 3.", [this](const char *arg) {
-         try {
-            m_frag_cache_timeout = str2num<decltype(m_frag_cache_timeout)>(arg);
-         } catch(std::invalid_argument &e) {
-            return false;
-         }
-         return true;
-      });
-   }
-};
-
-class alignas(64) FlowRecord
-{
-   uint64_t m_hash;
-
-public:
-   Flow m_flow;
-
-   FlowRecord();
-   ~FlowRecord();
-
-   void erase();
-   void reuse();
-
-   inline bool is_empty() const;
-   inline bool belongs(uint64_t pkt_hash) const;
-   void create(const Packet &pkt, uint64_t pkt_hash);
-   void update(const Packet &pkt, bool src);
-};
 
 struct FlowEndReasonStats {
    uint64_t active_timeout;
@@ -195,19 +64,32 @@ struct FlowRecordStats {
    uint64_t packets_count_51_plus;
 };
 
+struct FlowCacheStats{
+   uint64_t empty;
+   uint64_t not_empty;
+   uint64_t hits;
+   uint64_t exported{0};
+   uint64_t flushed;
+   uint64_t lookups{0};
+   uint64_t lookups2{0};
+   uint64_t flows_in_cache;
+   uint64_t total_exported;
+   uint64_t ctt_offloaded{0};
+};
+
 class NHTFlowCache : TelemetryUtils, public StoragePlugin
 {
 public:
    NHTFlowCache();
-   ~NHTFlowCache();
-   void init(const char *params);
-   void close();
-   void set_queue(ipx_ring_t *queue);
-   OptionsParser *get_parser() const { return new CacheOptParser(); }
-   std::string get_name() const { return "cache"; }
+   ~NHTFlowCache() override;
+   void init(const char* params) override;
+   void close() override;
+   void set_queue(ipx_ring_t* queue) override;
+   OptionsParser * get_parser() const override;
+   std::string get_name() const noexcept override;
 
-   int put_pkt(Packet &pkt);
-   void export_expired(time_t ts);
+   int put_pkt(Packet& pkt) override;
+   void export_expired(time_t now) override;
 
    /**
      * @brief Set and configure the telemetry directory where cache stats will be stored.
@@ -218,50 +100,60 @@ private:
    uint32_t m_cache_size;
    uint32_t m_line_size;
    uint32_t m_line_mask;
-   uint32_t m_line_new_idx;
-   uint32_t m_qsize;
-   uint32_t m_qidx;
-   uint32_t m_timeout_idx;
-   uint64_t m_flows_in_cache = 0;
-   uint64_t m_total_exported = 0;
-#ifdef FLOW_CACHE_STATS
-   uint64_t m_empty;
-   uint64_t m_not_empty;
-   uint64_t m_hits;
-   uint64_t m_expired;
-   uint64_t m_flushed;
-   uint64_t m_lookups;
-   uint64_t m_lookups2;
-#endif /* FLOW_CACHE_STATS */
+   uint32_t m_new_flow_insert_index;
+   uint32_t m_queue_size;
+   uint32_t m_queue_index{0};
+   uint32_t m_last_exported_on_timeout_index{0};
+
    uint32_t m_active;
    uint32_t m_inactive;
    bool m_split_biflow;
    bool m_enable_fragmentation_cache;
-   uint8_t m_keylen;
-   char m_key[MAX_KEY_LENGTH];
-   char m_key_inv[MAX_KEY_LENGTH];
-   FlowRecord **m_flow_table;
-   FlowRecord *m_flow_records;
+   std::variant<FlowKeyv4, FlowKeyv6> m_key;
+   std::variant<FlowKeyv4, FlowKeyv6> m_key_reversed;
+   std::vector<FlowRecord*> m_flow_table;
+   std::vector<FlowRecord> m_flows;
 
    FragmentationCache m_fragmentation_cache;
    FlowEndReasonStats m_flow_end_reason_stats = {};
    FlowRecordStats m_flow_record_stats = {};
+   FlowCacheStats m_cache_stats = {};
+#ifdef WITH_CTT
+   void set_ctt_config(const std::shared_ptr<CttController>& ctt_controller) override;
+   //std::string m_ctt_device;
+   //unsigned m_ctt_comp_index;
+   std::shared_ptr<CttController> m_ctt_controller;
+   //std::unordered_map<size_t, int> m_hashes_in_ctt;
+   //size_t m_ctt_hash_collision{0};
+#endif /* WITH_CTT */
 
    void try_to_fill_ports_to_fragmented_packet(Packet& packet);
-   void flush(Packet &pkt, size_t flow_index, int ret, bool source_flow);
-   bool create_hash_key(Packet &pkt);
-   void export_flow(size_t index);
-   static uint8_t get_export_reason(Flow &flow);
+   void flush(Packet &pkt, size_t flow_index, int return_flags);
+   bool create_hash_key(const Packet &packet);
+   static uint8_t get_export_reason(const Flow &flow);
    void finish();
-
+   void allocate_table();
    void update_flow_end_reason_stats(uint8_t reason);
    void update_flow_record_stats(uint64_t packets_count);
    telemetry::Content get_cache_telemetry();
    void prefetch_export_expired() const;
-
-#ifdef FLOW_CACHE_STATS
-   void print_report();
-#endif /* FLOW_CACHE_STATS */
+   void get_parser_options(CacheOptParser& parser) noexcept;
+   void push_to_export_queue(size_t flow_index) noexcept;
+   std::tuple<std::optional<size_t>, std::optional<size_t>, bool> find_flow_index(const Packet& packet) noexcept;
+   bool try_to_export_on_inactive_timeout(size_t flow_index, const timeval& now) noexcept;
+   bool try_to_export_on_active_timeout(size_t flow_index, const timeval& now) noexcept;
+   void export_flow(size_t flow_index, int reason);
+   void export_flow(size_t flow_index);
+   int process_flow(Packet& packet, size_t flow_index, bool flow_is_waiting_for_export) noexcept;
+   bool try_to_export_delayed_flow(const Packet& packet, size_t flow_index) noexcept;
+   void create_record(const Packet& packet, size_t flow_index, size_t hash_value) noexcept;
+   bool try_to_export(size_t flow_index, bool call_pre_export, const timeval& now, int reason) noexcept;
+   bool try_to_export(size_t flow_index, bool call_pre_export, const timeval& now) noexcept;
+   void print_report() const;
+   void send_export_request_to_ctt(size_t ctt_flow_hash) noexcept;
+   void export_expired(const timeval& now);
+   void try_to_add_flow_to_ctt(size_t flow_index) noexcept;
+   bool needs_to_be_offloaded(size_t flow_index) const noexcept;
 };
 
 }
