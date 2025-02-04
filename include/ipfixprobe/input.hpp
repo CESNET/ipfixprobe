@@ -68,6 +68,12 @@ public:
       std::shared_ptr<telemetry::Directory> plugin_dir, 
       std::shared_ptr<telemetry::Directory> queues_dir);
 
+#ifdef WITH_CTT
+   virtual std::pair<std::string, unsigned> get_ctt_config() const {
+      throw PluginError("CTT is not supported by this input plugin");
+   }
+#endif /* WITH_CTT */
+
 protected:
    virtual void configure_telemetry_dirs(
       std::shared_ptr<telemetry::Directory> plugin_dir, 
