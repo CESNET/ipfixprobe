@@ -39,6 +39,9 @@
 #include <string>
 #include <memory>
 #include <telemetry.hpp>
+#ifdef WITH_CTT
+#include "../../storage/cttController.hpp"
+#endif /* WITH_CTT */
 
 namespace ipxp {
 
@@ -93,9 +96,14 @@ public:
    virtual void export_expired(time_t ts)
    {
    }
+
    virtual void finish()
    {
    }
+
+#ifdef WITH_CTT
+    virtual void set_ctt_config(const std::shared_ptr<CttController>& ctt_controller) = 0;
+#endif /* WITH_CTT */
 
    /**
     * \brief set telemetry directory for the storage
@@ -133,22 +141,22 @@ public:
 
    /**
      * \brief Checks if process plugins require all available data.
-     * \param [in] rec Stored flow record.
+     * \param [in] flow Stored flow record.
      * \return True if all data required, false otherwise.
     */
    bool all_data_required(const Flow& flow) const noexcept
    {
-       return m_plugins_status.get_all_data.any();
+       return flow.plugins_status.get_all_data.any();
    }
 
    /**
      * \brief Checks if process plugins don't require any data.
-     * \param [in] rec Stored flow record.
+     * \param [in] flow Stored flow record.
      * \return True if no data required, false otherwise.
     */
    bool no_data_required(const Flow& flow) const noexcept
    {
-       return m_plugins_status.get_no_data.all();
+       return flow.plugins_status.get_no_data.all();
    }
 
    /**
@@ -158,7 +166,7 @@ public:
     */
    bool only_metadata_required(const Flow& flow) const noexcept
    {
-       return !all_data_required(flow) && !no_data_required(flow);
+       return !all_data_required(flow);
    }
 protected:
    //Every StoragePlugin implementation should call these functions at appropriate places
