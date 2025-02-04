@@ -38,6 +38,7 @@
 
 #include <ipfixprobe/ipaddr.hpp>
 #include <ipfixprobe/flowifc.hpp>
+#include <ipfixprobe/cttmeta.hpp>
 
 namespace ipxp {
 
@@ -45,7 +46,7 @@ namespace ipxp {
  * \brief Structure for storing parsed packet fields
  */
 struct Packet : public Record {
-   struct timeval ts;
+   timeval ts;
 
    uint8_t     dst_mac[6];
    uint8_t     src_mac[6];
@@ -101,6 +102,10 @@ struct Packet : public Record {
    uint16_t    buffer_size; /**< Size of buffer */
 
    bool        source_pkt; /**< Direction of packet from flow point of view */
+#ifdef WITH_CTT
+   Metadata_CTT cttmeta; /**< Metadata from CTT */
+   bool cttmeta_valid; /**< True if CTT metadata is valid */
+#endif /* WITH_CTT */
 
    /**
     * \brief Constructor.
@@ -118,6 +123,9 @@ struct Packet : public Record {
       custom(nullptr), custom_len(0),
       buffer(nullptr), buffer_size(0),
       source_pkt(true)
+#ifdef WITH_CTT
+      ,cttmeta_valid(false)
+#endif /* WITH_CTT */
    {
    }
 };
