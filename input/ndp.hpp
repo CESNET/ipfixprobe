@@ -30,12 +30,14 @@
 #ifndef IPXP_INPUT_NDP_HPP
 #define IPXP_INPUT_NDP_HPP
 
+#include <bits/types/struct_timeval.h>
 #include <ndpreader.hpp>
 
 #include <ipfixprobe/input.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/options.hpp>
 #include <ipfixprobe/utils.hpp>
+#include <ipfixprobe/cttmeta.hpp>
 
 namespace ipxp {
 
@@ -44,13 +46,14 @@ class NdpOptParser : public OptionsParser
 public:
    std::string m_dev;
    uint64_t m_id;
+   std::string m_metadata;
 
-   NdpOptParser() : OptionsParser("ndp", "Input plugin for reading packets from a ndp device"), m_dev(""), m_id(0)
+   NdpOptParser() : OptionsParser("ndp", "Input plugin for reading packets from a ndp device"), m_dev(""), m_id(0), m_metadata("")
    {
       register_option("d", "dev", "PATH", "Path to a device file", [this](const char *arg){m_dev = arg; return true;}, OptionFlags::RequiredArgument);
       register_option("I", "id", "NUM", "Link identifier number",
-         [this](const char *arg){try {m_id = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;},
-         OptionFlags::RequiredArgument);
+         [this](const char *arg){try {m_id = str2num<decltype(m_id)>(arg);} catch(std::invalid_argument &e) {return false;} return true;}, OptionFlags::RequiredArgument);
+      register_option("M", "meta", "Metadata type", "Choose metadata type if any", [this](const char *arg){m_metadata = arg; return true;}, OptionFlags::RequiredArgument);
    }
 };
 
@@ -70,10 +73,15 @@ public:
       std::shared_ptr<telemetry::Directory> plugin_dir, 
       std::shared_ptr<telemetry::Directory> queues_dir) override;
 
+#ifdef WITH_CTT
+   virtual std::pair<std::string, unsigned> get_ctt_config() const override;
+#endif /* WITH_CTT */
+
 private:
    struct RxStats {
         uint64_t receivedPackets;
         uint64_t receivedBytes;
+        uint64_t bad_metadata;
    };
 
    telemetry::Content get_queue_telemetry();
@@ -81,7 +89,12 @@ private:
    NdpReader ndpReader;
    RxStats m_stats = {};
 
+   bool m_ctt_metadata = false;
+
+   std::string m_device;
+
    void init_ifc(const std::string &dev);
+   int parse_ctt_metadata(const ndp_packet *ndp_packet, Metadata_CTT &ctt);
 };
 
 }
