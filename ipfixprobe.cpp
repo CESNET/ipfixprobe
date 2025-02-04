@@ -323,6 +323,9 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
    auto pipeline_dir = conf.telemetry_root_node->addDir("pipeline");
    auto flowcache_dir = conf.telemetry_root_node->addDir("flowcache");
    size_t pipeline_idx = 0;
+#ifdef WITH_CTT
+   std::unordered_map<std::string, std::shared_ptr<CttController>> ctt_controllers;
+#endif /* WITH_CTT */
    for (auto &it : parser.m_input) {
       InputPlugin *input_plugin = nullptr;
       StoragePlugin *storage_plugin = nullptr;
@@ -358,6 +361,14 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
          if (storage_plugin == nullptr) {
             throw IPXPError("invalid storage plugin " + storage_name);
          }
+#ifdef WITH_CTT
+         const auto& [device, channel_id] = input_plugin->get_ctt_config();
+         const std::string key = device + std::to_string(channel_id/16);
+         if (ctt_controllers.find(key) == ctt_controllers.end()) {
+            ctt_controllers[key] = std::make_shared<CttController>(device, channel_id/16);
+         }
+         storage_plugin->set_ctt_config(ctt_controllers[key]);
+#endif /* WITH_CTT */
          storage_plugin->set_queue(output_queue);
          storage_plugin->init(storage_params.c_str());
          storage_plugin->set_telemetry_dir(pipeline_queue_dir);
