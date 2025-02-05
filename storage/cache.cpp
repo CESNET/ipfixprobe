@@ -38,10 +38,12 @@
 #include <ratio>
 #include <sys/time.h>
 #include <optional>
+#include <endian.h>
 
 #include "xxhash.h"
 #include "fragmentationCache/timevalUtils.hpp"
 #include "cacheRowSpan.hpp"
+#include "flowKeyFactory.tpp"
 
 namespace ipxp {
 
@@ -61,12 +63,11 @@ std::string NHTFlowCache::get_name() const noexcept
     return "cache";
 }
 
-NHTFlowCache::NHTFlowCache() :
-   m_cache_size(0), m_line_size(0), m_line_mask(0), m_new_flow_insert_index(0),
-   m_queue_size(0), m_active(0), m_inactive(0),
-   m_split_biflow(false), m_enable_fragmentation_cache(true),
-   m_fragmentation_cache(0, 0)
+NHTFlowCache::NHTFlowCache()
 {
+   m_hash_function = [](const uint8_t* data, size_t length) -> uint64_t {
+      return XXH64(data, length, 0);
+   };
 }
 
 NHTFlowCache::~NHTFlowCache()
@@ -215,34 +216,38 @@ void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int return_flags)
    try_to_export(flow_index, false, pkt.ts, FLOW_END_FORCED);
 }
 
-std::tuple<std::optional<size_t>, std::optional<size_t>, bool> NHTFlowCache::find_flow_index(const Packet& packet) noexcept
+std::tuple<CacheRowSpan, std::optional<size_t>, size_t> NHTFlowCache::find_row(const std::variant<FlowKeyv4, FlowKeyv6>& key) noexcept
 {
-   if (!create_hash_key(packet)) {
-      return {std::nullopt, std::nullopt, false};
+   const auto [data, length] = std::visit([](const auto& key) {
+      return std::make_pair(reinterpret_cast<const uint8_t*>(&key), sizeof(key));
+   }, key);
+   const size_t hash_value = m_hash_function(data, length);
+   const size_t first_flow_in_row = hash_value & m_line_mask;
+   const CacheRowSpan row(&m_flow_table[first_flow_in_row], m_line_size);
+   if (const std::optional<size_t> flow_index = row.find_by_hash(hash_value); flow_index.has_value()) {
+      return {row, first_flow_in_row + flow_index.value(), hash_value};
+   }
+   return {row, std::nullopt, hash_value};
+}
+
+std::pair<CacheRowSpan, std::variant<std::pair<size_t, bool>, size_t>>
+NHTFlowCache::find_flow_index(const std::variant<FlowKeyv4, FlowKeyv6>& key, const std::variant<FlowKeyv4, FlowKeyv6>& key_reversed) noexcept
+{
+
+   const auto [direct_row, direct_flow_index, direct_hash_value] = find_row(key);
+   if (direct_flow_index.has_value()) {
+      return {direct_row, std::make_pair(direct_flow_index.value(), true)};
+   }
+   if (m_split_biflow) {
+      return {direct_row, direct_hash_value};
    }
 
-   const auto key_hasher = [](const auto& key)
-   {
-      return XXH64(&key, sizeof(key), 0);
-   };
-
-   const size_t direct_hash_value = std::visit(key_hasher, m_key);
-   const size_t first_flow_in_raw = direct_hash_value & m_line_mask;
-   const CacheRowSpan raw_span_direct(&m_flow_table[first_flow_in_raw], m_line_size);
-   std::optional<size_t> flow_index = raw_span_direct.find_by_hash(direct_hash_value);
-   if (flow_index.has_value()) {
-      return {direct_hash_value, flow_index.value(), true};
+   const auto [reversed_row, reversed_flow_index, reversed_hash_value] = find_row(key_reversed);
+   if (reversed_flow_index.has_value()) {
+      return {reversed_row, std::make_pair(reversed_flow_index.value(), false)};
    }
 
-   const size_t reversed_hash_value = std::visit(key_hasher, m_key_reversed);
-   const size_t first_flow_in_raw_reversed = reversed_hash_value & m_line_mask;
-   const CacheRowSpan raw_span_reverse(&m_flow_table[first_flow_in_raw_reversed], m_line_size);
-   flow_index = raw_span_reverse.find_by_hash(reversed_hash_value);
-   if (flow_index.has_value()) {
-      return {reversed_hash_value, flow_index.value(), false};
-   }
-
-   return {direct_hash_value, std::nullopt, true};
+   return {direct_row, direct_hash_value};
 }
 
 static bool is_tcp_connection_restart(const Packet& packet, const Flow& flow) noexcept
@@ -264,6 +269,7 @@ bool NHTFlowCache::try_to_export_on_inactive_timeout(size_t flow_index, const ti
 
 bool NHTFlowCache::needs_to_be_offloaded(size_t flow_index) const noexcept
 {
+   return true;
    return only_metadata_required(m_flow_table[flow_index]->m_flow) && m_flow_table[flow_index]->m_flow.src_packets + m_flow_table[flow_index]->m_flow.dst_packets > 30;
 }
 
@@ -295,8 +301,8 @@ void NHTFlowCache::create_record(const Packet& packet, size_t flow_index, size_t
          filtered.size();
       }
       auto x = m_hashes_in_ctt[m_flow_table[flow_index]->m_flow.flow_hash_ctt];*/
-      m_ctt_controller->create_record(m_flow_table[flow_index]->m_flow.flow_hash_ctt, m_flow_table[flow_index]->m_flow.time_first);
-      m_cache_stats.ctt_offloaded++;
+      m_ctt_controller->create_record(m_flow_table[flow_index]->m_flow, m_dma_channel);
+      m_ctt_stats.flows_offloaded++;
       m_flow_table[flow_index]->is_in_ctt = true;
    }
 #endif /* WITH_CTT */
@@ -319,8 +325,8 @@ void NHTFlowCache::try_to_add_flow_to_ctt(size_t flow_index) noexcept
                       [&](FlowRecord* flow) { return flow->m_flow.flow_hash_ctt == m_flow_table[flow_index]->m_flow.flow_hash_ctt; });
          filtered.size();
       }*/
-      m_ctt_controller->create_record(m_flow_table[flow_index]->m_flow.flow_hash_ctt, m_flow_table[flow_index]->m_flow.time_first);
-      m_cache_stats.ctt_offloaded++;
+      m_ctt_controller->create_record(m_flow_table[flow_index]->m_flow, m_dma_channel);
+      m_ctt_stats.flows_offloaded++;
       m_flow_table[flow_index]->is_in_ctt = true;
    }
 }
@@ -425,72 +431,166 @@ bool NHTFlowCache::try_to_export(size_t flow_index, bool call_pre_export, const 
    return true;
 }
 
-int NHTFlowCache::put_pkt(Packet &pkt)
+#ifdef WITH_CTT
+
+int convert_ctt_export_reason_to_ipfxiprobe(CttExportReason ctt_reason, ManagementUnitExportReason mu_reason) noexcept
 {
-   plugins_pre_create(pkt);
+   switch (ctt_reason) {
+      case CttExportReason::SOFTWARE:
+         return FLOW_END_FORCED;
+      case CttExportReason::CTT_FULL:
+         return FLOW_END_FORCED;
+      case CttExportReason::MANAGEMENT_UNIT:
+         if (mu_reason & ManagementUnitExportReason::COUNTER_OVERFLOW) {
+            return FLOW_END_FORCED;
+         }
+         if (mu_reason & ManagementUnitExportReason::TCP_EOF) {
+            return FLOW_END_EOF;
+         }
+         if (mu_reason & ManagementUnitExportReason::ACTIVE_TIMEOUT) {
+               return FLOW_END_ACTIVE;
+         }
+      default:
+         return FLOW_END_NO_RES;
+   }
+}
+
+void NHTFlowCache::update_ctt_export_stats(CttExportReason ctt_reason, ManagementUnitExportReason mu_reason) noexcept
+{
+   switch (ctt_reason) {
+      case CttExportReason::SOFTWARE:
+         m_ctt_stats.export_reasons.by_request++;
+         break;
+      case CttExportReason::CTT_FULL:
+         m_ctt_stats.export_reasons.ctt_full++;
+         break;
+      case CttExportReason::RESERVED:
+         m_ctt_stats.export_reasons.reserved++;
+         break;
+      case CttExportReason::MANAGEMENT_UNIT:
+         if (mu_reason & ManagementUnitExportReason::COUNTER_OVERFLOW) {
+            m_ctt_stats.export_reasons.counter_overflow++;
+         }
+         if (mu_reason & ManagementUnitExportReason::TCP_EOF) {
+            m_ctt_stats.export_reasons.tcp_eof++;
+         }
+         if (mu_reason & ManagementUnitExportReason::ACTIVE_TIMEOUT) {
+            m_ctt_stats.export_reasons.active_timeout++;
+         }
+         break;
+   }
+}
+
+void NHTFlowCache::export_external(const Packet& pkt) noexcept
+{
+   m_ctt_stats.export_packets++;
+   std::optional<CttExport> export_data = CttExport::parse(pkt.packet, pkt.packet_len);
+   if (!export_data.has_value()) {
+      m_ctt_stats.export_packets_parsing_failed++;
+      return;
+   }
+
+   IP ip_version = export_data->state.ip_version == 0 ? IP::v4 : IP::v6;
+   std::variant<FlowKeyv4, FlowKeyv6> key = *FlowKeyFactory::create_direct_key(&export_data->state.src_ip, &export_data->state.dst_ip,
+      export_data->state.src_port, export_data->state.dst_port, export_data->state.ip_proto, ip_version);
+   std::visit([](auto& key) {
+      std::reverse(key.src_ip.data(), key.src_ip.data() + sizeof(key.src_ip));
+      std::reverse(key.dst_ip.data(), key.dst_ip.data() + sizeof(key.dst_ip));
+   }, key);
+   const auto [row, flow_index, hash_value] = find_row(key);
+   if (!flow_index.has_value()) {
+      m_ctt_stats.export_packets_for_missing_flow++;
+      return;
+   }
+
+   update_ctt_export_stats(export_data->reason, export_data->mu_reason);
+   export_flow(flow_index.value(), convert_ctt_export_reason_to_ipfxiprobe(export_data->reason, export_data->mu_reason));
+   m_ctt_stats.flows_removed++;
+}
+#endif /* WITH_CTT */
+
+static bool check_ip_version(const Packet& pkt) noexcept
+{
+   return pkt.ip_version == IP::v4 || pkt.ip_version != IP::v6;
+}
+
+int NHTFlowCache::put_pkt(Packet& packet)
+{
+   std::vector<char> data(packet.packet, packet.packet + packet.packet_len);
+   plugins_pre_create(packet);
 
    if (m_enable_fragmentation_cache) {
-      try_to_fill_ports_to_fragmented_packet(pkt);
+      try_to_fill_ports_to_fragmented_packet(packet);
    }
 
    prefetch_export_expired();
 
-   auto [hash_value, flow_index, source_to_destination] = find_flow_index(pkt);
-   pkt.source_pkt = source_to_destination;
-   const bool hash_created = hash_value.has_value();
-   const bool flow_found = flow_index.has_value();
-   if (!hash_created) {
+   if (!check_ip_version(packet)) {
       return 0;
    }
-   const size_t row_begin = hash_value.value() & m_line_mask;
-   CacheRowSpan row_span(&m_flow_table[row_begin], m_line_size);
+   const std::variant<FlowKeyv4, FlowKeyv6> direct_key = *FlowKeyFactory::create_direct_key(&packet.src_ip, &packet.dst_ip,
+      packet.src_port, packet.dst_port, packet.ip_proto, static_cast<IP>(packet.ip_version));
+   const std::variant<FlowKeyv4, FlowKeyv6> reversed_key = *FlowKeyFactory::create_reversed_key(&packet.src_ip, &packet.dst_ip,
+      packet.src_port, packet.dst_port, packet.ip_proto, static_cast<IP>(packet.ip_version));
+
+   auto [row, flow_id] = find_flow_index(direct_key, reversed_key);
+   const bool flow_found = std::holds_alternative<std::pair<size_t, bool>>(flow_id);
 
 #ifdef WITH_CTT
-   const bool flow_is_waiting_for_export = flow_found && try_to_export_delayed_flow(pkt, flow_index.value() + row_begin);
+   const bool flow_is_waiting_for_export = flow_found && try_to_export_delayed_flow(packet, std::get<std::pair<size_t, bool>>(flow_id).first);
 #else
    constexpr bool flow_is_waiting_for_export = false;
 #endif /* WITH_CTT */
 
-   if (flow_found && !m_flow_table[flow_index.value() + row_begin]->is_empty()) {
+   if (flow_found && !m_flow_table[std::get<std::pair<size_t, bool>>(flow_id).first]->is_empty()) {
       /* Existing flow record was found, put flow record at the first index of flow line. */
-      m_cache_stats.lookups += flow_index.value() + 1;
-      m_cache_stats.lookups2 += (flow_index.value() + 1) * (flow_index.value() + 1);
+      const auto& [flow_index, source_to_destination] = std::get<std::pair<size_t, bool>>(flow_id);
+      packet.source_pkt = source_to_destination;
+
+      const size_t relative_flow_index = flow_index % m_line_size;
+      m_cache_stats.lookups += relative_flow_index + 1;
+      m_cache_stats.lookups2 += (relative_flow_index + 1) * (relative_flow_index + 1);
       m_cache_stats.hits++;
 
-      row_span.advance_flow(flow_index.value());
-      flow_index = row_begin;
-      return process_flow(pkt, flow_index.value(), flow_is_waiting_for_export);
+      row.advance_flow(relative_flow_index);
+      return process_flow(packet, flow_index - relative_flow_index, flow_is_waiting_for_export);
    }
    /* Existing flow record was not found. Find free place in flow line. */
-   const std::optional<size_t> empty_index = flow_found && m_flow_table[flow_index.value() + row_begin]->is_empty()
-                                                                                          ? flow_index.value()
-                                                                                          : row_span.find_empty();
+   packet.source_pkt = true;
+   const std::optional<size_t> empty_index = flow_found
+                                       && m_flow_table[std::get<std::pair<size_t, bool>>(flow_id).first]->is_empty()
+                                                   ? std::get<std::pair<size_t, bool>>(flow_id).first
+                                                      : row.find_empty();
    const bool empty_found = empty_index.has_value();
+
+   size_t flow_index = -1;
+   const size_t hash_value = std::get<size_t>(flow_id);
+   const size_t row_begin = hash_value & m_line_mask;
    if (empty_found) {
-      flow_index = empty_index.value() + row_begin;
+      flow_index = row_begin + empty_index.value();
       m_cache_stats.empty++;
    } else {
 #ifdef WITH_CTT
-      const size_t victim_index = row_span.find_victim(pkt.ts);
+      const size_t victim_index = row.find_victim(packet.ts);
 #else
       const size_t victim_index = m_line_size - 1;
 #endif /* WITH_CTT */
-      row_span.advance_flow_to(victim_index, m_new_flow_insert_index);
+      row.advance_flow_to(victim_index, m_new_flow_insert_index);
       flow_index = row_begin + m_new_flow_insert_index;
 #ifdef WITH_CTT
-      if (m_flow_table[flow_index.value()]->is_in_ctt && !m_flow_table[flow_index.value()]->is_waiting_for_export) {
-         m_flow_table[flow_index.value()]->is_waiting_for_export = true;
-         send_export_request_to_ctt(m_flow_table[flow_index.value()]->m_flow.flow_hash_ctt);
-         m_flow_table[flow_index.value()]->export_time = {pkt.ts.tv_sec + 1, pkt.ts.tv_usec};
+      if (m_flow_table[flow_index]->is_in_ctt && !m_flow_table[flow_index]->is_waiting_for_export) {
+         m_flow_table[flow_index]->is_waiting_for_export = true;
+         send_export_request_to_ctt(m_flow_table[flow_index]->m_flow.flow_hash_ctt);
+         m_flow_table[flow_index]->export_time = {packet.ts.tv_sec + 1, packet.ts.tv_usec};
       }
 #endif /* WITH_CTT */
-      plugins_pre_export(m_flow_table[flow_index.value()]->m_flow);
-      export_flow(flow_index.value(), FLOW_END_NO_RES);
+      plugins_pre_export(m_flow_table[flow_index]->m_flow);
+      export_flow(flow_index, FLOW_END_NO_RES);
 
       m_cache_stats.not_empty++;
    }
-   create_record(pkt, flow_index.value(), hash_value.value());
-   export_expired(pkt.ts);
+   create_record(packet, flow_index, hash_value);
+   export_expired(packet.ts);
    return 0;
 }
 
@@ -531,33 +631,30 @@ void NHTFlowCache::export_expired(const timeval& now)
    m_last_exported_on_timeout_index = (m_last_exported_on_timeout_index + m_new_flow_insert_index) & (m_cache_size - 1);
 }
 
-bool NHTFlowCache::create_hash_key(const Packet& packet)
-{
-   if (packet.ip_version == IP::v4) {
-      m_key = FlowKeyv4::save_direct(packet);
-      m_key_reversed = FlowKeyv4::save_reversed(packet);
-      return true;
-   } else if (packet.ip_version == IP::v6) {
-      m_key = FlowKeyv6::save_direct(packet);
-      m_key_reversed = FlowKeyv6::save_reversed(packet);
-      return true;
-   }
-   return false;
-}
-
 void NHTFlowCache::print_report() const
 {
    const float tmp = static_cast<float>(m_cache_stats.lookups) / m_cache_stats.hits;
 
-   std::cout << "Hits: " << m_cache_stats.hits << std::endl;
-   std::cout << "Empty: " << m_cache_stats.empty << std::endl;
-   std::cout << "Not empty: " << m_cache_stats.not_empty << std::endl;
-   std::cout << "Expired: " << m_cache_stats.exported << std::endl;
-   std::cout << "Flushed: " << m_cache_stats.flushed << std::endl;
-   std::cout << "Average Lookup:  " << tmp << std::endl;
-   std::cout << "Variance Lookup: " << static_cast<float>(m_cache_stats.lookups2) / m_cache_stats.hits - tmp * tmp << std::endl;
+   std::cout << "Hits: " << m_cache_stats.hits << "\n";
+   std::cout << "Empty: " << m_cache_stats.empty << "\n";
+   std::cout << "Not empty: " << m_cache_stats.not_empty << "\n";
+   std::cout << "Expired: " << m_cache_stats.exported << "\n";
+   std::cout << "Flushed: " << m_cache_stats.flushed << "\n";
+   std::cout << "Average Lookup:  " << tmp << "\n";
+   std::cout << "Variance Lookup: " << static_cast<float>(m_cache_stats.lookups2) / m_cache_stats.hits - tmp * tmp << "\n";
 #ifdef WITH_CTT
-    std::cout << "CTT offloaded: " << m_cache_stats.ctt_offloaded << std::endl;
+   std::cout << "CTT offloaded: " << m_ctt_stats.flows_offloaded << "\n";
+   std::cout << "CTT flows removed after export packet: " << m_ctt_stats.flows_removed << "\n";
+   std::cout << "CTT sent export packets:" << m_ctt_stats.export_packets << "\n";
+   std::cout << "CTT export packets parsing failed:" << m_ctt_stats.export_packets_parsing_failed << "\n";
+   std::cout << "CTT export packet failed to find corresponding flow:" << m_ctt_stats.export_packets_for_missing_flow << "\n";
+   std::cout << "CTT export reasons: " << "\n";
+   std::cout << "CTT exports by ipfixprobe request: " << m_ctt_stats.export_reasons.by_request << "\n";
+   std::cout << "CTT exports if CTT full: " << m_ctt_stats.export_reasons.ctt_full << "\n";
+   std::cout << "CTT exports with RESERVED reason: " << m_ctt_stats.export_reasons.reserved << "\n";
+   std::cout << "CTT exports with counter overflow reason: " << m_ctt_stats.export_reasons.counter_overflow << "\n";
+   std::cout << "CTT exports with TCP EOF reason: " << m_ctt_stats.export_reasons.tcp_eof << "\n";
+   std::cout << "CTT exports with active timeout reason: " << m_ctt_stats.export_reasons.active_timeout << "\n";
 #endif /* WITH_CTT */
 }
 
@@ -643,9 +740,10 @@ void NHTFlowCache::prefetch_export_expired() const
    }
 }
 #ifdef WITH_CTT
-void NHTFlowCache::set_ctt_config(const std::shared_ptr<CttController>& ctt_controller)
+void NHTFlowCache::set_ctt_config(const std::shared_ptr<CttController>& ctt_controller, uint8_t dma_channel)
 {
    m_ctt_controller = ctt_controller;
+   m_dma_channel = dma_channel;
 }
 #endif /* WITH_CTT */
 

@@ -283,6 +283,7 @@ struct Flow : public Record {
    uint8_t  dst_tcp_flags;
 
    uint8_t  ip_version;
+   uint16_t vlan_id;
 
    uint8_t  ip_proto;
    uint16_t src_port;

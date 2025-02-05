@@ -88,6 +88,7 @@ void FlowRecord::create(const Packet &pkt, uint64_t hash)
    m_flow.time_first = pkt.ts;
    m_flow.time_last = pkt.ts;
    m_flow.flow_hash = hash;
+   m_flow.vlan_id = pkt.vlan_id;
 
    memcpy(m_flow.src_mac, pkt.src_mac, 6);
    memcpy(m_flow.dst_mac, pkt.dst_mac, 6);

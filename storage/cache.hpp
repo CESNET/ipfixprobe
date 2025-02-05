@@ -39,43 +39,16 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/telemetry-utils.hpp>
 #include <unordered_map>
+#include <ipfixprobe/cttmeta.hpp>
 #include "fragmentationCache/fragmentationCache.hpp"
 #include "cacheOptParser.hpp"
+#include "cacheRowSpan.hpp"
 #include "flowKey.tpp"
 #include "flowRecord.hpp"
 #include "cttController.hpp"
+#include "cacheStats.hpp"
 
 namespace ipxp {
-
-struct FlowEndReasonStats {
-   uint64_t active_timeout;
-   uint64_t inactive_timeout;
-   uint64_t end_of_flow;
-   uint64_t collision;
-   uint64_t forced;
-};
-
-struct FlowRecordStats {
-   uint64_t packets_count_1;
-   uint64_t packets_count_2_5;
-   uint64_t packets_count_6_10;
-   uint64_t packets_count_11_20;
-   uint64_t packets_count_21_50;
-   uint64_t packets_count_51_plus;
-};
-
-struct FlowCacheStats{
-   uint64_t empty;
-   uint64_t not_empty;
-   uint64_t hits;
-   uint64_t exported{0};
-   uint64_t flushed;
-   uint64_t lookups{0};
-   uint64_t lookups2{0};
-   uint64_t flows_in_cache;
-   uint64_t total_exported;
-   uint64_t ctt_offloaded{0};
-};
 
 class NHTFlowCache : TelemetryUtils, public StoragePlugin
 {
@@ -88,8 +61,12 @@ public:
    OptionsParser * get_parser() const override;
    std::string get_name() const noexcept override;
 
-   int put_pkt(Packet& pkt) override;
+   int put_pkt(Packet& packet) override;
    void export_expired(time_t now) override;
+
+#ifdef WITH_CTT
+   void export_external(const Packet& pkt) noexcept override;
+#endif /* WITH_CTT */
 
    /**
      * @brief Set and configure the telemetry directory where cache stats will be stored.
@@ -97,39 +74,43 @@ public:
    void set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir) override;
 
 private:
-   uint32_t m_cache_size;
-   uint32_t m_line_size;
-   uint32_t m_line_mask;
-   uint32_t m_new_flow_insert_index;
-   uint32_t m_queue_size;
+   uint32_t m_cache_size{0};
+   uint32_t m_line_size{0};
+   uint32_t m_line_mask{0};
+   uint32_t m_new_flow_insert_index{0};
+   uint32_t m_queue_size{0};
    uint32_t m_queue_index{0};
    uint32_t m_last_exported_on_timeout_index{0};
 
-   uint32_t m_active;
-   uint32_t m_inactive;
-   bool m_split_biflow;
-   bool m_enable_fragmentation_cache;
-   std::variant<FlowKeyv4, FlowKeyv6> m_key;
-   std::variant<FlowKeyv4, FlowKeyv6> m_key_reversed;
+   uint32_t m_active{0};
+   uint32_t m_inactive{0};
+   bool m_split_biflow{false};
+   bool m_enable_fragmentation_cache{true};
+   //std::variant<FlowKeyv4, FlowKeyv6> m_key;
+   //std::variant<FlowKeyv4, FlowKeyv6> m_key_reversed;
    std::vector<FlowRecord*> m_flow_table;
    std::vector<FlowRecord> m_flows;
+   std::function<size_t(const uint8_t* data, size_t length)> m_hash_function;
 
-   FragmentationCache m_fragmentation_cache;
+   FragmentationCache m_fragmentation_cache{0,0};
    FlowEndReasonStats m_flow_end_reason_stats = {};
    FlowRecordStats m_flow_record_stats = {};
    FlowCacheStats m_cache_stats = {};
 #ifdef WITH_CTT
-   void set_ctt_config(const std::shared_ptr<CttController>& ctt_controller) override;
+   CttStats m_ctt_stats = {};
+   void set_ctt_config(const std::shared_ptr<CttController>& ctt_controller, uint8_t dma_channel) override;
    //std::string m_ctt_device;
    //unsigned m_ctt_comp_index;
+   uint8_t m_dma_channel;
    std::shared_ptr<CttController> m_ctt_controller;
    //std::unordered_map<size_t, int> m_hashes_in_ctt;
    //size_t m_ctt_hash_collision{0};
+   void update_ctt_export_stats(CttExportReason ctt_reason, ManagementUnitExportReason mu_reason) noexcept;
 #endif /* WITH_CTT */
 
    void try_to_fill_ports_to_fragmented_packet(Packet& packet);
    void flush(Packet &pkt, size_t flow_index, int return_flags);
-   bool create_hash_key(const Packet &packet);
+
    static uint8_t get_export_reason(const Flow &flow);
    void finish();
    void allocate_table();
@@ -139,7 +120,9 @@ private:
    void prefetch_export_expired() const;
    void get_parser_options(CacheOptParser& parser) noexcept;
    void push_to_export_queue(size_t flow_index) noexcept;
-   std::tuple<std::optional<size_t>, std::optional<size_t>, bool> find_flow_index(const Packet& packet) noexcept;
+   std::pair<CacheRowSpan, std::variant<std::pair<size_t, bool>, size_t>>
+   find_flow_index(const std::variant<FlowKeyv4, FlowKeyv6>& key, const std::variant<FlowKeyv4, FlowKeyv6>& key_reversed) noexcept;
+   std::tuple<CacheRowSpan, std::optional<size_t>, size_t> find_row(const std::variant<FlowKeyv4, FlowKeyv6>& key) noexcept;
    bool try_to_export_on_inactive_timeout(size_t flow_index, const timeval& now) noexcept;
    bool try_to_export_on_active_timeout(size_t flow_index, const timeval& now) noexcept;
    void export_flow(size_t flow_index, int reason);

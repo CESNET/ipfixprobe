@@ -41,12 +41,14 @@ public:
     */
    CacheRowSpan(FlowRecord** begin, size_t count) noexcept;
 
+   size_t get_relative_index(FlowRecord** record) const noexcept;
+
    /**
     * \brief Find a flow record by hash.
     * \param hash Hash value to search for.
     * \return Index of the flow record relative to row begin if found, std::nullopt otherwise.
     */
-   std::optional<size_t> find_by_hash(uint64_t hash) const noexcept;
+   std::optional<size_t> find_by_hash(uint64_t hash, std::optional<uint16_t> vlan_id = std::nullopt) const noexcept;
    /**
     * \brief Move a flow record to the beginning of the row.
     * \param flow_index Index of the flow record to move.

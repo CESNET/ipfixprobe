@@ -94,7 +94,6 @@ private:
    std::string m_device;
 
    void init_ifc(const std::string &dev);
-   int parse_ctt_metadata(const ndp_packet *ndp_packet, Metadata_CTT &ctt);
 };
 
 }

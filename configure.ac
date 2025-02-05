@@ -239,7 +239,7 @@ AC_ARG_WITH([ctt],
 
 if test x${withctt} = xyes; then
    AC_LANG_PUSH([C++])
-   CXXFLAGS="$CXXFLAGS -std=c++17"
+   CXXFLAGS="$CXXFLAGS -std=c++17 -Wno-packed-bitfield-compat"
    AC_CHECK_HEADERS([ctt.hpp], [libctt=yes], AC_MSG_ERROR([ctt.hpp not found. Try installing libctt-devel]))
    AC_LANG_POP([C++])
 fi

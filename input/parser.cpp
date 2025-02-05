@@ -782,7 +782,7 @@ void parse_packet(parser_opt_t *opt, ParserStats& stats, struct timeval ts, cons
 }
 
 #ifdef WITH_CTT
-int parse_packet_ctt_metadata(parser_opt_t *opt, ParserStats& stats, const Metadata_CTT& metadata, const uint8_t *data, uint16_t len, uint16_t caplen)
+int parse_packet_ctt_metadata(parser_opt_t *opt, ParserStats& stats, const CttMetadata& metadata, const uint8_t *data, uint16_t len, uint16_t caplen)
 {
    if (opt->pblock->cnt >= opt->pblock->size) {
       return 0;
@@ -796,7 +796,6 @@ int parse_packet_ctt_metadata(parser_opt_t *opt, ParserStats& stats, const Metad
       pkt->cttmeta_valid = false;
       return -1;
    }
-
    pkt->cttmeta = metadata;
 
    pkt->packet_len_wire = len;
@@ -813,6 +812,7 @@ int parse_packet_ctt_metadata(parser_opt_t *opt, ParserStats& stats, const Metad
    pkt->tcp_options = 0;
    pkt->tcp_mss = 0;
    pkt->mplsTop = 0;
+   pkt->external_export = false;
 
    stats.seen_packets++;
 

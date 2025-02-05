@@ -367,7 +367,7 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
          if (ctt_controllers.find(key) == ctt_controllers.end()) {
             ctt_controllers[key] = std::make_shared<CttController>(device, channel_id/16);
          }
-         storage_plugin->set_ctt_config(ctt_controllers[key]);
+         storage_plugin->set_ctt_config(ctt_controllers[key], channel_id);
 #endif /* WITH_CTT */
          storage_plugin->set_queue(output_queue);
          storage_plugin->init(storage_params.c_str());

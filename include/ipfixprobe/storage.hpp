@@ -102,7 +102,8 @@ public:
    }
 
 #ifdef WITH_CTT
-    virtual void set_ctt_config(const std::shared_ptr<CttController>& ctt_controller) = 0;
+    virtual void set_ctt_config(const std::shared_ptr<CttController>& ctt_controller, uint8_t dma_channel) = 0;
+    virtual void export_external(const Packet& pkt) noexcept = 0;
 #endif /* WITH_CTT */
 
    /**
