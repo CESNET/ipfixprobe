@@ -46,7 +46,7 @@ namespace ipxp {
 class DpdkOptParser : public OptionsParser {
 private:
     static constexpr size_t DEFAULT_MBUF_BURST_SIZE = 64;
-    static constexpr size_t DEFAULT_MBUF_POOL_SIZE = 4096;
+    static constexpr size_t DEFAULT_MBUF_POOL_SIZE = 8192;
     size_t pkt_buffer_size_;
     size_t pkt_mempool_size_;
     std::vector<uint16_t> port_numbers_;
