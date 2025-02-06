@@ -25,6 +25,7 @@
 
 #include "dpdkDevice.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <cstring>
 #include <iostream>
@@ -192,11 +193,13 @@ void DpdkDevice::initMemPools(uint16_t memPoolSize)
 
 void DpdkDevice::setupRxQueues(uint16_t memPoolSize)
 {
+	const uint16_t rxQueueSize = std::max(memPoolSize / 2, 1);
+
 	for (uint16_t rxQueueID = 0; rxQueueID < m_rxQueueCount; rxQueueID++) {
 		int ret = rte_eth_rx_queue_setup(
 			m_portID,
 			rxQueueID,
-			memPoolSize,
+			rxQueueSize,
 			rte_eth_dev_socket_id(m_portID),
 			nullptr,
 			m_memPools[rxQueueID]);
@@ -206,6 +209,9 @@ void DpdkDevice::setupRxQueues(uint16_t memPoolSize)
 				+ std::to_string(m_portID));
 		}
 	}
+
+	std::cerr << "DPDK RX queues for port " << m_portID << " set up. Size of each queue: "
+			  << rxQueueSize << std::endl;
 }
 
 void DpdkDevice::configureRSS()
