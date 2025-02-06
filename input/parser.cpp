@@ -683,25 +683,29 @@ void parse_packet(parser_opt_t *opt, ParserStats& stats, struct timeval ts, cons
    uint32_t l3_hdr_offset = 0;
    uint32_t l4_hdr_offset = 0;
    try {
-   #ifdef WITH_PCAP
-      if (opt->datalink == DLT_EN10MB) {
+#ifdef WITH_PCAP
+      if (!opt->datalink || opt->datalink == DLT_EN10MB) {
          data_offset = parse_eth_hdr(data, caplen, pkt);
       } else if (opt->datalink == DLT_LINUX_SLL) {
             data_offset = parse_sll(data, caplen, pkt);
-   # ifdef DLT_LINUX_SLL2
+# ifdef DLT_LINUX_SLL2
       } else if (opt->datalink == DLT_LINUX_SLL2) {
             data_offset = parse_sll2(data, caplen, pkt);
-   # endif /* DLT_LINUX_SLL2 */
+# endif /* DLT_LINUX_SLL2 */
       } else if (opt->datalink == DLT_RAW) {
             if ((data[0] & 0xF0) == 0x40) {
                pkt->ethertype = ETH_P_IP;
             } else if ((data[0] & 0xF0) == 0x60) {
                pkt->ethertype = ETH_P_IPV6;
             }
+      } else {
+         stats.unknown_packets++;
+         DEBUG_MSG("Unknown datalink type %u\n", opt->datalink);
+         return;
       }
-   #else
+#else
       data_offset = parse_eth_hdr(data, caplen, pkt);
-   #endif /* WITH_PCAP */
+#endif /* WITH_PCAP */
 
       if (pkt->ethertype == ETH_P_TRILL) {
          data_offset += parse_trill(data + data_offset, caplen - data_offset, pkt);
