@@ -513,7 +513,7 @@ void NHTFlowCache::export_external(const Packet& pkt) noexcept
 
 static bool check_ip_version(const Packet& pkt) noexcept
 {
-   return pkt.ip_version == IP::v4 || pkt.ip_version != IP::v6;
+   return pkt.ip_version == IP::v4 || pkt.ip_version == IP::v6;
 }
 
 int NHTFlowCache::put_pkt(Packet& packet)
