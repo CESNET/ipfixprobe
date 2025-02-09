@@ -535,7 +535,7 @@ int NHTFlowCache::put_pkt(Packet& packet)
    const std::variant<FlowKeyv4, FlowKeyv6> reversed_key = *FlowKeyFactory::create_reversed_key(&packet.src_ip, &packet.dst_ip,
       packet.src_port, packet.dst_port, packet.ip_proto, static_cast<IP>(packet.ip_version));
 
-   auto [row, flow_id] = find_flow_index(direct_key, reversed_key);
+   auto [row, flow_id] = find_flow_index(direct_key, reversed_key, packet.vlan_id);
    const bool flow_found = std::holds_alternative<std::pair<size_t, bool>>(flow_id);
 
 #ifdef WITH_CTT
