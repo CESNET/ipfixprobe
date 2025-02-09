@@ -518,7 +518,6 @@ static bool check_ip_version(const Packet& pkt) noexcept
 
 int NHTFlowCache::put_pkt(Packet& packet)
 {
-   std::vector<char> data(packet.packet, packet.packet + packet.packet_len);
    plugins_pre_create(packet);
 
    if (m_enable_fragmentation_cache) {
