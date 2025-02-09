@@ -216,7 +216,8 @@ void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int return_flags)
    try_to_export(flow_index, false, pkt.ts, FLOW_END_FORCED);
 }
 
-std::tuple<CacheRowSpan, std::optional<size_t>, size_t> NHTFlowCache::find_row(const std::variant<FlowKeyv4, FlowKeyv6>& key) noexcept
+std::tuple<CacheRowSpan, std::optional<size_t>, size_t>
+NHTFlowCache::find_row(const std::variant<FlowKeyv4, FlowKeyv6>& key, const std::optional<uint16_t>& vlan_id) noexcept
 {
    const auto [data, length] = std::visit([](const auto& key) {
       return std::make_pair(reinterpret_cast<const uint8_t*>(&key), sizeof(key));
@@ -224,17 +225,18 @@ std::tuple<CacheRowSpan, std::optional<size_t>, size_t> NHTFlowCache::find_row(c
    const size_t hash_value = m_hash_function(data, length);
    const size_t first_flow_in_row = hash_value & m_line_mask;
    const CacheRowSpan row(&m_flow_table[first_flow_in_row], m_line_size);
-   if (const std::optional<size_t> flow_index = row.find_by_hash(hash_value); flow_index.has_value()) {
+   if (const std::optional<size_t> flow_index = row.find_by_hash(hash_value, vlan_id); flow_index.has_value()) {
       return {row, first_flow_in_row + flow_index.value(), hash_value};
    }
    return {row, std::nullopt, hash_value};
 }
 
 std::pair<CacheRowSpan, std::variant<std::pair<size_t, bool>, size_t>>
-NHTFlowCache::find_flow_index(const std::variant<FlowKeyv4, FlowKeyv6>& key, const std::variant<FlowKeyv4, FlowKeyv6>& key_reversed) noexcept
+NHTFlowCache::find_flow_index(const std::variant<FlowKeyv4, FlowKeyv6>& key,
+   const std::variant<FlowKeyv4, FlowKeyv6>& key_reversed, const std::optional<uint16_t>& vlan_id) noexcept
 {
 
-   const auto [direct_row, direct_flow_index, direct_hash_value] = find_row(key);
+   const auto [direct_row, direct_flow_index, direct_hash_value] = find_row(key, vlan_id);
    if (direct_flow_index.has_value()) {
       return {direct_row, std::make_pair(direct_flow_index.value(), true)};
    }
@@ -242,7 +244,7 @@ NHTFlowCache::find_flow_index(const std::variant<FlowKeyv4, FlowKeyv6>& key, con
       return {direct_row, direct_hash_value};
    }
 
-   const auto [reversed_row, reversed_flow_index, reversed_hash_value] = find_row(key_reversed);
+   const auto [reversed_row, reversed_flow_index, reversed_hash_value] = find_row(key_reversed, vlan_id);
    if (reversed_flow_index.has_value()) {
       return {reversed_row, std::make_pair(reversed_flow_index.value(), false)};
    }

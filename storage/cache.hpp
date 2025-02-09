@@ -121,8 +121,10 @@ private:
    void get_parser_options(CacheOptParser& parser) noexcept;
    void push_to_export_queue(size_t flow_index) noexcept;
    std::pair<CacheRowSpan, std::variant<std::pair<size_t, bool>, size_t>>
-   find_flow_index(const std::variant<FlowKeyv4, FlowKeyv6>& key, const std::variant<FlowKeyv4, FlowKeyv6>& key_reversed) noexcept;
-   std::tuple<CacheRowSpan, std::optional<size_t>, size_t> find_row(const std::variant<FlowKeyv4, FlowKeyv6>& key) noexcept;
+   find_flow_index(const std::variant<FlowKeyv4, FlowKeyv6>& key,
+      const std::variant<FlowKeyv4, FlowKeyv6>& key_reversed, const std::optional<uint16_t>& vlan_id = std::nullopt) noexcept;
+   std::tuple<CacheRowSpan, std::optional<size_t>, size_t>
+   find_row(const std::variant<FlowKeyv4, FlowKeyv6>& key, const std::optional<uint16_t>& vlan_id = std::nullopt) noexcept;
    bool try_to_export_on_inactive_timeout(size_t flow_index, const timeval& now) noexcept;
    bool try_to_export_on_active_timeout(size_t flow_index, const timeval& now) noexcept;
    void export_flow(size_t flow_index, int reason);
