@@ -567,7 +567,7 @@ size_t NHTFlowCache::get_empty_place(CacheRowSpan& row, const timeval& now) noex
    m_cache_stats.not_empty++;
 
 #ifdef WITH_CTT
-   const size_t victim_index = row.find_victim(packet.ts);
+   const size_t victim_index = row.find_victim(now);
 #else /* WITH_CTT */
    const size_t victim_index = m_line_size - 1;
 #endif /* WITH_CTT */
