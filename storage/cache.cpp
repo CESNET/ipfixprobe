@@ -529,7 +529,7 @@ int NHTFlowCache::put_pkt(Packet& packet)
    if (std::holds_alternative<size_t>(flow_id)) {
       const size_t hash_value = std::get<size_t>(flow_id);
       const size_t empty_place = get_empty_place(row, packet.ts) + (hash_value & m_line_mask);
-      create_record(packet, empty_place, std::get<size_t>(flow_id));
+      create_record(packet, empty_place, hash_value);
       export_expired(packet.ts);
       return 0;
    }
