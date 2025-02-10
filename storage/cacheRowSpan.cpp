@@ -35,11 +35,6 @@ CacheRowSpan::CacheRowSpan(FlowRecord** begin, size_t count) noexcept
 {
 }
 
-size_t CacheRowSpan::get_relative_index(FlowRecord** record) const noexcept
-{
-   return record - m_begin;
-}
-
 std::optional<size_t> CacheRowSpan::find_by_hash(uint64_t hash, std::optional<uint16_t> vlan_id) const noexcept
 {
    FlowRecord** it = nullptr;
