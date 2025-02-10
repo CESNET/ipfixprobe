@@ -65,6 +65,9 @@ public:
 
    ~CttController() noexcept;
 
+   void remove_record_without_notification(uint64_t flow_hash_ctt);
+
+   void get_state(uint64_t flow_hash_ctt);
 private:
    std::unique_ptr<ctt::AsyncCommander> m_commander;
    size_t m_key_size_bytes;
@@ -91,7 +94,7 @@ private:
    std::vector<std::byte> assemble_key(uint64_t flow_hash_ctt);
 
    std::pair<std::vector<std::byte>, std::vector<std::byte>>
-   get_key_and_state(uint64_t flow_hash_ctt, const Flow& flow, uint8_t dma_channel)
+   get_key_and_state(uint64_t flow_hash_ctt, const Flow& flow, uint8_t dma_channel);
 };
 
 } // ipxp
