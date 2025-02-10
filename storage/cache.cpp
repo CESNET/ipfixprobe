@@ -39,6 +39,7 @@
 #include <sys/time.h>
 #include <optional>
 #include <endian.h>
+#include <algorithm>
 
 #include "xxhash.h"
 #include "fragmentationCache/timevalUtils.hpp"
@@ -475,8 +476,8 @@ void NHTFlowCache::export_external(const Packet& pkt) noexcept
    }, key);
    const auto [row, flow_index, hash_value] = find_row(key);
    if (!flow_index.has_value()
-      || !m_flow_table[flow_index.value()]->is_in_ctt
-      || !m_flow_table[flow_index.value()]->offload_mode.has_value())
+         || !m_flow_table[flow_index.value()]->is_in_ctt
+         || !m_flow_table[flow_index.value()]->offload_mode.has_value()) {
       m_ctt_stats.export_packets_for_missing_flow++;
       return;
    }
