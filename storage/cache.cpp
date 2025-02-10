@@ -527,7 +527,8 @@ int NHTFlowCache::put_pkt(Packet& packet)
    auto [row, flow_id] = find_flow_index(direct_key, reversed_key, packet.vlan_id);
 
    if (std::holds_alternative<size_t>(flow_id)) {
-      const size_t empty_place = get_empty_place(row, packet.ts);
+      const size_t hash_value = std::get<size_t>(flow_id);
+      const size_t empty_place = get_empty_place(row, packet.ts) + hash_value & m_line_mask;
       create_record(packet, empty_place, std::get<size_t>(flow_id));
       export_expired(packet.ts);
       return 0;
@@ -581,7 +582,7 @@ size_t NHTFlowCache::get_empty_place(CacheRowSpan& row, const timeval& now) noex
 #endif /* WITH_CTT */
    plugins_pre_export(row[m_new_flow_insert_index]->m_flow);
    export_flow(&row[m_new_flow_insert_index] - m_flow_table.data(), FLOW_END_NO_RES);
-   return &row[m_new_flow_insert_index] + m_new_flow_insert_index - m_flow_table.data();
+   return m_new_flow_insert_index;
 }
 
 bool NHTFlowCache::try_to_export_on_active_timeout(size_t flow_index, const timeval& now) noexcept
