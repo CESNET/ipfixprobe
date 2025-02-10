@@ -541,11 +541,13 @@ int NHTFlowCache::put_pkt(Packet& packet)
    constexpr bool flow_is_waiting_for_export = false;
 #endif /* WITH_CTT */
 
+#ifdef WITH_CTT
    if (m_flow_table[flow_index]->is_empty()) {
       create_record(packet, flow_index, std::get<size_t>(flow_id));
       export_expired(packet.ts);
       return 0;
    }
+#endif /* WITH_CTT */
 
    packet.source_pkt = source_to_destination;
    /* Existing flow record was found, put flow record at the first index of flow line. */
