@@ -310,9 +310,9 @@ void NHTFlowCache::try_to_add_flow_to_ctt(size_t flow_index) noexcept
 }
 #endif /* WITH_CTT */
 
-int NHTFlowCache::process_flow(Packet& packet, size_t flow_index, bool flow_is_waiting_for_export) noexcept
+int NHTFlowCache::update_flow(Packet& packet, size_t flow_index, bool flow_is_waiting_for_export) noexcept
 {
-   if (is_tcp_connection_restart(packet, m_flow_table[flow_index]->m_flow) && !flow_is_waiting_for_export) {
+   if (!flow_is_waiting_for_export && is_tcp_connection_restart(packet, m_flow_table[flow_index]->m_flow)) {
       if (try_to_export(flow_index, false, packet.ts, FLOW_END_EOF)) {
          put_pkt(packet);
          return 0;
@@ -361,9 +361,9 @@ bool NHTFlowCache::try_to_export_delayed_flow(const Packet& packet, size_t flow_
       ((packet.cttmeta_valid && !packet.cttmeta.ctt_rec_matched) || packet.ts > m_flow_table[flow_index]->export_time)) {
       plugins_pre_export(m_flow_table[flow_index]->m_flow);
       export_flow(flow_index);
-      return false;
+      return true;
    }
-   return m_flow_table[flow_index]->is_waiting_for_export;
+   return false;
 }
 #endif /* WITH_CTT */
 
@@ -508,6 +508,7 @@ static bool check_ip_version(const Packet& pkt) noexcept
 int NHTFlowCache::put_pkt(Packet& packet)
 {
    plugins_pre_create(packet);
+   packet.source_pkt = true;
 
    if (m_enable_fragmentation_cache) {
       try_to_fill_ports_to_fragmented_packet(packet);
@@ -524,64 +525,63 @@ int NHTFlowCache::put_pkt(Packet& packet)
       packet.src_port, packet.dst_port, packet.ip_proto, static_cast<IP>(packet.ip_version));
 
    auto [row, flow_id] = find_flow_index(direct_key, reversed_key, packet.vlan_id);
-   const bool flow_found = std::holds_alternative<std::pair<size_t, bool>>(flow_id);
 
+   if (std::holds_alternative<size_t>(flow_id)) {
+      const size_t empty_place = get_empty_place(row, packet.ts);
+      create_record(packet, empty_place, std::get<size_t>(flow_id));
+      export_expired(packet.ts);
+      return 0;
+   }
+
+   const auto [flow_index, source_to_destination] = std::get<std::pair<size_t, bool>>(flow_id);
 #ifdef WITH_CTT
-   const bool flow_is_waiting_for_export = flow_found && try_to_export_delayed_flow(packet, std::get<std::pair<size_t, bool>>(flow_id).first);
+   const bool flow_is_waiting_for_export = !try_to_export_delayed_flow(packet, flow_index) && m_flow_table[flow_index]->is_waiting_for_export;
 #else
    constexpr bool flow_is_waiting_for_export = false;
 #endif /* WITH_CTT */
 
-   if (flow_found && !m_flow_table[std::get<std::pair<size_t, bool>>(flow_id).first]->is_empty()) {
-      /* Existing flow record was found, put flow record at the first index of flow line. */
-      const auto& [flow_index, source_to_destination] = std::get<std::pair<size_t, bool>>(flow_id);
-      packet.source_pkt = source_to_destination;
-
-      const size_t relative_flow_index = flow_index % m_line_size;
-      m_cache_stats.lookups += relative_flow_index + 1;
-      m_cache_stats.lookups2 += (relative_flow_index + 1) * (relative_flow_index + 1);
-      m_cache_stats.hits++;
-
-      row.advance_flow(relative_flow_index);
-      return process_flow(packet, flow_index - relative_flow_index, flow_is_waiting_for_export);
+   if (m_flow_table[flow_index]->is_empty()) {
+      create_record(packet, flow_index, std::get<size_t>(flow_id));
+      export_expired(packet.ts);
+      return 0;
    }
-   /* Existing flow record was not found. Find free place in flow line. */
-   packet.source_pkt = true;
-   const std::optional<size_t> empty_index = flow_found
-                                       && m_flow_table[std::get<std::pair<size_t, bool>>(flow_id).first]->is_empty()
-                                                   ? std::get<std::pair<size_t, bool>>(flow_id).first
-                                                      : row.find_empty();
-   const bool empty_found = empty_index.has_value();
 
-   size_t flow_index = -1;
-   const size_t hash_value = std::get<size_t>(flow_id);
-   const size_t row_begin = hash_value & m_line_mask;
-   if (empty_found) {
-      flow_index = row_begin + empty_index.value();
+   packet.source_pkt = source_to_destination;
+   /* Existing flow record was found, put flow record at the first index of flow line. */
+
+   const size_t relative_flow_index = flow_index % m_line_size;
+   m_cache_stats.lookups += relative_flow_index + 1;
+   m_cache_stats.lookups2 += (relative_flow_index + 1) * (relative_flow_index + 1);
+   m_cache_stats.hits++;
+
+   row.advance_flow(relative_flow_index);
+   return update_flow(packet, flow_index - relative_flow_index, flow_is_waiting_for_export);
+}
+
+size_t NHTFlowCache::get_empty_place(CacheRowSpan& row, const timeval& now) noexcept
+{
+   if (const std::optional<size_t> empty_index = row.find_empty(); empty_index.has_value()) {
       m_cache_stats.empty++;
-   } else {
-#ifdef WITH_CTT
-      const size_t victim_index = row.find_victim(packet.ts);
-#else
-      const size_t victim_index = m_line_size - 1;
-#endif /* WITH_CTT */
-      row.advance_flow_to(victim_index, m_new_flow_insert_index);
-      flow_index = row_begin + m_new_flow_insert_index;
-#ifdef WITH_CTT
-      if (m_flow_table[flow_index]->is_in_ctt && !m_flow_table[flow_index]->is_waiting_for_export) {
-         m_flow_table[flow_index]->is_waiting_for_export = true;
-         m_ctt_controller->remove_record_without_notification(m_flow_table[flow_index]->m_flow.flow_hash_ctt);
-         m_flow_table[flow_index]->export_time = {packet.ts.tv_sec + 1, packet.ts.tv_usec};
-      }
-#endif /* WITH_CTT */
-      plugins_pre_export(m_flow_table[flow_index]->m_flow);
-      export_flow(flow_index, FLOW_END_NO_RES);
-
-      m_cache_stats.not_empty++;
+      return empty_index.value();
    }
-   create_record(packet, flow_index, hash_value);
-   export_expired(packet.ts);
-   return 0;
+   m_cache_stats.not_empty++;
+
+#ifdef WITH_CTT
+   const size_t victim_index = row.find_victim(packet.ts);
+#else /* WITH_CTT */
+   const size_t victim_index = m_line_size - 1;
+#endif /* WITH_CTT */
+   row.advance_flow_to(victim_index, m_new_flow_insert_index);
+#ifdef WITH_CTT
+   if (row[m_new_flow_insert_index]->is_in_ctt && !row[m_new_flow_insert_index]->is_waiting_for_export) {
+      row[m_new_flow_insert_index]->is_waiting_for_export = true;
+      m_ctt_controller->remove_record_without_notification(row[m_new_flow_insert_index]->m_flow.flow_hash_ctt);
+      row[m_new_flow_insert_index]->export_time = {now.tv_sec + 1, now.tv_usec};
+   }
+#endif /* WITH_CTT */
+   plugins_pre_export(row[m_new_flow_insert_index]->m_flow);
+   export_flow(&row[m_new_flow_insert_index] - m_flow_table.data(), FLOW_END_NO_RES);
+   return &row[m_new_flow_insert_index] + m_new_flow_insert_index - m_flow_table.data();
 }
 
 bool NHTFlowCache::try_to_export_on_active_timeout(size_t flow_index, const timeval& now) noexcept

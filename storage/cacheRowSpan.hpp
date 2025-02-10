@@ -41,8 +41,6 @@ public:
     */
    CacheRowSpan(FlowRecord** begin, size_t count) noexcept;
 
-   size_t get_relative_index(FlowRecord** record) const noexcept;
-
    /**
     * \brief Find a flow record by hash.
     * \param hash Hash value to search for.
@@ -67,6 +65,12 @@ public:
     * \return Index of the empty flow record if found, std::nullopt otherwise.
     */
    std::optional<size_t> find_empty() const noexcept;
+
+   FlowRecord*& operator[](const size_t index) const noexcept
+   {
+      return m_begin[index];
+   }
+
 #ifdef WITH_CTT
    /**
     * \brief Find a flow record to be evicted.

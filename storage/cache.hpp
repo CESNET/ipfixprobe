@@ -125,7 +125,7 @@ private:
    bool try_to_export_on_active_timeout(size_t flow_index, const timeval& now) noexcept;
    void export_flow(size_t flow_index, int reason);
    void export_flow(size_t flow_index);
-   int process_flow(Packet& packet, size_t flow_index, bool flow_is_waiting_for_export) noexcept;
+   int update_flow(Packet& packet, size_t flow_index, bool flow_is_waiting_for_export) noexcept;
    bool try_to_export_delayed_flow(const Packet& packet, size_t flow_index) noexcept;
    void create_record(const Packet& packet, size_t flow_index, size_t hash_value) noexcept;
    bool try_to_export(size_t flow_index, bool call_pre_export, const timeval& now, int reason) noexcept;
@@ -135,6 +135,7 @@ private:
    void export_expired(const timeval& now);
    void try_to_add_flow_to_ctt(size_t flow_index) noexcept;
    bool needs_to_be_offloaded(size_t flow_index) const noexcept;
+   size_t get_empty_place(CacheRowSpan& row, const timeval& now) noexcept;
 };
 }
 #endif /* IPXP_STORAGE_CACHE_HPP */
