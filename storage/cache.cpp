@@ -178,7 +178,7 @@ void NHTFlowCache::finish()
          }
 #endif /* WITH_CTT */
          plugins_pre_export(flow_record->m_flow);
-         export_flow(flow_record->m_flow.flow_hash, FLOW_END_FORCED);
+         export_flow(&flow_record - m_flow_table.data(), FLOW_END_FORCED);
       }
    });
 }
