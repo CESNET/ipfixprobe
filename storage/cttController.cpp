@@ -109,7 +109,8 @@ CttController::get_key_and_state(uint64_t flow_hash_ctt, const Flow& flow, uint8
 
 std::vector<std::byte> CttController::assemble_key(uint64_t flow_hash_ctt)
 {
-    return std::vector<std::byte>(&flow_hash_ctt, &flow_hash_ctt + m_key_size_bytes);
+    return std::vector<std::byte>(reinterpret_cast<const std::byte*>(&flow_hash_ctt),
+        reinterpret_cast<const std::byte*>(&flow_hash_ctt) + m_key_size_bytes);
     std::vector<std::byte> key(m_key_size_bytes, std::byte(0));
     for (size_t i = 0; i < sizeof(flow_hash_ctt) && i < m_key_size_bytes; ++i) {
         key[i] = static_cast<std::byte>((flow_hash_ctt >> (8 * i)) & 0xFF);
