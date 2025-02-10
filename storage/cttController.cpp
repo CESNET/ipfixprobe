@@ -50,16 +50,37 @@ CttController::CttController(const std::string& nfb_dev, unsigned ctt_comp_index
     }
 }
 
-void CttController::create_record(const Flow& flow, uint8_t dma_channel)
+void CttController::create_record(const Flow& flow, uint8_t dma_channel, OffloadMode offload_mode)
 {
     try {
         std::vector<std::byte> key = assemble_key(flow.flow_hash_ctt);
         std::vector<std::byte> state = assemble_state(
-              //OffloadMode::PACKET_OFFLOAD,
-              OffloadMode::TRIMMED_PACKET_WITH_METADATA_AND_EXPORT,
+              offload_mode,
               MetadataType::FULL_METADATA,
               flow, dma_channel);
         m_commander->write_record(std::move(key), std::move(state));
+    }
+    catch (const std::exception& e) {
+        throw;
+    }
+}
+
+void CttController::get_state(uint64_t flow_hash_ctt)
+{
+    try {
+        std::vector<std::byte> key = assemble_key(flow_hash_ctt);
+        m_commander->export_record(std::move(key));
+    }
+    catch (const std::exception& e) {
+        throw;
+    }
+}
+
+void CttController::remove_record_without_notification(uint64_t flow_hash_ctt)
+{
+    try {
+        std::vector<std::byte> key = assemble_key(flow_hash_ctt);
+        m_commander->delete_record(std::move(key));
     }
     catch (const std::exception& e) {
         throw;
@@ -77,8 +98,18 @@ void CttController::export_record(uint64_t flow_hash_ctt)
     }
 }
 
+std::pair<std::vector<std::byte>, std::vector<std::byte>>
+CttController::get_key_and_state(uint64_t flow_hash_ctt, const Flow& flow, uint8_t dma_channel)
+{
+    return {assemble_key(flow_hash_ctt), assemble_state(
+          OffloadMode::TRIMMED_PACKET_WITH_METADATA_AND_EXPORT,
+          MetadataType::FULL_METADATA,
+          flow, dma_channel)};
+}
+
 std::vector<std::byte> CttController::assemble_key(uint64_t flow_hash_ctt)
 {
+    return std::vector<std::byte>(&flow_hash_ctt, &flow_hash_ctt + m_key_size_bytes);
     std::vector<std::byte> key(m_key_size_bytes, std::byte(0));
     for (size_t i = 0; i < sizeof(flow_hash_ctt) && i < m_key_size_bytes; ++i) {
         key[i] = static_cast<std::byte>((flow_hash_ctt >> (8 * i)) & 0xFF);

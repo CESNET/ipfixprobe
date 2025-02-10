@@ -61,6 +61,7 @@ void FlowRecord::erase()
 #ifdef WITH_CTT
    is_waiting_for_export = false;
    is_in_ctt = false;
+   offload_mode = std::nullopt;
 #endif /* WITH_CTT */
 }
 void FlowRecord::reuse()
@@ -76,6 +77,7 @@ void FlowRecord::reuse()
 #ifdef WITH_CTT
    is_waiting_for_export = false;
    is_in_ctt = false;
+   offload_mode = std::nullopt;
 #endif /* WITH_CTT */
 }
 

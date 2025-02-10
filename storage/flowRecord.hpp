@@ -28,6 +28,7 @@
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <cstdint>
+#include <optional>
 
 namespace ipxp {
 
@@ -42,6 +43,7 @@ public:
                                                 but still has not been processed in ctt. */
     timeval export_time;            /**< Time point when we sure that the export request has already been processed by ctt,
                                                 and flow is not in ctt anymore. */
+    std::optional<OffloadMode> offload_mode;        /**< Offload mode of the flow. */
 #endif /* WITH_CTT */
 
     FlowRecord();

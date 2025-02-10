@@ -41,54 +41,57 @@ namespace ipxp {
 
 class CttController {
 public:
-    /**
-     * @brief init the CTT.
-     *
-     * @param nfb_dev          The NFB device file (e.g., "/dev/nfb0").
-     * @param ctt_comp_index   The index of the CTT component.
-     */
-    CttController(const std::string& nfb_dev, unsigned ctt_comp_index);
+   /**
+   * @brief init the CTT.
+   *
+   * @param nfb_dev          The NFB device file (e.g., "/dev/nfb0").
+   * @param ctt_comp_index   The index of the CTT component.
+   */
+   CttController(const std::string& nfb_dev, unsigned ctt_comp_index);
 
-    /**
-     * @brief Command: mark a flow for offload.
-     *
-     * @param flow_hash_ctt    The flow hash to be offloaded.
-     */
-    void create_record(const Flow& flow, uint8_t dma_channel);
+   /**
+   * @brief Command: mark a flow for offload.
+   *
+   * @param flow_hash_ctt    The flow hash to be offloaded.
+   */
+   void create_record(const Flow& flow, uint8_t dma_channel, OffloadMode offload_mode = OffloadMode::TRIMMED_PACKET_WITH_METADATA_AND_EXPORT);
 
-    /**
-     * @brief Command: export a flow from the CTT.
-     *
-     * @param flow_hash_ctt    The flow hash to be exported.
-     */
-    void export_record(uint64_t flow_hash_ctt);
+   /**
+   * @brief Command: export a flow from the CTT.
+   *
+   * @param flow_hash_ctt    The flow hash to be exported.
+   */
+   void export_record(uint64_t flow_hash_ctt);
 
-    ~CttController() noexcept;
+   ~CttController() noexcept;
 
 private:
-    std::unique_ptr<ctt::AsyncCommander> m_commander;
-    size_t m_key_size_bytes;
-    size_t m_state_size_bytes;
-    size_t m_state_mask_size_bytes;
+   std::unique_ptr<ctt::AsyncCommander> m_commander;
+   size_t m_key_size_bytes;
+   size_t m_state_size_bytes;
+   size_t m_state_mask_size_bytes;
 
-    /**
-     * @brief Assembles the state vector from the given values.
-     *
-     * @param offload_mode     The offload mode.
-     * @param meta_type        The metadata type.
-     * @param timestamp_first  The first timestamp of the flow.
-     * @return A byte vector representing the assembled state vector.
-     */
-    std::vector<std::byte>
-    assemble_state(OffloadMode offload_mode, MetadataType meta_type, const Flow& flow, uint8_t dma_channel);
+   /**
+   * @brief Assembles the state vector from the given values.
+   *
+   * @param offload_mode     The offload mode.
+   * @param meta_type        The metadata type.
+   * @param timestamp_first  The first timestamp of the flow.
+   * @return A byte vector representing the assembled state vector.
+   */
+   std::vector<std::byte>
+   assemble_state(OffloadMode offload_mode, MetadataType meta_type, const Flow& flow, uint8_t dma_channel);
 
-    /**
-     * @brief Assembles the key vector from the given flow hash.
-     *
-     * @param flow_hash_ctt    The flow hash.
-     * @return A byte vector representing the assembled key vector.
-     */
-    std::vector<std::byte> assemble_key(uint64_t flow_hash_ctt);
+   /**
+   * @brief Assembles the key vector from the given flow hash.
+   *
+   * @param flow_hash_ctt    The flow hash.
+   * @return A byte vector representing the assembled key vector.
+   */
+   std::vector<std::byte> assemble_key(uint64_t flow_hash_ctt);
+
+   std::pair<std::vector<std::byte>, std::vector<std::byte>>
+   get_key_and_state(uint64_t flow_hash_ctt, const Flow& flow, uint8_t dma_channel)
 };
 
 } // ipxp

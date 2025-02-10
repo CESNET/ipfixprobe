@@ -50,6 +50,7 @@
 
 namespace ipxp {
 
+
 class NHTFlowCache : TelemetryUtils, public StoragePlugin
 {
 public:
@@ -86,8 +87,6 @@ private:
    uint32_t m_inactive{0};
    bool m_split_biflow{false};
    bool m_enable_fragmentation_cache{true};
-   //std::variant<FlowKeyv4, FlowKeyv6> m_key;
-   //std::variant<FlowKeyv4, FlowKeyv6> m_key_reversed;
    std::vector<FlowRecord*> m_flow_table;
    std::vector<FlowRecord> m_flows;
    std::function<size_t(const uint8_t* data, size_t length)> m_hash_function;
@@ -98,13 +97,10 @@ private:
    FlowCacheStats m_cache_stats = {};
 #ifdef WITH_CTT
    CttStats m_ctt_stats = {};
-   void set_ctt_config(const std::shared_ptr<CttController>& ctt_controller, uint8_t dma_channel) override;
-   //std::string m_ctt_device;
-   //unsigned m_ctt_comp_index;
    uint8_t m_dma_channel;
    std::shared_ptr<CttController> m_ctt_controller;
-   //std::unordered_map<size_t, int> m_hashes_in_ctt;
-   //size_t m_ctt_hash_collision{0};
+
+   void set_ctt_config(const std::shared_ptr<CttController>& ctt_controller, uint8_t dma_channel) override;
    void update_ctt_export_stats(CttExportReason ctt_reason, ManagementUnitExportReason mu_reason) noexcept;
 #endif /* WITH_CTT */
 
@@ -122,7 +118,7 @@ private:
    void push_to_export_queue(size_t flow_index) noexcept;
    std::pair<CacheRowSpan, std::variant<std::pair<size_t, bool>, size_t>>
    find_flow_index(const std::variant<FlowKeyv4, FlowKeyv6>& key,
-      const std::variant<FlowKeyv4, FlowKeyv6>& key_reversed, const std::optional<uint16_t>& vlan_id = std::nullopt) noexcept;
+                   const std::variant<FlowKeyv4, FlowKeyv6>& key_reversed, const std::optional<uint16_t>& vlan_id = std::nullopt) noexcept;
    std::tuple<CacheRowSpan, std::optional<size_t>, size_t>
    find_row(const std::variant<FlowKeyv4, FlowKeyv6>& key, const std::optional<uint16_t>& vlan_id = std::nullopt) noexcept;
    bool try_to_export_on_inactive_timeout(size_t flow_index, const timeval& now) noexcept;
@@ -140,6 +136,5 @@ private:
    void try_to_add_flow_to_ctt(size_t flow_index) noexcept;
    bool needs_to_be_offloaded(size_t flow_index) const noexcept;
 };
-
 }
 #endif /* IPXP_STORAGE_CACHE_HPP */
