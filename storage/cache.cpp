@@ -170,7 +170,7 @@ void NHTFlowCache::push_to_export_queue(size_t flow_index) noexcept
 
 void NHTFlowCache::finish()
 {
-   std::for_each_n(m_flow_table.begin(), m_cache_size, [this](FlowRecord*& flow_record) {
+   std::for_each(m_flow_table.begin(), m_flow_table.begin() + m_cache_size, [this](FlowRecord*& flow_record) {
       if (!flow_record->is_empty()) {
 #ifdef WITH_CTT
          if (flow_record->is_in_ctt && !flow_record->is_waiting_for_export) {
@@ -484,7 +484,7 @@ void NHTFlowCache::export_external(const Packet& pkt) noexcept
 
    update_ctt_export_stats(export_data->reason, export_data->mu_reason);
 
-   if ((is_counter_overflow(export_data->reason, export_data->mu_reason)) {
+   if (is_counter_overflow(export_data->reason, export_data->mu_reason)) {
       if (m_flow_table[flow_index.value()]->offload_mode == OffloadMode::TRIMMED_PACKET_WITH_METADATA_AND_EXPORT) {
          return;
       }
@@ -570,7 +570,7 @@ int NHTFlowCache::put_pkt(Packet& packet)
 #ifdef WITH_CTT
       if (m_flow_table[flow_index]->is_in_ctt && !m_flow_table[flow_index]->is_waiting_for_export) {
          m_flow_table[flow_index]->is_waiting_for_export = true;
-         remove_record_without_notification(m_flow_table[flow_index]->m_flow.flow_hash_ctt);
+         m_ctt_controller->remove_record_without_notification(m_flow_table[flow_index]->m_flow.flow_hash_ctt);
          m_flow_table[flow_index]->export_time = {packet.ts.tv_sec + 1, packet.ts.tv_usec};
       }
 #endif /* WITH_CTT */
