@@ -524,20 +524,21 @@ int NHTFlowCache::put_pkt(Packet& packet)
    const std::variant<FlowKeyv4, FlowKeyv6> reversed_key = *FlowKeyFactory::create_reversed_key(&packet.src_ip, &packet.dst_ip,
       packet.src_port, packet.dst_port, packet.ip_proto, static_cast<IP>(packet.ip_version));
 
-   auto [row, flow_id] = find_flow_index(direct_key, reversed_key, packet.vlan_id);
+   auto [row, flow_identification] = find_flow_index(direct_key, reversed_key, packet.vlan_id);
 
-   if (std::holds_alternative<size_t>(flow_id)) {
-      const size_t hash_value = std::get<size_t>(flow_id);
+   if (std::holds_alternative<size_t>(flow_identification)) {
+      const size_t hash_value = std::get<size_t>(flow_identification);
       const size_t empty_place = get_empty_place(row, packet.ts) + (hash_value & m_line_mask);
       create_record(packet, empty_place, hash_value);
       export_expired(packet.ts);
       return 0;
    }
-   const size_t index = flow_id.index();
-   if (!std::holds_alternative<std::pair<size_t, bool>>(flow_id)) {
+   const size_t index = flow_identification.index();
+   if (!std::holds_alternative<std::pair<size_t, bool>>(flow_identification)) {
       std::cout << std::endl;
    }
-   const auto [flow_index, source_to_destination] = std::get<std::pair<size_t, bool>>(flow_id);
+   const auto [flow_index, source_to_destination] = std::get<std::pair<size_t, bool>>(flow_identification);
+   const size_t hash_value = m_flow_table[flow_index]->m_flow.flow_hash;
 #ifdef WITH_CTT
    const bool flow_is_waiting_for_export = !try_to_export_delayed_flow(packet, flow_index) && m_flow_table[flow_index]->is_waiting_for_export;
 #else
@@ -546,7 +547,7 @@ int NHTFlowCache::put_pkt(Packet& packet)
 
 #ifdef WITH_CTT
    if (m_flow_table[flow_index]->is_empty()) {
-      create_record(packet, flow_index, std::get<size_t>(flow_id));
+      create_record(packet, flow_index, hash_value);
       export_expired(packet.ts);
       return 0;
    }
