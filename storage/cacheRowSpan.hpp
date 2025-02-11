@@ -66,7 +66,7 @@ public:
     */
    std::optional<size_t> find_empty() const noexcept;
 
-   FlowRecord*& operator[](const size_t index) const noexcept
+   __attribute__((always_inline)) FlowRecord*& operator[](const size_t index) const noexcept
    {
       return m_begin[index];
    }

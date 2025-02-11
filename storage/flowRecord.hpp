@@ -66,6 +66,7 @@ public:
     {
         return hash == m_hash && m_flow.vlan_id == vlan_id;
     }
+
     void create(const Packet &pkt, uint64_t pkt_hash);
     void update(const Packet &pkt);
 };

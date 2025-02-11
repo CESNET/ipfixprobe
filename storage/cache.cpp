@@ -524,7 +524,8 @@ int NHTFlowCache::put_pkt(Packet& packet)
    const std::variant<FlowKeyv4, FlowKeyv6> reversed_key = *FlowKeyFactory::create_reversed_key(&packet.src_ip, &packet.dst_ip,
       packet.src_port, packet.dst_port, packet.ip_proto, static_cast<IP>(packet.ip_version));
 
-   auto [row, flow_identification] = find_flow_index(direct_key, reversed_key, packet.vlan_id);
+   auto [row, flow_identification] =
+      find_flow_index(direct_key, reversed_key, packet.vlan_id);
 
    if (std::holds_alternative<size_t>(flow_identification)) {
       const size_t hash_value = std::get<size_t>(flow_identification);
@@ -537,9 +538,10 @@ int NHTFlowCache::put_pkt(Packet& packet)
    if (!std::holds_alternative<std::pair<size_t, bool>>(flow_identification)) {
       std::cout << std::endl;
    }
-   const auto [flow_index, source_to_destination] = std::get<std::pair<size_t, bool>>(flow_identification);
-   const size_t hash_value = m_flow_table[flow_index]->m_flow.flow_hash;
+   const auto& [flow_index, source_to_destination] = std::get<std::pair<size_t, bool>>(flow_identification);
+
 #ifdef WITH_CTT
+   const size_t hash_value = m_flow_table[flow_index]->m_flow.flow_hash;
    const bool flow_is_waiting_for_export = !try_to_export_delayed_flow(packet, flow_index) && m_flow_table[flow_index]->is_waiting_for_export;
 #else
    constexpr bool flow_is_waiting_for_export = false;
