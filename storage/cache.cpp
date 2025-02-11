@@ -533,7 +533,10 @@ int NHTFlowCache::put_pkt(Packet& packet)
       export_expired(packet.ts);
       return 0;
    }
-
+   const size_t index = flow_id.index();
+   if (!std::holds_alternative<std::pair<size_t, bool>>(flow_id)) {
+      std::cout << std::endl;
+   }
    const auto [flow_index, source_to_destination] = std::get<std::pair<size_t, bool>>(flow_id);
 #ifdef WITH_CTT
    const bool flow_is_waiting_for_export = !try_to_export_delayed_flow(packet, flow_index) && m_flow_table[flow_index]->is_waiting_for_export;
