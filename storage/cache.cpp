@@ -265,6 +265,7 @@ bool NHTFlowCache::try_to_export_on_inactive_timeout(size_t flow_index, const ti
 
 bool NHTFlowCache::needs_to_be_offloaded(size_t flow_index) const noexcept
 {
+   return false;
    return true;
    return only_metadata_required(m_flow_table[flow_index]->m_flow) && m_flow_table[flow_index]->m_flow.src_packets + m_flow_table[flow_index]->m_flow.dst_packets > 30;
 }
@@ -534,10 +535,7 @@ int NHTFlowCache::put_pkt(Packet& packet)
       export_expired(packet.ts);
       return 0;
    }
-   const size_t index = flow_identification.index();
-   if (!std::holds_alternative<std::pair<size_t, bool>>(flow_identification)) {
-      std::cout << std::endl;
-   }
+
    const auto& [flow_index, source_to_destination] = std::get<std::pair<size_t, bool>>(flow_identification);
 
 #ifdef WITH_CTT
