@@ -46,7 +46,7 @@ public:
     * \param hash Hash value to search for.
     * \return Index of the flow record relative to row begin if found, std::nullopt otherwise.
     */
-   std::optional<size_t> find_by_hash(uint64_t hash, std::optional<uint16_t> vlan_id = std::nullopt) const noexcept;
+   std::optional<size_t> find_by_hash(uint64_t hash, const std::optional<uint16_t>& vlan_id = std::nullopt) const noexcept;
    /**
     * \brief Move a flow record to the beginning of the row.
     * \param flow_index Index of the flow record to move.

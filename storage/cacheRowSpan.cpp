@@ -35,7 +35,7 @@ CacheRowSpan::CacheRowSpan(FlowRecord** begin, size_t count) noexcept
 {
 }
 
-std::optional<size_t> CacheRowSpan::find_by_hash(uint64_t hash, std::optional<uint16_t> vlan_id) const noexcept
+std::optional<size_t> CacheRowSpan::find_by_hash(uint64_t hash, const std::optional<uint16_t>& vlan_id) const noexcept
 {
    FlowRecord** it = nullptr;
    if (!vlan_id.has_value()) {

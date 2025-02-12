@@ -220,7 +220,7 @@ NHTFlowCache::find_row(const std::variant<FlowKeyv4, FlowKeyv6>& key, const std:
    const size_t first_flow_in_row = hash_value & m_line_mask;
    const CacheRowSpan row(&m_flow_table[first_flow_in_row], m_line_size);
    if (const std::optional<size_t> flow_index = row.find_by_hash(hash_value, vlan_id); flow_index.has_value()) {
-      return {row, first_flow_in_row + flow_index.value(), hash_value};
+      return {row, first_flow_in_row + *flow_index, hash_value};
    }
    return {row, std::nullopt, hash_value};
 }
@@ -232,7 +232,7 @@ NHTFlowCache::find_flow_index(const std::variant<FlowKeyv4, FlowKeyv6>& key,
 
    const auto [direct_row, direct_flow_index, direct_hash_value] = find_row(key, vlan_id);
    if (direct_flow_index.has_value()) {
-      return {direct_row, std::make_pair(direct_flow_index.value(), true)};
+      return {direct_row, std::make_pair(*direct_flow_index, true)};
    }
    if (m_split_biflow) {
       return {direct_row, direct_hash_value};
@@ -240,7 +240,7 @@ NHTFlowCache::find_flow_index(const std::variant<FlowKeyv4, FlowKeyv6>& key,
 
    const auto [reversed_row, reversed_flow_index, reversed_hash_value] = find_row(key_reversed, vlan_id);
    if (reversed_flow_index.has_value()) {
-      return {reversed_row, std::make_pair(reversed_flow_index.value(), false)};
+      return {reversed_row, std::make_pair(*reversed_flow_index, false)};
    }
 
    return {direct_row, direct_hash_value};
@@ -528,10 +528,10 @@ int NHTFlowCache::put_pkt(Packet& packet)
    auto [row, flow_identification] =
       find_flow_index(direct_key, reversed_key, packet.vlan_id);
 
-   if (std::holds_alternative<size_t>(flow_identification)) {
-      const size_t hash_value = std::get<size_t>(flow_identification);
-      const size_t empty_place = get_empty_place(row, packet.ts) + (hash_value & m_line_mask);
-      create_record(packet, empty_place, hash_value);
+   if (const size_t* hash_value = std::get_if<size_t>(&flow_identification)) {
+      //const size_t hash_value = std::visit([](const size_t hash_value){ return hash_value;},flow_identification);
+      const size_t empty_place = get_empty_place(row, packet.ts) + (*hash_value & m_line_mask);
+      create_record(packet, empty_place, *hash_value);
       export_expired(packet.ts);
       return 0;
    }
