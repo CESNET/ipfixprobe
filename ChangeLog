@@ -1,3 +1,9 @@
+2025-02-14 ipfixprobe-4.16.0
+	* Parser: Fix packet parsing issue when --with-pcap is enabled
+	* DPDK: Increase default mempool size from 4096 to 8192
+	* DPDK: Set RX queue size as (mempool size / 2)
+	* DPDK: Fix multiple DPDK telemetry files registration
+
 2024-12-27 ipfixprobe-4.15.0
 	* dpdk: Add DPDK telemetry
 	* dpdk: add DPDK port telemetry
