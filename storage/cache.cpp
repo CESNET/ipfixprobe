@@ -66,9 +66,6 @@ std::string NHTFlowCache::get_name() const noexcept
 
 NHTFlowCache::NHTFlowCache()
 {
-   m_hash_function = [](const uint8_t* data, size_t length) -> uint64_t {
-      return XXH64(data, length, 0);
-   };
 }
 
 NHTFlowCache::~NHTFlowCache()
@@ -210,13 +207,13 @@ void NHTFlowCache::flush(Packet &pkt, size_t flow_index, int return_flags)
    try_to_export(flow_index, false, pkt.ts, FLOW_END_FORCED);
 }
 
-std::tuple<CacheRowSpan, std::optional<size_t>, size_t>
+NHTFlowCache::FlowSearch
 NHTFlowCache::find_row(const std::variant<FlowKeyv4, FlowKeyv6>& key, const std::optional<uint16_t>& vlan_id) noexcept
 {
    const auto [data, length] = std::visit([](const auto& key) {
       return std::make_pair(reinterpret_cast<const uint8_t*>(&key), sizeof(key));
    }, key);
-   const size_t hash_value = m_hash_function(data, length);
+   const size_t hash_value = XXH64(data, length, 0);
    const size_t first_flow_in_row = hash_value & m_line_mask;
    const CacheRowSpan row(&m_flow_table[first_flow_in_row], m_line_size);
    if (const std::optional<size_t> flow_index = row.find_by_hash(hash_value, vlan_id); flow_index.has_value()) {
@@ -225,25 +222,21 @@ NHTFlowCache::find_row(const std::variant<FlowKeyv4, FlowKeyv6>& key, const std:
    return {row, std::nullopt, hash_value};
 }
 
-std::pair<CacheRowSpan, std::variant<std::pair<size_t, bool>, size_t>>
+std::pair<NHTFlowCache::FlowSearch, bool>
 NHTFlowCache::find_flow_index(const std::variant<FlowKeyv4, FlowKeyv6>& key,
-   const std::variant<FlowKeyv4, FlowKeyv6>& key_reversed, const std::optional<uint16_t>& vlan_id) noexcept
+const std::variant<FlowKeyv4, FlowKeyv6>& key_reversed, const std::optional<uint16_t>& vlan_id) noexcept
 {
-
-   const auto [direct_row, direct_flow_index, direct_hash_value] = find_row(key, vlan_id);
-   if (direct_flow_index.has_value()) {
-      return {direct_row, std::make_pair(*direct_flow_index, true)};
-   }
-   if (m_split_biflow) {
-      return {direct_row, direct_hash_value};
+   const FlowSearch direct_search = find_row(key, vlan_id);
+   if (direct_search.flow_index.has_value() || m_split_biflow) {
+      return {direct_search, true};
    }
 
-   const auto [reversed_row, reversed_flow_index, reversed_hash_value] = find_row(key_reversed, vlan_id);
-   if (reversed_flow_index.has_value()) {
-      return {reversed_row, std::make_pair(*reversed_flow_index, false)};
+   const FlowSearch reverse_search = find_row(key_reversed, vlan_id);
+   if (reverse_search.flow_index.has_value()) {
+      return {reverse_search, false};
    }
 
-   return {direct_row, direct_hash_value};
+   return {direct_search, true};
 }
 
 static bool is_tcp_connection_restart(const Packet& packet, const Flow& flow) noexcept
@@ -509,7 +502,6 @@ static bool check_ip_version(const Packet& pkt) noexcept
 int NHTFlowCache::put_pkt(Packet& packet)
 {
    plugins_pre_create(packet);
-   packet.source_pkt = true;
 
    if (m_enable_fragmentation_cache) {
       try_to_fill_ports_to_fragmented_packet(packet);
@@ -524,22 +516,22 @@ int NHTFlowCache::put_pkt(Packet& packet)
       packet.src_port, packet.dst_port, packet.ip_proto, static_cast<IP>(packet.ip_version));
 
    prefetch_export_expired();
-   
-   auto [row, flow_identification] =
+
+   auto [flow_search, source_to_destination] =
       find_flow_index(direct_key, reversed_key, packet.vlan_id);
 
-   if (std::holds_alternative<size_t>(flow_identification)) {
-      const size_t hash_value = std::get<size_t>(flow_identification);
-      const size_t empty_place = get_empty_place(row, packet.ts) + (hash_value & m_line_mask);
-      create_record(packet, empty_place, hash_value);
+   packet.source_pkt = source_to_destination;
+
+   if (!flow_search.flow_index.has_value()) {
+      const size_t empty_place = get_empty_place(flow_search.cache_row, packet.ts) + (flow_search.hash_value & m_line_mask);
+      create_record(packet, empty_place, flow_search.hash_value);
       export_expired(packet.ts);
       return 0;
    }
 
-   const auto& [flow_index, source_to_destination] = std::get<std::pair<size_t, bool>>(flow_identification);
+   size_t flow_index = *flow_search.flow_index;
 
 #ifdef WITH_CTT
-   const size_t hash_value = m_flow_table[flow_index]->m_flow.flow_hash;
    const bool flow_is_waiting_for_export = !try_to_export_delayed_flow(packet, flow_index) && m_flow_table[flow_index]->is_waiting_for_export;
 #else
    constexpr bool flow_is_waiting_for_export = false;
@@ -547,21 +539,19 @@ int NHTFlowCache::put_pkt(Packet& packet)
 
 #ifdef WITH_CTT
    if (m_flow_table[flow_index]->is_empty()) {
-      create_record(packet, flow_index, hash_value);
+      create_record(packet, flow_index, flow_search.hash_value);
       export_expired(packet.ts);
       return 0;
    }
 #endif /* WITH_CTT */
 
-   packet.source_pkt = source_to_destination;
    /* Existing flow record was found, put flow record at the first index of flow line. */
-
    const size_t relative_flow_index = flow_index % m_line_size;
    m_cache_stats.lookups += relative_flow_index + 1;
    m_cache_stats.lookups2 += (relative_flow_index + 1) * (relative_flow_index + 1);
    m_cache_stats.hits++;
 
-   row.advance_flow(relative_flow_index);
+   flow_search.cache_row.advance_flow(relative_flow_index);
    return update_flow(packet, flow_index - relative_flow_index, flow_is_waiting_for_export);
 }
 

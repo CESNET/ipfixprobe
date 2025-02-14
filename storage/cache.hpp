@@ -89,7 +89,6 @@ private:
    bool m_enable_fragmentation_cache{true};
    std::vector<FlowRecord*> m_flow_table;
    std::vector<FlowRecord> m_flows;
-   std::function<size_t(const uint8_t* data, size_t length)> m_hash_function;
 
    FragmentationCache m_fragmentation_cache{0,0};
    FlowEndReasonStats m_flow_end_reason_stats = {};
@@ -116,10 +115,18 @@ private:
    void prefetch_export_expired() const;
    void get_parser_options(CacheOptParser& parser) noexcept;
    void push_to_export_queue(size_t flow_index) noexcept;
-   std::pair<CacheRowSpan, std::variant<std::pair<size_t, bool>, size_t>>
+
+   struct FlowSearch {
+      CacheRowSpan cache_row; // Cache row where the flow to which packet belongs must be stored
+      std::optional<size_t> flow_index; // Index of the flow in the table, if found
+      size_t hash_value; // Hash value of the flow
+   };
+
+   std::pair<FlowSearch, bool>
    find_flow_index(const std::variant<FlowKeyv4, FlowKeyv6>& key,
                    const std::variant<FlowKeyv4, FlowKeyv6>& key_reversed, const std::optional<uint16_t>& vlan_id = std::nullopt) noexcept;
-   std::tuple<CacheRowSpan, std::optional<size_t>, size_t>
+
+   FlowSearch
    find_row(const std::variant<FlowKeyv4, FlowKeyv6>& key, const std::optional<uint16_t>& vlan_id = std::nullopt) noexcept;
    bool try_to_export_on_inactive_timeout(size_t flow_index, const timeval& now) noexcept;
    bool try_to_export_on_active_timeout(size_t flow_index, const timeval& now) noexcept;
