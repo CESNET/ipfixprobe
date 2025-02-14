@@ -528,10 +528,9 @@ int NHTFlowCache::put_pkt(Packet& packet)
    auto [row, flow_identification] =
       find_flow_index(direct_key, reversed_key, packet.vlan_id);
 
-   if (const size_t* hash_value = std::get_if<size_t>(&flow_identification)) {
-      //const size_t hash_value = std::visit([](const size_t hash_value){ return hash_value;},flow_identification);
-      const size_t empty_place = get_empty_place(row, packet.ts) + (*hash_value & m_line_mask);
-      create_record(packet, empty_place, *hash_value);
+   if (const size_t hash_value = std::holds_alternative<size_t>(flow_identification)) {
+      const size_t empty_place = get_empty_place(row, packet.ts) + (hash_value & m_line_mask);
+      create_record(packet, empty_place, hash_value);
       export_expired(packet.ts);
       return 0;
    }
