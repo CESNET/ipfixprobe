@@ -1,3 +1,8 @@
+2025-02-06 (Pavel Siska): Parser - Fix packet parsing issue when --with-pcap is enabled Ensure correct packet parsing for input modules like dpdk, dpdk-ring, and nfb when compiled with --with-pcap. Previously, the parser relied on opt->datalink, which these inputs do not set, leading to incorrect layer detection. Now, it correctly defaults to Ethernet when necessary.
+2025-02-06 (Pavel Siska): Dpdk - increase default mempool size from 4096 to 8192
+2025-02-06 (Pavel Siska): Dpdk - set RX queue size as (mempool size / 2)
+2025-01-02 (Pavel Siska): dpdk: fix multiple dpdk telemetry files registration
+
 2024-12-27 (Pavel Siska): dpdk: Add DPDK telemetry
 2024-12-27 (Pavel Siska): dpdk: add DPDK port telemetry
 2024-12-27 (Pavel Siska): dpdk: add compatible definition macro to dpdkCompact Add RTE_ETH_RSS_GENEVE macro
