@@ -25,7 +25,9 @@ ipfixprobe_input_src=\
 		input/benchmark.hpp \
 		input/parser.cpp \
 		input/parser.hpp \
-		input/headers.hpp
+		input/headers.hpp \
+		input/topPorts.hpp \
+		input/topPorts.cpp
 
 # How to create loadable example.so plugin:
 #pkglib_LTLIBRARIES=example.la

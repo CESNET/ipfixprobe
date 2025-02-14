@@ -25,7 +25,9 @@
 
 #pragma once
 
+#include "../../input/topPorts.hpp"
 #include <cstdint>
+#include <array>
 
 namespace ipxp {
 
@@ -46,6 +48,8 @@ struct ParserStats {
 
    uint64_t seen_packets;
    uint64_t unknown_packets;
+
+   TopPorts top_ports{10};
 };
 
 } // namespace ipxp
