@@ -515,8 +515,6 @@ int NHTFlowCache::put_pkt(Packet& packet)
       try_to_fill_ports_to_fragmented_packet(packet);
    }
 
-   prefetch_export_expired();
-
    if (!check_ip_version(packet)) {
       return 0;
    }
@@ -525,6 +523,8 @@ int NHTFlowCache::put_pkt(Packet& packet)
    const std::variant<FlowKeyv4, FlowKeyv6> reversed_key = *FlowKeyFactory::create_reversed_key(&packet.src_ip, &packet.dst_ip,
       packet.src_port, packet.dst_port, packet.ip_proto, static_cast<IP>(packet.ip_version));
 
+   prefetch_export_expired();
+   
    auto [row, flow_identification] =
       find_flow_index(direct_key, reversed_key, packet.vlan_id);
 
