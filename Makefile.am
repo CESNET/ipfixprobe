@@ -99,6 +99,7 @@ ipfixprobe_process_src=\
 		process/tls.hpp \
 		process/tls_parser.cpp \
 		process/tls_parser.hpp \
+		process/sha256.hpp \
 		process/smtp.cpp \
 		process/smtp.hpp \
 		process/dns-utils.hpp \
