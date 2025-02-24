@@ -1,0 +1,14 @@
+project(ipfixprobe-process-rtsp VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-rtsp plugin")
+
+add_library(ipfixprobe-process-rtsp SHARED
+    src/rtsp.cpp
+    src/rtsp.hpp
+)
+
+target_include_directories(ipfixprobe-process-rtsp PRIVATE ${CMAKE_SOURCE_DIR}/include/)
+target_include_directories(ipfixprobe-process-rtsp PRIVATE ${CMAKE_SOURCE_DIR}/src/plugins/process/common)
+
+install(
+    TARGETS ipfixprobe-process-rtsp
+    LIBRARY DESTINATION "${INSTALL_DIR_LIB}/ipfixprobe/process/"
+)

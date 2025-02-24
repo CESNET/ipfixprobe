@@ -28,6 +28,8 @@
 #ifndef IPXE_PLUGIN_HPP
 #define IPXE_PLUGIN_HPP
 
+#include "api.hpp"
+
 #include <exception>
 #include <string>
 
@@ -49,7 +51,7 @@ struct PluginRecord {
    }
 };
 
-void register_plugin(PluginRecord *rec);
+IPXP_API void register_plugin(PluginRecord *rec);
 
 class Plugin
 {
@@ -57,10 +59,14 @@ public:
    Plugin() {}
    virtual ~Plugin() {}
 
-   virtual void init(const char *params) {}
+   virtual void init(const char *params) 
+   {
+      (void)params;
+   }
+   
    virtual void close() {}
 
-   virtual OptionsParser *get_parser() const = 0;
+   virtual OptionsParser *get_parser() const {};
    virtual std::string get_name() const = 0;
 };
 

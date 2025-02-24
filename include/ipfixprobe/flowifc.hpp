@@ -34,7 +34,6 @@
 
 /* Interface between flow cache and flow exporter. */
 
-#include <config.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -50,12 +49,14 @@
 #include "ipaddr.hpp"
 #include <string>
 
+#include "api.hpp"
+
 namespace ipxp {
 
 #define BASIC_PLUGIN_NAME "basic"
 
 int register_extension();
-int get_extension_cnt();
+IPXP_API int get_extension_cnt();
 
 /**
  * \brief Flow record extension base struct.
@@ -100,6 +101,9 @@ struct RecordExt {
     */
    virtual int fill_ipfix(uint8_t *buffer, int size)
    {
+      (void) buffer;
+      (void) size;
+      
       return 0;
    }
 
@@ -170,7 +174,7 @@ struct Record {
     * \param [in] id Type of extension.
     * \return Pointer to the requested extension or nullptr if extension is not present.
     */
-   RecordExt *get_extension(int id) const
+   RecordExt * get_extension(int id) const
    {
       RecordExt *ext = m_exts;
       while (ext != nullptr) {

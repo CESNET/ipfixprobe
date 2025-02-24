@@ -27,8 +27,7 @@
  *
  */
 
-#ifndef IPXP_PROCESS_HPP
-#define IPXP_PROCESS_HPP
+#pragma once
 
 #include <string>
 #include <vector>
@@ -119,5 +118,18 @@ public:
    }
 };
 
+/**
+ * @brief Factory template for creating plugins.
+ *
+ * @tparam Base The base class for the plugin.
+ * @tparam Args The argument types for the factory.
+ */
+template<typename Base, typename... Args>
+class PluginFactory;
+
+/**
+ * @brief Type alias for the ProcessPlugin factory.
+ */
+using ProcessPluginFactory = PluginFactory<ProcessPlugin, const std::string>;
+
 }
-#endif /* IPXP_PROCESS_HPP */

@@ -106,7 +106,7 @@ struct Packet : public Record {
     * \brief Constructor.
     */
    Packet() :
-      ts({0}),
+      ts({0, 0}),
       dst_mac(), src_mac(), ethertype(0),
       ip_len(0), ip_payload_len(0), ip_version(0), ip_ttl(0),
       ip_proto(0), ip_tos(0), ip_flags(0), src_ip({0}), dst_ip({0}), vlan_id(0),

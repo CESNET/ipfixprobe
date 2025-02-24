@@ -72,5 +72,19 @@ public:
    }
 };
 
+/**
+ * @brief Factory template for creating plugins.
+ *
+ * @tparam Base The base class for the plugin.
+ * @tparam Args The argument types for the factory.
+ */
+template<typename Base, typename... Args>
+class PluginFactory;
+
+/**
+ * @brief Type alias for the OutputPlugin factory.
+ */
+using OutputPluginFactory = PluginFactory<OutputPlugin>;
+
 }
 #endif /* IPXP_OUTPUT_HPP */

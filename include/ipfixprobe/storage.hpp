@@ -198,5 +198,19 @@ protected:
    }
 };
 
+/**
+ * @brief Factory template for creating plugins.
+ *
+ * @tparam Base The base class for the plugin.
+ * @tparam Args The argument types for the factory.
+ */
+template<typename Base, typename... Args>
+class PluginFactory;
+
+/**
+ * @brief Type alias for the StoragePlugin factory.
+ */
+using StoragePluginFactory = PluginFactory<StoragePlugin, const std::string, ipx_ring_t*>;
+
 }
 #endif /* IPXP_STORAGE_HPP */

@@ -37,9 +37,11 @@
 #include <iostream>
 #include <cstdint>
 
+#include "api.hpp"
+
 namespace ipxp {
 
-class OptionsParser
+class IPXP_API OptionsParser
 {
 public:
    static const char DELIM = ';';
