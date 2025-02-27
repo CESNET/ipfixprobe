@@ -248,95 +248,65 @@ uint64_t QUICParser::quic_get_variable_length(const uint8_t* start, uint64_t& of
     }
 } // QUICParser::quic_get_variable_length
 
-bool QUICParser::quic_obtain_tls_data(TLSData& payload)
+bool QUICParser::quic_parse_tls_extensions()
 {
-    quic_tls_extension_lengths_pos = 0;
-    quic_tls_ext_type_pos = 0;
-    quic_tls_ext_pos = 0;
-    while (payload.start + sizeof(tls_ext) <= payload.end) {
-        tls_ext* ext = (tls_ext*) payload.start;
-        uint16_t type = ntohs(ext->type);
-        uint16_t length = ntohs(ext->length);
-
-        // Store extension type
-        if (quic_tls_ext_type_pos < MAX_QUIC_TLS_EXT_LEN) {
-            quic_tls_ext_type[quic_tls_ext_type_pos] = type;
-            quic_tls_ext_type_pos += 1;
-        }
-
-        // Store extension type length
-        if (quic_tls_extension_lengths_pos < MAX_QUIC_TLS_EXT_LEN) {
-            quic_tls_extension_lengths[quic_tls_extension_lengths_pos] = length;
-            quic_tls_extension_lengths_pos += 1;
-        }
-
-        //
-        payload.start += sizeof(tls_ext);
-
-        if (payload.start + length > payload.end) {
-            break;
-        }
-
-        // Save value payload except for length
-        if (quic_tls_ext_pos + length < CURRENT_BUFFER_SIZE) {
-#ifndef QUIC_CH_FULL_TLS_EXT
-            if (type == TLS_EXT_ALPN || type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1
-                || type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS
-                || type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2) {
-#endif
-                memcpy(quic_tls_ext + quic_tls_ext_pos, payload.start, length);
-                quic_tls_ext_pos += length;
-#ifndef QUIC_CH_FULL_TLS_EXT
+    const bool extensions_parsed = tls_parser.parse_extensions([this](
+        uint16_t extension_type,
+        const uint8_t* extension_payload,
+        uint16_t extension_length) {
+            if (extension_type == TLS_EXT_SERVER_NAME && extension_length != 0) {
+                tls_parser.parse_server_names(extension_payload, extension_length);
+            } else if (
+                (extension_type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1
+                 || extension_type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS
+                 || extension_type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2)
+                && extension_length != 0) {
+                tls_parser.parse_quic_user_agent(extension_payload, extension_length);
             }
+            if (quic_tls_ext_pos + extension_length < CURRENT_BUFFER_SIZE) {
+#ifndef QUIC_CH_FULL_TLS_EXT
+                if (extension_type == TLS_EXT_ALPN || extension_type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1
+                    || extension_type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS
+                    || extension_type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2) {
 #endif
-        }
-
-        // Legacy extract specific fields
-        if (type == TLS_EXT_SERVER_NAME && length != 0) {
-            tls_parser.tls_get_server_name(payload, sni, BUFF_SIZE);
-        } else if (
-            (type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1
-             || type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS
-             || type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2)
-            && length != 0) {
-            tls_parser.tls_get_quic_user_agent(payload, user_agent, BUFF_SIZE);
-        }
-        payload.start += length;
+                    memcpy(quic_tls_ext + quic_tls_ext_pos, extension_payload, extension_length);
+                    quic_tls_ext_pos += extension_length;
+#ifndef QUIC_CH_FULL_TLS_EXT
+                }
+#endif
+            }
+            tls_parser.add_extension(extension_type, extension_length);
+    });
+    if (!extensions_parsed) {
+        return false;
     }
-    return payload.obejcts_parsed != 0;
+    tls_parser.save_server_names(sni, BUFF_SIZE);
+    tls_parser.save_quic_user_agent(user_agent, BUFF_SIZE);
+
+    const size_t copy_count = std::min<size_t>(tls_parser.get_extensions().size(), MAX_QUIC_TLS_EXT_LEN);
+    std::transform(tls_parser.get_extensions().begin(),
+                   tls_parser.get_extensions().begin() + static_cast<ssize_t>(copy_count),
+                   std::begin(quic_tls_ext_type),
+                   [](const TLSExtension& typeLength) {
+                       return typeLength.type;
+                   });
+    std::transform(tls_parser.get_extensions().begin(),
+                   tls_parser.get_extensions().begin() + static_cast<ssize_t>(copy_count),
+                   std::begin(quic_tls_extension_lengths),
+                   [](const TLSExtension& typeLength) {
+                       return typeLength.length;
+                   });
+    quic_tls_ext_type_pos = quic_tls_extension_lengths_pos = copy_count;
+    return true;
 }
 
 bool QUICParser::quic_parse_tls()
 {
-    TLSData payload = {
-        payload.start = final_payload + quic_crypto_start,
-        payload.end = final_payload + quic_crypto_start + quic_crypto_len,
-        payload.obejcts_parsed = 0,
-    };
-
-    if (!tls_parser.tls_check_handshake(payload)) {
+    if (!tls_parser.parse_quic_tls(final_payload + quic_crypto_start, quic_crypto_len)) {
         return false;
     }
-    if (!tls_parser.tls_skip_random(payload)) {
-        return false;
-    }
-    if (!tls_parser.tls_skip_sessid(payload)) {
-        return false;
-    }
-    if (!tls_parser.tls_skip_cipher_suites(payload)) {
-        return false;
-    }
-    if (!tls_parser.tls_skip_compression_met(payload)) {
-        return false;
-    }
-    if (!tls_parser.tls_check_ext_len(payload)) {
-        return false;
-    }
-    // If no parameters were extracted. We also accept the QUIC connection. (no error check here)
-    quic_obtain_tls_data(payload);
-
-    return true;
-} // QUICPlugin::quic_parse_tls
+    return quic_parse_tls_extensions();
+}
 
 uint8_t QUICParser::quic_draft_version(uint32_t version)
 {
@@ -1394,14 +1364,16 @@ bool QUICParser::quic_parse_headers(const Packet& pkt, bool forceInitialParsing)
 
 bool QUICParser::quic_set_server_port(const Packet& pkt)
 {
-    tls_handshake hs = tls_parser.tls_get_handshake();
+    if (!tls_parser.get_handshake().has_value()) {
+        return false;
+    }
 
     switch (packet_type) {
     case INITIAL:
-        tls_hs_type = hs.type;
-        if (hs.type == 1) {
+        tls_hs_type = tls_parser.get_handshake()->type;
+        if (tls_hs_type == 1) {
             server_port = pkt.dst_port;
-        } else if (hs.type == 2) {
+        } else if (tls_hs_type == 2) {
             // Won't be reached, since we don't supply the OCCID to quic_parser
             server_port = pkt.src_port;
         }
