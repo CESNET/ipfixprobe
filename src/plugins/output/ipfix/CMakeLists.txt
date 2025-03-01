@@ -8,7 +8,7 @@ add_library(ipfixprobe-output-ipfix SHARED
 
 target_include_directories(ipfixprobe-output-ipfix PRIVATE ${CMAKE_SOURCE_DIR}/include/)
 
-target_link_libraries(ipfixprobe-output-ipfix PRIVATE lz4)
+target_link_libraries(ipfixprobe-output-ipfix PRIVATE lz4::lz4)
 
 install(
     TARGETS ipfixprobe-output-ipfix

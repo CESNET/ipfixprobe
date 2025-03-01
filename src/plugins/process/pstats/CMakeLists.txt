@@ -5,8 +5,10 @@ add_library(ipfixprobe-process-pstats SHARED
     src/pstats.hpp
 )
 
-target_include_directories(ipfixprobe-process-pstats PRIVATE ${CMAKE_SOURCE_DIR}/include/)
-target_include_directories(ipfixprobe-process-pstats PRIVATE ${CMAKE_SOURCE_DIR}/src/plugins/process/common)
+target_include_directories(ipfixprobe-process-pstats PRIVATE
+    ${CMAKE_SOURCE_DIR}/include/
+    ${CMAKE_SOURCE_DIR}/src/plugins/process/common
+)
 
 install(
     TARGETS ipfixprobe-process-pstats

@@ -1,7 +1,7 @@
 # Try to find libxxhash (devel)
 # Once done, this will define
 #
-# XXHASH_FOUND          - system nhas xxhash
+# XXHASH_FOUND          - system has xxhash
 # XXHASH_INCLUDE_DIRS   - xxhash include directories
 # XXHASH_LIBRARIES      - xxhash libraries directories
 # XXHASH_LIBRARY_STATIC - xxhash static library

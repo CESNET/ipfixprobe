@@ -139,13 +139,13 @@ private:
     struct NfbTimestamp {
         uint32_t timestamp_ns;
         uint32_t timestamp_s;
-    } __rte_packed;
+    } __attribute__((packed));
 
     struct NfbMetadata {
         NfbTimestamp timestamp;
         uint16_t matched;
         uint32_t hash;
-    } __rte_packed;
+    } __attribute__((packed));
 
     telemetry::Content get_queue_telemetry();
     void getDynfieldInfo();

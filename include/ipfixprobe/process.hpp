@@ -125,7 +125,7 @@ public:
  * @tparam Args The argument types for the factory.
  */
 template<typename Base, typename... Args>
-class PluginFactory;
+class IPXP_API PluginFactory;
 
 /**
  * @brief Type alias for the ProcessPlugin factory.

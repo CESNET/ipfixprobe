@@ -36,11 +36,12 @@
 
 namespace ipxp {
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-   static PluginRecord rec = PluginRecord("stats", [](){return new StatsPlugin();});
-   register_plugin(&rec);
-}
+static const PluginManifest statsPluginManifest = {
+    .name = "stats",
+    .description = "",
+    .pluginVersion = "1.0.0",
+    .apiVersion = "1.0.0",
+};
 
 StatsPlugin::StatsPlugin() :
    m_packets(0), m_new_flows(0), m_cache_hits(0), m_flows_in_cache(0), m_init_ts(true),
@@ -139,5 +140,7 @@ void StatsPlugin::print_line(const struct timeval &ts) const
    *m_out << ts.tv_sec << "." << ts.tv_usec << " ";
    *m_out << m_packets << " " << m_cache_hits << " " << m_new_flows << " " << m_flows_in_cache << std::endl;
 }
+
+static const PluginRegistrar<StatsPlugin, ProcessPluginFactory> statsRegistrar(statsPluginManifest);
 
 }

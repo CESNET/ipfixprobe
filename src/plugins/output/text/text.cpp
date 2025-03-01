@@ -31,16 +31,18 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <ipfixprobe.hpp>
 
 #include "text.hpp"
 
 namespace ipxp {
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-   static PluginRecord rec = PluginRecord("text", [](){return new TextExporter();});
-   register_plugin(&rec);
-}
+static const PluginManifest textPluginManifest = {
+   .name = "text",
+   .description = ".",
+   .pluginVersion = "1.0.0",
+   .apiVersion = "1.0.0",
+};
 
 TextExporter::TextExporter() : m_out(&std::cout), m_hide_mac(false)
 {
@@ -157,5 +159,7 @@ void TextExporter::print_basic_flow(const Flow &flow)
       time_begin << "->" << time_end;
 
 }
+
+static const PluginRegistrar<TextExporter, OutputPluginFactory> textRegistrar(textPluginManifest);
 
 }

@@ -5,8 +5,10 @@ add_library(ipfixprobe-process-ovpn SHARED
     src/ovpn.hpp
 )
 
-target_include_directories(ipfixprobe-process-ovpn PRIVATE ${CMAKE_SOURCE_DIR}/include/)
-target_include_directories(ipfixprobe-process-ovpn PRIVATE ${CMAKE_SOURCE_DIR}/src/plugins/process/common)
+target_include_directories(ipfixprobe-process-ovpn PRIVATE
+    ${CMAKE_SOURCE_DIR}/include/
+    ${CMAKE_SOURCE_DIR}/src/plugins/process/common
+)
 
 install(
     TARGETS ipfixprobe-process-ovpn

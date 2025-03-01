@@ -32,14 +32,14 @@
 
 namespace ipxp {
 
-int RecordExtIDPCONTENT::REGISTERED_ID = -1;
+int RecordExtIDPCONTENT::REGISTERED_ID = register_extension();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-   static PluginRecord rec = PluginRecord("idpcontent", [](){return new IDPCONTENTPlugin();});
-   register_plugin(&rec);
-   RecordExtIDPCONTENT::REGISTERED_ID = register_extension();
-}
+static const PluginManifest idpcontentPluginManifest = {
+    .name = "idpcontent",
+    .description = "",
+    .pluginVersion = "1.0.0",
+    .apiVersion = "1.0.0",
+};
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
@@ -95,5 +95,7 @@ int IDPCONTENTPlugin::post_update(Flow &rec, const Packet &pkt)
    update_record(idpcontent_data, pkt);
    return 0;
 }
+
+static const PluginRegistrar<IDPCONTENTPlugin, ProcessPluginFactory> idpcontentRegistrar(idpcontentPluginManifest);
 
 }

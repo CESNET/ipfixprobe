@@ -213,10 +213,12 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
 
    auto& inputFactory = InputPluginFactory::getInstance();
    auto& outputFactory = OutputPluginFactory::getInstance();
+   auto& storageFactory = StoragePluginFactory::getInstance();
 
    PluginManager mgr;
    mgr.loadPlugins("/usr/local/lib64/ipfixprobe/input/");
    mgr.loadPlugins("/usr/local/lib64/ipfixprobe/output/");
+   mgr.loadPlugins("/usr/local/lib64/ipfixprobe/storage/");
 
    {
       std::cout << "Input plugins: " << std::endl;
@@ -227,6 +229,12 @@ bool process_plugin_args(ipxp_conf_t &conf, IpfixprobeOptParser &parser)
 
       std::cout << "output plugins: " << std::endl;
       for (auto& manifest: outputFactory.getRegisteredPlugins()) {
+         std::cout << "Manifest: " << manifest.name << std::endl;
+         std::cout << "----------------\n";
+      }
+
+      std::cout << "storage plugins: " << std::endl;
+      for (auto& manifest: storageFactory.getRegisteredPlugins()) {
          std::cout << "Manifest: " << manifest.name << std::endl;
          std::cout << "----------------\n";
       }

@@ -61,15 +61,16 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/byte-utils.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
+#include <ipfixprobe.hpp>
 #include "ipfix.hpp"
-
 namespace ipxp {
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-   static PluginRecord rec = PluginRecord("ipfix", [](){return new IPFIXExporter();});
-   register_plugin(&rec);
-}
+static const PluginManifest ipfixPluginManifest = {
+   .name = "ipfix",
+   .description = ".",
+   .pluginVersion = "1.0.0",
+   .apiVersion = "1.0.0",
+};
 
 #define GCC_CHECK_PRAGMA ((__GNUC__ == 4 && 6 <= __GNUC_MINOR__) || 4 < __GNUC__)
 
@@ -1467,5 +1468,7 @@ int IPFIXExporter::fill_basic_flow(const Flow &flow, template_t *tmplt)
 
    return length;
 }
+
+static const PluginRegistrar<IPFIXExporter, OutputPluginFactory> ipfixRegistrar(ipfixPluginManifest);
 
 }

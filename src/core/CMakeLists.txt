@@ -33,8 +33,8 @@ target_link_libraries(ipfixprobe PRIVATE
 	telemetry::appFs
 	spdlog::spdlog
 	pthread
-	atomic
-	unwind
+	atomic::atomic
+	unwind::unwind
 	#ipfixprobe-storage-cache
 	#ipfixprobe-process-basicplus
 	#ipfixprobe-process-bstats
@@ -55,7 +55,7 @@ target_link_libraries(ipfixprobe PRIVATE
 	#ipfixprobe-process-smtp
 	#ipfixprobe-process-quic
 	ipfixprobe-output-ipfix
-	#ipfixprobe-output-text
+	ipfixprobe-output-text
 	${CMAKE_DL_LIBS}
 )
 

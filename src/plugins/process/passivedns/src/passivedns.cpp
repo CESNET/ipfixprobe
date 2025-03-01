@@ -48,14 +48,14 @@
 
 namespace ipxp {
 
-int RecordExtPassiveDNS::REGISTERED_ID = -1;
+int RecordExtPassiveDNS::REGISTERED_ID = register_extension();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-   static PluginRecord rec = PluginRecord("passivedns", [](){return new PassiveDNSPlugin();});
-   register_plugin(&rec);
-   RecordExtPassiveDNS::REGISTERED_ID = register_extension();
-}
+static const PluginManifest passivednsPluginManifest = {
+    .name = "passivedns",
+    .description = "",
+    .pluginVersion = "1.0.0",
+    .apiVersion = "1.0.0",
+};
 
 //#define DEBUG_PASSIVEDNS
 
@@ -503,5 +503,7 @@ int PassiveDNSPlugin::add_ext_dns(const char *data, unsigned int payload_len, bo
 
    return FLOW_FLUSH;
 }
+
+static const PluginRegistrar<PassiveDNSPlugin, ProcessPluginFactory> passivednsRegistrar(passivednsPluginManifest);
 
 }

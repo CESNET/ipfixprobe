@@ -33,14 +33,14 @@
 
 namespace ipxp {
 
-int RecordExtSSADetector::REGISTERED_ID = -1;
+int RecordExtSSADetector::REGISTERED_ID = register_extension();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-   static PluginRecord rec = PluginRecord("ssadetector", []() { return new SSADetectorPlugin(); });
-   register_plugin(&rec);
-   RecordExtSSADetector::REGISTERED_ID = register_extension();
-}
+static const PluginManifest ssadetectorPluginManifest = {
+    .name = "ssadetector",
+    .description = "",
+    .pluginVersion = "1.0.0",
+    .apiVersion = "1.0.0",
+};
 
 SSADetectorPlugin::SSADetectorPlugin()
 {
@@ -277,5 +277,7 @@ int8_t RecordExtSSADetector::pkt_table::get_idx_from_len(uint16_t len)
 {
    return std::max(int(len) - MIN_PKT_SIZE, 0);
 }
+
+static const PluginRegistrar<SSADetectorPlugin, ProcessPluginFactory> ssadetectorRegistrar(ssadetectorPluginManifest);
 
 } // namespace ipxp

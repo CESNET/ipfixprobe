@@ -29,7 +29,7 @@
  *
  */
 
-#include <config.h>
+//#include <config.h>
 
 #ifdef WITH_NEMEA
 
@@ -38,11 +38,19 @@
 #include <algorithm>
 #include <libtrap/trap.h>
 #include <unirec/unirec.h>
+#include <ipfixprobe.hpp>
 
 #include "unirec.hpp"
 #include "fields.h"
 
 namespace ipxp {
+
+static const PluginManifest unirecPluginManifest = {
+   .name = "unirec",
+   .description = ".",
+   .pluginVersion = "1.0.0",
+   .apiVersion = "1.0.0",
+};
 
 __attribute__((constructor)) static void register_this_plugin()
 {
@@ -430,6 +438,8 @@ void UnirecExporter::fill_basic_flow(const Flow &flow, ur_template_t *tmplt_ptr,
    ur_set(tmplt_ptr, record_ptr, F_DST_MAC, mac_from_bytes(const_cast<uint8_t*>(flow.dst_mac)));
    ur_set(tmplt_ptr, record_ptr, F_SRC_MAC, mac_from_bytes(const_cast<uint8_t*>(flow.src_mac)));
 }
+
+static const PluginRegistrar<UnirecExporter, OutputPluginFactory> unirecRegistrar(unirecPluginManifest);
 
 }
 #endif

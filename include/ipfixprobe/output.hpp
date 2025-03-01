@@ -41,7 +41,7 @@ namespace ipxp {
 /**
  * \brief Base class for flow exporters.
  */
-class OutputPlugin : public Plugin
+class IPXP_API OutputPlugin : public Plugin
 {
 public:
    typedef std::vector<std::pair<std::string, ProcessPlugin *>> Plugins;
@@ -79,7 +79,7 @@ public:
  * @tparam Args The argument types for the factory.
  */
 template<typename Base, typename... Args>
-class PluginFactory;
+class IPXP_API PluginFactory;
 
 /**
  * @brief Type alias for the OutputPlugin factory.

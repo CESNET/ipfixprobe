@@ -34,14 +34,14 @@ static const bool debug_mqtt = false;
 #endif
 namespace ipxp {
 
-int RecordExtMQTT::REGISTERED_ID = -1;
+int RecordExtMQTT::REGISTERED_ID = register_extension();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-    static PluginRecord rec = PluginRecord("mqtt", []() { return new MQTTPlugin(); });
-    register_plugin(&rec);
-    RecordExtMQTT::REGISTERED_ID = register_extension();
-}
+static const PluginManifest mqttPluginManifest = {
+    .name = "mqtt",
+    .description = "",
+    .pluginVersion = "1.0.0",
+    .apiVersion = "1.0.0",
+};
 
 int MQTTPlugin::post_create(Flow& rec, const Packet& pkt)
 {
@@ -232,5 +232,7 @@ ProcessPlugin* MQTTPlugin::copy()
 {
     return new MQTTPlugin(*this);
 }
+
+static const PluginRegistrar<MQTTPlugin, ProcessPluginFactory> mqttRegistrar(mqttPluginManifest);
 
 } // namespace ipxp

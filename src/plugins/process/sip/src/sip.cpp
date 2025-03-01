@@ -29,6 +29,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+#include <ipfixprobe.hpp>
 
 #ifdef WITH_NEMEA
 #include <unirec/unirec.h>
@@ -38,14 +39,14 @@
 
 namespace ipxp {
 
-int RecordExtSIP::REGISTERED_ID = -1;
+int RecordExtSIP::REGISTERED_ID = register_extension();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-   static PluginRecord rec = PluginRecord("sip", [](){return new SIPPlugin();});
-   register_plugin(&rec);
-   RecordExtSIP::REGISTERED_ID = register_extension();
-}
+static const PluginManifest sipPluginManifest = {
+    .name = "sip",
+    .description = "",
+    .pluginVersion = "1.0.0",
+    .apiVersion = "1.0.0",
+};
 
 SIPPlugin::SIPPlugin() : requests(0), responses(0), total(0), flow_flush(false)
 {
@@ -560,5 +561,7 @@ int SIPPlugin::parser_process_sip(const Packet &pkt, RecordExtSIP *sip_data)
 
    return 0;
 }
+
+static const PluginRegistrar<SIPPlugin, PluginFactory<ipxp::ProcessPlugin>> sipRegistrar(sipPluginManifest);
 
 }

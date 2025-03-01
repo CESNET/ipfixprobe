@@ -5,8 +5,10 @@ add_library(ipfixprobe-process-vlan SHARED
     src/vlan.hpp
 )
 
-target_include_directories(ipfixprobe-process-vlan PRIVATE ${CMAKE_SOURCE_DIR}/include/)
-target_include_directories(ipfixprobe-process-vlan PRIVATE ${CMAKE_SOURCE_DIR}/src/plugins/process/common)
+target_include_directories(ipfixprobe-process-vlan PRIVATE
+    ${CMAKE_SOURCE_DIR}/include/
+    ${CMAKE_SOURCE_DIR}/src/plugins/process/common
+)
 
 install(
     TARGETS ipfixprobe-process-vlan

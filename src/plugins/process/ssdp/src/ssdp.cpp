@@ -33,14 +33,14 @@
 
 namespace ipxp {
 
-int RecordExtSSDP::REGISTERED_ID = -1;
+int RecordExtSSDP::REGISTERED_ID = register_extension();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-   static PluginRecord rec = PluginRecord("ssdp", [](){return new SSDPPlugin();});
-   register_plugin(&rec);
-   RecordExtSSDP::REGISTERED_ID = register_extension();
-}
+static const PluginManifest ssdpPluginManifest = {
+    .name = "ssdp",
+    .description = "",
+    .pluginVersion = "1.0.0",
+    .apiVersion = "1.0.0",
+};
 
 // #define DEBUG_SSDP
 
@@ -301,5 +301,7 @@ void SSDPPlugin::parse_ssdp_message(Flow &rec, const Packet &pkt)
    }
    SSDP_DEBUG_MSG("\n");
 }
+
+static const PluginRegistrar<SSDPPlugin, ProcessPluginFactory> ssdpRegistrar(ssdpPluginManifest);
 
 }

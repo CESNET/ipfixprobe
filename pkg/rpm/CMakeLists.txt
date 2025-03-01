@@ -30,6 +30,14 @@ if (ENABLE_INPUT_NFB)
 	list(APPEND RPMBUILD_ARGS "--with" "input_nfb")
 endif()
 
+if (ENABLE_PROCESS_NETTISA)
+	list(APPEND RPMBUILD_ARGS "--with" "process_nettisa")
+endif()
+
+if (ENABLE_PROCESS_EXPERIMENTAL)
+	list(APPEND RPMBUILD_ARGS "--with" "process_experimental")
+endif()
+
 configure_file("${SPEC_FILE_IN}" "${SPEC_FILE}" @ONLY)
 
 add_custom_target(rpm

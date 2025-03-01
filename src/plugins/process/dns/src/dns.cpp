@@ -32,6 +32,7 @@
 #include <iostream>
 #include <sstream>
 #include <arpa/inet.h>
+#include <ipfixprobe.hpp>
 
 #ifdef WITH_NEMEA
 #include <unirec/unirec.h>
@@ -41,14 +42,14 @@
 
 namespace ipxp {
 
-int RecordExtDNS::REGISTERED_ID = -1;
+int RecordExtDNS::REGISTERED_ID = register_extension();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-   static PluginRecord rec = PluginRecord("dns", [](){return new DNSPlugin();});
-   register_plugin(&rec);
-   RecordExtDNS::REGISTERED_ID = register_extension();
-}
+static const PluginManifest dnsPluginManifest = {
+    .name = "dns",
+    .description = "",
+    .pluginVersion = "1.0.0",
+    .apiVersion = "1.0.0",
+};
 
 //#define DEBUG_DNS
 
@@ -674,5 +675,7 @@ int DNSPlugin::add_ext_dns(const char *data, unsigned int payload_len, bool tcp,
    }
    return FLOW_FLUSH;
 }
+
+static const PluginRegistrar<DNSPlugin, PluginFactory<ProcessPlugin>> dnsRegistrar(dnsPluginManifest);
 
 }

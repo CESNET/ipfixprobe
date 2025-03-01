@@ -27,19 +27,20 @@
  */
 
 #include <iostream>
+#include <ipfixprobe.hpp>
 
 #include "flow_hash.hpp"
 
 namespace ipxp {
 
-int RecordExtFLOW_HASH::REGISTERED_ID = -1;
+int RecordExtFLOW_HASH::REGISTERED_ID = register_extension();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-    static PluginRecord rec = PluginRecord("flow_hash", [](){return new FLOW_HASHPlugin();});
-    register_plugin(&rec);
-    RecordExtFLOW_HASH::REGISTERED_ID = register_extension();
-}
+static const PluginManifest flowhashPluginManifest = {
+    .name = "flow_hash",
+    .description = "",
+    .pluginVersion = "1.0.0",
+    .apiVersion = "1.0.0",
+};
 
 FLOW_HASHPlugin::FLOW_HASHPlugin()
 {
@@ -72,6 +73,8 @@ int FLOW_HASHPlugin::post_create(Flow &rec, const Packet &pkt)
 
     return 0;
 }
+
+static const PluginRegistrar<FLOW_HASHPlugin, PluginFactory<ProcessPlugin>> flowhashRegistrar(flowhashPluginManifest);
 
 }
 

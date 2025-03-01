@@ -5,8 +5,12 @@ add_library(ipfixprobe-process-nettisa SHARED
     src/nettisa.hpp
 )
 
-target_include_directories(ipfixprobe-process-nettisa PRIVATE ${CMAKE_SOURCE_DIR}/include/)
-target_include_directories(ipfixprobe-process-nettisa PRIVATE ${CMAKE_SOURCE_DIR}/src/plugins/process/common)
+target_include_directories(ipfixprobe-process-nettisa PRIVATE
+    ${CMAKE_SOURCE_DIR}/include/
+    ${CMAKE_SOURCE_DIR}/src/plugins/process/common
+)
+
+target_link_libraries(ipfixprobe-process-nettisa PRIVATE ipfixprobe-process-common)
 
 install(
     TARGETS ipfixprobe-process-nettisa

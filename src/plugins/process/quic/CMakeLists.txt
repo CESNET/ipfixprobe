@@ -7,8 +7,10 @@ add_library(ipfixprobe-process-quic SHARED
     src/quic_parser.hpp
 )
 
-target_include_directories(ipfixprobe-process-quic PRIVATE ${CMAKE_SOURCE_DIR}/include/)
-target_include_directories(ipfixprobe-process-quic PRIVATE ${CMAKE_SOURCE_DIR}/src/plugins/process/common)
+target_include_directories(ipfixprobe-process-quic PRIVATE
+	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/src/plugins/process/common
+)
 
 target_link_libraries(ipfixprobe-process-quic PRIVATE 
 	crypto

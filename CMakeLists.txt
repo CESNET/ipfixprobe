@@ -34,10 +34,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(ENABLE_RPMBUILD "Enable support for building RPM packages" ON)
 
-option(ENABLE_INPUT_PCAP "Enable build of input PCAP plugin" ON)
-option(ENABLE_INPUT_DPDK "Enable build of input DPDK plugin" ON)
-option(ENABLE_INPUT_NFB  "Enable build of input NFB plugin"  ON)
-
+option(ENABLE_INPUT_PCAP              "Enable build of input PCAP plugin" ON)
+option(ENABLE_INPUT_DPDK              "Enable build of input DPDK plugin" ON)
+option(ENABLE_INPUT_NFB               "Enable build of input NFB plugin"  ON)
+option(ENABLE_RPMBUILD                "RPM build"  ON)
+option(ENABLE_PROCESS_NETTISA         "Enable build of nettisa process plugin"  ON)
+option(ENABLE_PROCESS_EXPERIMENTAL    "Enable build of additional process plugins"  ON)
+option(ENABLE_OUTPUT_UNIREC           "Enable build of unirec output plugin"  ON)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
