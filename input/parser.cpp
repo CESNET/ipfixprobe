@@ -37,6 +37,10 @@
 #include "headers.hpp"
 #include <ipfixprobe/packet.hpp>
 
+#include <iterator>
+#include <string>
+#include <sstream>
+#include <numeric>
 namespace ipxp {
 
 //#define DEBUG_PARSER
@@ -454,7 +458,7 @@ inline uint16_t parse_ipv6_hdr(const u_char *data_ptr, uint16_t data_len, Packet
  * \param [out] pkt Pointer to Packet structure where parsed fields will be stored.
  * \return Size of header in bytes.
  */
-inline uint16_t parse_tcp_hdr(const u_char *data_ptr, uint16_t data_len, Packet *pkt)
+inline uint16_t parse_tcp_hdr(ParserStats& stats, const u_char *data_ptr, uint16_t data_len, Packet *pkt)
 {
    struct tcphdr *tcp = (struct tcphdr *) data_ptr;
    if (sizeof(struct tcphdr) > data_len) {
@@ -468,6 +472,9 @@ inline uint16_t parse_tcp_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
    pkt->tcp_ack = ntohl(tcp->ack_seq);
    pkt->tcp_flags = (uint8_t) *(data_ptr + 13) & 0xFF;
    pkt->tcp_window = ntohs(tcp->window);
+
+   stats.top_ports.increment_tcp_frequency(pkt->src_port);
+   stats.top_ports.increment_tcp_frequency(pkt->dst_port);
 
    DEBUG_MSG("TCP header:\n");
    DEBUG_MSG("\tSrc port:\t%u\n",   ntohs(tcp->source));
@@ -529,7 +536,7 @@ inline uint16_t parse_tcp_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
  * \param [out] pkt Pointer to Packet structure where parsed fields will be stored.
  * \return Size of header in bytes.
  */
-inline uint16_t parse_udp_hdr(const u_char *data_ptr, uint16_t data_len, Packet *pkt)
+inline uint16_t parse_udp_hdr(ParserStats& stats, const u_char *data_ptr, uint16_t data_len, Packet *pkt)
 {
    struct udphdr *udp = (struct udphdr *) data_ptr;
    if (sizeof(struct udphdr) > data_len) {
@@ -538,6 +545,9 @@ inline uint16_t parse_udp_hdr(const u_char *data_ptr, uint16_t data_len, Packet 
 
    pkt->src_port = ntohs(udp->source);
    pkt->dst_port = ntohs(udp->dest);
+
+   stats.top_ports.increment_udp_frequency(pkt->src_port);
+   stats.top_ports.increment_udp_frequency(pkt->dst_port);
 
    DEBUG_MSG("UDP header:\n");
    DEBUG_MSG("\tSrc port:\t%u\n",   ntohs(udp->source));
@@ -731,10 +741,10 @@ void parse_packet(parser_opt_t *opt, ParserStats& stats, struct timeval ts, cons
 
       l4_hdr_offset = data_offset;
       if (pkt->ip_proto == IPPROTO_TCP) {
-         data_offset += parse_tcp_hdr(data + data_offset, caplen - data_offset, pkt);
+         data_offset += parse_tcp_hdr(stats, data + data_offset, caplen - data_offset, pkt);
          stats.tcp_packets++;
       } else if (pkt->ip_proto == IPPROTO_UDP) {
-         data_offset += parse_udp_hdr(data + data_offset, caplen - data_offset, pkt);
+         data_offset += parse_udp_hdr(stats, data + data_offset, caplen - data_offset, pkt);
          stats.udp_packets++;
       }
    } catch (const char *err) {
