@@ -9,7 +9,6 @@ project(ipfixprobe VERSION ${VERSION} LANGUAGES CXX C)
 
 include(cmake/build_type.cmake)
 include(cmake/installation.cmake)
-include(cmake/dependencies.cmake)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
@@ -32,4 +31,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -ggdb3")
 
+include(cmake/dependencies.cmake)
+
+add_subdirectory(external)
 add_subdirectory(src)
