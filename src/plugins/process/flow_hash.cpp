@@ -26,9 +26,9 @@
  *
  */
 
-#include <iostream>
-
 #include "flow_hash.hpp"
+
+#include <iostream>
 
 namespace ipxp {
 
@@ -36,42 +36,33 @@ int RecordExtFLOW_HASH::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
-    static PluginRecord rec = PluginRecord("flow_hash", [](){return new FLOW_HASHPlugin();});
-    register_plugin(&rec);
-    RecordExtFLOW_HASH::REGISTERED_ID = register_extension();
+	static PluginRecord rec = PluginRecord("flow_hash", []() { return new FLOW_HASHPlugin(); });
+	register_plugin(&rec);
+	RecordExtFLOW_HASH::REGISTERED_ID = register_extension();
 }
 
-FLOW_HASHPlugin::FLOW_HASHPlugin()
+FLOW_HASHPlugin::FLOW_HASHPlugin() {}
+
+FLOW_HASHPlugin::~FLOW_HASHPlugin() {}
+
+void FLOW_HASHPlugin::init(const char* params) {}
+
+void FLOW_HASHPlugin::close() {}
+
+ProcessPlugin* FLOW_HASHPlugin::copy()
 {
+	return new FLOW_HASHPlugin(*this);
 }
 
-FLOW_HASHPlugin::~FLOW_HASHPlugin()
+int FLOW_HASHPlugin::post_create(Flow& rec, const Packet& pkt)
 {
+	auto ext = new RecordExtFLOW_HASH();
+
+	ext->flow_hash = rec.flow_hash;
+
+	rec.add_extension(ext);
+
+	return 0;
 }
 
-void FLOW_HASHPlugin::init(const char *params)
-{
-}
-
-void FLOW_HASHPlugin::close()
-{
-}
-
-ProcessPlugin *FLOW_HASHPlugin::copy()
-{
-    return new FLOW_HASHPlugin(*this);
-}
-
-int FLOW_HASHPlugin::post_create(Flow &rec, const Packet &pkt)
-{
-    auto ext = new RecordExtFLOW_HASH();
-
-    ext->flow_hash = rec.flow_hash;
-
-    rec.add_extension(ext);
-
-    return 0;
-}
-
-}
-
+} // namespace ipxp

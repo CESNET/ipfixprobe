@@ -30,34 +30,34 @@
 namespace ipxp {
 
 FragmentationTable::FragmentationTable(std::size_t table_size)
-    : m_table(table_size)
+	: m_table(table_size)
 {
 }
 
 void FragmentationTable::insert(const Packet& packet)
 {
-    FragmentationKey key(packet);
-    FragmentationData data(packet);
-    auto& ring = m_table[get_table_index(key)];
-    ring.push_back({ key, data });
+	FragmentationKey key(packet);
+	FragmentationData data(packet);
+	auto& ring = m_table[get_table_index(key)];
+	ring.push_back({key, data});
 }
 
 FragmentationData* FragmentationTable::find(const Packet& packet) noexcept
 {
-    FragmentationKey key(packet);
-    auto& ring = m_table[get_table_index(key)];
-    auto it = std::find_if(ring.rbegin(), ring.rend(), [&](const FragmentationKeyData& entry) {
-        return entry.key == key;
-    });
-    if (it != ring.rend()) {
-        return &(it->data);
-    }
-    return nullptr;
+	FragmentationKey key(packet);
+	auto& ring = m_table[get_table_index(key)];
+	auto it = std::find_if(ring.rbegin(), ring.rend(), [&](const FragmentationKeyData& entry) {
+		return entry.key == key;
+	});
+	if (it != ring.rend()) {
+		return &(it->data);
+	}
+	return nullptr;
 }
 
 std::size_t FragmentationTable::get_table_index(const FragmentationKey& key) const noexcept
 {
-    return std::hash<FragmentationKey> {}(key) % m_table.size();
+	return std::hash<FragmentationKey> {}(key) % m_table.size();
 }
 
 } // namespace ipxp

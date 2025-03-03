@@ -26,8 +26,9 @@
 #pragma once
 
 #include <cstdint>
-#include <rte_mbuf.h>
 #include <vector>
+
+#include <rte_mbuf.h>
 
 namespace ipxp {
 
@@ -36,59 +37,58 @@ namespace ipxp {
  */
 class DpdkMbuf {
 public:
-
 	/**
-     * @brief Constructs a DpdkMbuf object.
-     * @param mBufsCount The initial size of the mbufs vector.
-     */
+	 * @brief Constructs a DpdkMbuf object.
+	 * @param mBufsCount The initial size of the mbufs vector.
+	 */
 	DpdkMbuf(size_t mBufsCount = 0);
 
 	/**
-     * @brief Releases the allocated mbufs.
-     */
+	 * @brief Releases the allocated mbufs.
+	 */
 	~DpdkMbuf();
 
 	/**
-     * @brief Resizes the mbufs vector.
-     * @param mBufsCount The new size of the mbufs vector.
-     */
+	 * @brief Resizes the mbufs vector.
+	 * @param mBufsCount The new size of the mbufs vector.
+	 */
 	void resize(size_t mBufsCount);
 
 	/**
-     * @brief Sets the number of mbufs in use.
-     * @param mBufsInUse The number of mbufs currently in use.
-     */
+	 * @brief Sets the number of mbufs in use.
+	 * @param mBufsInUse The number of mbufs currently in use.
+	 */
 	void setMbufsInUse(size_t mBufsInUse) noexcept;
 
 	/**
-     * @brief Returns the maximum size (currently allocated) of the mbufs vector.
-     * @return The maximum size of the mbufs vector.
-     */
+	 * @brief Returns the maximum size (currently allocated) of the mbufs vector.
+	 * @return The maximum size of the mbufs vector.
+	 */
 	uint16_t maxSize() const noexcept;
 
 	/**
-     * @brief Returns the current size of the mbufs vector. (in use)
-     * @return The current size of the mbufs vector.
-     */
+	 * @brief Returns the current size of the mbufs vector. (in use)
+	 * @return The current size of the mbufs vector.
+	 */
 	uint16_t size() const noexcept;
 
 	/**
-     * @brief Returns a pointer to the underlying mbufs data.
-     * @return A pointer to the underlying mbufs data.
-     */
+	 * @brief Returns a pointer to the underlying mbufs data.
+	 * @return A pointer to the underlying mbufs data.
+	 */
 	rte_mbuf** data();
 
 	/**
-     * @brief Releases all the mbufs.
+	 * @brief Releases all the mbufs.
 	 * @note Function calls rte_pktmbuf_free()
-     */
+	 */
 	void releaseMbufs();
 
 	/**
-     * @brief Overloaded subscript operator to access mbufs by index.
-     * @param index The index of the mbuf to access.
-     * @return The mbuf at the specified index.
-     */
+	 * @brief Overloaded subscript operator to access mbufs by index.
+	 * @param index The index of the mbuf to access.
+	 * @return The mbuf at the specified index.
+	 */
 	rte_mbuf* operator[](int index) { return m_mBufs[index]; }
 
 private:

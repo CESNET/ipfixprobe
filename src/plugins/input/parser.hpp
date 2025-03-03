@@ -50,20 +50,20 @@
 #endif
 
 #ifndef ETH_P_8021AD
-#define ETH_P_8021AD	0x88A8          /* 802.1ad Service VLAN*/
+#define ETH_P_8021AD 0x88A8 /* 802.1ad Service VLAN*/
 #endif
 
 #ifndef ETH_P_TRILL
-#define ETH_P_TRILL	0x22F3          /* TRILL protocol */
+#define ETH_P_TRILL 0x22F3 /* TRILL protocol */
 #endif
 
 namespace ipxp {
 
 typedef struct parser_opt_s {
-   PacketBlock *pblock;
-   bool packet_valid;
-   bool parse_all;
-   int datalink;
+	PacketBlock* pblock;
+	bool packet_valid;
+	bool parse_all;
+	int datalink;
 } parser_opt_t;
 
 /**
@@ -81,9 +81,16 @@ typedef struct parser_opt_s {
  * \param [in] ts Timestamp of the current packet
  * \param [in] data  Input data, i.e., pointer to beginning of the packet header.
  * \param [in] len   Original size of the packet to process.
- * \param [in] caplen   Capture length - actual size of the packet, i.e., number of bytes that are available in data.
+ * \param [in] caplen   Capture length - actual size of the packet, i.e., number of bytes that are
+ available in data.
  */
-void parse_packet(parser_opt_t *opt, ParserStats& stats, struct timeval ts, const uint8_t *data, uint16_t len, uint16_t caplen);
+void parse_packet(
+	parser_opt_t* opt,
+	ParserStats& stats,
+	struct timeval ts,
+	const uint8_t* data,
+	uint16_t len,
+	uint16_t caplen);
 
-}
+} // namespace ipxp
 #endif /* IPXP_INPUT_PARSER_HPP */

@@ -29,8 +29,9 @@
 #include "ringBuffer.hpp"
 
 #include <cstdint>
-#include <ipfixprobe/packet.hpp>
 #include <vector>
+
+#include <ipfixprobe/packet.hpp>
 
 namespace ipxp {
 
@@ -44,30 +45,30 @@ namespace ipxp {
  */
 class FragmentationTable {
 public:
-    /**
-     * @brief Constructs a FragmentationTable with a specified size.
-     * @param table_size The number of ring buffers in the table.
-     */
-    explicit FragmentationTable(std::size_t table_size);
+	/**
+	 * @brief Constructs a FragmentationTable with a specified size.
+	 * @param table_size The number of ring buffers in the table.
+	 */
+	explicit FragmentationTable(std::size_t table_size);
 
-    /**
-     * @brief Inserts packet fragmentation data into the table.
-     * @param packet The packet containing the data to insert.
-     */
-    void insert(const Packet& packet);
+	/**
+	 * @brief Inserts packet fragmentation data into the table.
+	 * @param packet The packet containing the data to insert.
+	 */
+	void insert(const Packet& packet);
 
-    /**
-     * @brief Finds packet fragmentation data based on a packet.
-     * @param packet The packet to search for in the table.
-     * @return A pointer to the associated FragmentationData if found, or nullptr if not found.
-     */
-    FragmentationData* find(const Packet& packet) noexcept;
+	/**
+	 * @brief Finds packet fragmentation data based on a packet.
+	 * @param packet The packet to search for in the table.
+	 * @return A pointer to the associated FragmentationData if found, or nullptr if not found.
+	 */
+	FragmentationData* find(const Packet& packet) noexcept;
 
 private:
-    std::size_t get_table_index(const FragmentationKey& key) const noexcept;
+	std::size_t get_table_index(const FragmentationKey& key) const noexcept;
 
-    static constexpr std::size_t RING_SIZE = 4;
-    std::vector<RingBuffer<FragmentationKeyData, RING_SIZE>> m_table;
+	static constexpr std::size_t RING_SIZE = 4;
+	std::vector<RingBuffer<FragmentationKeyData, RING_SIZE>> m_table;
 };
 
 } // namespace ipxp
