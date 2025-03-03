@@ -30,54 +30,50 @@
 #ifndef IPXP_INPUT_HPP
 #define IPXP_INPUT_HPP
 
-#include <string>
-#include <memory>
-#include <telemetry.hpp>
-
-#include "telemetry-utils.hpp"
-#include "plugin.hpp"
 #include "packet.hpp"
 #include "parser-stats.hpp"
+#include "plugin.hpp"
+#include "telemetry-utils.hpp"
+
+#include <memory>
+#include <string>
+
+#include <telemetry.hpp>
 
 namespace ipxp {
 
 /**
  * \brief Base class for packet receivers.
  */
-class InputPlugin : public TelemetryUtils, public Plugin
-{
+class InputPlugin
+	: public TelemetryUtils
+	, public Plugin {
 public:
-   enum class Result {
-      TIMEOUT = 0,
-      PARSED,
-      NOT_PARSED,
-      END_OF_FILE,
-      ERROR
-   };
+	enum class Result { TIMEOUT = 0, PARSED, NOT_PARSED, END_OF_FILE, ERROR };
 
-   uint64_t m_seen;
-   uint64_t m_parsed;
-   uint64_t m_dropped;
+	uint64_t m_seen;
+	uint64_t m_parsed;
+	uint64_t m_dropped;
 
-   InputPlugin();
-   virtual ~InputPlugin() {}
+	InputPlugin();
+	virtual ~InputPlugin() {}
 
-   virtual Result get(PacketBlock &packets) = 0;
+	virtual Result get(PacketBlock& packets) = 0;
 
-   void set_telemetry_dirs(
-      std::shared_ptr<telemetry::Directory> plugin_dir, 
-      std::shared_ptr<telemetry::Directory> queues_dir);
+	void set_telemetry_dirs(
+		std::shared_ptr<telemetry::Directory> plugin_dir,
+		std::shared_ptr<telemetry::Directory> queues_dir);
 
 protected:
-   virtual void configure_telemetry_dirs(
-      std::shared_ptr<telemetry::Directory> plugin_dir, 
-      std::shared_ptr<telemetry::Directory> queues_dir) {};
+	virtual void configure_telemetry_dirs(
+		std::shared_ptr<telemetry::Directory> plugin_dir,
+		std::shared_ptr<telemetry::Directory> queues_dir) {};
 
-   ParserStats m_parser_stats;
+	ParserStats m_parser_stats;
 
 private:
-   void create_parser_stats_telemetry(std::shared_ptr<telemetry::Directory> queues_dir);
+	void create_parser_stats_telemetry(std::shared_ptr<telemetry::Directory> queues_dir);
 };
 
-}
+} // namespace ipxp
 #endif /* IPXP_INPUT_TEMPLATE_HPP */

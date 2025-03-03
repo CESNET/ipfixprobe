@@ -39,18 +39,18 @@ namespace ipxp {
  */
 class DpdkTelemetry {
 public:
-    /**
-     * @brief Constructor for DpdkTelemetry
-     *
-     * Initializes the DPDK telemetry manager and adds files representing DPDK rings and mempools to
-     * the provided telemetry directory.
-     *
-     * @param dpdkDir Pointer to the telemetry directory where files will be added.
-     */
-    DpdkTelemetry(const std::shared_ptr<telemetry::Directory>& dpdkDir);
+	/**
+	 * @brief Constructor for DpdkTelemetry
+	 *
+	 * Initializes the DPDK telemetry manager and adds files representing DPDK rings and mempools to
+	 * the provided telemetry directory.
+	 *
+	 * @param dpdkDir Pointer to the telemetry directory where files will be added.
+	 */
+	DpdkTelemetry(const std::shared_ptr<telemetry::Directory>& dpdkDir);
 
 private:
-    telemetry::Holder m_holder;
+	telemetry::Holder m_holder;
 };
 
-} // namespace ct
+} // namespace ipxp

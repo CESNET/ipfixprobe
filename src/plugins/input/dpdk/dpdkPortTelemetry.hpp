@@ -39,20 +39,20 @@ namespace ipxp {
  */
 class DpdkPortTelemetry {
 public:
-    /**
-     * @brief Constructor for DpdkPortTelemetry
-     *
-     * Creates an instance of the class for a specific DPDK port and adds telemetry files to the
-     * directory.
-     *
-     * @param portId ID of the DPDK port
-     * @param dir Directory for telemetry files
-     */
-    DpdkPortTelemetry(uint16_t portId, const std::shared_ptr<telemetry::Directory>& dir);
+	/**
+	 * @brief Constructor for DpdkPortTelemetry
+	 *
+	 * Creates an instance of the class for a specific DPDK port and adds telemetry files to the
+	 * directory.
+	 *
+	 * @param portId ID of the DPDK port
+	 * @param dir Directory for telemetry files
+	 */
+	DpdkPortTelemetry(uint16_t portId, const std::shared_ptr<telemetry::Directory>& dir);
 
 private:
-    const uint16_t M_PORT_ID;
-    telemetry::Holder m_holder;
+	const uint16_t M_PORT_ID;
+	telemetry::Holder m_holder;
 };
 
 } // namespace ipxp
