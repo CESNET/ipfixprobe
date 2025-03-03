@@ -25,12 +25,13 @@
 
 #pragma once
 
-#include "dpdkMbuf.hpp"
 #include "dpdkCompat.hpp"
+#include "dpdkMbuf.hpp"
+
+#include <vector>
 
 #include <rte_ethdev.h>
 #include <rte_mempool.h>
-#include <vector>
 
 namespace ipxp {
 
@@ -48,7 +49,12 @@ public:
 	 * @param mbufsCount The number of mbufs (packet buffers) to be allocated.
 	 * @param mtuSize Maximum transmission unit of input interface.
 	 */
-	DpdkDevice(uint16_t portID, uint16_t rxQueueCount, uint16_t memPoolSize, uint16_t mbufsCount, uint16_t mtuSize);
+	DpdkDevice(
+		uint16_t portID,
+		uint16_t rxQueueCount,
+		uint16_t memPoolSize,
+		uint16_t mbufsCount,
+		uint16_t mtuSize);
 
 	/**
 	 * @brief Receives packets from the specified receive queue of the DPDK device.
@@ -96,7 +102,6 @@ private:
 	int m_rxTimestampOffset;
 	int m_rxTimestampDynflag;
 	uint16_t m_mtuSize;
-
 };
 
 } // namespace ipxp

@@ -29,6 +29,7 @@
 #include <chrono>
 #include <cstring>
 #include <iostream>
+
 #include <ipfixprobe/input.hpp>
 #include <rte_errno.h>
 #include <rte_version.h>
@@ -129,7 +130,8 @@ void DpdkDevice::configurePort()
 		throw PluginError("DpdkDevice::configurePort() has failed. Unable to configure interface");
 	}
 	if (rte_eth_dev_set_mtu(m_portID, m_mtuSize)) {
-		throw PluginError("DpdkDevice::configurePort() has failed. Unable to set MTU (rte_eth_dev_set_mtu)");
+		throw PluginError(
+			"DpdkDevice::configurePort() has failed. Unable to set MTU (rte_eth_dev_set_mtu)");
 	}
 }
 
@@ -210,8 +212,8 @@ void DpdkDevice::setupRxQueues(uint16_t memPoolSize)
 		}
 	}
 
-	std::cerr << "DPDK RX queues for port " << m_portID << " set up. Size of each queue: "
-			  << rxQueueSize << std::endl;
+	std::cerr << "DPDK RX queues for port " << m_portID
+			  << " set up. Size of each queue: " << rxQueueSize << std::endl;
 }
 
 void DpdkDevice::configureRSS()
@@ -239,7 +241,8 @@ void DpdkDevice::configureRSS()
 
 	const uint64_t rssOffloads = rteDevInfo.flow_type_rss_offloads & RTE_ETH_RSS_IP;
 	if (rssOffloads != RTE_ETH_RSS_IP) {
-		std::cerr << "RTE_ETH_RSS_IP is not supported by the card. Used subset: " << rssOffloads << std::endl;
+		std::cerr << "RTE_ETH_RSS_IP is not supported by the card. Used subset: " << rssOffloads
+				  << std::endl;
 	}
 
 	struct rte_eth_rss_conf rssConfig = {};
@@ -249,7 +252,8 @@ void DpdkDevice::configureRSS()
 
 	int ret = rte_eth_dev_rss_hash_update(m_portID, &rssConfig);
 	if (ret < 0) {
-		std::cerr << "Setting RSS {" << rssOffloads << "} for port " << m_portID << " failed. Errno:" << ret << std::endl;
+		std::cerr << "Setting RSS {" << rssOffloads << "} for port " << m_portID
+				  << " failed. Errno:" << ret << std::endl;
 		throw PluginError("DpdkDevice::configureRSS() has failed.");
 	}
 }

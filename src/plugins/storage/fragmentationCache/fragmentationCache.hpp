@@ -33,10 +33,11 @@
 #include "fragmentationTable.hpp"
 
 #include <cstdint>
-#include <telemetry.hpp>
-#include <ipfixprobe/telemetry-utils.hpp>
+
 #include <ipfixprobe/packet.hpp>
+#include <ipfixprobe/telemetry-utils.hpp>
 #include <sys/time.h>
+#include <telemetry.hpp>
 
 namespace ipxp {
 
@@ -58,67 +59,67 @@ namespace ipxp {
  */
 class FragmentationCache : TelemetryUtils {
 public:
-    /**
-     * @brief Constructor for the FragmentationCache class.
-     * @param table_size The size of the fragmentation table.
-     * @param timeout_in_seconds The timeout value in seconds for fragmentation data. Default is 3
-     * seconds.
-     */
-    FragmentationCache(std::size_t table_size, time_t timeout_in_seconds = 3);
+	/**
+	 * @brief Constructor for the FragmentationCache class.
+	 * @param table_size The size of the fragmentation table.
+	 * @param timeout_in_seconds The timeout value in seconds for fragmentation data. Default is 3
+	 * seconds.
+	 */
+	FragmentationCache(std::size_t table_size, time_t timeout_in_seconds = 3);
 
-    /**
-     * @brief Processes a network packet.
-     * @param packet The Packet object to be processed.
-     *
-     * This method handles the processing of incoming packets. If the packet is not fragmented, the
-     * packet is considered complete, and no further processing is performed. If the packet is
-     * fragmented, its processing is delegated to the `process_fragmented_packet` method, which
-     * handles the specifics of fragmented packet handling.
-     *
-     * Fragmented packets require special handling to ensure complete information. If the packet is
-     * the first fragment, it's inserted into the fragmentation table. For subsequent fragments,
-     * missing data is retrieved from the table using the `find` method of the `FragmentationTable`
-     * class. If the required data is found and hasn't timed out, it's used to fill in missing parts
-     * of the packet (ports information).
-     */
-    void process_packet(Packet& packet);
+	/**
+	 * @brief Processes a network packet.
+	 * @param packet The Packet object to be processed.
+	 *
+	 * This method handles the processing of incoming packets. If the packet is not fragmented, the
+	 * packet is considered complete, and no further processing is performed. If the packet is
+	 * fragmented, its processing is delegated to the `process_fragmented_packet` method, which
+	 * handles the specifics of fragmented packet handling.
+	 *
+	 * Fragmented packets require special handling to ensure complete information. If the packet is
+	 * the first fragment, it's inserted into the fragmentation table. For subsequent fragments,
+	 * missing data is retrieved from the table using the `find` method of the `FragmentationTable`
+	 * class. If the required data is found and hasn't timed out, it's used to fill in missing parts
+	 * of the packet (ports information).
+	 */
+	void process_packet(Packet& packet);
 
-    /**
-     * @brief Set and configure the telemetry directory where cache stats will be stored.
-     */
-    void set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir);
+	/**
+	 * @brief Set and configure the telemetry directory where cache stats will be stored.
+	 */
+	void set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir);
 
 private:
-    struct CacheStats {
-        uint64_t first_fragments;
-        uint64_t fragmented_packets;
-        uint64_t not_found_fragments;
-        uint64_t total_packets;
-    };
+	struct CacheStats {
+		uint64_t first_fragments;
+		uint64_t fragmented_packets;
+		uint64_t not_found_fragments;
+		uint64_t total_packets;
+	};
 
-    telemetry::Content get_cache_telemetry();
+	telemetry::Content get_cache_telemetry();
 
-    void process_fragmented_packet(Packet& packet) noexcept;
-    void fill_ports_to_packet(Packet& packet, const FragmentationData& data) const noexcept;
-    void
-    fill_missing_packet_data(Packet& packet, const FragmentationData& fragmentation_data) noexcept;
+	void process_fragmented_packet(Packet& packet) noexcept;
+	void fill_ports_to_packet(Packet& packet, const FragmentationData& data) const noexcept;
+	void
+	fill_missing_packet_data(Packet& packet, const FragmentationData& fragmentation_data) noexcept;
 
-    bool is_fragmentation_data_timedouted(const Packet& packet, const FragmentationData& data)
-        const noexcept;
+	bool is_fragmentation_data_timedouted(const Packet& packet, const FragmentationData& data)
+		const noexcept;
 
-    inline bool is_packet_fragmented(const Packet& packet) const noexcept
-    {
-        return packet.frag_off || packet.more_fragments;
-    }
+	inline bool is_packet_fragmented(const Packet& packet) const noexcept
+	{
+		return packet.frag_off || packet.more_fragments;
+	}
 
-    inline bool is_packet_first_fragment(const Packet& packet) const noexcept
-    {
-        return !packet.frag_off && packet.more_fragments;
-    }
+	inline bool is_packet_first_fragment(const Packet& packet) const noexcept
+	{
+		return !packet.frag_off && packet.more_fragments;
+	}
 
-    CacheStats m_stats = {};
-    struct timeval m_timeout;
-    FragmentationTable m_fragmentation_table;
+	CacheStats m_stats = {};
+	struct timeval m_timeout;
+	FragmentationTable m_fragmentation_table;
 };
 
 } // namespace ipxp
