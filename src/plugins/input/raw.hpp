@@ -29,7 +29,6 @@
 #ifndef IPXP_INPUT_RAW_HPP
 #define IPXP_INPUT_RAW_HPP
 
-#include <config.h>
 
 #include <ipfixprobe/input.hpp>
 #include <ipfixprobe/packet.hpp>

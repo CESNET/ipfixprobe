@@ -29,7 +29,6 @@
 #ifndef IPXP_PROCESS_PASSIVEDNS_HPP
 #define IPXP_PROCESS_PASSIVEDNS_HPP
 
-#include <config.h>
 #include <string>
 #include <sstream>
 

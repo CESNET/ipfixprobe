@@ -29,7 +29,6 @@
 #ifndef IPXP_IPFIXPROBE_HPP
 #define IPXP_IPFIXPROBE_HPP
 
-#include <config.h>
 #include <string>
 #include <thread>
 #include <future>

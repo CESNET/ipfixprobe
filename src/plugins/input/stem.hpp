@@ -29,7 +29,6 @@
 #ifndef IPXP_INPUT_STEM_HPP
 #define IPXP_INPUT_STEM_HPP
 
-#include <config.h>
 
 #include <stem-interface.h>
 #include <statistics-packet.h>

@@ -36,7 +36,6 @@
  * if advised of the possibility of such damage.
 */
 
-#include <config.h>
 #include <vector>
 #include <stdio.h>
 #include <stdlib.h>

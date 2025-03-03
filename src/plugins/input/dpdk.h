@@ -23,7 +23,6 @@
  *    software without specific prior written permission.
  */
  
-#include <config.h>
 
 #ifdef WITH_DPDK
 

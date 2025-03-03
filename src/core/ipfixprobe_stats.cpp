@@ -26,7 +26,6 @@
  *
  */
 
-#include <config.h>
 #include <string>
 #include <unistd.h>
 #include <signal.h>
@@ -100,7 +99,7 @@ int main(int argc, char *argv[])
          goto EXIT;
       }
 
-      path = DEFAULTSOCKETDIR "/ipfixprobe_" + std::to_string(parser.m_pid) + ".sock";
+      path = "/tmp/ipfixprobe_" + std::to_string(parser.m_pid) + ".sock";
       fd = connect_to_exporter(path.c_str());
       if (fd == -1) {
          error("connecting to exporter");

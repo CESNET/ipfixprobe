@@ -28,7 +28,6 @@
 
 #ifndef IPXP_PROCESS_SIP_HPP
 #define IPXP_PROCESS_SIP_HPP
-#include <config.h>
 
 #include <cstdlib>
 #include <cstring>
