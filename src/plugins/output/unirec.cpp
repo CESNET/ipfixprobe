@@ -29,7 +29,6 @@
  *
  */
 
-#include <config.h>
 
 #ifdef WITH_NEMEA
 

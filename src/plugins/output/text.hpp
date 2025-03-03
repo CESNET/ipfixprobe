@@ -29,7 +29,6 @@
 #ifndef IPXP_OUTPUT_TEXT_HPP
 #define IPXP_OUTPUT_TEXT_HPP
 
-#include <config.h>
 
 #include <string>
 

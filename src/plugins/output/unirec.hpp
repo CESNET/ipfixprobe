@@ -32,7 +32,6 @@
 #ifndef IPXP_OUTPUT_UNIREC_HPP
 #define IPXP_OUTPUT_UNIREC_HPP
 
-#include <config.h>
 
 #ifdef WITH_NEMEA
 

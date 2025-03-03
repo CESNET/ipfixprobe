@@ -30,7 +30,6 @@
 #ifndef IPXP_PROCESS_HTTP_HPP
 #define IPXP_PROCESS_HTTP_HPP
 
-#include <config.h>
 #include <cstring>
 #include <cstdlib>
 #include <sstream>

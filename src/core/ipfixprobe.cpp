@@ -26,7 +26,8 @@
  *
  */
 
-#include <config.h>
+#include "buildConfig.hpp"
+
 #include <unistd.h>
 #include <string>
 #include <iostream>
@@ -641,14 +642,14 @@ int run(int argc, char *argv[])
 
    if (parser.m_help) {
       if (parser.m_help_str.empty()) {
-         parser.usage(std::cout, 0, PACKAGE_NAME);
+         parser.usage(std::cout, 0, IPXP_APP_NAME);
       } else {
          print_help(conf, parser.m_help_str);
       }
       goto EXIT;
    }
    if (parser.m_version) {
-      std::cout << PACKAGE_VERSION << std::endl;
+      std::cout << IPXP_APP_VERSION << std::endl;
       goto EXIT;
    }
    if (parser.m_storage.size() > 1 || parser.m_output.size() > 1) {

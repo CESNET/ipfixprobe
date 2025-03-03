@@ -26,7 +26,8 @@
  *
  */
 
-#include <config.h>
+#include "buildConfig.hpp"
+
 #include <unistd.h>
 #include <string.h>
 #include <sys/syscall.h>
@@ -133,7 +134,7 @@ void st_dump(int fd, int sig)
    unw_getcontext(&ctx);
    unw_init_local(&cursor, &ctx);
 
-   st_write_str(fd, "stacktrace dump of " PACKAGE_NAME " " PACKAGE_VERSION "\n");
+   st_write_str(fd, "stacktrace dump of " IPXP_APP_NAME " " IPXP_APP_VERSION "\n");
    st_write_str(fd, "uid: ");
    st_write_num(fd, getuid());
    st_write_str(fd, " pid: ");

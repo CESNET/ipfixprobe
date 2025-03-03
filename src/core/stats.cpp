@@ -26,7 +26,6 @@
  *
  */
 
-#include <config.h>
 #include <string>
 
 #include <string.h>
@@ -144,7 +143,7 @@ int send_data(int fd, uint32_t size, void *data)
 
 std::string create_sockpath(const char *id)
 {
-   return DEFAULTSOCKETDIR "/ipfixprobe_" + std::string(id) + ".sock";
+   return "/tmp/ipfixprobe_" + std::string(id) + ".sock";
 }
 
 }
