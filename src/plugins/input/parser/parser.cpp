@@ -225,6 +225,8 @@ inline uint16_t parse_sll2(const u_char* data_ptr, uint16_t data_len, Packet* pk
  */
 inline uint16_t parse_trill(const u_char* data_ptr, uint16_t data_len, Packet* pkt)
 {
+	(void) pkt;
+
 	struct trill_hdr* trill = (struct trill_hdr*) data_ptr;
 	if (sizeof(struct trill_hdr) > data_len) {
 		throw "Parser detected malformed packet";
