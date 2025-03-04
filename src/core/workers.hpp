@@ -34,7 +34,7 @@
 #include <atomic>
 #include <future>
 
-#include <ipfixprobe/input.hpp>
+#include <ipfixprobe/inputPlugin.hpp>
 #include <ipfixprobe/output.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/process.hpp>

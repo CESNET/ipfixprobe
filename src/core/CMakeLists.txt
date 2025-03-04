@@ -13,7 +13,7 @@ add_executable(ipfixprobe
 	utils.cpp
 	workers.cpp
 	workers.hpp
-	input.cpp
+	inputPlugin.cpp
 )
 
 
