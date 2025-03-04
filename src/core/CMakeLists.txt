@@ -2,8 +2,6 @@ add_library(ipfixprobe-core STATIC
 	ipfixprobe.cpp
 	ipfixprobe.hpp
 	options.cpp
-	pluginmgr.cpp
-	pluginmgr.hpp
 	ring.c
 	stacktrace.cpp
 	stacktrace.hpp
@@ -13,6 +11,8 @@ add_library(ipfixprobe-core STATIC
 	workers.cpp
 	workers.hpp
 	inputPlugin.cpp
+	pluginManager.cpp
+	pluginManager.hpp
 )
 
 

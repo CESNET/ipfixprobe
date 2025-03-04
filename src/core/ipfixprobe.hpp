@@ -29,7 +29,7 @@
 #ifndef IPXP_IPFIXPROBE_HPP
 #define IPXP_IPFIXPROBE_HPP
 
-#include "pluginmgr.hpp"
+#include "pluginManager.hpp"
 #include "workers.hpp"
 
 #include <atomic>
@@ -296,7 +296,7 @@ struct ipxp_conf_t {
 	uint32_t fps;
 	uint32_t max_pkts;
 
-	PluginManager mgr;
+	PluginManager pluginManager;
 	struct Plugins {
 		std::vector<InputPlugin*> input;
 		std::vector<StoragePlugin*> storage;
@@ -333,6 +333,7 @@ struct ipxp_conf_t {
 		, worker_cnt(0)
 		, fps(0)
 		, max_pkts(0)
+		, pluginManager(false)
 		, pkt_bufsize(1600)
 		, blocks_cnt(0)
 		, pkts_cnt(0)
