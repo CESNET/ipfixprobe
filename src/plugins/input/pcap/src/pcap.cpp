@@ -1,40 +1,25 @@
 /**
- * \file pcap.cpp
- * \brief Pcap reader based on libpcap
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2021
+ * @file
+ * @brief Pcap reader based on libpcap
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
-/*
- * Copyright (C) 2021 CESNET
- *
- * LICENSE TERMS
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
- */
-
-#include "pcap.hpp"
 
 #include "parser.hpp"
+#include "pcap.hpp"
 
 #include <cstdio>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 #include <pcap/pcap.h>
 
 namespace ipxp {
@@ -47,11 +32,17 @@ struct UserData {
 	ParserStats& stats;
 };
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("pcap", []() { return new PcapReader(); });
-	register_plugin(&rec);
-}
+static const PluginManifest pcapPluginManifest = {
+	.name = "pcap",
+	.description = "Pcap input plugin for reading packets from network interface or pcap file.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage =
+		[]() {
+			PcapOptParser parser;
+			parser.usage(std::cout);
+		},
+};
 
 /**
  * \brief Parsing callback function for pcap_dispatch() call. Parse packets up to transport layer.
@@ -79,13 +70,14 @@ void packet_handler(u_char* arg, const struct pcap_pkthdr* h, const u_char* data
 #endif
 }
 
-PcapReader::PcapReader()
+PcapReader::PcapReader(const std::string& params)
 	: m_handle(nullptr)
 	, m_snaplen(-1)
 	, m_datalink(0)
 	, m_live(false)
 	, m_netmask(PCAP_NETMASK_UNKNOWN)
 {
+	init(params.c_str());
 }
 
 PcapReader::~PcapReader()
@@ -300,5 +292,7 @@ InputPlugin::Result PcapReader::get(PacketBlock& packets)
 	}
 	return Result::NOT_PARSED;
 }
+
+static const PluginRegistrar<PcapReader, InputPluginFactory> pcapRegistrar(pcapPluginManifest);
 
 } // namespace ipxp
