@@ -16,7 +16,7 @@
 #include "api.hpp"
 #include "flowifc.hpp"
 #include "plugin.hpp"
-#include "process.hpp"
+#include "processPlugin.hpp"
 
 #include <cstdint>
 #include <memory>
