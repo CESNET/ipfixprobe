@@ -1,4 +1,5 @@
 add_subdirectory(parser)
+add_subdirectory(raw)
 
 if (ENABLE_INPUT_PCAP)
 	add_subdirectory(pcap)

@@ -1,38 +1,27 @@
 /**
- * \file raw.hpp
- * \brief Packet reader using raw sockets
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2021
- */
-/*
- * Copyright (C) 2021 CESNET
+ * @file
+ * @brief Packet reader using raw sockets
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_INPUT_RAW_HPP
-#define IPXP_INPUT_RAW_HPP
+#pragma once
 
-#include <ipfixprobe/input.hpp>
+#include <cstdint>
+#include <exception>
+#include <string>
+
+#include <ipfixprobe/inputPlugin.hpp>
 #include <ipfixprobe/options.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/utils.hpp>
+#include <linux/if_packet.h>
+#include <poll.h>
 
 namespace ipxp {
 
@@ -117,6 +106,7 @@ public:
 			"",
 			"Print list of available interfaces",
 			[this](const char* arg) {
+				(void) arg;
 				m_list = true;
 				return true;
 			},
@@ -126,7 +116,7 @@ public:
 
 class RawReader : public InputPlugin {
 public:
-	RawReader();
+	RawReader(const std::string& params);
 	~RawReader();
 	void init(const char* params);
 	void close();
@@ -163,4 +153,3 @@ private:
 void packet_handler(u_char* arg, const struct pcap_pkthdr* h, const u_char* data);
 
 } // namespace ipxp
-#endif /* IPXP_INPUT_RAW_HPP */
