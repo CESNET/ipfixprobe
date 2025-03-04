@@ -47,7 +47,7 @@
 #include <ipfixprobe/plugin.hpp>
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/ring.h>
-#include <ipfixprobe/storage.hpp>
+#include <ipfixprobe/storagePlugin.hpp>
 #include <ipfixprobe/utils.hpp>
 #include <telemetry.hpp>
 

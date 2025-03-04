@@ -1,35 +1,19 @@
 /**
- * \file storage.hpp
- * \brief Generic interface of storage plugin
- * \author Vaclav Bartos <bartos@cesnet.cz>
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2021
- */
-/*
- * Copyright (C) 2021 CESNET
+ * @file
+ * @brief Generic interface of storage plugin
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @author Vaclav Bartos <bartos@cesnet.cz>
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_STORAGE_HPP
-#define IPXP_STORAGE_HPP
+#pragma once
 
+#include "api.hpp"
 #include "flowifc.hpp"
 #include "packet.hpp"
 #include "plugin.hpp"
@@ -46,14 +30,7 @@ namespace ipxp {
 /**
  * \brief Base class for flow caches.
  */
-class StoragePlugin : public Plugin {
-protected:
-	ipx_ring_t* m_export_queue;
-
-private:
-	ProcessPlugin** m_plugins; /**< Array of plugins. */
-	uint32_t m_plugin_cnt;
-
+class IPXP_API StoragePlugin : public Plugin {
 public:
 	StoragePlugin()
 		: m_export_queue(nullptr)
@@ -86,13 +63,13 @@ public:
 	 */
 	const ipx_ring_t* get_queue() const { return m_export_queue; }
 
-	virtual void export_expired(time_t ts) {}
+	virtual void export_expired(time_t ts) { (void) ts; }
 	virtual void finish() {}
 
 	/**
 	 * \brief set telemetry directory for the storage
 	 */
-	virtual void set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir) {}
+	virtual void set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir) { (void) dir; }
 
 	/**
 	 * \brief Add plugin to internal list of plugins.
@@ -186,7 +163,31 @@ protected:
 			m_plugins[i]->pre_export(rec);
 		}
 	}
+
+	ipx_ring_t* m_export_queue;
+
+private:
+	ProcessPlugin** m_plugins; /**< Array of plugins. */
+	uint32_t m_plugin_cnt;
 };
 
+/**
+ * @brief Factory template for creating plugins.
+ *
+ * This template allows dynamic creation of plugin instances based on the specified
+ * base class and constructor argument types.
+ *
+ * @tparam Base The base class for the plugin.
+ * @tparam Args The argument types required for the plugin constructor.
+ */
+template<typename Base, typename... Args>
+class IPXP_API PluginFactory;
+
+/**
+ * @brief Type alias for the StoragePlugin factory.
+ *
+ * Provides a factory for creating StoragePlugin instances using a string-based constructor.
+ */
+using StoragePluginFactory = PluginFactory<StoragePlugin, const std::string&, ipx_ring_t*>;
+
 } // namespace ipxp
-#endif /* IPXP_STORAGE_HPP */
