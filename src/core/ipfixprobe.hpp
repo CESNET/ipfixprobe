@@ -42,7 +42,7 @@
 #include <appFs.hpp>
 #include <ipfixprobe/inputPlugin.hpp>
 #include <ipfixprobe/options.hpp>
-#include <ipfixprobe/output.hpp>
+#include <ipfixprobe/outputPlugin.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/plugin.hpp>
 #include <ipfixprobe/process.hpp>
