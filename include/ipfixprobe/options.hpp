@@ -29,6 +29,8 @@
 #ifndef IPXP_OPTIONS_HPP
 #define IPXP_OPTIONS_HPP
 
+#include "api.hpp"
+
 #include <cstdint>
 #include <functional>
 #include <iostream>
@@ -39,7 +41,7 @@
 
 namespace ipxp {
 
-class OptionsParser {
+class IPXP_API OptionsParser {
 public:
 	static const char DELIM = ';';
 	typedef std::function<bool(const char* opt)> OptionParserFunc;
