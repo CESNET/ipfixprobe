@@ -1,35 +1,19 @@
 /**
- * \file raw.cpp
- * \brief Packet reader using raw sockets.
- *    More info at https://www.kernel.org/doc/html/latest/networking/packet_mmap.html
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2021
+ * @file
+ * @brief Packet reader using raw sockets
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
+ *
+ * https://www.kernel.org/doc/html/latest/networking/packet_mmap.html
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
-/*
- * Copyright (C) 2021 CESNET
- *
- * LICENSE TERMS
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
- */
-
-#include "raw.hpp"
 
 #include "parser.hpp"
+#include "raw.hpp"
 
 #include <cstdlib>
 #include <cstring>
@@ -38,10 +22,10 @@
 
 #include <arpa/inet.h>
 #include <ifaddrs.h>
-#include <linux/if_packet.h>
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <poll.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
@@ -57,13 +41,19 @@ namespace ipxp {
 // Read only 1 packet into packet block
 constexpr size_t RAW_PACKET_BLOCK_SIZE = 1;
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("raw", []() { return new RawReader(); });
-	register_plugin(&rec);
-}
+static const PluginManifest rawPluginManifest = {
+	.name = "raw",
+	.description = "Raw input plugin for reading packets from a raw socket.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage =
+		[]() {
+			RawOptParser parser;
+			parser.usage(std::cout);
+		},
+};
 
-RawReader::RawReader()
+RawReader::RawReader(const std::string& params)
 	: m_sock(-1)
 	, m_fanout(0)
 	, m_rd(nullptr)
@@ -78,6 +68,7 @@ RawReader::RawReader()
 	, m_pbd(nullptr)
 	, m_pkts_left(0)
 {
+	init(params.c_str());
 }
 
 RawReader::~RawReader()
@@ -382,5 +373,7 @@ InputPlugin::Result RawReader::get(PacketBlock& packets)
 	m_parsed += packets.cnt;
 	return packets.cnt ? Result::PARSED : Result::NOT_PARSED;
 }
+
+static const PluginRegistrar<RawReader, InputPluginFactory> rawRegistrar(rawPluginManifest);
 
 } // namespace ipxp
