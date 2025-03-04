@@ -35,7 +35,7 @@
 #include <future>
 
 #include <ipfixprobe/inputPlugin.hpp>
-#include <ipfixprobe/output.hpp>
+#include <ipfixprobe/outputPlugin.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/ring.h>
