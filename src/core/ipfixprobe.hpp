@@ -40,7 +40,7 @@
 #include <thread>
 
 #include <appFs.hpp>
-#include <ipfixprobe/input.hpp>
+#include <ipfixprobe/inputPlugin.hpp>
 #include <ipfixprobe/options.hpp>
 #include <ipfixprobe/output.hpp>
 #include <ipfixprobe/packet.hpp>

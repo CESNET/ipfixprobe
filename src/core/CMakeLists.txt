@@ -12,7 +12,7 @@ add_library(ipfixprobe-core STATIC
 	utils.cpp
 	workers.cpp
 	workers.hpp
-	input.cpp
+	inputPlugin.cpp
 )
 
 

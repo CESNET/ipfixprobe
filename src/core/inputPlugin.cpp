@@ -1,39 +1,21 @@
 /**
- * \file
- * \brief
- * \author Pavel Siska <siska@cesnet.cz>
- * \date 2024
- */
-/*
- * Copyright (C) 2024 CESNET
+ * @file
+ * @brief Implementation of InputPlugin telemetry integration
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * This file contains the implementation of telemetry-related functions for
+ * the InputPlugin class. It provides functionality to register parser statistics
+ * in the telemetry system and manage telemetry directories.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <ipfixprobe/input.hpp>
+#include <ipfixprobe/inputPlugin.hpp>
 
 namespace ipxp {
-
-InputPlugin::InputPlugin()
-	: m_seen(0)
-	, m_parsed(0)
-	, m_dropped(0)
-	, m_parser_stats()
-{
-}
 
 static telemetry::Content get_parser_stats_content(const ParserStats& parserStats)
 {
@@ -59,7 +41,7 @@ void InputPlugin::create_parser_stats_telemetry(
 	std::shared_ptr<telemetry::Directory> queueDirectory)
 {
 	telemetry::FileOps statsOps
-		= {[=]() { return get_parser_stats_content(m_parser_stats); }, nullptr};
+		= {[this]() { return get_parser_stats_content(m_parser_stats); }, nullptr};
 	register_file(queueDirectory, "parser-stats", statsOps);
 }
 
