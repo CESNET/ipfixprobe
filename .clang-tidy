@@ -1,0 +1,75 @@
+---
+Checks: '
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  clang-diagnostic-*,
+  concurrency-mt-unsafe,
+  cppcoreguidelines-no-malloc,
+  misc-*,
+  modernize-*,
+  performance-*,
+  readability-*,
+  -misc-include-cleaner,
+  -misc-new-delete-overloads,
+  -misc-no-recursion,
+  -misc-use-anonymous-namespace,
+  -modernize-use-trailing-return-type,
+  -modernize-use-nodiscard,
+  -modernize-avoid-c-arrays,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-multi-level-implicit-pointer-conversion,
+  -performance-enum-size,
+  -readability-avoid-nested-conditional-operator'
+FormatStyle: file
+WarningsAsErrors: '*'
+
+CheckOptions:
+  - key:   readability-identifier-naming.ClassCase
+    value: 'CamelCase'
+  - key:   readability-identifier-naming.ClassConstantCase
+    value: 'UPPER_CASE'
+  - key:   readability-identifier-naming.ClassMemberCase
+    value: 'camelBack'
+  - key:   readability-identifier-naming.ClassMemberPrefix
+    value: 's_'
+  - key:   readability-identifier-naming.ClassMethodCase
+    value: 'camelBack'
+  - key:   readability-identifier-naming.ConstantMemberCase
+    value: 'UPPER_CASE'
+  - key:   readability-identifier-naming.EnumConstantCase
+    value: 'UPPER_CASE'
+  - key:   readability-identifier-naming.FunctionCase
+    value: 'camelBack'
+  - key:   readability-identifier-naming.GlobalVariablePrefix
+    value: 'g_'
+  - key:   readability-identifier-naming.GlobalConstantPrefix
+    value: ''
+  - key:   readability-identifier-naming.MacroDefinitionCase
+    value: 'UPPER_CASE'
+  - key:   readability-identifier-naming.MemberCase
+    value: 'camelBack'
+  - key:   readability-identifier-naming.NamespaceCase
+    value: 'lower_case'
+  - key:   readability-identifier-naming.ParameterCase
+    value: 'camelBack'
+  - key:   readability-identifier-naming.PrivateMemberPrefix
+    value: 'm_'
+  - key:   readability-identifier-naming.ProtectedMemberPrefix
+    value: 'm_'
+  - key:   readability-identifier-naming.StructCase
+    value: 'CamelCase'
+  - key:   readability-identifier-naming.TypeAliasCase
+    value: 'CamelCase'
+  - key:   readability-identifier-naming.TypeAliasIgnoredRegexp
+    value: '^.*_type$|^.*_category$|^.*reference$|^.*iterator$|^.*pointer$'
+  - key:   readability-identifier-naming.VariableCase
+    value: 'camelBack'
+
+  - key:   misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
+    value: True
+  - key:   readability-magic-numbers.IgnorePowersOf2IntegerValues
+    value: True
+  - key:   readability-magic-numbers.IgnoredIntegerValues
+    value: '0;1;2;3;4;255;65535;4294967295'
+...

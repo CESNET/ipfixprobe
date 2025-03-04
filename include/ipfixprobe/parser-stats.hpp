@@ -33,19 +33,19 @@ namespace ipxp {
  * \brief Structure for storing parser statistics.
  */
 struct ParserStats {
-   uint64_t mpls_packets;
-   uint64_t vlan_packets;
-   uint64_t pppoe_packets;
-   uint64_t trill_packets;
+	uint64_t mpls_packets;
+	uint64_t vlan_packets;
+	uint64_t pppoe_packets;
+	uint64_t trill_packets;
 
-   uint64_t ipv4_packets;
-   uint64_t ipv6_packets;
+	uint64_t ipv4_packets;
+	uint64_t ipv6_packets;
 
-   uint64_t tcp_packets;
-   uint64_t udp_packets;
+	uint64_t tcp_packets;
+	uint64_t udp_packets;
 
-   uint64_t seen_packets;
-   uint64_t unknown_packets;
+	uint64_t seen_packets;
+	uint64_t unknown_packets;
 };
 
 } // namespace ipxp

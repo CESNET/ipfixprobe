@@ -6,6 +6,7 @@ AlwaysBreakBeforeMultilineStrings: true
 AlignAfterOpenBracket: AlwaysBreak
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortIfStatementsOnASingleLine: Never
 AllowShortFunctionsOnASingleLine: Inline
 AlwaysBreakTemplateDeclarations: Yes
 BinPackArguments: false
@@ -23,6 +24,16 @@ SpaceAfterTemplateKeyword: false
 SpaceInEmptyBlock: false
 SpacesInContainerLiterals: false
 PointerAlignment: Left
-UseTab: false
-IndentWidth: 4
+TabWidth: '4'
+UseTab: ForContinuationAndIndentation
+
+SortIncludes: true
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^"(.*)"$'
+    Priority: 1
+  - Regex: '^<[^>]*\.(h|hpp)>$'
+    Priority: 3
+  - Regex: '^<.*>$'
+    Priority: 2
 ...
