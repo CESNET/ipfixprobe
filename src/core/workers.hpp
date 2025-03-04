@@ -39,7 +39,7 @@
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/process.hpp>
 #include <ipfixprobe/ring.h>
-#include <ipfixprobe/storage.hpp>
+#include <ipfixprobe/storagePlugin.hpp>
 
 namespace ipxp {
 
