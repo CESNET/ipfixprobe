@@ -1,41 +1,21 @@
 /**
- * \file process.hpp
- * \brief Generic interface of processing plugin
- * \author Vaclav Bartos <bartos@cesnet.cz>
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2021
- */
-/*
- * Copyright (C) 2021 CESNET
+ * @file
+ * @brief Generic interface of processing plugin
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @author Vaclav Bartos <bartos@cesnet.cz>
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_PROCESS_HPP
-#define IPXP_PROCESS_HPP
+#pragma once
 
 #include "flowifc.hpp"
 #include "packet.hpp"
 #include "plugin.hpp"
-
-#include <string>
-#include <vector>
 
 namespace ipxp {
 
@@ -103,5 +83,23 @@ public:
 	virtual void pre_export(Flow& rec) {}
 };
 
+/**
+ * @brief Factory template for creating plugins.
+ *
+ * This template allows dynamic creation of plugin instances based on the specified
+ * base class and constructor argument types.
+ *
+ * @tparam Base The base class for the plugin.
+ * @tparam Args The argument types required for the plugin constructor.
+ */
+template<typename Base, typename... Args>
+class IPXP_API PluginFactory;
+
+/**
+ * @brief Type alias for the ProcessPlugin factory.
+ *
+ * Provides a factory for creating ProcessPlugin instances using a string-based constructor.
+ */
+using ProcessPluginFactory = PluginFactory<ProcessPlugin, const std::string&>;
+
 } // namespace ipxp
-#endif /* IPXP_PROCESS_HPP */

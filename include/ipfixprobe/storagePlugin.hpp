@@ -17,7 +17,7 @@
 #include "flowifc.hpp"
 #include "packet.hpp"
 #include "plugin.hpp"
-#include "process.hpp"
+#include "processPlugin.hpp"
 #include "ring.h"
 
 #include <memory>
