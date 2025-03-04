@@ -3,8 +3,6 @@ add_executable(ipfixprobe
 	ipfixprobe.cpp
 	ipfixprobe.hpp
 	options.cpp
-	pluginmgr.cpp
-	pluginmgr.hpp
 	ring.c
 	stacktrace.cpp
 	stacktrace.hpp
@@ -14,6 +12,8 @@ add_executable(ipfixprobe
 	workers.cpp
 	workers.hpp
 	inputPlugin.cpp
+	pluginManager.cpp
+	pluginManager.hpp
 )
 
 
