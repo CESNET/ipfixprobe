@@ -26,9 +26,8 @@
  *
  */
 
-#include "ipfixprobe.hpp"
-
 #include "buildConfig.hpp"
+#include "ipfixprobe.hpp"
 
 #include <fstream>
 #include <future>
@@ -46,6 +45,8 @@
 #include "stacktrace.hpp"
 #endif
 #include "stats.hpp"
+
+#include <ipfixprobe/pluginFactory/pluginFactory.hpp>
 
 namespace ipxp {
 
@@ -90,56 +91,38 @@ void error(std::string msg)
 	std::cerr << "Error: " << msg << std::endl;
 }
 
-template<typename T>
-static void print_plugins_help(std::vector<Plugin*>& plugins)
+static void printPluginsUsage(const std::vector<PluginManifest>& pluginsManifest)
 {
-	for (auto& it : plugins) {
-		if (dynamic_cast<T*>(it)) {
-			OptionsParser* parser = it->get_parser();
-			parser->usage(std::cout);
-			std::cout << std::endl;
-			delete parser;
+	for (const auto& pluginManifest : pluginsManifest) {
+		if (pluginManifest.usage) {
+			pluginManifest.usage();
 		}
 	}
 }
 
 void print_help(ipxp_conf_t& conf, const std::string& arg)
 {
-	auto deleter = [&](std::vector<Plugin*>* p) {
-		for (auto& it : *p) {
-			delete it;
-		}
-		delete p;
-	};
-	auto plugins = std::unique_ptr<std::vector<Plugin*>, decltype(deleter)>(
-		new std::vector<Plugin*>(conf.mgr.get()),
-		deleter);
-
 	if (arg == "input") {
-		print_plugins_help<InputPlugin>(*plugins);
-	} else if (arg == "storage") {
-		print_plugins_help<StoragePlugin>(*plugins);
-	} else if (arg == "output") {
-		print_plugins_help<OutputPlugin>(*plugins);
-	} else if (arg == "process") {
-		print_plugins_help<ProcessPlugin>(*plugins);
-	} else {
-		Plugin* p;
-		try {
-			p = conf.mgr.get(arg);
-			if (p == nullptr) {
-				std::cout << "No help available for " << arg << std::endl;
-				return;
-			}
-		} catch (PluginManagerError& e) {
-			error(std::string("when loading plugin: ") + e.what());
-			return;
-		}
-		OptionsParser* parser = p->get_parser();
-		parser->usage(std::cout);
-		delete parser;
-		delete p;
+		auto& inputPluginFactory = InputPluginFactory::getInstance();
+		return printPluginsUsage(inputPluginFactory.getRegisteredPlugins());
 	}
+
+	if (arg == "storage") {
+		auto& storagePluginFactory = StoragePluginFactory::getInstance();
+		return printPluginsUsage(storagePluginFactory.getRegisteredPlugins());
+	}
+
+	if (arg == "output") {
+		auto& outputPluginFactory = OutputPluginFactory::getInstance();
+		return printPluginsUsage(outputPluginFactory.getRegisteredPlugins());
+	}
+
+	if (arg == "process") {
+		auto& processPluginFactory = ProcessPluginFactory::getInstance();
+		return printPluginsUsage(processPluginFactory.getRegisteredPlugins());
+	}
+
+	std::cerr << "No help available for " << arg << std::endl;
 }
 
 void process_plugin_argline(
@@ -262,6 +245,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 		if (process_name == BASIC_PLUGIN_NAME) {
 			continue;
 		}
+		/*
 		try {
 			process_plugin = dynamic_cast<ProcessPlugin*>(conf.mgr.get(process_name));
 			if (process_plugin == nullptr) {
@@ -279,6 +263,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 		} catch (PluginManagerError& e) {
 			throw IPXPError(process_name + std::string(": ") + e.what());
 		}
+		*/
 	}
 
 	// telemetry
@@ -297,6 +282,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 	conf.holder.add(statsFile);
 
 	OutputPlugin* output_plugin = nullptr;
+	/*
 	try {
 		output_plugin = dynamic_cast<OutputPlugin*>(conf.mgr.get(output_name));
 		if (output_plugin == nullptr) {
@@ -318,6 +304,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 	} catch (PluginManagerError& e) {
 		throw IPXPError(output_name + std::string(": ") + e.what());
 	}
+	*/
 
 	{
 		std::promise<WorkerResult>* output_res = new std::promise<WorkerResult>();
@@ -360,6 +347,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 		auto pipeline_queue_dir
 			= pipeline_dir->addDir("queues")->addDir(std::to_string(pipeline_idx));
 
+		/*
 		try {
 			input_plugin = dynamic_cast<InputPlugin*>(conf.mgr.get(input_name));
 			if (input_plugin == nullptr) {
@@ -398,6 +386,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 		} catch (PluginManagerError& e) {
 			throw IPXPError(storage_name + std::string(": ") + e.what());
 		}
+		*/
 
 		std::vector<ProcessPlugin*> storage_process_plugins;
 		for (auto& it : *process_plugins) {
@@ -638,6 +627,7 @@ int run(int argc, char* argv[])
 	IpfixprobeOptParser parser;
 	ipxp_conf_t conf;
 	int status = EXIT_SUCCESS;
+	const bool loadPluginsRecursive = true;
 
 	register_handlers();
 
@@ -648,6 +638,8 @@ int run(int argc, char* argv[])
 		status = EXIT_FAILURE;
 		goto EXIT;
 	}
+
+	conf.pluginManager.loadPlugins("/usr/local/lib64/ipfixprobe/", loadPluginsRecursive);
 
 	if (parser.m_help) {
 		if (parser.m_help_str.empty()) {
