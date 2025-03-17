@@ -1,33 +1,15 @@
 /**
- * \file cache.cpp
- * \brief "NewHashTable" flow cache
- * \author Martin Zadnik <zadnik@cesnet.cz>
- * \author Vaclav Bartos <bartos@cesnet.cz>
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2014
- * \date 2015
- * \date 2016
- */
-/*
- * Copyright (C) 2014-2016 CESNET
+ * @file
+ * @brief "NewHashTable" flow cache
+ * @author Martin Zadnik <zadnik@cesnet.cz>
+ * @author Vaclav Bartos <bartos@cesnet.cz>
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "cache.hpp"
@@ -38,16 +20,24 @@
 #include <cstring>
 #include <iostream>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 #include <ipfixprobe/ring.h>
 #include <sys/time.h>
 
 namespace ipxp {
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("cache", []() { return new NHTFlowCache(); });
-	register_plugin(&rec);
-}
+static const PluginManifest cachePluginManifest = {
+	.name = "cache",
+	.description = "Storage plugin implemented as a hash table.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage =
+		[]() {
+			CacheOptParser parser;
+			parser.usage(std::cout);
+		},
+};
 
 FlowRecord::FlowRecord()
 {
@@ -161,7 +151,7 @@ void FlowRecord::update(const Packet& pkt, bool src)
 	}
 }
 
-NHTFlowCache::NHTFlowCache()
+NHTFlowCache::NHTFlowCache(const std::string& params, ipx_ring_t* queue)
 	: m_cache_size(0)
 	, m_line_size(0)
 	, m_line_mask(0)
@@ -180,6 +170,8 @@ NHTFlowCache::NHTFlowCache()
 	, m_flow_records(nullptr)
 	, m_fragmentation_cache(0, 0)
 {
+	set_queue(queue);
+	init(params.c_str());
 }
 
 NHTFlowCache::~NHTFlowCache()
@@ -594,7 +586,7 @@ void NHTFlowCache::print_report()
 
 void NHTFlowCache::set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir)
 {
-	telemetry::FileOps statsOps = {[=]() { return get_cache_telemetry(); }, nullptr};
+	telemetry::FileOps statsOps = {[this]() { return get_cache_telemetry(); }, nullptr};
 	register_file(dir, "cache-stats", statsOps);
 
 	if (m_enable_fragmentation_cache) {
@@ -674,4 +666,8 @@ void NHTFlowCache::prefetch_export_expired() const
 		__builtin_prefetch(m_flow_table[i], 0, 1);
 	}
 }
+
+static const PluginRegistrar<NHTFlowCache, StoragePluginFactory>
+	cacheRegistrar(cachePluginManifest);
+
 } // namespace ipxp

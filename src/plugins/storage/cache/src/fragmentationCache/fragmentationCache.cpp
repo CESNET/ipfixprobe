@@ -110,7 +110,7 @@ telemetry::Content FragmentationCache::get_cache_telemetry()
 
 void FragmentationCache::set_telemetry_dir(std::shared_ptr<telemetry::Directory> dir)
 {
-	telemetry::FileOps statsOps = {[=]() { return get_cache_telemetry(); }, nullptr};
+	telemetry::FileOps statsOps = {[this]() { return get_cache_telemetry(); }, nullptr};
 	register_file(dir, "fragmentation-cache-stats", statsOps);
 }
 

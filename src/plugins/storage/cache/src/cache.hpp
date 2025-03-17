@@ -1,36 +1,18 @@
 /**
- * \file cache.hpp
- * \brief "NewHashTable" flow cache
- * \author Martin Zadnik <zadnik@cesnet.cz>
- * \author Vaclav Bartos <bartos@cesnet.cz>
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2014
- * \date 2015
- * \date 2016
+ * @file
+ * @brief "NewHashTable" flow cache
+ * @author Martin Zadnik <zadnik@cesnet.cz>
+ * @author Vaclav Bartos <bartos@cesnet.cz>
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
-/*
- * Copyright (C) 2014-2016 CESNET
- *
- * LICENSE TERMS
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
- */
-#ifndef IPXP_STORAGE_CACHE_HPP
-#define IPXP_STORAGE_CACHE_HPP
+
+#pragma once
 
 #include "fragmentationCache/fragmentationCache.hpp"
 
@@ -38,7 +20,7 @@
 
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/options.hpp>
-#include <ipfixprobe/storage.hpp>
+#include <ipfixprobe/storagePlugin.hpp>
 #include <ipfixprobe/telemetry-utils.hpp>
 #include <ipfixprobe/utils.hpp>
 
@@ -188,6 +170,7 @@ public:
 			"",
 			"Split biflows into uniflows",
 			[this](const char* arg) {
+				(void) arg;
 				m_split_biflow = true;
 				return true;
 			},
@@ -276,7 +259,7 @@ class NHTFlowCache
 	: TelemetryUtils
 	, public StoragePlugin {
 public:
-	NHTFlowCache();
+	NHTFlowCache(const std::string& params, ipx_ring_t* queue);
 	~NHTFlowCache();
 	void init(const char* params);
 	void close();
@@ -343,4 +326,3 @@ private:
 };
 
 } // namespace ipxp
-#endif /* IPXP_STORAGE_CACHE_HPP */
