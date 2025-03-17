@@ -1,40 +1,23 @@
 /**
- * \file text.hpp
- * \brief Prints exported fields
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2021
- */
-/*
- * Copyright (C) 2021 CESNET
+ * @file
+ * @brief Prints exported fields
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_OUTPUT_TEXT_HPP
-#define IPXP_OUTPUT_TEXT_HPP
+#pragma once
 
 #include <string>
 
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/options.hpp>
-#include <ipfixprobe/output.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/outputPlugin.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 #include <ipfixprobe/utils.hpp>
 
 namespace ipxp {
@@ -68,6 +51,7 @@ public:
 			"",
 			"Hide mac addresses",
 			[this](const char* arg) {
+				(void) arg;
 				m_hide_mac = true;
 				return true;
 			},
@@ -77,10 +61,10 @@ public:
 
 class TextExporter : public OutputPlugin {
 public:
-	TextExporter();
+	TextExporter(const std::string& params, ProcessPlugins& plugins);
 	~TextExporter();
 	void init(const char* params);
-	void init(const char* params, Plugins& plugins);
+	void init(const char* params, ProcessPlugins& plugins);
 	void close();
 	OptionsParser* get_parser() const { return new TextOptParser(); }
 	std::string get_name() const { return "text"; }
@@ -94,4 +78,3 @@ private:
 };
 
 } // namespace ipxp
-#endif /* IPXP_OUTPUT_TEXT_HPP */

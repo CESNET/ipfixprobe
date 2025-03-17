@@ -1,29 +1,13 @@
 /**
- * \file text.cpp
- * \brief Prints exported fields
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2021
- */
-/*
- * Copyright (C) 2021 CESNET
+ * @file
+ * @brief Prints exported fields
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "text.hpp"
@@ -34,18 +18,29 @@
 #include <ostream>
 #include <string>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+
 namespace ipxp {
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("text", []() { return new TextExporter(); });
-	register_plugin(&rec);
-}
+static const PluginManifest textPluginManifest = {
+	.name = "text",
+	.description = "Output plugin for text export",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage =
+		[]() {
+			TextOptParser parser;
+			parser.usage(std::cout);
+		},
+};
 
-TextExporter::TextExporter()
+TextExporter::TextExporter(const std::string& params, ProcessPlugins& plugins)
 	: m_out(&std::cout)
 	, m_hide_mac(false)
 {
+	init(params.c_str());
+	(void) plugins;
 }
 
 TextExporter::~TextExporter()
@@ -77,8 +72,9 @@ void TextExporter::init(const char* params)
 	*m_out << "conversation packets bytes tcp-flags time extensions" << std::endl;
 }
 
-void TextExporter::init(const char* params, Plugins& plugins)
+void TextExporter::init(const char* params, ProcessPlugins& plugins)
 {
+	(void) plugins;
 	init(params);
 }
 
@@ -167,5 +163,7 @@ void TextExporter::print_basic_flow(const Flow& flow)
 		   << flow.dst_bytes << " " << static_cast<unsigned>(flow.src_tcp_flags) << "->"
 		   << static_cast<unsigned>(flow.dst_tcp_flags) << " " << time_begin << "->" << time_end;
 }
+
+static const PluginRegistrar<TextExporter, OutputPluginFactory> textRegistrar(textPluginManifest);
 
 } // namespace ipxp
