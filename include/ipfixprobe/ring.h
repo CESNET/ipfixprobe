@@ -35,7 +35,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdio.h>
 
-#define IPX_API
+#define IPX_API __attribute__((visibility("default")))
 
 typedef void ipx_msg_t;
 
@@ -52,6 +52,7 @@ typedef void ipx_msg_t;
  */
 
 /** Internal ring buffer type  */
+struct IPX_API ipx_ring;
 typedef struct ipx_ring ipx_ring_t;
 
 /**
