@@ -1,116 +1,44 @@
 /**
- * \file dpdk.h
- * \brief DPDK input interface for ipfixprobe.
- * \author Roman Vrana <ivrana@fit.vutbr.cz>
- * \date 2021
- */
-/*
- * Copyright (C) 2021 CESNET
+ * @file
+ * @brief DPDK reader
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "dpdk.h"
+#include "dpdk.hpp"
 
 #include "parser.hpp"
 
 #include <cstring>
 #include <mutex>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 #include <rte_eal.h>
 #include <rte_errno.h>
 #include <rte_ethdev.h>
 #include <rte_version.h>
 #include <unistd.h>
 
-#ifdef WITH_FLEXPROBE
-#include <process/flexprobe-data.h>
-#endif
-
 #define MEMPOOL_CACHE_SIZE 256
 
 namespace ipxp {
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("dpdk", []() { return new DpdkReader(); });
-	register_plugin(&rec);
-}
 
-#ifdef WITH_FLEXPROBE
-static bool convert_from_flexprobe(const rte_mbuf* mbuf, Packet& pkt)
-{
-	static constexpr unsigned DATA_OFFSET = 14; // size of preceeding header
-
-	auto data_view = reinterpret_cast<const Flexprobe::FlexprobeData*>(
-		rte_pktmbuf_mtod(mbuf, const uint8_t*) + DATA_OFFSET);
-
-	pkt.ts = {data_view->arrival_time.sec, data_view->arrival_time.nsec / 1000};
-
-	std::memset(pkt.dst_mac, 0, sizeof(pkt.dst_mac));
-	std::memset(pkt.src_mac, 0, sizeof(pkt.src_mac));
-	pkt.ethertype = 0;
-
-	size_t vlan_cnt = (data_view->vlan_0 ? 1 : 0) + (data_view->vlan_1 ? 1 : 0);
-	size_t ip_offset = 14 + vlan_cnt * 4;
-
-	pkt.ip_len = data_view->packet_size - ip_offset;
-	pkt.ip_version = data_view->ip_version; // Get ip version
-	pkt.ip_ttl = 0;
-	pkt.ip_proto = data_view->l4_protocol;
-	pkt.ip_tos = 0;
-	pkt.ip_flags = 0;
-	if (pkt.ip_version == IP::v4) {
-		// IPv4 is in last 4 bytes
-		pkt.src_ip.v4 = *reinterpret_cast<const uint32_t*>(data_view->src_ip.data() + 12);
-		pkt.dst_ip.v4 = *reinterpret_cast<const uint32_t*>(data_view->dst_ip.data() + 12);
-		pkt.ip_payload_len = pkt.ip_len - 20; // default size of IPv4 header without any options
-	} else {
-		std::copy(data_view->src_ip.begin(), data_view->src_ip.end(), pkt.src_ip.v6);
-		std::copy(data_view->dst_ip.begin(), data_view->dst_ip.end(), pkt.dst_ip.v6);
-		pkt.ip_payload_len = pkt.ip_len - 40; // size of IPv6 header without extension headers
-	}
-
-	pkt.src_port = ntohs(data_view->src_port);
-	pkt.dst_port = ntohs(data_view->dst_port);
-	pkt.tcp_flags = data_view->l4_flags;
-	pkt.tcp_window = 0;
-	pkt.tcp_options = 0;
-	pkt.tcp_mss = 0;
-	pkt.tcp_seq = data_view->tcp_sequence_no;
-	pkt.tcp_ack = data_view->tcp_acknowledge_no;
-
-	std::uint16_t datalen = rte_pktmbuf_pkt_len(mbuf) - DATA_OFFSET;
-	pkt.packet = (uint8_t*) rte_pktmbuf_mtod(mbuf, const char*) + DATA_OFFSET;
-
-	pkt.packet_len = 0;
-	pkt.packet_len_wire = datalen;
-
-	pkt.custom = (uint8_t*) pkt.packet;
-	pkt.custom_len = datalen;
-
-	pkt.payload = pkt.packet + data_view->size();
-	pkt.payload_len = datalen < data_view->size() ? 0 : datalen - data_view->size();
-	pkt.payload_len_wire = rte_pktmbuf_pkt_len(mbuf) - data_view->size();
-
-	return true;
-}
-#endif
+static const PluginManifest dpdkPluginManifest = {
+	.name = "dpdk",
+	.description = "Input plugin for reading packets using DPDK interface.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage =
+		[]() {
+			DpdkOptParser parser;
+			parser.usage(std::cout);
+		},
+};
 
 DpdkCore* DpdkCore::m_instance = nullptr;
 
@@ -172,7 +100,12 @@ void DpdkCore::configure(const char* params)
 std::vector<char*> DpdkCore::convertStringToArgvFormat(const std::string& ealParams)
 {
 	// set first value as program name (argv[0])
-	std::vector<char*> args = {"ipfixprobe"};
+	const char* programName = "ipfixprobe";
+	char* programArg = new char[strlen(programName) + 1];
+	strcpy(programArg, programName);
+	std::vector<char*> args;
+	args.push_back(programArg);
+
 	std::istringstream iss(ealParams);
 	std::string token;
 
@@ -199,9 +132,10 @@ uint16_t DpdkCore::getRxQueueId() noexcept
 	return m_currentRxId++;
 }
 
-DpdkReader::DpdkReader()
+DpdkReader::DpdkReader(const std::string& params)
 	: m_dpdkCore(DpdkCore::getInstance())
 {
+	init(params.c_str());
 }
 
 DpdkReader::~DpdkReader()
@@ -237,12 +171,13 @@ void DpdkReader::configure_telemetry_dirs(
 	auto ports_dir = plugin_dir->addDir("ports");
 	for (size_t portID = 0; portID < m_dpdkDeviceCount; portID++) {
 		auto port_dir = ports_dir->addDir(std::to_string(portID));
-		telemetry::FileOps statsOps = {[=]() { return get_port_telemetry(portID); }, nullptr};
+		telemetry::FileOps statsOps
+			= {[this, portID]() { return get_port_telemetry(portID); }, nullptr};
 		register_file(port_dir, "stats", statsOps);
 		m_portsTelemetry.emplace_back(portID, port_dir);
 	}
 
-	telemetry::FileOps statsOps = {[=]() { return get_queue_telemetry(); }, nullptr};
+	telemetry::FileOps statsOps = {[this]() { return get_queue_telemetry(); }, nullptr};
 	register_file(queues_dir, "input-stats", statsOps);
 
 	m_dpdkTelemetry = std::make_unique<DpdkTelemetry>(plugin_dir);
@@ -258,9 +193,7 @@ void DpdkReader::init(const char* params)
 
 InputPlugin::Result DpdkReader::get(PacketBlock& packets)
 {
-#ifndef WITH_FLEXPROBE
 	parser_opt_t opt {&packets, false, false, 0};
-#endif
 
 	packets.cnt = 0;
 
@@ -271,17 +204,6 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
 	}
 
 	for (auto packetID = 0; packetID < receivedPackets; packetID++) {
-#ifdef WITH_FLEXPROBE
-		// Convert Flexprobe pre-parsed packet into IPFIXPROBE packet
-		auto conv_result = convert_from_flexprobe(mBufs[packetID], packets.pkts[packets.cnt]);
-		packets.bytes += packets.pkts[packets.cnt].packet_len_wire;
-		m_seen++;
-
-		if (!conv_result) {
-			continue;
-		}
-		packets.cnt++;
-#else
 		parse_packet(
 			&opt,
 			m_parser_stats,
@@ -289,7 +211,6 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
 			rte_pktmbuf_mtod(mBufs[packetID], const std::uint8_t*),
 			rte_pktmbuf_data_len(mBufs[packetID]),
 			rte_pktmbuf_data_len(mBufs[packetID]));
-#endif
 	}
 
 	m_seen += receivedPackets;
@@ -300,5 +221,7 @@ InputPlugin::Result DpdkReader::get(PacketBlock& packets)
 
 	return packets.cnt ? Result::PARSED : Result::NOT_PARSED;
 }
+
+static const PluginRegistrar<DpdkReader, InputPluginFactory> dpdkRegistrar(dpdkPluginManifest);
 
 } // namespace ipxp

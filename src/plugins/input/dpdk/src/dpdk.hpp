@@ -1,41 +1,24 @@
 /**
- * \file dpdk.h
- * \brief DPDK input interface for ipfixprobe.
- * \author Roman Vrana <ivrana@fit.vutbr.cz>
- * \date 2021
- */
-/*
- * Copyright (C) 2021 CESNET
+ * @file
+ * @brief DPDK reader
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifdef WITH_DPDK
+#pragma once
 
-#ifndef IPXP_DPDK_READER_H
-#define IPXP_DPDK_READER_H
-
-#include "dpdk/dpdkDevice.hpp"
-#include "dpdk/dpdkPortTelemetry.hpp"
-#include "dpdk/dpdkTelemetry.hpp"
+#include "dpdkDevice.hpp"
+#include "dpdkPortTelemetry.hpp"
+#include "dpdkTelemetry.hpp"
 
 #include <memory>
 #include <sstream>
 
-#include <ipfixprobe/input.hpp>
+#include <ipfixprobe/inputPlugin.hpp>
 #include <ipfixprobe/utils.hpp>
 #include <rte_mbuf.h>
 
@@ -239,8 +222,8 @@ public:
 
 	std::string get_name() const override { return "dpdk"; }
 
+	DpdkReader(const std::string& params);
 	~DpdkReader();
-	DpdkReader();
 
 	void configure_telemetry_dirs(
 		std::shared_ptr<telemetry::Directory> plugin_dir,
@@ -267,6 +250,3 @@ private:
 };
 
 } // namespace ipxp
-
-#endif // IPXP_DPDK_READER_H
-#endif

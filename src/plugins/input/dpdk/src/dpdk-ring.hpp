@@ -1,42 +1,27 @@
 /**
- * \file dpdk-ring.h
- * \brief DPDK ring input interface for ipfixprobe (secondary DPDK app).
- * \author Jaroslav Pesek <pesek@cesnet.cz>
- * \date 2023
+ * @file
+ * @brief DPDK ring input interface for ipfixprobe (secondary DPDK app).
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @author Jaroslav Pesek <pesek@cesnet.cz>
+ * @date 2025
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
-/*
- * Copyright (C) 2023 CESNET
- *
- * LICENSE TERMS
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- */
-#ifdef WITH_DPDK
 
-#ifndef IPXP_DPDK_RING_READER_H
-#define IPXP_DPDK_RING_READER_H
+#pragma once
 
 #include <memory>
 #include <sstream>
 
-#include <ipfixprobe/input.hpp>
+#include <ipfixprobe/inputPlugin.hpp>
 #include <ipfixprobe/utils.hpp>
 #include <rte_mbuf.h>
 #include <rte_ring.h>
 
 namespace ipxp {
+
 class DpdkRingOptParser : public OptionsParser {
 private:
 	static constexpr size_t DEFAULT_MBUF_BURST_SIZE = 64;
@@ -48,8 +33,8 @@ private:
 public:
 	DpdkRingOptParser()
 		: OptionsParser(
-			"dpdk-ring",
-			"DPDK ring input interface for ipfixprobe (secondary DPDK app).")
+			  "dpdk-ring",
+			  "DPDK ring input interface for ipfixprobe (secondary DPDK app).")
 		, pkt_buffer_size_(DEFAULT_MBUF_BURST_SIZE)
 	{
 		register_option(
@@ -131,7 +116,7 @@ public:
 	std::string get_name() const override { return "dpdk-ring"; }
 
 	~DpdkRingReader();
-	DpdkRingReader();
+	DpdkRingReader(const std::string& params);
 
 	void configure_telemetry_dirs(
 		std::shared_ptr<telemetry::Directory> plugin_dir,
@@ -175,7 +160,5 @@ private:
 	bool m_nfbMetadataEnabled = false;
 	NfbMetadataDynfieldInfo m_nfbMetadataDynfieldInfo = {};
 };
-} // namespace ipxp
 
-#endif // IPXP_DPDK_RING_READER_H
-#endif
+} // namespace ipxp

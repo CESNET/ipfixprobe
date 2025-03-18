@@ -30,7 +30,7 @@
 #include <cstring>
 #include <iostream>
 
-#include <ipfixprobe/input.hpp>
+#include <ipfixprobe/inputPlugin.hpp>
 #include <rte_errno.h>
 #include <rte_version.h>
 #include <unistd.h>
@@ -145,9 +145,11 @@ rte_eth_conf DpdkDevice::createPortConfig()
 	}
 
 #if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
-	rte_eth_conf portConfig {.rxmode = {.mtu = m_mtuSize}};
+	rte_eth_conf portConfig = {};
+	portConfig.rxmode.mtu = m_mtuSize;
 #else
-	rte_eth_conf portConfig {.rxmode = {.max_rx_pkt_len = m_mtuSize}};
+	rte_eth_conf portConfig = {};
+	portConfig.rxmode.max_rx_pkt_len = m_mtuSize;
 #endif
 
 	if (m_supportedRSS) {
