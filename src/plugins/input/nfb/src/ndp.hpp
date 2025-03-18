@@ -30,11 +30,12 @@
 #ifndef IPXP_INPUT_NDP_HPP
 #define IPXP_INPUT_NDP_HPP
 
-#include <ipfixprobe/input.hpp>
+#include "ndpReader.hpp"
+
+#include <ipfixprobe/inputPlugin.hpp>
 #include <ipfixprobe/options.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/utils.hpp>
-#include <ndpreader.hpp>
 
 namespace ipxp {
 
@@ -105,4 +106,5 @@ private:
 };
 
 } // namespace ipxp
+
 #endif /* IPXP_INPUT_NDP_HPP */
