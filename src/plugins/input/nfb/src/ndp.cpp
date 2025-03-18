@@ -128,6 +128,8 @@ void NdpPacketReader::configure_telemetry_dirs(
 	std::shared_ptr<telemetry::Directory> plugin_dir,
 	std::shared_ptr<telemetry::Directory> queues_dir)
 {
+	(void) plugin_dir;
+
 	telemetry::FileOps statsOps = {[&]() { return get_queue_telemetry(); }, nullptr};
 	register_file(queues_dir, "input-stats", statsOps);
 }

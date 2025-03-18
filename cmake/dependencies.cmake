@@ -12,3 +12,8 @@ endif()
 if (ENABLE_INPUT_DPDK)
 	pkg_check_modules(DPDK REQUIRED libdpdk)
 endif()
+
+if (ENABLE_INPUT_NFB)
+	find_package(NFB REQUIRED)
+	find_package(NUMA REQUIRED)
+endif()

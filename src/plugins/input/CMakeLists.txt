@@ -8,3 +8,7 @@ endif()
 if (ENABLE_INPUT_DPDK)
 	add_subdirectory(dpdk)
 endif()
+
+if (ENABLE_INPUT_NFB)
+	add_subdirectory(nfb)
+endif()

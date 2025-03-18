@@ -1,15 +1,11 @@
-#include "ndpreader.hpp"
-
-#include "ndpreader.h"
+#include "ndpReader.hpp"
 
 #include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
 
-#include <nfb/nfb.h>
-#include <numa.h>
-#include <unistd.h>
+namespace ipxp {
 
 /**
  * \brief Constructor.
@@ -213,7 +209,7 @@ int NdpReader::get_pkt(struct ndp_packet** ndp_packet_out, struct timeval* times
 	struct ndp_packet* ndp_packet = (ndp_packet_buffer + ndp_packet_buffer_processed);
 	*ndp_packet_out = ndp_packet;
 	if (fw_type == NdpFwType::NDP_FW_HANIC) {
-		uint64_t* fw_ts = &((ndp_header*) (ndp_packet->header))->timestamp;
+		uint64_t* fw_ts = &((NdpHeader*) (ndp_packet->header))->timestamp;
 		if (*fw_ts == 0) {
 			set_sw_timestamp(timestamp);
 		} else {
@@ -223,7 +219,7 @@ int NdpReader::get_pkt(struct ndp_packet** ndp_packet_out, struct timeval* times
 		uint8_t header_id = ndp_packet_flag_header_id_get(ndp_packet);
 		if (header_id >= ndk_timestamp_offsets.size()) {
 			set_sw_timestamp(timestamp);
-		} else if (ndk_timestamp_offsets[header_id] < 0) {
+		} else if (ndk_timestamp_offsets[header_id] == std::numeric_limits<uint32_t>::max()) {
 			set_sw_timestamp(timestamp);
 		} else {
 			uint64_t* fw_ts
@@ -241,10 +237,6 @@ int NdpReader::get_pkt(struct ndp_packet** ndp_packet_out, struct timeval* times
 
 	return 1;
 }
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 void ndp_reader_init(struct NdpReaderContext* context)
 {
@@ -272,6 +264,4 @@ const char* ndp_reader_error_msg(struct NdpReaderContext* context)
 	return ((NdpReader*) context->reader)->error_msg.c_str();
 }
 
-#ifdef __cplusplus
-}
-#endif
+} // namespace ipxp
