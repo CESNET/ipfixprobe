@@ -13,6 +13,7 @@ include(cmake/installation.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 option(ENABLE_INPUT_PCAP "Enable build of input PCAP plugin" ON)
+option(ENABLE_INPUT_DPDK "Enable build of input DPDK plugin" OFF)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
