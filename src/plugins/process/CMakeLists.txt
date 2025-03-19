@@ -23,4 +23,5 @@ add_subdirectory(tls)
 
 if (ENABLE_PROCESS_EXPERIMENTAL)
 	add_subdirectory(sip)
+	add_subdirectory(rtsp)
 endif()
