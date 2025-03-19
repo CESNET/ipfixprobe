@@ -1,53 +1,40 @@
 /**
- * \file ntp.cpp
- * \author Alejandro Robledo <robleale@fit.cvut.cz>
- * \date 2016
+ * @file
+ * @brief Plugin for parsing ntp traffic.
+ * @author Alejandro Robledo <robleale@fit.cvut.cz>
+ * @date 2025
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
-/*
- * Copyright (C) 2016 CESNET
- *
- * LICENSE TERMS
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
- */
+
+#include "ntp.hpp"
+
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 
-#include <stdlib.h>
-
 #ifdef WITH_NEMEA
 #include <unirec/unirec.h>
 #endif
 
-#include "ntp.hpp"
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 
 namespace ipxp {
 
-int RecordExtNTP::REGISTERED_ID = -1;
+int RecordExtNTP::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("ntp", []() { return new NTPPlugin(); });
-	register_plugin(&rec);
-	RecordExtNTP::REGISTERED_ID = register_extension();
-}
+static const PluginManifest ntpPluginManifest = {
+	.name = "ntp",
+	.description = "Ntp process plugin for parsing ntp traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
 
 // #define DEBUG_NTP
 
@@ -58,11 +45,12 @@ __attribute__((constructor)) static void register_this_plugin()
 #define DEBUG_MSG(format, ...)
 #endif
 
-NTPPlugin::NTPPlugin()
+NTPPlugin::NTPPlugin(const std::string& params)
 	: requests(0)
 	, responses(0)
 	, total(0)
 {
+	(void) params;
 }
 
 NTPPlugin::~NTPPlugin()
@@ -70,7 +58,10 @@ NTPPlugin::~NTPPlugin()
 	close();
 }
 
-void NTPPlugin::init(const char* params) {}
+void NTPPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void NTPPlugin::close() {}
 
@@ -447,5 +438,7 @@ NTPPlugin::parse_timestamp(const Packet& pkt, uint16_t p1, uint16_t p4, uint16_t
 	result2.resize(result2.length() - 1);
 	return result2;
 }
+
+static const PluginRegistrar<NTPPlugin, ProcessPluginFactory> ntpRegistrar(ntpPluginManifest);
 
 } // namespace ipxp
