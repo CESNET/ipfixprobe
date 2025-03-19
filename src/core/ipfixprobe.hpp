@@ -244,6 +244,7 @@ public:
 			"",
 			"Run as a standalone process",
 			[this](const char* arg) {
+				(void) arg;
 				m_daemon = true;
 				return true;
 			},
@@ -265,6 +266,7 @@ public:
 			"",
 			"Show version and exit",
 			[this](const char* arg) {
+				(void) arg;
 				m_version = true;
 				return true;
 			},
@@ -295,6 +297,10 @@ struct ipxp_conf_t {
 	uint32_t worker_cnt;
 	uint32_t fps;
 	uint32_t max_pkts;
+
+	std::vector<std::shared_ptr<InputPlugin>> inputPlugins;
+	std::vector<std::shared_ptr<StoragePlugin>> storagePlugins;
+	std::shared_ptr<OutputPlugin> outputPlugin;
 
 	PluginManager pluginManager;
 	struct Plugins {
@@ -351,13 +357,8 @@ struct ipxp_conf_t {
 			if (it.input.thread->joinable()) {
 				it.input.thread->join();
 			}
-			delete it.input.plugin;
 			delete it.input.thread;
 			delete it.input.promise;
-		}
-
-		for (auto& it : pipelines) {
-			delete it.storage.plugin;
 		}
 
 		for (auto& it : pipelines) {
@@ -373,7 +374,6 @@ struct ipxp_conf_t {
 			}
 			delete it.thread;
 			delete it.promise;
-			delete it.plugin;
 			ipx_ring_destroy(it.queue);
 		}
 

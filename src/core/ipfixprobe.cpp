@@ -26,8 +26,9 @@
  *
  */
 
-#include "buildConfig.hpp"
 #include "ipfixprobe.hpp"
+
+#include "buildConfig.hpp"
 
 #include <fstream>
 #include <future>
@@ -65,6 +66,7 @@ const uint32_t DEFAULT_FPS = 0; // unlimited
  */
 void signal_handler(int sig)
 {
+	(void) sig;
 #ifdef WITH_LIBUNWIND
 	if (sig == SIGSEGV) {
 		st_dump(STDERR_FILENO, sig);
@@ -100,7 +102,31 @@ static void printPluginsUsage(const std::vector<PluginManifest>& pluginsManifest
 	}
 }
 
-void print_help(ipxp_conf_t& conf, const std::string& arg)
+void printRegisteredPlugins(
+	const std::string& pluginType,
+	const std::vector<PluginManifest>& pluginsManifest)
+{
+	std::cout << "Registered " << pluginType << " plugins:" << std::endl;
+	for (const auto& pluginManifest : pluginsManifest) {
+		std::cout << "  " << pluginManifest.name << std::endl;
+	}
+	std::cout << "#####################\n";
+}
+
+void printPlugins()
+{
+	auto& inputPluginFactory = InputPluginFactory::getInstance();
+	auto& storagePluginFactory = StoragePluginFactory::getInstance();
+	auto& processPluginFactory = ProcessPluginFactory::getInstance();
+	auto& outputPluginFactory = OutputPluginFactory::getInstance();
+
+	printRegisteredPlugins("input", inputPluginFactory.getRegisteredPlugins());
+	printRegisteredPlugins("storage", storagePluginFactory.getRegisteredPlugins());
+	printRegisteredPlugins("process", processPluginFactory.getRegisteredPlugins());
+	printRegisteredPlugins("output", outputPluginFactory.getRegisteredPlugins());
+}
+
+void print_help(const std::string& arg)
 {
 	if (arg == "input") {
 		auto& inputPluginFactory = InputPluginFactory::getInstance();
@@ -192,15 +218,7 @@ void set_thread_details(pthread_t thread, const std::string& name, const std::ve
 
 bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 {
-	auto deleter = [&](OutputPlugin::Plugins* p) {
-		for (auto& it : *p) {
-			delete it.second;
-		}
-		delete p;
-	};
-	auto process_plugins = std::unique_ptr<OutputPlugin::Plugins, decltype(deleter)>(
-		new OutputPlugin::Plugins(),
-		deleter);
+	OutputPlugin::ProcessPlugins processPlugins;
 	std::string storage_name = "cache";
 	std::string storage_params = "";
 	std::string output_name = "ipfix";
@@ -226,7 +244,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 
 	// Process
 	for (auto& it : parser.m_process) {
-		ProcessPlugin* process_plugin = nullptr;
+		std::shared_ptr<ProcessPlugin> processPlugin;
 		std::string process_params;
 		std::string process_name;
 		std::vector<int> affinity;
@@ -236,7 +254,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 				"cannot set CPU affinity for process plugin (process plugins are invoked inside "
 				"input threads)");
 		}
-		for (auto& it : *process_plugins) {
+		for (auto& it : processPlugins) {
 			std::string plugin_name = it.first;
 			if (plugin_name == process_name) {
 				throw IPXPError(process_name + " plugin was specified multiple times");
@@ -245,25 +263,21 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 		if (process_name == BASIC_PLUGIN_NAME) {
 			continue;
 		}
-		/*
-		try {
-			process_plugin = dynamic_cast<ProcessPlugin*>(conf.mgr.get(process_name));
-			if (process_plugin == nullptr) {
-				throw IPXPError("invalid processing plugin " + process_name);
-			}
 
-			process_plugin->init(process_params.c_str());
-			process_plugins->push_back(std::make_pair(process_name, process_plugin));
+		try {
+			auto& processPluginFactory = ProcessPluginFactory::getInstance();
+			processPlugin = processPluginFactory.createShared(process_name, process_params);
+			if (processPlugin == nullptr) {
+				throw IPXPError("invalid process plugin " + process_name);
+			}
+			processPlugins.emplace_back(process_name, processPlugin);
 		} catch (PluginError& e) {
-			delete process_plugin;
 			throw IPXPError(process_name + std::string(": ") + e.what());
 		} catch (PluginExit& e) {
-			delete process_plugin;
 			return true;
-		} catch (PluginManagerError& e) {
-			throw IPXPError(process_name + std::string(": ") + e.what());
+		} catch (std::runtime_error& ex) {
+			throw IPXPError(process_name + std::string(": ") + ex.what());
 		}
-		*/
 	}
 
 	// telemetry
@@ -281,40 +295,32 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 	auto statsFile = ipxRingTelemetryDir->addFile("stats", statsOps);
 	conf.holder.add(statsFile);
 
-	OutputPlugin* output_plugin = nullptr;
-	/*
+	std::shared_ptr<OutputPlugin> outputPlugin;
+
 	try {
-		output_plugin = dynamic_cast<OutputPlugin*>(conf.mgr.get(output_name));
-		if (output_plugin == nullptr) {
-			ipx_ring_destroy(output_queue);
+		auto& outputPluginFactory = OutputPluginFactory::getInstance();
+		outputPlugin = outputPluginFactory.createShared(output_name, output_params, processPlugins);
+		if (outputPlugin == nullptr) {
 			throw IPXPError("invalid output plugin " + output_name);
 		}
-
-		output_plugin->init(output_params.c_str(), *process_plugins);
-		conf.active.output.push_back(output_plugin);
-		conf.active.all.push_back(output_plugin);
+		conf.outputPlugin = outputPlugin;
 	} catch (PluginError& e) {
-		ipx_ring_destroy(output_queue);
-		delete output_plugin;
 		throw IPXPError(output_name + std::string(": ") + e.what());
 	} catch (PluginExit& e) {
-		ipx_ring_destroy(output_queue);
-		delete output_plugin;
 		return true;
-	} catch (PluginManagerError& e) {
-		throw IPXPError(output_name + std::string(": ") + e.what());
+	} catch (std::runtime_error& ex) {
+		throw IPXPError(output_name + std::string(": ") + ex.what());
 	}
-	*/
 
 	{
 		std::promise<WorkerResult>* output_res = new std::promise<WorkerResult>();
 		auto output_stats = new std::atomic<OutputStats>();
 		conf.output_stats.push_back(output_stats);
 		OutputWorker tmp
-			= {output_plugin,
+			= {outputPlugin,
 			   new std::thread(
 				   output_worker,
-				   output_plugin,
+				   outputPlugin,
 				   output_queue,
 				   output_res,
 				   output_stats,
@@ -336,8 +342,8 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 	auto flowcache_dir = conf.telemetry_root_node->addDir("flowcache");
 	size_t pipeline_idx = 0;
 	for (auto& it : parser.m_input) {
-		InputPlugin* input_plugin = nullptr;
-		StoragePlugin* storage_plugin = nullptr;
+		std::shared_ptr<InputPlugin> inputPlugin;
+		std::shared_ptr<StoragePlugin> storagePlugin;
 		std::string input_params;
 		std::string input_name;
 		std::vector<int> affinity;
@@ -347,51 +353,43 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 		auto pipeline_queue_dir
 			= pipeline_dir->addDir("queues")->addDir(std::to_string(pipeline_idx));
 
-		/*
 		try {
-			input_plugin = dynamic_cast<InputPlugin*>(conf.mgr.get(input_name));
-			if (input_plugin == nullptr) {
+			auto& inputPluginFactory = InputPluginFactory::getInstance();
+			inputPlugin = inputPluginFactory.createShared(input_name, input_params);
+			if (inputPlugin == nullptr) {
 				throw IPXPError("invalid input plugin " + input_name);
 			}
-			input_plugin->init(input_params.c_str());
-			input_plugin->set_telemetry_dirs(input_plugin_dir, pipeline_queue_dir);
-			conf.active.input.push_back(input_plugin);
-			conf.active.all.push_back(input_plugin);
+			inputPlugin->set_telemetry_dirs(input_plugin_dir, pipeline_queue_dir);
+			conf.inputPlugins.emplace_back(inputPlugin);
 		} catch (PluginError& e) {
-			delete input_plugin;
 			throw IPXPError(input_name + std::string(": ") + e.what());
 		} catch (PluginExit& e) {
-			delete input_plugin;
 			return true;
-		} catch (PluginManagerError& e) {
-			throw IPXPError(input_name + std::string(": ") + e.what());
+		} catch (std::runtime_error& ex) {
+			throw IPXPError(input_name + std::string(": ") + ex.what());
 		}
 
 		try {
-			storage_plugin = dynamic_cast<StoragePlugin*>(conf.mgr.get(storage_name));
-			if (storage_plugin == nullptr) {
+			auto& storagePluginFactory = StoragePluginFactory::getInstance();
+			storagePlugin
+				= storagePluginFactory.createShared(storage_name, storage_params, output_queue);
+			if (storagePlugin == nullptr) {
 				throw IPXPError("invalid storage plugin " + storage_name);
 			}
-			storage_plugin->set_queue(output_queue);
-			storage_plugin->init(storage_params.c_str());
-			storage_plugin->set_telemetry_dir(pipeline_queue_dir);
-			conf.active.storage.push_back(storage_plugin);
-			conf.active.all.push_back(storage_plugin);
+			storagePlugin->set_telemetry_dir(pipeline_queue_dir);
+			conf.storagePlugins.emplace_back(storagePlugin);
 		} catch (PluginError& e) {
-			delete storage_plugin;
 			throw IPXPError(storage_name + std::string(": ") + e.what());
 		} catch (PluginExit& e) {
-			delete storage_plugin;
 			return true;
-		} catch (PluginManagerError& e) {
-			throw IPXPError(storage_name + std::string(": ") + e.what());
+		} catch (std::runtime_error& ex) {
+			throw IPXPError(storage_name + std::string(": ") + ex.what());
 		}
-		*/
 
 		std::vector<ProcessPlugin*> storage_process_plugins;
-		for (auto& it : *process_plugins) {
+		for (auto& it : processPlugins) {
 			ProcessPlugin* tmp = it.second->copy();
-			storage_plugin->add_plugin(tmp);
+			storagePlugin->add_plugin(tmp);
 			conf.active.process.push_back(tmp);
 			conf.active.all.push_back(tmp);
 			storage_process_plugins.push_back(tmp);
@@ -404,18 +402,18 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 		conf.input_stats.push_back(input_stats);
 
 		WorkPipeline tmp
-			= {{input_plugin,
+			= {{inputPlugin,
 				new std::thread(
 					input_storage_worker,
-					input_plugin,
-					storage_plugin,
+					inputPlugin,
+					storagePlugin,
 					conf.iqueue_size,
 					conf.max_pkts,
 					input_res,
 					input_stats),
 				input_res,
 				input_stats},
-			   {storage_plugin, storage_process_plugins}};
+			   {storagePlugin, storage_process_plugins}};
 		set_thread_details(
 			tmp.input.thread->native_handle(),
 			"in_" + std::to_string(pipeline_idx) + "_" + input_name,
@@ -435,7 +433,7 @@ void finish(ipxp_conf_t& conf)
 	terminate_input = 1;
 	for (auto& it : conf.pipelines) {
 		it.input.thread->join();
-		it.input.plugin->close();
+		it.input.inputPlugin->close();
 	}
 
 	// Terminate all storages
@@ -452,7 +450,7 @@ void finish(ipxp_conf_t& conf)
 	}
 
 	for (auto& it : conf.pipelines) {
-		it.storage.plugin->close();
+		it.storage.storagePlugin->close();
 	}
 
 	std::cout << "Input stats:" << std::endl
@@ -576,8 +574,8 @@ void main_loop(ipxp_conf_t& conf)
 	}
 
 	struct pollfd pfds[2] = {
-		{.fd = -1, .events = POLL_IN}, // Server
-		{.fd = -1, .events = POLL_IN} // Client
+		{.fd = -1, .events = POLL_IN, .revents = 0}, // Server
+		{.fd = -1, .events = POLL_IN, .revents = 0} // Client
 	};
 
 	std::string sock_path = create_sockpath(std::to_string(getpid()).c_str());
@@ -641,11 +639,13 @@ int run(int argc, char* argv[])
 
 	conf.pluginManager.loadPlugins("/usr/local/lib64/ipfixprobe/", loadPluginsRecursive);
 
+	printPlugins();
+
 	if (parser.m_help) {
 		if (parser.m_help_str.empty()) {
 			parser.usage(std::cout, 0, IPXP_APP_NAME);
 		} else {
-			print_help(conf, parser.m_help_str);
+			print_help(parser.m_help_str);
 		}
 		goto EXIT;
 	}
