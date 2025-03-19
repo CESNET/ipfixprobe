@@ -15,6 +15,7 @@ add_subdirectory(mqtt)
 add_subdirectory(dns)
 add_subdirectory(dnssd)
 add_subdirectory(netbios)
+add_subdirectory(passiveDns)
 
 if (ENABLE_PROCESS_EXPERIMENTAL)
 	add_subdirectory(sip)

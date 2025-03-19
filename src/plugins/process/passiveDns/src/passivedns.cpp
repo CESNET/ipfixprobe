@@ -1,63 +1,47 @@
 /**
- * \file passivedns.cpp
- * \brief Plugin for exporting DNS A and AAAA records.
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2017
- */
-/*
- * Copyright (C) 2017 CESNET
+ * @file
+ * @brief Plugin for parsing DNS A and AAAA records.
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <cstring>
-#include <iostream>
-#include <sstream>
-#include <type_traits>
-
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "passivedns.hpp"
 
 #ifdef WITH_NEMEA
 #include <unirec/unirec.h>
 #endif
 
-#include "passivedns.hpp"
-
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
 #include <limits>
+#include <sstream>
+#include <type_traits>
 
+#include <arpa/inet.h>
 #include <errno.h>
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 #include <ipfixprobe/utils.hpp>
 #include <stdint.h>
-#include <stdlib.h>
+#include <stdio.h>
 
 namespace ipxp {
 
-int RecordExtPassiveDNS::REGISTERED_ID = -1;
+int RecordExtPassiveDNS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("passivedns", []() { return new PassiveDNSPlugin(); });
-	register_plugin(&rec);
-	RecordExtPassiveDNS::REGISTERED_ID = register_extension();
-}
+static const PluginManifest passivednsPluginManifest = {
+	.name = "passivedns",
+	.description = "Passivedns process plugin for parsing DNS A and AAAA records.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
 
 // #define DEBUG_PASSIVEDNS
 
@@ -87,7 +71,7 @@ __attribute__((constructor)) static void register_this_plugin()
  */
 #define GET_OFFSET(half1, half2) ((((uint8_t) (half1) & 0x3F) << 8) | (uint8_t) (half2))
 
-PassiveDNSPlugin::PassiveDNSPlugin()
+PassiveDNSPlugin::PassiveDNSPlugin(const std::string& params)
 	: total(0)
 	, parsed_a(0)
 	, parsed_aaaa(0)
@@ -95,6 +79,7 @@ PassiveDNSPlugin::PassiveDNSPlugin()
 	, data_begin(nullptr)
 	, data_len(0)
 {
+	init(params.c_str());
 }
 
 PassiveDNSPlugin::~PassiveDNSPlugin()
@@ -102,7 +87,10 @@ PassiveDNSPlugin::~PassiveDNSPlugin()
 	close();
 }
 
-void PassiveDNSPlugin::init(const char* params) {}
+void PassiveDNSPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void PassiveDNSPlugin::close() {}
 
@@ -525,5 +513,8 @@ int PassiveDNSPlugin::add_ext_dns(const char* data, unsigned int payload_len, bo
 
 	return FLOW_FLUSH;
 }
+
+static const PluginRegistrar<PassiveDNSPlugin, ProcessPluginFactory>
+	passivednsRegistrar(passivednsPluginManifest);
 
 } // namespace ipxp
