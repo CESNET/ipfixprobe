@@ -1,47 +1,33 @@
 /**
- * \file ssdp.cpp
- * \brief Plugin for parsing ssdp traffic.
- * \author Ondrej Sedlacek xsedla1o@stud.fit.vutbr.cz
- * \date 2020
- */
-/*
- * Copyright (C) 2020 CESNET
+ * @file
+ * @brief Plugin for parsing ssdp traffic.
+ * @author Ondrej Sedlacek xsedla1o@stud.fit.vutbr.cz
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "ssdp.hpp"
 
-#include "common.hpp"
-
 #include <iostream>
+
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 
 namespace ipxp {
 
-int RecordExtSSDP::REGISTERED_ID = -1;
+int RecordExtSSDP::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("ssdp", []() { return new SSDPPlugin(); });
-	register_plugin(&rec);
-	RecordExtSSDP::REGISTERED_ID = register_extension();
-}
+static const PluginManifest ssdpPluginManifest = {
+	.name = "ssdp",
+	.description = "Ssdp process plugin for parsing ssdp traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
 
 // #define DEBUG_SSDP
 
@@ -56,12 +42,13 @@ enum header_types { LOCATION, NT, ST, SERVER, USER_AGENT, NONE };
 
 const char* headers[] = {"location", "nt", "st", "server", "user-agent"};
 
-SSDPPlugin::SSDPPlugin()
+SSDPPlugin::SSDPPlugin(const std::string& params)
 	: record(nullptr)
 	, notifies(0)
 	, searches(0)
 	, total(0)
 {
+	init(params.c_str());
 }
 
 SSDPPlugin::~SSDPPlugin()
@@ -69,7 +56,10 @@ SSDPPlugin::~SSDPPlugin()
 	close();
 }
 
-void SSDPPlugin::init(const char* params) {}
+void SSDPPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void SSDPPlugin::close() {}
 
@@ -275,7 +265,9 @@ void SSDPPlugin::parse_ssdp_message(Flow& rec, const Packet& pkt)
 	header_parser_conf parse_conf
 		= {headers,
 		   rec.ip_version,
-		   static_cast<RecordExtSSDP*>(rec.get_extension(RecordExtSSDP::REGISTERED_ID))};
+		   static_cast<RecordExtSSDP*>(rec.get_extension(RecordExtSSDP::REGISTERED_ID)),
+		   0,
+		   nullptr};
 
 	total++;
 	if (pkt.payload[0] == 'N') {
@@ -295,5 +287,7 @@ void SSDPPlugin::parse_ssdp_message(Flow& rec, const Packet& pkt)
 	}
 	SSDP_DEBUG_MSG("\n");
 }
+
+static const PluginRegistrar<SSDPPlugin, ProcessPluginFactory> ssdpRegistrar(ssdpPluginManifest);
 
 } // namespace ipxp

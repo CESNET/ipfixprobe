@@ -8,7 +8,10 @@ add_subdirectory(idpContent)
 add_subdirectory(phists)
 add_subdirectory(pstats)
 add_subdirectory(ovpn)
+add_subdirectory(wg)
+add_subdirectory(ssdp)
 
 if (ENABLE_PROCESS_EXPERIMENTAL)
 	add_subdirectory(sip)
 endif()
+
