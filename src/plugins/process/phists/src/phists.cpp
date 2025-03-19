@@ -1,29 +1,13 @@
 /**
- * \file phists.cpp
- * \brief Plugin for parsing phists traffic.
- * \author Karel Hynek <hynekkar@fit.cvut.cz>
- * \date 2021
- */
-/*
- * Copyright (C) 2021 CESNET
+ * @file
+ * @brief Plugin for parsing phists traffic.
+ * @author Karel Hynek <hynekkar@fit.cvut.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "phists.hpp"
@@ -35,18 +19,25 @@
 #include <string>
 #include <vector>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 #include <math.h>
 
 namespace ipxp {
 
-int RecordExtPHISTS::REGISTERED_ID = -1;
+int RecordExtPHISTS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("phists", []() { return new PHISTSPlugin(); });
-	register_plugin(&rec);
-	RecordExtPHISTS::REGISTERED_ID = register_extension();
-}
+static const PluginManifest phistsPluginManifest = {
+	.name = "phists",
+	.description = "Phists process plugin for parsing phists traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage =
+		[]() {
+			PHISTSOptParser parser;
+			parser.usage(std::cout);
+		},
+};
 
 #define PHISTS_INCLUDE_ZEROS_OPT "includezeros"
 
@@ -60,9 +51,10 @@ const uint32_t PHISTSPlugin::log2_lookup32[32]
 	= {0, 9,  1,  10, 13, 21, 2,  29, 11, 14, 16, 18, 22, 25, 3, 30,
 	   8, 12, 20, 28, 15, 17, 24, 7,  19, 27, 23, 6,  26, 5,  4, 31};
 
-PHISTSPlugin::PHISTSPlugin()
+PHISTSPlugin::PHISTSPlugin(const std::string& params)
 	: use_zeros(false)
 {
+	init(params.c_str());
 }
 
 PHISTSPlugin::~PHISTSPlugin()
@@ -101,6 +93,7 @@ ProcessPlugin* PHISTSPlugin::copy()
  */
 void PHISTSPlugin::update_hist(RecordExtPHISTS* phists_data, uint32_t value, uint32_t* histogram)
 {
+	(void) phists_data;
 	if (value < 16) {
 		histogram[0] = no_overflow_increment(histogram[0]);
 	} else if (value > 1023) {
@@ -174,5 +167,8 @@ int PHISTSPlugin::post_update(Flow& rec, const Packet& pkt)
 	update_record(phists_data, pkt);
 	return 0;
 }
+
+static const PluginRegistrar<PHISTSPlugin, ProcessPluginFactory>
+	phistsRegistrar(phistsPluginManifest);
 
 } // namespace ipxp
