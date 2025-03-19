@@ -1,58 +1,78 @@
 /**
- * \file ovpn.cpp
- * \brief Plugin for parsing ovpn traffic.
- * \author Karel Hynek <hynekkar@fit.cvut.cz>
- * \author Martin Ctrnacty <ctrnama2@fit.cvut.cz>
- * \date 2020
- */
-/*
- * Copyright (C) 2020 CESNET
+ * @file
+ * @brief Plugin for parsing ovpn traffic.
+ * @author Karel Hynek <hynekkar@fit.cvut.cz>
+ * @author Martin Ctrnacty <ctrnama2@fit.cvut.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "ovpn.hpp"
 
-#include "ipfixprobe/rtp.hpp"
-
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 
+#include <endian.h>
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+
 namespace ipxp {
 
-int RecordExtOVPN::REGISTERED_ID = -1;
+struct __attribute__((packed)) rtp_header {
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
+	uint16_t csrc_count : 4;
+	uint16_t extension : 1;
+	uint16_t padding : 1;
+	uint16_t version : 2;
+	// next byte
+	uint16_t payload_type : 7;
+	uint16_t marker : 1;
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN
+	uint16_t version : 2;
+	uint16_t padding : 1;
+	uint16_t extension : 1;
+	uint16_t csrc_count : 4;
+	// next byte
+	uint16_t marker : 1;
+	uint16_t payload_type : 7;
 
-__attribute__((constructor)) static void register_this_plugin()
+#else // if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
+#error "Please fix <endian.h>"
+#endif // if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
+	uint16_t sequence_number;
+	uint32_t timestamp;
+	uint32_t ssrc;
+};
+
+int RecordExtOVPN::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
+
+static const PluginManifest ovpnPluginManifest = {
+	.name = "ovpn",
+	.description = "Ovpn process plugin for parsing ovpn traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
+
+OVPNPlugin::OVPNPlugin(const std::string& params)
 {
-	static PluginRecord rec = PluginRecord("ovpn", []() { return new OVPNPlugin(); });
-	register_plugin(&rec);
-	RecordExtOVPN::REGISTERED_ID = register_extension();
+	init(params.c_str());
 }
-
-OVPNPlugin::OVPNPlugin() {}
 
 OVPNPlugin::~OVPNPlugin()
 {
 	close();
 }
 
-void OVPNPlugin::init(const char* params) {}
+void OVPNPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void OVPNPlugin::close() {}
 
@@ -273,5 +293,7 @@ bool OVPNPlugin::check_valid_rtp_header(const Packet& pkt)
 
 	return true;
 }
+
+static const PluginRegistrar<OVPNPlugin, ProcessPluginFactory> ovpnRegistrar(ovpnPluginManifest);
 
 } // namespace ipxp
