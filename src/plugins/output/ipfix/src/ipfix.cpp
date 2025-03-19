@@ -1,39 +1,13 @@
 /**
- * \file ipfix.cpp
- * \brief Export flows in IPFIX format.
- *    The following, modified, code was used https://dior.ics.muni.cz/~velan/flowmon-export-ipfix/
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \author Tomas Cejka <cejkat@cesnet.cz>
- * \date 2017
- */
-/*
- * Copyright (C) 2012 Masaryk University, Institute of Computer Science
- * All rights reserved.
+ * @file
+ * @brief Export flows in IPFIX format.
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in
- * the documentation and/or other materials provided with the
- * distribution.
- * 3. Neither the name of the Masaryk University nor the names of its
- * contributors may be used to endorse or promote products derived
- * from this software without specific prior written permission.
+ * Copyright (c) 2025 CESNET
  *
- * This software is provided ``as is'', and any express or implied
- * warranties, including, but not limited to, the implied warranties of
- * merchantability and fitness for a particular purpose are disclaimed.
- * In no event shall the company or contributors be liable for any
- * direct, indirect, incidental, special, exemplary, or consequential
- * damages (including, but not limited to, procurement of substitute
- * goods or services; loss of use, data, or profits; or business
- * interruption) however caused and on any theory of liability, whether
- * in contract, strict liability, or tort (including negligence or
- * otherwise) arising in any way out of the use of this software, even
- * if advised of the possibility of such damage.
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <csignal>
@@ -61,16 +35,22 @@
 #include <ipfixprobe/byte-utils.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
-#include <ipfixprobe/output.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 
 namespace ipxp {
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("ipfix", []() { return new IPFIXExporter(); });
-	register_plugin(&rec);
-}
+static const PluginManifest ipfixPluginManifest = {
+	.name = "ipfix",
+	.description = ".",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage =
+		[]() {
+			IpfixOptParser parser;
+			parser.usage(std::cout);
+		},
+};
 
 #define GCC_CHECK_PRAGMA ((__GNUC__ == 4 && 6 <= __GNUC_MINOR__) || 4 < __GNUC__)
 
@@ -128,7 +108,7 @@ const char* basic_tmplt_v4[] = {BASIC_TMPLT_V4(IPFIX_FIELD_NAMES) nullptr};
 /* Basic IPv6 template. */
 const char* basic_tmplt_v6[] = {BASIC_TMPLT_V6(IPFIX_FIELD_NAMES) nullptr};
 
-IPFIXExporter::IPFIXExporter()
+IPFIXExporter::IPFIXExporter(const std::string& params, ProcessPlugins& plugins)
 	: extensions(nullptr)
 	, extension_cnt(0)
 	, templates(nullptr)
@@ -155,6 +135,7 @@ IPFIXExporter::IPFIXExporter()
 	, mtu(DEFAULT_MTU)
 	, tmpltMaxBufferSize(mtu - IPFIX_HEADER_SIZE)
 {
+	init(params.c_str(), plugins);
 }
 
 IPFIXExporter::~IPFIXExporter()
@@ -233,11 +214,11 @@ void IPFIXExporter::init(const char* params)
 	signal(SIGPIPE, SIG_IGN);
 }
 
-void IPFIXExporter::init(const char* params, Plugins& plugins)
+void IPFIXExporter::init(const char* params, ProcessPlugins& plugins)
 {
 	init(params);
 
-	extension_cnt = get_extension_cnt();
+	extension_cnt = ProcessPluginIDGenerator::instance().getPluginsCount();
 	if (extension_cnt > 64) {
 		throw PluginError("output plugin operates only with up to 64 running plugins");
 	}
@@ -247,7 +228,7 @@ void IPFIXExporter::init(const char* params, Plugins& plugins)
 	}
 	for (auto& it : plugins) {
 		std::string name = it.first;
-		ProcessPlugin* plugin = it.second;
+		std::shared_ptr<ProcessPlugin> plugin = it.second;
 		RecordExt* ext = plugin->get_ext();
 		if (ext == nullptr) {
 			continue;
@@ -1527,5 +1508,8 @@ int IPFIXExporter::fill_basic_flow(const Flow& flow, template_t* tmplt)
 
 	return length;
 }
+
+static const PluginRegistrar<IPFIXExporter, OutputPluginFactory>
+	ipfixRegistrar(ipfixPluginManifest);
 
 } // namespace ipxp

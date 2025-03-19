@@ -1,42 +1,18 @@
 /**
- * \file ipfix.hpp
- * \brief Export flows in IPFIX format.
- *    The following code was used https://dior.ics.muni.cz/~velan/flowmon-export-ipfix/
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2017
- */
-/*
- * Copyright (C) 2012 Masaryk University, Institute of Computer Science
- * All rights reserved.
+ * @file
+ * @brief Export flows in IPFIX format
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in
- * the documentation and/or other materials provided with the
- * distribution.
- * 3. Neither the name of the Masaryk University nor the names of its
- * contributors may be used to endorse or promote products derived
- * from this software without specific prior written permission.
+ * The following code was used https://dior.ics.muni.cz/~velan/flowmon-export-ipfix/
  *
- * This software is provided ``as is'', and any express or implied
- * warranties, including, but not limited to, the implied warranties of
- * merchantability and fitness for a particular purpose are disclaimed.
- * In no event shall the company or contributors be liable for any
- * direct, indirect, incidental, special, exemplary, or consequential
- * damages (including, but not limited to, procurement of substitute
- * goods or services; loss of use, data, or profits; or business
- * interruption) however caused and on any theory of liability, whether
- * in contract, strict liability, or tort (including negligence or
- * otherwise) arising in any way out of the use of this software, even
- * if advised of the possibility of such damage.
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_OUTPUT_IPFIX_H
-#define IPXP_OUTPUT_IPFIX_H
+#pragma once
 
 #include <cstdint>
 #include <map>
@@ -45,8 +21,8 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/options.hpp>
-#include <ipfixprobe/output.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/outputPlugin.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 #include <ipfixprobe/utils.hpp>
 #include <lz4.h>
 
@@ -140,6 +116,7 @@ public:
 			"",
 			"Use UDP protocol",
 			[this](const char* arg) {
+				(void) arg;
 				m_udp = true;
 				return true;
 			},
@@ -150,6 +127,7 @@ public:
 			"",
 			"Use non-blocking socket for TCP protocol",
 			[this](const char* arg) {
+				(void) arg;
 				m_non_blocking_tcp = true;
 				return true;
 			},
@@ -202,6 +180,7 @@ public:
 			"",
 			"Enable verbose mode",
 			[this](const char* arg) {
+				(void) arg;
 				m_verbose = true;
 				return true;
 			},
@@ -212,6 +191,7 @@ public:
 			"",
 			"Enable lz4 compression",
 			[this](const char* arg) {
+				(void) arg;
 				m_lz4_compression = true;
 				return true;
 			},
@@ -234,7 +214,7 @@ public:
 };
 
 typedef struct {
-	char* name; /**< Record name */
+	const char* name; /**< Record name */
 	uint16_t enterpriseNumber; /**< Enterprise Number */
 	uint16_t elementID; /**< Information Element ID */
 	int32_t length; /**< Element export length. -1 for variable*/
@@ -566,10 +546,10 @@ private:
 
 class IPFIXExporter : public OutputPlugin {
 public:
-	IPFIXExporter();
+	IPFIXExporter(const std::string& params, ProcessPlugins& plugins);
 	~IPFIXExporter();
 	void init(const char* params);
-	void init(const char* params, Plugins& plugins);
+	void init(const char* params, ProcessPlugins& plugins);
 	void close();
 	OptionsParser* get_parser() const { return new IpfixOptParser(); }
 	std::string get_name() const { return "ipfix"; }
@@ -636,4 +616,3 @@ private:
 };
 
 } // namespace ipxp
-#endif /* IPXP_OUTPUT_IPFIX_HPP */
