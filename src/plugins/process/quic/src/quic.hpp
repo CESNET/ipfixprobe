@@ -1,18 +1,17 @@
-/* SPDX-License-Identifier: BSD-3-Clause
- * Copyright (C) 2021-2022, CESNET z.s.p.o.
- */
-
 /**
- * \file quic.hpp
- * \brief Plugin for enriching flows for quic data.
- * \author Andrej Lukacovic lukacan1@fit.cvut.cz
- * \author Karel Hynek <Karel.Hynek@cesnet.cz>
- * \author Jonas Mücke <jonas.muecke@tu-dresden.de>
- * \date 2023
+ * @file
+ * @brief Plugin for parsing basicplus traffic.
+ * @author Andrej Lukacovic lukacan1@fit.cvut.cz
+ * @author Karel Hynek <Karel.Hynek@cesnet.cz>
+ * @author Jonas Mücke <jonas.muecke@tu-dresden.de>
+ * @author Pavel Siska <siska@cesnet.cz>
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_PROCESS_QUIC_HPP
-#define IPXP_PROCESS_QUIC_HPP
+#pragma once
 
 #ifdef WITH_NEMEA
 #include "fields.h"
@@ -364,7 +363,7 @@ struct RecordExtQUIC : public RecordExt {
  */
 class QUICPlugin : public ProcessPlugin {
 public:
-	QUICPlugin();
+	QUICPlugin(const std::string& params);
 	~QUICPlugin();
 	void init(const char* params);
 	void close();
@@ -424,5 +423,3 @@ private:
 };
 
 } // namespace ipxp
-
-#endif /* IPXP_PROCESS_QUIC_HPP */

@@ -1,41 +1,50 @@
-/* SPDX-License-Identifier: BSD-3-Clause
- * Copyright (C) 2021-2022, CESNET z.s.p.o.
+/**
+ * @file
+ * @brief Plugin for parsing basicplus traffic.
+ * @author Andrej Lukacovic lukacan1@fit.cvut.cz
+ * @author Karel Hynek <Karel.Hynek@cesnet.cz>
+ * @author Jonas Mücke <jonas.muecke@tu-dresden.de>
+ * @author Pavel Siska <siska@cesnet.cz>
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-/**
- * \file quic.cpp
- * \brief Plugin for enriching flows for quic data.
- * \author Andrej Lukacovic lukacan1@fit.cvut.cz
- * \author Karel Hynek <Karel.Hynek@cesnet.cz>
- * \author Jonas Mücke <jonas.muecke@tu-dresden.de>
- * \date 2023
- */
+#include "quic.hpp"
 
 #ifdef WITH_NEMEA
 #include <unirec/unirec.h>
 #endif
 
-#include "quic.hpp"
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 
 namespace ipxp {
-int RecordExtQUIC::REGISTERED_ID = -1;
+int RecordExtQUIC::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
+static const PluginManifest quicPluginManifest = {
+	.name = "quic",
+	.description = "Quic process plugin for parsing quic traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
+
+QUICPlugin::QUICPlugin(const std::string& params)
 {
-	static PluginRecord rec = PluginRecord("quic", []() { return new QUICPlugin(); });
-
-	register_plugin(&rec);
-	RecordExtQUIC::REGISTERED_ID = register_extension();
+	(void) params;
 }
-
-QUICPlugin::QUICPlugin() {}
 
 QUICPlugin::~QUICPlugin()
 {
 	close();
 }
 
-void QUICPlugin::init(const char* params) {}
+void QUICPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void QUICPlugin::close() {}
 
@@ -251,6 +260,9 @@ void QUICPlugin::set_client_hello_fields(
 	const Packet& pkt,
 	bool new_quic_flow)
 {
+	(void) rec;
+	(void) pkt;
+
 	process_quic->quic_get_token_length(quic_data->quic_token_length);
 	char dcid[MAX_CID_LEN] = {0};
 	uint8_t dcid_len = 0;
@@ -262,7 +274,7 @@ void QUICPlugin::set_client_hello_fields(
 		 != QUICParser::QUIC_CONSTANTS::QUIC_UNUSED_VARIABLE_LENGTH_INT)
 		&& (quic_data->quic_token_length > 0)
 		&& ((quic_data->retry_scid_length == dcid_len)
-			|| (!new_quic_flow) && (quic_data->retry_scid_length == dcid_len))
+			|| ((!new_quic_flow) && (quic_data->retry_scid_length == dcid_len)))
 		&& ((strncmp(quic_data->retry_scid, dcid, std::min(quic_data->retry_scid_length, dcid_len))
 			 == 0)
 			|| ((!new_quic_flow)
@@ -433,6 +445,7 @@ int QUICPlugin::process_quic(
 				pkt,
 				new_quic_flow);
 			// fallthrough to set cids
+			[[fallthrough]];
 		case QUICParser::PACKET_TYPE::HANDSHAKE:
 			// -1 sets stores intermediately.
 			set_cid_fields(quic_data, rec, &process_quic, toServer, new_quic_flow, pkt);
@@ -485,6 +498,7 @@ int QUICPlugin::process_quic(
 
 int QUICPlugin::pre_create(Packet& pkt)
 {
+	(void) pkt;
 	return 0;
 }
 
@@ -495,6 +509,8 @@ int QUICPlugin::post_create(Flow& rec, const Packet& pkt)
 
 int QUICPlugin::pre_update(Flow& rec, Packet& pkt)
 {
+	(void) rec;
+	(void) pkt;
 	return 0;
 }
 
@@ -535,4 +551,7 @@ void QUICPlugin::finish(bool print_stats)
 		std::cout << "   Parsed SNI: " << parsed_initial << std::endl;
 	}
 }
+
+static const PluginRegistrar<QUICPlugin, ProcessPluginFactory> quicRegistrar(quicPluginManifest);
+
 } // namespace ipxp
