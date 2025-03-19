@@ -19,6 +19,7 @@ add_subdirectory(netbios)
 add_subdirectory(passiveDns)
 add_subdirectory(smtp)
 add_subdirectory(quic)
+add_subdirectory(tls)
 
 if (ENABLE_PROCESS_EXPERIMENTAL)
 	add_subdirectory(sip)

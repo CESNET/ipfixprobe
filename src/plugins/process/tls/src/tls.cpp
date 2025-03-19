@@ -1,18 +1,16 @@
-/* SPDX-License-Identifier: BSD-3-Clause
- * Copyright (C) 2018-2022, CESNET z.s.p.o.
- */
-
 /**
- * \file tls.cpp
- * \brief Plugin for enriching flows for tls data.
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \author Ondrej Sedlacek <xsedla1o@stud.fit.vutbr.cz>
- * \author Karel Hynek <hynekkar@fit.cvut.cz>
- * \author Andrej Lukacovic lukacan1@fit.cvut.cz
- * \author Jonas Mücke <jonas.muecke@tu-dresden.de>
- * \date 2018-2022
+ * @file
+ * @brief Plugin for enriching flows for tls data.
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Karel Hynek <Karel.Hynek@cesnet.cz>
+ * @author Andrej Lukacovic lukacan1@fit.cvut.cz
+ * @author Jonas Mücke <jonas.muecke@tu-dresden.de>
+ * @author Pavel Siska <siska@cesnet.cz>
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
-
 #include "tls.hpp"
 
 #include "md5.hpp"
@@ -24,18 +22,20 @@
 #include <iostream>
 #include <numeric>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 #include <stdio.h>
 
 namespace ipxp {
-int RecordExtTLS::REGISTERED_ID = -1;
+int RecordExtTLS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("tls", []() { return new TLSPlugin(); });
-
-	register_plugin(&rec);
-	RecordExtTLS::REGISTERED_ID = register_extension();
-}
+static const PluginManifest tlsPluginManifest = {
+	.name = "tls",
+	.description = "Tls process plugin for parsing tls traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
 
 // Print debug message if debugging is allowed.
 #ifdef DEBUG_TLS
@@ -50,6 +50,11 @@ __attribute__((constructor)) static void register_this_plugin()
 #else
 #define DEBUG_CODE(code)
 #endif
+
+TLSPlugin::TLSPlugin(const std::string& params)
+{
+	init(params.c_str());
+}
 
 OptionsParser* TLSPlugin::get_parser() const
 {
@@ -71,7 +76,10 @@ TLSPlugin::~TLSPlugin()
 	close();
 }
 
-void TLSPlugin::init(const char* params) {}
+void TLSPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void TLSPlugin::close()
 {
@@ -412,4 +420,7 @@ void TLSPlugin::finish(bool print_stats)
 		std::cout << "   Parsed SNI: " << parsed_sni << std::endl;
 	}
 }
+
+static const PluginRegistrar<TLSPlugin, ProcessPluginFactory> tlsRegistrar(tlsPluginManifest);
+
 } // namespace ipxp
