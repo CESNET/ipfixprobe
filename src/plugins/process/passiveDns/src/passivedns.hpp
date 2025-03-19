@@ -1,34 +1,18 @@
 /**
- * \file passivedns.h
- * \brief Plugin for exporting DNS A and AAAA records.
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2017
- */
-/*
- * Copyright (C) 2017 CESNET
+ * @file
+ * @brief Plugin for parsing DNS A and AAAA records.
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_PROCESS_PASSIVEDNS_HPP
-#define IPXP_PROCESS_PASSIVEDNS_HPP
+#pragma once
 
+#include <cstring>
 #include <sstream>
 #include <string>
 
@@ -36,12 +20,11 @@
 #include "fields.h"
 #endif
 
-#include "dns-utils.hpp"
-
+#include <dns-utils.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 
 namespace ipxp {
 
@@ -145,7 +128,7 @@ struct RecordExtPassiveDNS : public RecordExt {
  */
 class PassiveDNSPlugin : public ProcessPlugin {
 public:
-	PassiveDNSPlugin();
+	PassiveDNSPlugin(const std::string& params);
 	~PassiveDNSPlugin();
 	void init(const char* params);
 	void close();
@@ -179,4 +162,3 @@ private:
 };
 
 } // namespace ipxp
-#endif /* IPXP_PROCESS_PASSIVEDNS_HPP */
