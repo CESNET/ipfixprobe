@@ -1,12 +1,12 @@
-/* SPDX-License-Identifier: BSD-3-Clause
- * Copyright (C) 2023, CESNET z.s.p.o.
- */
-
 /**
- * \file nettisa.hpp
- * \brief Class for creating NetTiSA flow.
- * \author Josef Koumar koumajos@fit.cvut.cz
- * \date 2023
+ * @file
+ * @brief Plugin for parsing Nettisa flow.
+ * @author Josef Koumar koumajos@fit.cvut.cz
+ * @date 2025
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #pragma once
@@ -22,7 +22,7 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 
 namespace ipxp {
 
@@ -173,6 +173,7 @@ struct RecordExtNETTISA : public RecordExt {
  */
 class NETTISAPlugin : public ProcessPlugin {
 public:
+	NETTISAPlugin(const std::string& params);
 	OptionsParser* get_parser() const { return new OptionsParser("nettisa", "Parse NetTiSA flow"); }
 	std::string get_name() const { return "nettisa"; }
 	RecordExt* get_ext() const { return new RecordExtNETTISA(); }

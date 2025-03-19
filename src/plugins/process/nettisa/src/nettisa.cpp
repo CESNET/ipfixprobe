@@ -1,8 +1,12 @@
 /**
- * \file nettisa.cpp
- * \brief Plugin for creating NetTiSA flow.
- * \author Josef Koumar koumajos@fit.cvut.cz
- * \date 2023
+ * @file
+ * @brief Plugin for parsing Nettisa flow.
+ * @author Josef Koumar koumajos@fit.cvut.cz
+ * @date 2025
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "nettisa.hpp"
@@ -10,17 +14,25 @@
 #include <cmath>
 #include <iostream>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 #include <ipfixprobe/utils.hpp>
 
 namespace ipxp {
 
-int RecordExtNETTISA::REGISTERED_ID = -1;
+int RecordExtNETTISA::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
+static const PluginManifest nettisaPluginManifest = {
+	.name = "nettisa",
+	.description = "Nettisa process plugin for parsing Nettisa flow.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
+
+NETTISAPlugin::NETTISAPlugin(const std::string& params)
 {
-	static PluginRecord rec = PluginRecord("nettisa", []() { return new NETTISAPlugin(); });
-	register_plugin(&rec);
-	RecordExtNETTISA::REGISTERED_ID = register_extension();
+	(void) params;
 }
 
 ProcessPlugin* NETTISAPlugin::copy()
@@ -114,5 +126,8 @@ void NETTISAPlugin::pre_export(Flow& rec)
 	nettisa_data->root_mean_square = pow(nettisa_data->root_mean_square / n, 0.5);
 	nettisa_data->average_dispersion = nettisa_data->average_dispersion / n;
 }
+
+static const PluginRegistrar<NETTISAPlugin, ProcessPluginFactory>
+	nettisaRegistrar(nettisaPluginManifest);
 
 } // namespace ipxp
