@@ -1,53 +1,41 @@
 /**
- * \file http.cpp
- * \brief Plugin for parsing HTTP traffic
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2015
- * \date 2016
+ * @file
+ * @brief Plugin for parsing HTTP traffic.
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
-/*
- * Copyright (C) 2014-2016 CESNET
- *
- * LICENSE TERMS
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
- */
+
+#include "http.hpp"
+
+#include "common.hpp"
 
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+
 #ifdef WITH_NEMEA
 #include <unirec/unirec.h>
 #endif
 
-#include "common.hpp"
-#include "http.hpp"
-
 namespace ipxp {
 
-int RecordExtHTTP::REGISTERED_ID = -1;
+int RecordExtHTTP::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("http", []() { return new HTTPPlugin(); });
-	register_plugin(&rec);
-	RecordExtHTTP::REGISTERED_ID = register_extension();
-}
+static const PluginManifest httpPluginManifest = {
+	.name = "http",
+	.description = "http process plugin for parsing http traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
 
 // #define DEBUG_HTTP
 
@@ -70,13 +58,14 @@ __attribute__((constructor)) static void register_this_plugin()
 #define HTTP_SETCOOKIE_NAME_DELIMITER "="
 #define STRING_DELIMITER ";"
 
-HTTPPlugin::HTTPPlugin()
+HTTPPlugin::HTTPPlugin(const std::string& params)
 	: recPrealloc(nullptr)
 	, flow_flush(false)
 	, requests(0)
 	, responses(0)
 	, total(0)
 {
+	init(params.c_str());
 }
 
 HTTPPlugin::~HTTPPlugin()
@@ -84,7 +73,10 @@ HTTPPlugin::~HTTPPlugin()
 	close();
 }
 
-void HTTPPlugin::init(const char* params) {}
+void HTTPPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void HTTPPlugin::close()
 {
@@ -152,34 +144,6 @@ void HTTPPlugin::finish(bool print_stats)
 		std::cout << "   Parsed http responses: " << responses << std::endl;
 		std::cout << "   Total http packets processed: " << total << std::endl;
 	}
-}
-
-/**
- * \brief Copy string and append \0 character.
- * NOTE: function removes any CR chars at the end of string.
- * \param [in] dst Destination buffer.
- * \param [in] size Size of destination buffer.
- * \param [in] begin Ptr to begin of source string.
- * \param [in] end Ptr to end of source string.
- */
-void copy_str(char* dst, ssize_t size, const char* begin, const char* end)
-{
-	ssize_t len = end - begin;
-	if (len >= size) {
-		len = size - 1;
-	}
-
-	memcpy(dst, begin, len);
-
-	if (len >= 1 && dst[len - 1] == '\n') {
-		len--;
-	}
-
-	if (len >= 1 && dst[len - 1] == '\r') {
-		len--;
-	}
-
-	dst[len] = 0;
 }
 
 /**
@@ -649,5 +613,7 @@ void HTTPPlugin::add_ext_http_response(const char* data, int payload_len, Flow& 
 		recPrealloc = nullptr;
 	}
 }
+
+static const PluginRegistrar<HTTPPlugin, ProcessPluginFactory> httpRegistrar(httpPluginManifest);
 
 } // namespace ipxp
