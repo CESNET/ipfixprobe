@@ -1,38 +1,17 @@
 /**
- * \file unirec.hpp
- * \brief Flow exporter converting flows to UniRec and sending them to TRAP ifc
- * \author Vaclav Bartos <bartos@cesnet.cz>
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2014
- * \date 2015
- * \date 2016
- */
-/*
- * Copyright (C) 2014-2016 CESNET
+ * @file
+ * @brief Flow exporter converting flows to UniRec and sending them to TRAP ifc
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Vaclav Bartos <bartos@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_OUTPUT_UNIREC_HPP
-#define IPXP_OUTPUT_UNIREC_HPP
-
-#ifdef WITH_NEMEA
+#pragma once
 
 #include <map>
 #include <string>
@@ -40,8 +19,8 @@
 
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/options.hpp>
-#include <ipfixprobe/output.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/outputPlugin.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 #include <ipfixprobe/utils.hpp>
 #include <libtrap/trap.h>
 #include <unirec/unirec.h>
@@ -77,6 +56,7 @@ public:
 			"SPEC",
 			"libtrap interface specifier",
 			[this](const char* arg) {
+				(void) arg;
 				m_ifc = arg;
 				return true;
 			},
@@ -87,6 +67,7 @@ public:
 			"PLUGINS",
 			"Specify plugin-interface mapping. Plugins can be grouped like '(p1,p2,p3),p4,(p5,p6)'",
 			[this](const char* arg) {
+				(void) arg;
 				try {
 					m_ifc_map = parse_ifc_map(arg);
 				} catch (ParserError& e) {
@@ -101,6 +82,7 @@ public:
 			"",
 			"Export ODID field",
 			[this](const char* arg) {
+				(void) arg;
 				m_odid = true;
 				return true;
 			},
@@ -248,10 +230,10 @@ private:
  */
 class UnirecExporter : public OutputPlugin {
 public:
-	UnirecExporter();
+	UnirecExporter(const std::string& params, ProcessPlugins& plugins);
 	~UnirecExporter();
 	void init(const char* params);
-	void init(const char* params, Plugins& plugins);
+	void init(const char* params, ProcessPlugins& plugins);
 	void close();
 	OptionsParser* get_parser() const { return new UnirecOptParser(); }
 	std::string get_name() const { return "unirec"; }
@@ -280,5 +262,3 @@ private:
 };
 
 } // namespace ipxp
-#endif /* WITH_NEMEA */
-#endif /* IPXP_OUTPUT_UNIREC_HPP */

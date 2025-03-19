@@ -18,3 +18,8 @@ if (ENABLE_INPUT_NFB)
 	find_package(NFB REQUIRED)
 	find_package(NUMA REQUIRED)
 endif()
+
+if (ENABLE_OUTPUT_UNIREC)
+	find_package(LIBTRAP REQUIRED)
+	find_package(UNIREC REQUIRED)
+endif()
