@@ -1,56 +1,50 @@
 /**
- * \file idpcontent.cpp
- * \brief Plugin for parsing idpcontent traffic.
- * \author Karel Hynek <Karel.Hynek@cesnet.cz>
- * \date 2020
- */
-/*
- * Copyright (C) 2020 CESNET
+ * @file
+ * @brief Plugin for parsing idpcontent traffic.
+ * @author Karel Hynek <Karel.Hynek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "idpcontent.hpp"
 
 #include <iostream>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+
 namespace ipxp {
 
-int RecordExtIDPCONTENT::REGISTERED_ID = -1;
+int RecordExtIDPCONTENT::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("idpcontent", []() { return new IDPCONTENTPlugin(); });
-	register_plugin(&rec);
-	RecordExtIDPCONTENT::REGISTERED_ID = register_extension();
-}
+static const PluginManifest idpcontentPluginManifest = {
+	.name = "idpcontent",
+	.description = "Idpcontent process plugin for parsing idpcontent traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
-IDPCONTENTPlugin::IDPCONTENTPlugin() {}
+IDPCONTENTPlugin::IDPCONTENTPlugin(const std::string& params)
+{
+	init(params.c_str());
+}
 
 IDPCONTENTPlugin::~IDPCONTENTPlugin()
 {
 	close();
 }
 
-void IDPCONTENTPlugin::init(const char* params) {}
+void IDPCONTENTPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void IDPCONTENTPlugin::close() {}
 
@@ -92,5 +86,8 @@ int IDPCONTENTPlugin::post_update(Flow& rec, const Packet& pkt)
 	update_record(idpcontent_data, pkt);
 	return 0;
 }
+
+static const PluginRegistrar<IDPCONTENTPlugin, ProcessPluginFactory>
+	idpcontentRegistrar(idpcontentPluginManifest);
 
 } // namespace ipxp
