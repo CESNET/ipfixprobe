@@ -17,7 +17,7 @@
 #include <string_view>
 #include <vector>
 
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 
 #define TLS_HANDSHAKE_CLIENT_HELLO 1
 #define TLS_HANDSHAKE_SERVER_HELLO 2
@@ -55,10 +55,8 @@ struct __attribute__((packed)) TLSExtension {
 
 union __attribute__((packed)) TLSVersion {
 	uint16_t version;
-	struct {
-		uint8_t major;
-		uint8_t minor;
-	};
+	uint8_t major;
+	uint8_t minor;
 };
 
 struct __attribute__((packed)) TLSHandshake {

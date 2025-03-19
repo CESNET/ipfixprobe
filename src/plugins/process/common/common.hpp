@@ -29,7 +29,12 @@
 #ifndef IPXP_PROCESS_COMMON_HPP
 #define IPXP_PROCESS_COMMON_HPP
 
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
+
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace ipxp {
 
@@ -67,6 +72,34 @@ static inline const char* strnstr(const char* str1, const char* str2, size_t len
 		str1--;
 	}
 	return ((char*) str1);
+}
+
+/**
+ * \brief Copy string and append \0 character.
+ * NOTE: function removes any CR chars at the end of string.
+ * \param [in] dst Destination buffer.
+ * \param [in] size Size of destination buffer.
+ * \param [in] begin Ptr to begin of source string.
+ * \param [in] end Ptr to end of source string.
+ */
+static inline void copy_str(char* dst, ssize_t size, const char* begin, const char* end)
+{
+	ssize_t len = end - begin;
+	if (len >= size) {
+		len = size - 1;
+	}
+
+	memcpy(dst, begin, len);
+
+	if (len >= 1 && dst[len - 1] == '\n') {
+		len--;
+	}
+
+	if (len >= 1 && dst[len - 1] == '\r') {
+		len--;
+	}
+
+	dst[len] = 0;
 }
 
 } // namespace ipxp
