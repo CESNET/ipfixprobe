@@ -29,6 +29,8 @@
 #ifndef IPFIXBASICLIST
 #define IPFIXBASICLIST
 
+#include "api.hpp"
+
 #include <cstring>
 
 #include <arpa/inet.h>
@@ -37,7 +39,7 @@
 
 namespace ipxp {
 
-struct IpfixBasicList {
+struct IPXP_API IpfixBasicList {
 public:
 	static const uint8_t IpfixBasicListRecordHdrSize = 12;
 	static const uint8_t IpfixBasicListHdrSize = 9;
