@@ -1,29 +1,13 @@
 /**
- * \file smtp.cpp
- * \brief Plugin for parsing smtp traffic.
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2018
- */
-/*
- * Copyright (C) 2018 CESNET
+ * @file
+ * @brief Plugin for parsing smtp traffic.
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "smtp.hpp"
@@ -34,24 +18,28 @@
 #include <iostream>
 
 #include <ctype.h>
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 
 namespace ipxp {
 
-int RecordExtSMTP::REGISTERED_ID = -1;
+int RecordExtSMTP::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("smtp", []() { return new SMTPPlugin(); });
-	register_plugin(&rec);
-	RecordExtSMTP::REGISTERED_ID = register_extension();
-}
+static const PluginManifest smtpPluginManifest = {
+	.name = "smtp",
+	.description = "Smtp process plugin for parsing smtp traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
 
-SMTPPlugin::SMTPPlugin()
+SMTPPlugin::SMTPPlugin(const std::string& params)
 	: ext_ptr(nullptr)
 	, total(0)
 	, replies_cnt(0)
 	, commands_cnt(0)
 {
+	init(params.c_str());
 }
 
 SMTPPlugin::~SMTPPlugin()
@@ -59,7 +47,10 @@ SMTPPlugin::~SMTPPlugin()
 	close();
 }
 
-void SMTPPlugin::init(const char* params) {}
+void SMTPPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void SMTPPlugin::close() {}
 
@@ -415,5 +406,7 @@ void SMTPPlugin::finish(bool print_stats)
 		std::cout << "   Parsed SMTP commands: " << commands_cnt << std::endl;
 	}
 }
+
+static const PluginRegistrar<SMTPPlugin, ProcessPluginFactory> smtpRegistrar(smtpPluginManifest);
 
 } // namespace ipxp
