@@ -7,6 +7,7 @@ add_subdirectory(osquery)
 add_subdirectory(idpContent)
 add_subdirectory(phists)
 add_subdirectory(pstats)
+add_subdirectory(ovpn)
 
 if (ENABLE_PROCESS_EXPERIMENTAL)
 	add_subdirectory(sip)

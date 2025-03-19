@@ -1,34 +1,17 @@
 /**
- * \file ovpn.hpp
- * \brief Plugin for parsing ovpn traffic.
- * \author Karel Hynek <hynekkar@fit.cvut.cz>
- * \author Martin Ctrnacty <ctrnama2@fit.cvut.cz>
- * \date 2020
- */
-/*
- * Copyright (C) 2020 CESNET
+ * @file
+ * @brief Plugin for parsing ovpn traffic.
+ * @author Karel Hynek <hynekkar@fit.cvut.cz>
+ * @author Martin Ctrnacty <ctrnama2@fit.cvut.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_PROCESS_OVPN_HPP
-#define IPXP_PROCESS_OVPN_HPP
+#pragma once
 
 #include <sstream>
 #include <string>
@@ -40,7 +23,7 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 
 namespace ipxp {
 
@@ -109,7 +92,7 @@ struct RecordExtOVPN : RecordExt {
  */
 class OVPNPlugin : public ProcessPlugin {
 public:
-	OVPNPlugin();
+	OVPNPlugin(const std::string& params);
 	~OVPNPlugin();
 	void init(const char* params);
 	void close();
@@ -171,4 +154,3 @@ private:
 };
 
 } // namespace ipxp
-#endif /* IPXP_PROCESS_OVPN_HPP */
