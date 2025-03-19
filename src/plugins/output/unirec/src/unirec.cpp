@@ -1,35 +1,15 @@
 /**
- * \file unirec.cpp
- * \brief Flow exporter converting flows to UniRec and sending them to TRAP ifc
- * \author Vaclav Bartos <bartos@cesnet.cz>
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2014
- * \date 2015
- * \date 2016
+ * @file
+ * @brief Flow exporter converting flows to UniRec and sending them to TRAP ifc
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Vaclav Bartos <bartos@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
-/*
- * Copyright (C) 2014-2016 CESNET
- *
- * LICENSE TERMS
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
- */
-
-#ifdef WITH_NEMEA
 
 #include "unirec.hpp"
 
@@ -39,16 +19,24 @@
 #include <string>
 #include <vector>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 #include <libtrap/trap.h>
 #include <unirec/unirec.h>
 
 namespace ipxp {
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("unirec", []() { return new UnirecExporter(); });
-	register_plugin(&rec);
-}
+static const PluginManifest unirecPluginManifest = {
+	.name = "unirec",
+	.description = "Output plugin for unirec export",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage =
+		[]() {
+			UnirecOptParser parser;
+			parser.usage(std::cout);
+		},
+};
 
 #define BASIC_FLOW_TEMPLATE                                                                        \
 	"SRC_IP,DST_IP,SRC_PORT,DST_PORT,PROTOCOL,PACKETS,BYTES,PACKETS_REV,BYTES_REV,TIME_FIRST,"     \
@@ -81,7 +69,7 @@ UR_FIELDS(
 /**
  * \brief Constructor.
  */
-UnirecExporter::UnirecExporter()
+UnirecExporter::UnirecExporter(const std::string& params, ProcessPlugins& plugins)
 	: m_basic_idx(-1)
 	, m_ext_cnt(0)
 	, m_ifc_map(nullptr)
@@ -94,6 +82,7 @@ UnirecExporter::UnirecExporter()
 	, m_link_bit_field(0)
 	, m_dir_bit_field(0)
 {
+	init(params.c_str(), plugins);
 }
 
 UnirecExporter::~UnirecExporter()
@@ -180,7 +169,7 @@ void UnirecExporter::init(const char* params)
 	m_dir_bit_field = parser.m_dir;
 	m_group_map = parser.m_ifc_map;
 	m_ifc_cnt = init_trap(parser.m_ifc, parser.m_verbose);
-	m_ext_cnt = get_extension_cnt();
+	m_ext_cnt = ProcessPluginIDGenerator::instance().getPluginsCount();
 
 	try {
 		m_tmplts = new ur_template_t*[m_ifc_cnt];
@@ -211,7 +200,7 @@ void UnirecExporter::create_tmplt(int ifc_idx, const char* tmplt_str)
 	}
 }
 
-void UnirecExporter::init(const char* params, Plugins& plugins)
+void UnirecExporter::init(const char* params, ProcessPlugins& plugins)
 {
 	init(params);
 
@@ -243,9 +232,9 @@ void UnirecExporter::init(const char* params, Plugins& plugins)
 		std::vector<std::string>& group = m.second;
 
 		// Find plugin for each plugin in group
-		std::vector<ProcessPlugin*> plugin_group;
+		std::vector<std::shared_ptr<ProcessPlugin>> plugin_group;
 		for (auto& g : group) {
-			ProcessPlugin* plugin = nullptr;
+			std::shared_ptr<ProcessPlugin> plugin = nullptr;
 			for (auto& p : plugins) {
 				std::string name = p.first;
 				if (g == name) {
@@ -453,5 +442,7 @@ void UnirecExporter::fill_basic_flow(const Flow& flow, ur_template_t* tmplt_ptr,
 	ur_set(tmplt_ptr, record_ptr, F_SRC_MAC, mac_from_bytes(const_cast<uint8_t*>(flow.src_mac)));
 }
 
+static const PluginRegistrar<UnirecExporter, OutputPluginFactory>
+	unirecRegistrar(unirecPluginManifest);
+
 } // namespace ipxp
-#endif
