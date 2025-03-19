@@ -1,57 +1,51 @@
 /**
- * \file bstats.cpp
- * \brief Plugin for parsing bstats traffic.
- * \author Karel Hynek <hynekkar@fit.cvut.cz>
- * \date 2020
- */
-/*
- * Copyright (C) 2020 CESNET
+ * @file
+ * @brief Plugin for parsing bstats traffic.
+ * @author Karel Hynek <hynekkar@fit.cvut.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "bstats.hpp"
 
 #include <iostream>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+
 namespace ipxp {
 
-int RecordExtBSTATS::REGISTERED_ID = -1;
+int RecordExtBSTATS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("bstats", []() { return new BSTATSPlugin(); });
-	register_plugin(&rec);
-	RecordExtBSTATS::REGISTERED_ID = register_extension();
-}
+static const PluginManifest bstatsPluginManifest = {
+	.name = "bstats",
+	.description = "Bstats process plugin for computing packet bursts stats.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
 
 const struct timeval BSTATSPlugin::min_packet_in_burst
 	= {MAXIMAL_INTERPKT_TIME / 1000, (MAXIMAL_INTERPKT_TIME % 1000) * 1000};
 
-BSTATSPlugin::BSTATSPlugin() {}
+BSTATSPlugin::BSTATSPlugin(const std::string& params)
+{
+	init(params.c_str());
+}
 
 BSTATSPlugin::~BSTATSPlugin()
 {
 	close();
 }
 
-void BSTATSPlugin::init(const char* params) {}
+void BSTATSPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void BSTATSPlugin::close() {}
 
@@ -62,6 +56,7 @@ ProcessPlugin* BSTATSPlugin::copy()
 
 int BSTATSPlugin::pre_create(Packet& pkt)
 {
+	(void) pkt;
 	return 0;
 }
 
@@ -155,6 +150,8 @@ int BSTATSPlugin::pre_update(Flow& rec, Packet& pkt)
 
 int BSTATSPlugin::post_update(Flow& rec, const Packet& pkt)
 {
+	(void) rec;
+	(void) pkt;
 	return 0;
 }
 
@@ -176,5 +173,8 @@ void BSTATSPlugin::pre_export(Flow& rec)
 		}
 	}
 }
+
+static const PluginRegistrar<BSTATSPlugin, ProcessPluginFactory>
+	bstatsRegistrar(bstatsPluginManifest);
 
 } // namespace ipxp
