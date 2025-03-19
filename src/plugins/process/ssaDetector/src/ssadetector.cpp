@@ -1,55 +1,49 @@
 /**
- * \file ssadetector.cpp
- * \brief Plugin for detecting ssa sequence.
- * \author Jan Jirák jirakja7@fit.cvut.cz
- * \author Karel Hynek hynekkar@cesnet.cz
- * \date 2023
- */
-/*
- * Copyright (C) 2023 CESNET
+ * @file
+ * @brief Plugin for parsing vpn_automaton traffic.
+ * @author Karel Hynek hynekkar@cesnet.cz
+ * @author Jan Jirák jirakja7@fit.cvut.cz
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "ssadetector.hpp"
 
 #include <iostream>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+
 namespace ipxp {
 
-int RecordExtSSADetector::REGISTERED_ID = -1;
+int RecordExtSSADetector::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
+static const PluginManifest ssadetectorPluginManifest = {
+	.name = "ssadetector",
+	.description = "Ssadetector process plugin for parsing vpn_automaton traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
+
+SSADetectorPlugin::SSADetectorPlugin(const std::string& params)
 {
-	static PluginRecord rec = PluginRecord("ssadetector", []() { return new SSADetectorPlugin(); });
-	register_plugin(&rec);
-	RecordExtSSADetector::REGISTERED_ID = register_extension();
+	init(params.c_str());
 }
 
-SSADetectorPlugin::SSADetectorPlugin()
+SSADetectorPlugin::~SSADetectorPlugin()
 {
 	close();
 }
 
-SSADetectorPlugin::~SSADetectorPlugin() {}
-
-void SSADetectorPlugin::init(const char* params) {}
+void SSADetectorPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void SSADetectorPlugin::close() {}
 
@@ -276,5 +270,8 @@ int8_t RecordExtSSADetector::pkt_table::get_idx_from_len(uint16_t len)
 {
 	return std::max(int(len) - MIN_PKT_SIZE, 0);
 }
+
+static const PluginRegistrar<SSADetectorPlugin, ProcessPluginFactory>
+	ssadetectorRegistrar(ssadetectorPluginManifest);
 
 } // namespace ipxp

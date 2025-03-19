@@ -1,34 +1,17 @@
 /**
- * \file ssadetector.hpp
- * \brief Plugin for parsing vpn_automaton traffic.
- * \author Jan Jirák jirakja7@fit.cvut.cz
- * \author Karel Hynek hynekkar@cesnet.cz
- * \date 2023
- */
-/*
- * Copyright (C) 2023 CESNET
+ * @file
+ * @brief Plugin for parsing vpn_automaton traffic.
+ * @author Karel Hynek hynekkar@cesnet.cz
+ * @author Jan Jirák jirakja7@fit.cvut.cz
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_SSADETECTOR_HPP
-#define IPXP_SSADETECTOR_HPP
+#pragma once
 
 #include <cstring>
 #include <sstream>
@@ -40,7 +23,7 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 
 namespace ipxp {
 
@@ -160,7 +143,7 @@ struct RecordExtSSADetector : public RecordExt {
  */
 class SSADetectorPlugin : public ProcessPlugin {
 public:
-	SSADetectorPlugin();
+	SSADetectorPlugin(const std::string& params);
 	~SSADetectorPlugin();
 	void init(const char* params);
 	void close();
@@ -192,4 +175,3 @@ public:
 };
 
 } // namespace ipxp
-#endif /* IPXP_SSADETECTOR_HPP */
