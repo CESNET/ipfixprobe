@@ -1,35 +1,18 @@
 /**
- * \file osqueryplugin.hpp
- * \brief Plugin for parsing osquery traffic.
- * \author Anton Aheyeu aheyeant@fit.cvut.cz
- * \date 2021
+ * @file
+ * @brief Plugin for parsing osquery traffic.
+ * @author Anton Aheyeu aheyeant@fit.cvut.cz
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-/*
- * Copyright (C) 2021 CESNET
- *
- * LICENSE TERMS
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
- */
+#pragma once
 
-#ifndef IPXP_PROCESS_OSQUERY_HPP
-#define IPXP_PROCESS_OSQUERY_HPP
-
+#include <cstring>
 #include <sstream>
 #include <string>
 
@@ -44,7 +27,7 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 
 #define DEFAULT_FILL_TEXT "UNDEFINED"
 
@@ -529,7 +512,7 @@ private:
  */
 class OSQUERYPlugin : public ProcessPlugin {
 public:
-	OSQUERYPlugin();
+	OSQUERYPlugin(const std::string& params);
 	~OSQUERYPlugin();
 	OSQUERYPlugin(const OSQUERYPlugin& p);
 	void init(const char* params);
@@ -553,4 +536,3 @@ private:
 };
 
 } // namespace ipxp
-#endif /* IPXP_PROCESS_OSQUERY_HPP */
