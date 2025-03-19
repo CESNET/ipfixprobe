@@ -1,30 +1,14 @@
 /**
- * \file pstats.cpp
- * \brief Plugin for parsing pstats traffic.
- * \author Tomas Cejka <cejkat@cesnet.cz>
- * \author Karel Hynek <hynekkar@cesnet.cz>
- * \date 2020
- */
-/*
- * Copyright (C) 2020 CESNET
+ * @file
+ * @brief Plugin for parsing pstats traffic.
+ * @author Tomas Cejka <cejkat@cesnet.cz>
+ * @author Karel Hynek <hynekkar@fit.cvut.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "pstats.hpp"
@@ -36,16 +20,24 @@
 #include <string>
 #include <vector>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+
 namespace ipxp {
 
-int RecordExtPSTATS::REGISTERED_ID = -1;
+int RecordExtPSTATS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("pstats", []() { return new PSTATSPlugin(); });
-	register_plugin(&rec);
-	RecordExtPSTATS::REGISTERED_ID = register_extension();
-}
+static const PluginManifest pstatsPluginManifest = {
+	.name = "pstats",
+	.description = "Pstats process plugin for computing packet bursts stats.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage =
+		[]() {
+			PSTATSOptParser parser;
+			parser.usage(std::cout);
+		},
+};
 
 // #define DEBUG_PSTATS
 
@@ -56,10 +48,11 @@ __attribute__((constructor)) static void register_this_plugin()
 #define DEBUG_MSG(format, ...)
 #endif
 
-PSTATSPlugin::PSTATSPlugin()
+PSTATSPlugin::PSTATSPlugin(const std::string& params)
 	: use_zeros(false)
 	, skip_dup_pkts(false)
 {
+	init(params.c_str());
 }
 
 PSTATSPlugin::~PSTATSPlugin()
@@ -176,5 +169,8 @@ int PSTATSPlugin::post_update(Flow& rec, const Packet& pkt)
 	update_record(pstats_data, pkt);
 	return 0;
 }
+
+static const PluginRegistrar<PSTATSPlugin, ProcessPluginFactory>
+	pstatsRegistrar(pstatsPluginManifest);
 
 } // namespace ipxp
