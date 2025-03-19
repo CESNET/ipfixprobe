@@ -1,29 +1,13 @@
 /**
- * \file wg.cpp
- * \brief Plugin for parsing wg traffic.
- * \author Pavel Valach <valacpav@fit.cvut.cz>
- * \date 2021
- */
-/*
- * Copyright (C) 2021 CESNET
+ * @file
+ * @brief Plugin for parsing wg traffic.
+ * @author Pavel Valach <valacpav@fit.cvut.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "wg.hpp"
@@ -31,25 +15,29 @@
 #include <cstring>
 #include <iostream>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 #include <ipfixprobe/utils.hpp>
 
 namespace ipxp {
 
-int RecordExtWG::REGISTERED_ID = -1;
+int RecordExtWG::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("wg", []() { return new WGPlugin(); });
-	register_plugin(&rec);
-	RecordExtWG::REGISTERED_ID = register_extension();
-}
+static const PluginManifest wgPluginManifest = {
+	.name = "wg",
+	.description = "Wg process plugin for parsing wg traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
 
-WGPlugin::WGPlugin()
+WGPlugin::WGPlugin(const std::string& params)
 	: preallocated_record(nullptr)
 	, flow_flush(false)
 	, total(0)
 	, identified(0)
 {
+	init(params.c_str());
 }
 
 WGPlugin::~WGPlugin()
@@ -57,7 +45,10 @@ WGPlugin::~WGPlugin()
 	close();
 }
 
-void WGPlugin::init(const char* params) {}
+void WGPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void WGPlugin::close()
 {
@@ -108,7 +99,10 @@ int WGPlugin::pre_update(Flow& rec, Packet& pkt)
 	return 0;
 }
 
-void WGPlugin::pre_export(Flow& rec) {}
+void WGPlugin::pre_export(Flow& rec)
+{
+	(void) rec;
+}
 
 void WGPlugin::finish(bool print_stats)
 {
@@ -234,5 +228,7 @@ int WGPlugin::add_ext_wg(const char* data, unsigned int payload_len, bool source
 	preallocated_record = nullptr;
 	return 0;
 }
+
+static const PluginRegistrar<WGPlugin, ProcessPluginFactory> wgRegistrar(wgPluginManifest);
 
 } // namespace ipxp
