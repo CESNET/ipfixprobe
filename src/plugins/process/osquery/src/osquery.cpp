@@ -1,30 +1,13 @@
 /**
- * \file osqueryplugin.cpp
- * \brief Plugin for parsing osquery traffic.
- * \author Anton Aheyeu aheyeant@fit.cvut.cz
- * \date 2021
- */
-
-/*
- * Copyright (C) 2021 CESNET
+ * @file
+ * @brief Plugin for parsing osquery traffic.
+ * @author Anton Aheyeu aheyeant@fit.cvut.cz
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "osquery.hpp"
@@ -35,27 +18,33 @@
 #include <iostream>
 #include <sstream>
 
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+
 #define HEX(x) std::setw(2) << std::setfill('0') << std::hex << (int) (x)
 
 namespace ipxp {
 
-int RecordExtOSQUERY::REGISTERED_ID = -1;
+int RecordExtOSQUERY::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("osquery", []() { return new OSQUERYPlugin(); });
-	register_plugin(&rec);
-	RecordExtOSQUERY::REGISTERED_ID = register_extension();
-}
+static const PluginManifest osqueryPluginManifest = {
+	.name = "osquery",
+	.description = "Osquery process plugin for parsing osquery traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
 
-OSQUERYPlugin::OSQUERYPlugin()
+OSQUERYPlugin::OSQUERYPlugin(const std::string& params)
 	: manager(nullptr)
 	, numberOfSuccessfullyRequests(0)
 {
+	init(params.c_str());
 }
 
 OSQUERYPlugin::OSQUERYPlugin(const OSQUERYPlugin& p)
 {
+	(void) p;
 	init(nullptr);
 }
 
@@ -66,6 +55,7 @@ OSQUERYPlugin::~OSQUERYPlugin()
 
 void OSQUERYPlugin::init(const char* params)
 {
+	(void) params;
 	manager = new OsqueryRequestManager();
 	manager->readInfoAboutOS();
 }
@@ -85,6 +75,7 @@ ProcessPlugin* OSQUERYPlugin::copy()
 
 int OSQUERYPlugin::post_create(Flow& rec, const Packet& pkt)
 {
+	(void) pkt;
 	ConvertedFlowData flowDataIPv4(rec.src_ip.v4, rec.dst_ip.v4, rec.src_port, rec.dst_port);
 
 	if (manager->readInfoAboutProgram(flowDataIPv4)) {
@@ -646,5 +637,8 @@ int OsqueryRequestManager::getPositionForParseJson()
 	}
 	return -1;
 }
+
+static const PluginRegistrar<OSQUERYPlugin, ProcessPluginFactory>
+	osqueryRegistrar(osqueryPluginManifest);
 
 } // namespace ipxp
