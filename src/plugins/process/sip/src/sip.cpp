@@ -1,30 +1,15 @@
 /**
- * \file sip.cpp
- * \author Tomas Jansky <janskto1@fit.cvut.cz>
- * \date 2015
- * \date 2016
+ * @file
+ * @brief Plugin for parsing sip traffic.
+ * @author Tomas Jansky <janskto1@fit.cvut.cz>
+ * @date 2025
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
-/*
- * Copyright (C) 2015-2016 CESNET
- *
- * LICENSE TERMS
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
- */
+
+#include "sip.hpp"
 
 #include <cstdlib>
 #include <cstring>
@@ -34,25 +19,28 @@
 #include <unirec/unirec.h>
 #endif
 
-#include "sip.hpp"
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 
 namespace ipxp {
 
-int RecordExtSIP::REGISTERED_ID = -1;
+int RecordExtSIP::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("sip", []() { return new SIPPlugin(); });
-	register_plugin(&rec);
-	RecordExtSIP::REGISTERED_ID = register_extension();
-}
+static const PluginManifest sipPluginManifest = {
+	.name = "sip",
+	.description = "Sip process plugin for parsing sip traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
 
-SIPPlugin::SIPPlugin()
+SIPPlugin::SIPPlugin(const std::string& params)
 	: requests(0)
 	, responses(0)
 	, total(0)
 	, flow_flush(false)
 {
+	(void) params;
 }
 
 SIPPlugin::~SIPPlugin()
@@ -60,7 +48,10 @@ SIPPlugin::~SIPPlugin()
 	close();
 }
 
-void SIPPlugin::init(const char* params) {}
+void SIPPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void SIPPlugin::close() {}
 
@@ -71,6 +62,7 @@ ProcessPlugin* SIPPlugin::copy()
 
 int SIPPlugin::post_create(Flow& rec, const Packet& pkt)
 {
+	(void) rec;
 	uint16_t msg_type;
 
 	msg_type = parse_msg_type(pkt);
@@ -88,6 +80,7 @@ int SIPPlugin::post_create(Flow& rec, const Packet& pkt)
 
 int SIPPlugin::pre_update(Flow& rec, Packet& pkt)
 {
+	(void) rec;
 	uint16_t msg_type;
 
 	msg_type = parse_msg_type(pkt);
@@ -619,5 +612,7 @@ int SIPPlugin::parser_process_sip(const Packet& pkt, RecordExtSIP* sip_data)
 
 	return 0;
 }
+
+static const PluginRegistrar<SIPPlugin, ProcessPluginFactory> sipRegistrar(sipPluginManifest);
 
 } // namespace ipxp
