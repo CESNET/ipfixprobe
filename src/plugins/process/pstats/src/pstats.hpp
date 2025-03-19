@@ -1,34 +1,17 @@
 /**
- * \file pstats.h
- * \brief Plugin for parsing pstats traffic.
- * \author Tomas Cejka <cejkat@cesnet.cz>
- * \author Karel Hynek <hynekkar@cesnet.cz>
- * \date 2020
- */
-/*
- * Copyright (C) 2020 CESNET
+ * @file
+ * @brief Plugin for parsing pstats traffic.
+ * @author Tomas Cejka <cejkat@cesnet.cz>
+ * @author Karel Hynek <hynekkar@fit.cvut.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_PROCESS_PSTATS_HPP
-#define IPXP_PROCESS_PSTATS_HPP
+#pragma once
 
 #include <cstring>
 #include <sstream>
@@ -44,7 +27,7 @@
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/options.hpp>
 #include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 
 namespace ipxp {
 
@@ -80,6 +63,7 @@ public:
 			"",
 			"Include zero payload packets",
 			[this](const char* arg) {
+				(void) arg;
 				m_include_zeroes = true;
 				return true;
 			},
@@ -90,6 +74,7 @@ public:
 			"",
 			"Skip duplicated TCP packets",
 			[this](const char* arg) {
+				(void) arg;
 				m_skipdup = true;
 				return true;
 			},
@@ -230,7 +215,7 @@ struct RecordExtPSTATS : public RecordExt {
  */
 class PSTATSPlugin : public ProcessPlugin {
 public:
-	PSTATSPlugin();
+	PSTATSPlugin(const std::string& params);
 	~PSTATSPlugin();
 	void init(const char* params);
 	void close();
@@ -249,4 +234,3 @@ private:
 };
 
 } // namespace ipxp
-#endif /* IPXP_PROCESS_PSTATS_HPP */
