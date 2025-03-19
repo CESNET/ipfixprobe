@@ -1,33 +1,16 @@
 /**
- * \file mpls.hpp
- * \brief Plugin for parsing mpls traffic.
- * \author Jakub Antonín Štigler xstigl00@stud.fit.vut.cz
- * \date 2023
- */
-/*
- * Copyright (C) 2023 CESNET
+ * @file
+ * @brief Plugin for parsing mpls traffic.
+ * @author Jakub Antonín Štigler xstigl00@stud.fit.vut.cz
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_PROCESS_MPLS_HPP
-#define IPXP_PROCESS_MPLS_HPP
+#pragma once
 
 #include <cstring>
 #include <sstream>
@@ -40,7 +23,7 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 
 namespace ipxp {
 
@@ -113,6 +96,7 @@ struct RecordExtMPLS : public RecordExt {
  */
 class MPLSPlugin : public ProcessPlugin {
 public:
+	MPLSPlugin(const std::string& params);
 	OptionsParser* get_parser() const { return new OptionsParser("mpls", "Parse MPLS traffic"); }
 	std::string get_name() const { return "mpls"; }
 	RecordExt* get_ext() const { return new RecordExtMPLS(); }
@@ -122,4 +106,3 @@ public:
 };
 
 } // namespace ipxp
-#endif /* IPXP_PROCESS_MPLS_HPP */
