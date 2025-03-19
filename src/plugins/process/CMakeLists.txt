@@ -7,3 +7,7 @@ add_subdirectory(osquery)
 add_subdirectory(idpContent)
 add_subdirectory(phists)
 add_subdirectory(pstats)
+
+if (ENABLE_PROCESS_EXPERIMENTAL)
+	add_subdirectory(sip)
+endif()
