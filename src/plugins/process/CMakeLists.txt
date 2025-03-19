@@ -13,6 +13,7 @@ add_subdirectory(ssdp)
 add_subdirectory(ssaDetector)
 add_subdirectory(mqtt)
 add_subdirectory(dns)
+add_subdirectory(dnssd)
 
 if (ENABLE_PROCESS_EXPERIMENTAL)
 	add_subdirectory(sip)
