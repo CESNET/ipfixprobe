@@ -498,6 +498,8 @@ bool expand_label(
 	 * "... the actual length precedes the vector's contents in the byte stream ... "
 	 * */
 
+	(void) context_hash;
+
 	const unsigned int label_prefix_length = (unsigned int) strlen(label_prefix);
 	const unsigned int label_length = (unsigned int) strlen(label);
 
@@ -772,6 +774,8 @@ bool QUICParser::quic_encrypt_sample(uint8_t* plaintext)
 
 bool QUICParser::quic_decrypt_initial_header(const uint8_t* payload_pointer, uint64_t offset)
 {
+	(void) offset;
+
 	uint8_t plaintext[SAMPLE_LENGTH];
 	uint8_t mask[5] = {0};
 	uint8_t full_pkn[4] = {0};
@@ -1116,6 +1120,8 @@ bool QUICParser::quic_parse_initial_header(
 	const uint8_t* payload_end,
 	uint64_t& offset)
 {
+	(void) pkt;
+
 	token_length = quic_get_variable_length(payload_pointer, offset);
 	if (!quic_check_pointer_pos((payload_pointer + offset), payload_end)) {
 		return false;
@@ -1211,6 +1217,8 @@ bool QUICParser::quic_parse_header(
 	uint8_t* payload_pointer,
 	uint8_t* payload_end)
 {
+	(void) pkt;
+
 	if (!quic_check_pointer_pos((payload_pointer + offset), payload_end)) {
 		return false;
 	}
@@ -1276,6 +1284,9 @@ bool QUICParser::quic_parse_header(
 
 bool QUICParser::quic_parse_headers(const Packet& pkt, bool forceInitialParsing)
 {
+	(void) pkt;
+	(void) forceInitialParsing;
+
 	uint8_t* pkt_payload_pointer = (uint8_t*) pkt.payload;
 	uint8_t* payload_pointer = pkt_payload_pointer;
 	uint64_t offset = 0;

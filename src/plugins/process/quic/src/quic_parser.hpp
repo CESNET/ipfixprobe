@@ -11,12 +11,11 @@
  * \date 2023
  */
 
-#include "tls_parser.hpp"
-
 #include <ipfixprobe/byte-utils.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
+#include <tlsParser/tls_parser.hpp>
 
 #define HASH_SHA2_256_LENGTH 32
 #define TLS13_AEAD_NONCE_LENGTH 12
