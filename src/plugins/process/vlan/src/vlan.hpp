@@ -1,33 +1,16 @@
 /**
- * \file vlan.hpp
- * \brief Plugin for parsing vlan traffic.
- * \author Jakub Antonín Štigler xstigl00@xstigl00@stud.fit.vut.cz
- * \date 2023
- */
-/*
- * Copyright (C) 2023 CESNET
+ * @file
+ * @brief Plugin for parsing basicplus traffic.
+ * @author Jakub Antonín Štigler xstigl00@xstigl00@stud.fit.vut.cz
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_PROCESS_VLAN_HPP
-#define IPXP_PROCESS_VLAN_HPP
+#pragma once
 
 #include <cstring>
 
@@ -42,7 +25,7 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 
 namespace ipxp {
 
@@ -105,6 +88,7 @@ struct RecordExtVLAN : public RecordExt {
  */
 class VLANPlugin : public ProcessPlugin {
 public:
+	VLANPlugin(const std::string& params);
 	OptionsParser* get_parser() const { return new OptionsParser("vlan", "Parse VLAN traffic"); }
 	std::string get_name() const { return "vlan"; }
 	RecordExt* get_ext() const { return new RecordExtVLAN(); }
@@ -114,4 +98,3 @@ public:
 };
 
 } // namespace ipxp
-#endif /* IPXP_PROCESS_VLAN_HPP */
