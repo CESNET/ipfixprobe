@@ -1,36 +1,23 @@
 /**
- * \file dns.cpp
- * \brief Plugin for parsing DNS traffic.
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2015
- * \date 2016
+ * @file
+ * @brief Plugin for parsing DNS traffic.
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
-/*
- * Copyright (C) 2014-2016 CESNET
- *
- * LICENSE TERMS
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
- */
+
+#include "dns.hpp"
 
 #include <iostream>
 #include <sstream>
 
 #include <arpa/inet.h>
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -38,19 +25,17 @@
 #include <unirec/unirec.h>
 #endif
 
-#include "dns.hpp"
-
 namespace ipxp {
 
-int RecordExtDNS::REGISTERED_ID = -1;
+int RecordExtDNS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("dns", []() { return new DNSPlugin(); });
-	register_plugin(&rec);
-	RecordExtDNS::REGISTERED_ID = register_extension();
-}
-
+static const PluginManifest dnsPluginManifest = {
+	.name = "dns",
+	.description = "Dns process plugin for parsing dns traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
 // #define DEBUG_DNS
 
 // Print debug message if debugging is allowed.
@@ -79,13 +64,14 @@ __attribute__((constructor)) static void register_this_plugin()
  */
 #define GET_OFFSET(half1, half2) ((((uint8_t) (half1) & 0x3F) << 8) | (uint8_t) (half2))
 
-DNSPlugin::DNSPlugin()
+DNSPlugin::DNSPlugin(const std::string& params)
 	: queries(0)
 	, responses(0)
 	, total(0)
 	, data_begin(nullptr)
 	, data_len(0)
 {
+	init(params.c_str());
 }
 
 DNSPlugin::~DNSPlugin()
@@ -93,7 +79,10 @@ DNSPlugin::~DNSPlugin()
 	close();
 }
 
-void DNSPlugin::init(const char* params) {}
+void DNSPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void DNSPlugin::close() {}
 
@@ -689,5 +678,7 @@ int DNSPlugin::add_ext_dns(const char* data, unsigned int payload_len, bool tcp,
 	}
 	return FLOW_FLUSH;
 }
+
+static const PluginRegistrar<DNSPlugin, ProcessPluginFactory> dnsRegistrar(dnsPluginManifest);
 
 } // namespace ipxp

@@ -1,34 +1,16 @@
 /**
- * \file dns.hpp
- * \brief Plugin for parsing DNS traffic.
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2015
- * \date 2016
- */
-/*
- * Copyright (C) 2014-2016 CESNET
+ * @file
+ * @brief Plugin for parsing DNS traffic.
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_PROCESS_DNS_HPP
-#define IPXP_PROCESS_DNS_HPP
+#pragma once
 
 #include <cstring>
 #include <sstream>
@@ -38,12 +20,11 @@
 #include "fields.h"
 #endif
 
-#include "dns-utils.hpp"
-
+#include <dns-utils.hpp>
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 
 namespace ipxp {
 
@@ -169,7 +150,7 @@ struct RecordExtDNS : public RecordExt {
  */
 class DNSPlugin : public ProcessPlugin {
 public:
-	DNSPlugin();
+	DNSPlugin(const std::string& params);
 	~DNSPlugin();
 	void init(const char* params);
 	void close();
@@ -205,4 +186,3 @@ private:
 };
 
 } // namespace ipxp
-#endif /* IPXP_PROCESS_DNS_HPP */
