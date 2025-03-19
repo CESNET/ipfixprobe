@@ -1,19 +1,18 @@
-/* SPDX-License-Identifier: BSD-3-Clause
- * Copyright (C) 2018-2022, CESNET z.s.p.o.
- */
-
 /**
- * \file tls.hpp
- * \brief Plugin for enriching flows for tls data.
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \author Karel Hynek <Karel.Hynek@cesnet.cz>
- * \author Andrej Lukacovic lukacan1@fit.cvut.cz
- * \author Jonas Mücke <jonas.muecke@tu-dresden.de>
- * \date 2022
+ * @file
+ * @brief Plugin for enriching flows for tls data.
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Karel Hynek <Karel.Hynek@cesnet.cz>
+ * @author Andrej Lukacovic lukacan1@fit.cvut.cz
+ * @author Jonas Mücke <jonas.muecke@tu-dresden.de>
+ * @author Pavel Siska <siska@cesnet.cz>
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef IPXP_PROCESS_TLS_HPP
-#define IPXP_PROCESS_TLS_HPP
+#pragma once
 
 #include <array>
 #include <cstring>
@@ -27,9 +26,9 @@
 #include <ipfixprobe/ipfix-basiclist.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/process.hpp>
+#include <ipfixprobe/processPlugin.hpp>
 #include <ipfixprobe/utils.hpp>
-#include <process/tls_parser.hpp>
+#include <tlsParser/tls_parser.hpp>
 
 #ifdef WITH_NEMEA
 #include "fields.h"
@@ -191,6 +190,7 @@ struct RecordExtTLS : public RecordExt {
  */
 class TLSPlugin : public ProcessPlugin {
 public:
+	TLSPlugin(const std::string& params);
 	~TLSPlugin() override;
 	void init(const char* params) override;
 	void close() override;
@@ -214,5 +214,5 @@ private:
 	TLSParser tls_parser {};
 	uint32_t parsed_sni {0};
 };
+
 } // namespace ipxp
-#endif /* IPXP_PROCESS_TLS_HPP */
