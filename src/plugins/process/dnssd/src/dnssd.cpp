@@ -1,36 +1,24 @@
 /**
- * \file dnssd.cpp
- * \brief Plugin for parsing DNS-SD traffic.
- * \author Ondrej Sedlacek xsedla1o@stud.fit.vutbr.cz
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2020
+ * @file
+ * @brief Plugin for parsing dnssd traffic.
+ * @author Ondrej Sedlacek xsedla1o@stud.fit.vutbr.cz
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
-/*
- * Copyright (C) 2020 CESNET
- *
- * LICENSE TERMS
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
- */
+
+#include "dnssd.hpp"
 
 #include <iostream>
 #include <sstream>
 
 #include <arpa/inet.h>
+#include <errno.h>
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -38,20 +26,21 @@
 #include <unirec/unirec.h>
 #endif
 
-#include "dnssd.hpp"
-
-#include <errno.h>
-
 namespace ipxp {
 
-int RecordExtDNSSD::REGISTERED_ID = -1;
+int RecordExtDNSSD::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("dnssd", []() { return new DNSSDPlugin(); });
-	register_plugin(&rec);
-	RecordExtDNSSD::REGISTERED_ID = register_extension();
-}
+static const PluginManifest dnssdPluginManifest = {
+	.name = "dnssd",
+	.description = "Dnssd process plugin for parsing dnssd traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage =
+		[]() {
+			DNSSDOptParser parser;
+			parser.usage(std::cout);
+		},
+};
 
 // #define DEBUG_DNSSD
 
@@ -81,7 +70,7 @@ __attribute__((constructor)) static void register_this_plugin()
  */
 #define GET_OFFSET(half1, half2) ((((uint8_t) (half1) & 0x3F) << 8) | (uint8_t) (half2))
 
-DNSSDPlugin::DNSSDPlugin()
+DNSSDPlugin::DNSSDPlugin(const std::string& params)
 	: txt_all_records(false)
 	, queries(0)
 	, responses(0)
@@ -89,6 +78,7 @@ DNSSDPlugin::DNSSDPlugin()
 	, data_begin(nullptr)
 	, data_len(0)
 {
+	init(params.c_str());
 }
 
 DNSSDPlugin::~DNSSDPlugin()
@@ -337,6 +327,7 @@ void DNSSDPlugin::process_rdata(
 	uint16_t type,
 	size_t length) const
 {
+	(void) record_begin;
 	std::string name = rdata.name;
 	rdata = DnsSdRr();
 
@@ -733,5 +724,7 @@ int DNSSDPlugin::add_ext_dnssd(const char* data, unsigned int payload_len, bool 
 	}
 	return 0;
 }
+
+static const PluginRegistrar<DNSSDPlugin, ProcessPluginFactory> dnssdRegistrar(dnssdPluginManifest);
 
 } // namespace ipxp
