@@ -1,53 +1,41 @@
 /**
- * \file netbios.cpp
- * \brief Plugin for parsing netbios traffic.
- * \author Ondrej Sedlacek <xsedla1o@stud.fit.vutbr.cz>
- * \date 2020
- */
-/*
- * Copyright (C) 2020 CESNET
+ * @file
+ * @brief Plugin for parsing netbios traffic.
+ * @author Ondrej Sedlacek <xsedla1o@stud.fit.vutbr.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <iostream>
+#include "netbios.hpp"
 
 #ifdef WITH_NEMEA
 #include <unirec/unirec.h>
 #endif
 
-#include "netbios.hpp"
+#include <iostream>
+
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 
 namespace ipxp {
 
-int RecordExtNETBIOS::REGISTERED_ID = -1;
+int RecordExtNETBIOS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("netbios", []() { return new NETBIOSPlugin(); });
-	register_plugin(&rec);
-	RecordExtNETBIOS::REGISTERED_ID = register_extension();
-}
-
-NETBIOSPlugin::NETBIOSPlugin()
+static const PluginManifest netbiosPluginManifest = {
+	.name = "netbios",
+	.description = "Netbios process plugin for parsing netbios traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage = nullptr,
+};
+NETBIOSPlugin::NETBIOSPlugin(const std::string& params)
 	: total_netbios_packets(0)
 {
+	init(params.c_str());
 }
 
 NETBIOSPlugin::~NETBIOSPlugin()
@@ -55,7 +43,10 @@ NETBIOSPlugin::~NETBIOSPlugin()
 	close();
 }
 
-void NETBIOSPlugin::init(const char* params) {}
+void NETBIOSPlugin::init(const char* params)
+{
+	(void) params;
+}
 
 void NETBIOSPlugin::close() {}
 
@@ -153,5 +144,8 @@ void NETBIOSPlugin::finish(bool print_stats)
 		std::cout << "   Parsed NBNS packets in total: " << total_netbios_packets << std::endl;
 	}
 }
+
+static const PluginRegistrar<NETBIOSPlugin, ProcessPluginFactory>
+	netbiosRegistrar(netbiosPluginManifest);
 
 } // namespace ipxp
