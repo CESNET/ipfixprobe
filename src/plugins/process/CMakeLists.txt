@@ -16,6 +16,7 @@ add_subdirectory(dns)
 add_subdirectory(dnssd)
 add_subdirectory(netbios)
 add_subdirectory(passiveDns)
+add_subdirectory(smtp)
 
 if (ENABLE_PROCESS_EXPERIMENTAL)
 	add_subdirectory(sip)
