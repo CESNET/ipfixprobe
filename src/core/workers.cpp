@@ -38,8 +38,8 @@ namespace ipxp {
 #define MICRO_SEC 1000000L
 
 void input_storage_worker(
-	InputPlugin* plugin,
-	StoragePlugin* cache,
+	std::shared_ptr<InputPlugin> inputPlugin,
+	std::shared_ptr<StoragePlugin> storagePlugin,
 	size_t queue_size,
 	uint64_t pkt_limit,
 	std::promise<WorkerResult>* out,
@@ -67,14 +67,14 @@ void input_storage_worker(
 		block.cnt = 0;
 		block.bytes = 0;
 
-		if (pkt_limit && plugin->m_parsed + block.size >= pkt_limit) {
-			if (plugin->m_parsed >= pkt_limit) {
+		if (pkt_limit && inputPlugin->m_parsed + block.size >= pkt_limit) {
+			if (inputPlugin->m_parsed >= pkt_limit) {
 				break;
 			}
-			block.size = pkt_limit - plugin->m_parsed;
+			block.size = pkt_limit - inputPlugin->m_parsed;
 		}
 		try {
-			ret = plugin->get(block);
+			ret = inputPlugin->get(block);
 		} catch (PluginError& e) {
 			res.error = true;
 			res.msg = e.what();
@@ -91,18 +91,18 @@ void input_storage_worker(
 				diff.tv_nsec += 1000000000;
 				diff.tv_sec--;
 			}
-			cache->export_expired(ts.tv_sec + diff.tv_sec);
+			storagePlugin->export_expired(ts.tv_sec + diff.tv_sec);
 			usleep(1);
 			continue;
 		} else if (ret == InputPlugin::Result::PARSED) {
-			stats.packets = plugin->m_seen;
-			stats.parsed = plugin->m_parsed;
-			stats.dropped = plugin->m_dropped;
+			stats.packets = inputPlugin->m_seen;
+			stats.parsed = inputPlugin->m_parsed;
+			stats.dropped = inputPlugin->m_dropped;
 			stats.bytes += block.bytes;
 			clock_gettime(clk_id, &start_cache);
 			try {
 				for (unsigned i = 0; i < block.cnt; i++) {
-					cache->put_pkt(block.pkts[i]);
+					storagePlugin->put_pkt(block.pkts[i]);
 				}
 				ts = block.pkts[block.cnt - 1].ts;
 			} catch (PluginError& e) {
@@ -129,12 +129,12 @@ void input_storage_worker(
 		}
 	}
 
-	stats.packets = plugin->m_seen;
-	stats.parsed = plugin->m_parsed;
-	stats.dropped = plugin->m_dropped;
+	stats.packets = inputPlugin->m_seen;
+	stats.parsed = inputPlugin->m_parsed;
+	stats.dropped = inputPlugin->m_dropped;
 	out_stats->store(stats);
-	cache->finish();
-	auto outq = cache->get_queue();
+	storagePlugin->finish();
+	auto outq = storagePlugin->get_queue();
 	while (ipx_ring_cnt(outq)) {
 		usleep(1);
 	}
@@ -147,7 +147,7 @@ static long timeval_diff(const struct timeval* start, const struct timeval* end)
 }
 
 void output_worker(
-	OutputPlugin* exp,
+	std::shared_ptr<OutputPlugin> outputPlugin,
 	ipx_ring_t* queue,
 	std::promise<WorkerResult>* out,
 	std::atomic<OutputStats>* out_stats,
@@ -155,7 +155,7 @@ void output_worker(
 {
 	WorkerResult res = {false, ""};
 	OutputStats stats = {0, 0, 0, 0};
-	struct timespec sleep_time = {0};
+	struct timespec sleep_time = {};
 	struct timeval begin;
 	struct timeval end;
 	struct timeval last_flush;
@@ -177,7 +177,7 @@ void output_worker(
 		if (!flow) {
 			if (end.tv_sec - last_flush.tv_sec > 1) {
 				last_flush = end;
-				exp->flush();
+				outputPlugin->flush();
 			}
 			if (terminate_export && !ipx_ring_cnt(queue)) {
 				break;
@@ -188,10 +188,10 @@ void output_worker(
 		stats.biflows++;
 		stats.bytes += flow->src_bytes + flow->dst_bytes;
 		stats.packets += flow->src_packets + flow->dst_packets;
-		stats.dropped = exp->m_flows_dropped;
+		stats.dropped = outputPlugin->m_flows_dropped;
 		out_stats->store(stats);
 		try {
-			exp->export_flow(*flow);
+			outputPlugin->export_flow(*flow);
 		} catch (PluginError& e) {
 			res.error = true;
 			res.msg = e.what();
@@ -231,8 +231,8 @@ void output_worker(
 		}
 	}
 
-	exp->flush();
-	stats.dropped = exp->m_flows_dropped;
+	outputPlugin->flush();
+	stats.dropped = outputPlugin->m_flows_dropped;
 	out_stats->store(stats);
 	out->set_value(res);
 }
