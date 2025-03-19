@@ -10,8 +10,8 @@ add_subdirectory(pstats)
 add_subdirectory(ovpn)
 add_subdirectory(wg)
 add_subdirectory(ssdp)
+add_subdirectory(ssaDetector)
 
 if (ENABLE_PROCESS_EXPERIMENTAL)
 	add_subdirectory(sip)
 endif()
-
