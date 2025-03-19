@@ -11,6 +11,7 @@ add_subdirectory(ovpn)
 add_subdirectory(wg)
 add_subdirectory(ssdp)
 add_subdirectory(ssaDetector)
+add_subdirectory(mqtt)
 
 if (ENABLE_PROCESS_EXPERIMENTAL)
 	add_subdirectory(sip)
