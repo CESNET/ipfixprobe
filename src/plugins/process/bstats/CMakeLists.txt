@@ -18,6 +18,13 @@ target_link_libraries(ipfixprobe-process-bstats PRIVATE
     ipfixprobe-output-ipfix
 )
 
+if(ENABLE_NEMEA)
+    target_link_libraries(ipfixprobe-process-bstats PRIVATE 
+        -Wl,--whole-archive ipfixprobe-nemea-fields -Wl,--no-whole-archive
+        unirec::unirec
+    )
+endif()
+
 install(TARGETS ipfixprobe-process-bstats
     LIBRARY DESTINATION "${INSTALL_DIR_LIB}/ipfixprobe/process/"
 )

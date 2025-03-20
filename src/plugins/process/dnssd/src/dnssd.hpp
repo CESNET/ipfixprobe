@@ -34,7 +34,7 @@ namespace ipxp {
 
 #define DNSSD_UNIREC_TEMPLATE "DNSSD_QUERIES,DNSSD_RESPONSES"
 
-UR_FIELDS(string DNSSD_QUERIES string DNSSD_RESPONSES)
+UR_FIELDS(string DNSSD_QUERIES, string DNSSD_RESPONSES)
 
 class DNSSDOptParser : public OptionsParser {
 public:

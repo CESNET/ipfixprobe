@@ -39,8 +39,6 @@
 #include <sys/time.h>
 
 #ifdef WITH_NEMEA
-#include "fields.h"
-
 #include <unirec/unirec.h>
 #else
 #define UR_FIELDS(...)

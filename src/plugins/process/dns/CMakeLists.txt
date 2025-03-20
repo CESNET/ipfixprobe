@@ -15,6 +15,13 @@ target_include_directories(ipfixprobe-process-dns PRIVATE
     ${CMAKE_SOURCE_DIR}/src/plugins/process/common
 )
 
+if(ENABLE_NEMEA)
+    target_link_libraries(ipfixprobe-process-dns PRIVATE 
+        -Wl,--whole-archive -Wl,--whole-archive ipfixprobe-nemea-fields -Wl,--no-whole-archive -Wl,--no-whole-archive
+        unirec::unirec
+    )
+endif()
+
 install(TARGETS ipfixprobe-process-dns
     LIBRARY DESTINATION "${INSTALL_DIR_LIB}/ipfixprobe/process/"
 )

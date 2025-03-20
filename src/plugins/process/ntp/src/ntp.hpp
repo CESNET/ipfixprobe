@@ -34,7 +34,8 @@ namespace ipxp {
 
 UR_FIELDS(
 	uint8 NTP_LEAP,
-	uint8 NTP_VERSION uint8 NTP_MODE,
+	uint8 NTP_VERSION,
+	uint8 NTP_MODE,
 	uint8 NTP_STRATUM,
 	uint8 NTP_POLL,
 	uint8 NTP_PRECISION,

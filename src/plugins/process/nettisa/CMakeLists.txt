@@ -18,7 +18,13 @@ target_link_libraries(ipfixprobe-process-nettisa PRIVATE
     ipfixprobe-core
 )
 
-install(
-    TARGETS ipfixprobe-process-nettisa
+if(ENABLE_NEMEA)
+    target_link_libraries(ipfixprobe-process-nettisa PRIVATE 
+        -Wl,--whole-archive ipfixprobe-nemea-fields -Wl,--no-whole-archive
+        unirec::unirec
+    )
+endif()
+
+install(TARGETS ipfixprobe-process-nettisa
     LIBRARY DESTINATION "${INSTALL_DIR_LIB}/ipfixprobe/process/"
 )

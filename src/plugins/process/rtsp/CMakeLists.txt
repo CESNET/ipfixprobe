@@ -15,6 +15,13 @@ target_include_directories(ipfixprobe-process-rtsp PRIVATE
     ${CMAKE_SOURCE_DIR}/src/plugins/process/common
 )
 
+if(ENABLE_NEMEA)
+    target_link_libraries(ipfixprobe-process-rtsp PRIVATE 
+        -Wl,--whole-archive ipfixprobe-nemea-fields -Wl,--no-whole-archive
+        unirec::unirec
+    )
+endif()
+
 install(TARGETS ipfixprobe-process-rtsp
     LIBRARY DESTINATION "${INSTALL_DIR_LIB}/ipfixprobe/process/"
 )

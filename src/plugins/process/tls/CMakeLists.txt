@@ -22,6 +22,13 @@ target_link_libraries(ipfixprobe-process-tls PRIVATE
 	ipfixprobe-process-tls-parser
 )
 
+if(ENABLE_NEMEA)
+    target_link_libraries(ipfixprobe-process-tls PRIVATE 
+        -Wl,--whole-archive ipfixprobe-nemea-fields -Wl,--no-whole-archive
+        unirec::unirec
+    )
+endif()
+
 install(TARGETS ipfixprobe-process-tls
     LIBRARY DESTINATION "${INSTALL_DIR_LIB}/ipfixprobe/process/"
 )

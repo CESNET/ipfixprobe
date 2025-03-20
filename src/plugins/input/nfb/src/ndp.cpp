@@ -1,39 +1,24 @@
 /**
- * \file ndp.cpp
- * \brief Packet reader using NDP library for high speed capture.
- * \author Tomas Benes <benesto@fit.cvut.cz>
- * \author Jiri Havranek <havranek@cesnet.cz>
- * \date 2021
- */
-/*
- * Copyright (C) 2020-2021 CESNET
+ * @file
+ * @brief Packet reader using NDP library for high speed capture.
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Tomas Benes <benesto@fit.cvut.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
  *
- * LICENSE TERMS
+ * Copyright (c) 2025 CESNET
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name of the Company nor the names of its contributors
- *    may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- *
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "ndp.hpp"
-
 #include "parser.hpp"
 
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 
 namespace ipxp {
 
@@ -45,13 +30,22 @@ telemetry::Content NdpPacketReader::get_queue_telemetry()
 	return dict;
 }
 
-__attribute__((constructor)) static void register_this_plugin()
-{
-	static PluginRecord rec = PluginRecord("ndp", []() { return new NdpPacketReader(); });
-	register_plugin(&rec);
-}
+static const PluginManifest ndpPluginManifest = {
+	.name = "ndp",
+	.description = "Ndp input plugin for reading packets from network interface or ndp file.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage =
+		[]() {
+			NdpOptParser parser;
+			parser.usage(std::cout);
+		},
+};
 
-NdpPacketReader::NdpPacketReader() {}
+NdpPacketReader::NdpPacketReader(const std::string& params)
+{
+	init(params.c_str());
+}
 
 NdpPacketReader::~NdpPacketReader()
 {
@@ -133,5 +127,7 @@ void NdpPacketReader::configure_telemetry_dirs(
 	telemetry::FileOps statsOps = {[&]() { return get_queue_telemetry(); }, nullptr};
 	register_file(queues_dir, "input-stats", statsOps);
 }
+
+static const PluginRegistrar<NdpPacketReader, InputPluginFactory> ndpRegistrar(ndpPluginManifest);
 
 } // namespace ipxp

@@ -12,7 +12,13 @@ set_target_properties(ipfixprobe-process-icmp PROPERTIES
 
 target_include_directories(ipfixprobe-process-icmp PRIVATE ${CMAKE_SOURCE_DIR}/include/)
 
-install(
-    TARGETS ipfixprobe-process-icmp
+if(ENABLE_NEMEA)
+    target_link_libraries(ipfixprobe-process-icmp PRIVATE 
+        -Wl,--whole-archive ipfixprobe-nemea-fields -Wl,--no-whole-archive
+        unirec::unirec
+    )
+endif()
+
+install(TARGETS ipfixprobe-process-icmp
     LIBRARY DESTINATION "${INSTALL_DIR_LIB}/ipfixprobe/process/"
 )
