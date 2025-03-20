@@ -23,3 +23,7 @@ if (ENABLE_OUTPUT_UNIREC OR ENABLE_NEMEA)
 	find_package(LIBTRAP REQUIRED)
 	find_package(UNIREC REQUIRED)
 endif()
+
+if (ENABLE_TESTS)
+	#find_package(NEMEA_MODULES REQUIRED) // TODO: NEMEA_MODULES
+endif()
