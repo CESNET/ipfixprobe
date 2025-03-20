@@ -21,6 +21,12 @@ option(ENABLE_OUTPUT_UNIREC  "Enable build of output UNIREC plugin" OFF)
 option(ENABLE_PROCESS_EXPERIMENTAL "Enable build of experimental process plugins" OFF)
 option(ENABLE_RPMBUILD "Enable build of RPM package" ON)
 
+option(ENABLE_MILISECONDS_TIMESTAMP "Compile ipfixprobe with miliseconds timestamp precesion" OFF)
+
+if(ENABLE_MILISECONDS_TIMESTAMP)
+    add_compile_definitions(IPXP_TS_MSEC)
+endif()
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
@@ -34,7 +40,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -ggdb3")
-
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
