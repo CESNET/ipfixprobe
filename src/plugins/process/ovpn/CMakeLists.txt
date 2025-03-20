@@ -14,6 +14,13 @@ target_include_directories(ipfixprobe-process-ovpn PRIVATE
     ${CMAKE_SOURCE_DIR}/include/
 )
 
+if(ENABLE_NEMEA)
+    target_link_libraries(ipfixprobe-process-ovpn PRIVATE 
+        -Wl,--whole-archive ipfixprobe-nemea-fields -Wl,--no-whole-archive
+        unirec::unirec
+    )
+endif()
+
 install(TARGETS ipfixprobe-process-ovpn
     LIBRARY DESTINATION "${INSTALL_DIR_LIB}/ipfixprobe/process/"
 )

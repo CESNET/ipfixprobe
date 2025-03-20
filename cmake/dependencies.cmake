@@ -20,7 +20,7 @@ if (ENABLE_INPUT_NFB)
 	find_package(NUMA REQUIRED)
 endif()
 
-if (ENABLE_OUTPUT_UNIREC)
+if (ENABLE_OUTPUT_UNIREC OR ENABLE_NEMEA)
 	find_package(LIBTRAP REQUIRED)
 	find_package(UNIREC REQUIRED)
 endif()

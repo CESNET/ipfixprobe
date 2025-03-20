@@ -14,6 +14,13 @@ target_include_directories(ipfixprobe-process-mqtt PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
 )
 
+if(ENABLE_NEMEA)
+    target_link_libraries(ipfixprobe-process-mqtt PRIVATE 
+        -Wl,--whole-archive ipfixprobe-nemea-fields -Wl,--no-whole-archive
+        unirec::unirec
+    )
+endif()
+
 install(TARGETS ipfixprobe-process-mqtt
     LIBRARY DESTINATION "${INSTALL_DIR_LIB}/ipfixprobe/process/"
 )

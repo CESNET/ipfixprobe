@@ -22,9 +22,14 @@ option(ENABLE_PROCESS_EXPERIMENTAL "Enable build of experimental process plugins
 option(ENABLE_RPMBUILD "Enable build of RPM package" ON)
 
 option(ENABLE_MILISECONDS_TIMESTAMP "Compile ipfixprobe with miliseconds timestamp precesion" OFF)
+option(ENABLE_NEMEA                 "Enable build of NEMEA plugins" OFF)
 
 if(ENABLE_MILISECONDS_TIMESTAMP)
     add_compile_definitions(IPXP_TS_MSEC)
+endif()
+
+if(ENABLE_NEMEA)
+	add_compile_definitions(WITH_NEMEA)
 endif()
 
 set(CMAKE_C_STANDARD 11)
