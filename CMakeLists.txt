@@ -19,6 +19,7 @@ option(ENABLE_INPUT_NFB  "Enable build of input NFB plugin"  OFF)
 option(ENABLE_OUTPUT_UNIREC  "Enable build of output UNIREC plugin" OFF)
 
 option(ENABLE_PROCESS_EXPERIMENTAL "Enable build of experimental process plugins" OFF)
+option(ENABLE_RPMBUILD "Enable build of RPM package" ON)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -43,3 +44,4 @@ include(cmake/dependencies.cmake)
 
 add_subdirectory(external)
 add_subdirectory(src)
+add_subdirectory(pkg)
