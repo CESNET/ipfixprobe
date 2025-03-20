@@ -12,17 +12,16 @@ include(cmake/installation.cmake)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
-option(ENABLE_INPUT_PCAP "Enable build of input PCAP plugin" ON)
-option(ENABLE_INPUT_DPDK "Enable build of input DPDK plugin" OFF)
-option(ENABLE_INPUT_NFB  "Enable build of input NFB plugin"  OFF)
-
-option(ENABLE_OUTPUT_UNIREC  "Enable build of output UNIREC plugin" OFF)
-
-option(ENABLE_PROCESS_EXPERIMENTAL "Enable build of experimental process plugins" OFF)
-option(ENABLE_RPMBUILD "Enable build of RPM package" ON)
-
+option(ENABLE_INPUT_PCAP            "Enable build of input PCAP plugin"                       ON)
+option(ENABLE_INPUT_DPDK            "Enable build of input DPDK plugin"                       OFF)
+option(ENABLE_INPUT_NFB             "Enable build of input NFB plugin"                        OFF)
+option(ENABLE_OUTPUT_UNIREC         "Enable build of output UNIREC plugin"                    OFF)
+option(ENABLE_PROCESS_EXPERIMENTAL  "Enable build of experimental process plugins"            OFF)
 option(ENABLE_MILISECONDS_TIMESTAMP "Compile ipfixprobe with miliseconds timestamp precesion" OFF)
-option(ENABLE_NEMEA                 "Enable build of NEMEA plugins" OFF)
+option(ENABLE_NEMEA                 "Enable build of NEMEA plugins"                           OFF)
+
+option(ENABLE_RPMBUILD              "Enable build of RPM package"                             ON)
+option(ENABLE_TESTS                 "Build tests (make test)"                                 OFF)
 
 if(ENABLE_MILISECONDS_TIMESTAMP)
     add_compile_definitions(IPXP_TS_MSEC)
@@ -55,3 +54,14 @@ include(cmake/dependencies.cmake)
 add_subdirectory(external)
 add_subdirectory(src)
 add_subdirectory(pkg)
+
+if (ENABLE_TESTS)
+    if (NOT ENABLE_NEMEA OR NOT ENABLE_OUTPUT_UNIREC OR NOT ENABLE_INPUT_PCAP)
+        message(FATAL_ERROR
+            "ENABLE_TESTS requires ENABLE_NEMEA, "
+            "ENABLE_INPUT_PCAP and ENABLE_OUTPUT_UNIREC to be enabled."
+        )
+    endif()
+	enable_testing()
+    add_subdirectory(tests)
+endif()
