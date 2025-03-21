@@ -668,7 +668,7 @@ int run(int argc, char* argv[])
 		goto EXIT;
 	}
 
-	conf.pluginManager.loadPlugins("/usr/local/lib64/ipfixprobe/", loadPluginsRecursive);
+	conf.pluginManager.loadPlugins(parser.m_plugins_path, loadPluginsRecursive);
 
 	// printPlugins();
 

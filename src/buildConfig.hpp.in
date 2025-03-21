@@ -13,3 +13,5 @@
 
 #define IPXP_APP_NAME "ipfixprobe"
 #define IPXP_APP_VERSION "@VERSION@"
+
+#define IPXP_DEFAULT_PLUGINS_DIR "@INSTALL_DIR_LIB@/ipfixprobe/"

@@ -29,6 +29,7 @@
 #ifndef IPXP_IPFIXPROBE_HPP
 #define IPXP_IPFIXPROBE_HPP
 
+#include "buildConfig.hpp"
 #include "pluginManager.hpp"
 #include "workers.hpp"
 
@@ -91,6 +92,7 @@ public:
 	std::string m_help_str;
 	bool m_version;
 	std::vector<int> m_cpu_mask;
+	std::string m_plugins_path;
 
 	IpfixprobeOptParser()
 		: OptionsParser("ipfixprobe", "flow exporter supporting various custom IPFIX elements")
@@ -105,6 +107,7 @@ public:
 		, m_help(false)
 		, m_help_str("")
 		, m_version(false)
+		, m_plugins_path(IPXP_DEFAULT_PLUGINS_DIR)
 	{
 		m_delim = ' ';
 
@@ -236,6 +239,16 @@ public:
 			[this](const char* arg) {
 				m_pid = arg;
 				return m_pid != "";
+			},
+			OptionFlags::RequiredArgument);
+		register_option(
+			"-L",
+			"--plugins-path",
+			"PATH",
+			"Path to the directory with plugins. Default: " IPXP_DEFAULT_PLUGINS_DIR,
+			[this](const char* arg) {
+				m_plugins_path = arg;
+				return m_plugins_path != "";
 			},
 			OptionFlags::RequiredArgument);
 		register_option(
