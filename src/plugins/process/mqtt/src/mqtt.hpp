@@ -171,7 +171,7 @@ private:
 	bool flow_flush = false; ///< Tell storage plugin to flush current Flow.
 	uint32_t maximal_topic_count
 		= 0; ///< Maximal count of topics from Publish packet header to store for each flow
-	RecordExtMQTT* recPrealloc; ///< Preallocated extension.
+	RecordExtMQTT* recPrealloc = nullptr; ///< Preallocated extension.
 	bool parse_mqtt(const char* data, int payload_len, RecordExtMQTT* rec) noexcept;
 	void add_ext_mqtt(const char* data, int payload_len, Flow& flow);
 	std::pair<uint32_t, bool>
