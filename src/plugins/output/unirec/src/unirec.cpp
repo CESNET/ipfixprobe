@@ -168,7 +168,7 @@ void UnirecExporter::init(const char* params)
 	m_dir_bit_field = parser.m_dir;
 	m_group_map = parser.m_ifc_map;
 	m_ifc_cnt = init_trap(parser.m_ifc, parser.m_verbose);
-	m_ext_cnt = get_extension_cnt();
+	m_ext_cnt = ProcessPluginIDGenerator::instance().getPluginsCount();
 
 	try {
 		m_tmplts = new ur_template_t*[m_ifc_cnt];
