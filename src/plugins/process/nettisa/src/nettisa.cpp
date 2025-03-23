@@ -20,8 +20,6 @@
 
 namespace ipxp {
 
-int RecordExtNETTISA::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest nettisaPluginManifest = {
 	.name = "nettisa",
 	.description = "Nettisa process plugin for parsing Nettisa flow.",
@@ -30,9 +28,10 @@ static const PluginManifest nettisaPluginManifest = {
 	.usage = nullptr,
 };
 
-NETTISAPlugin::NETTISAPlugin(const std::string& params)
+NETTISAPlugin::NETTISAPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
 {
-	(void) params;
+	init(params.c_str());
 }
 
 ProcessPlugin* NETTISAPlugin::copy()
@@ -84,7 +83,7 @@ void NETTISAPlugin::update_record(
 
 int NETTISAPlugin::post_create(Flow& rec, const Packet& pkt)
 {
-	RecordExtNETTISA* nettisa_data = new RecordExtNETTISA();
+	RecordExtNETTISA* nettisa_data = new RecordExtNETTISA(m_pluginID);
 	rec.add_extension(nettisa_data);
 
 	nettisa_data->prev_time = timeval2usec(pkt.ts);
@@ -95,8 +94,7 @@ int NETTISAPlugin::post_create(Flow& rec, const Packet& pkt)
 
 int NETTISAPlugin::post_update(Flow& rec, const Packet& pkt)
 {
-	RecordExtNETTISA* nettisa_data
-		= (RecordExtNETTISA*) rec.get_extension(RecordExtNETTISA::REGISTERED_ID);
+	RecordExtNETTISA* nettisa_data = (RecordExtNETTISA*) rec.get_extension(m_pluginID);
 
 	update_record(nettisa_data, pkt, rec);
 	return 0;
@@ -104,11 +102,10 @@ int NETTISAPlugin::post_update(Flow& rec, const Packet& pkt)
 
 void NETTISAPlugin::pre_export(Flow& rec)
 {
-	RecordExtNETTISA* nettisa_data
-		= (RecordExtNETTISA*) rec.get_extension(RecordExtNETTISA::REGISTERED_ID);
+	RecordExtNETTISA* nettisa_data = (RecordExtNETTISA*) rec.get_extension(m_pluginID);
 	uint32_t n = rec.src_packets + rec.dst_packets;
 	if (n == 1) {
-		rec.remove_extension(RecordExtNETTISA::REGISTERED_ID);
+		rec.remove_extension(m_pluginID);
 		return;
 	} else {
 		nettisa_data->switching_ratio = nettisa_data->switching_ratio / n;

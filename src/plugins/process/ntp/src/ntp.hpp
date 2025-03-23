@@ -64,8 +64,6 @@ const char OTHER[] = "OTHER"; /*OTHER Value of NTP reference ID*/
  *\brief Flow record extension header for storing NTP fields.
  */
 struct RecordExtNTP : public RecordExt {
-	static int REGISTERED_ID;
-
 	uint8_t leap;
 	uint8_t version;
 	uint8_t mode;
@@ -83,8 +81,8 @@ struct RecordExtNTP : public RecordExt {
 	/**
 	 *\brief Constructor.
 	 */
-	RecordExtNTP()
-		: RecordExt(REGISTERED_ID)
+	RecordExtNTP(int pluginID)
+		: RecordExt(pluginID)
 	{
 		leap = 9;
 		version = 9;
@@ -209,13 +207,13 @@ struct RecordExtNTP : public RecordExt {
  */
 class NTPPlugin : public ProcessPlugin {
 public:
-	NTPPlugin(const std::string& params);
+	NTPPlugin(const std::string& params, int pluginID);
 	~NTPPlugin();
 	void init(const char* params);
 	void close();
 	OptionsParser* get_parser() const { return new OptionsParser("ntp", "Parse NTP traffic"); }
 	std::string get_name() const { return "ntp"; }
-	RecordExt* get_ext() const { return new RecordExtNTP(); }
+	RecordExt* get_ext() const { return new RecordExtNTP(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

@@ -36,7 +36,6 @@ UR_FIELDS(uint16 DNS_ID, uint16 DNS_ATYPE, string DNS_NAME, uint32 DNS_RR_TTL, i
  * \brief Flow record extension header for storing parsed DNS packets.
  */
 struct RecordExtPassiveDNS : public RecordExt {
-	static int REGISTERED_ID;
 	uint16_t atype;
 	uint16_t id;
 	uint8_t ip_version;
@@ -47,8 +46,8 @@ struct RecordExtPassiveDNS : public RecordExt {
 	/**
 	 * \brief Constructor.
 	 */
-	RecordExtPassiveDNS()
-		: RecordExt(REGISTERED_ID)
+	RecordExtPassiveDNS(int pluginID)
+		: RecordExt(pluginID)
 	{
 		id = 0;
 		atype = 0;
@@ -128,7 +127,7 @@ struct RecordExtPassiveDNS : public RecordExt {
  */
 class PassiveDNSPlugin : public ProcessPlugin {
 public:
-	PassiveDNSPlugin(const std::string& params);
+	PassiveDNSPlugin(const std::string& params, int pluginID);
 	~PassiveDNSPlugin();
 	void init(const char* params);
 	void close();
@@ -137,7 +136,7 @@ public:
 		return new OptionsParser("passivedns", "Parse A, AAAA and PTR records from DNS traffic");
 	}
 	std::string get_name() const { return "passivedns"; }
-	RecordExt* get_ext() const { return new RecordExtPassiveDNS(); }
+	RecordExt* get_ext() const { return new RecordExtPassiveDNS(m_pluginID); }
 	ProcessPlugin* copy();
 	int post_create(Flow& rec, const Packet& pkt);
 	int post_update(Flow& rec, const Packet& pkt);

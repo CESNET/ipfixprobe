@@ -19,8 +19,6 @@
 
 namespace ipxp {
 
-int RecordExtBSTATS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest bstatsPluginManifest = {
 	.name = "bstats",
 	.description = "Bstats process plugin for computing packet bursts stats.",
@@ -32,7 +30,8 @@ static const PluginManifest bstatsPluginManifest = {
 const struct timeval BSTATSPlugin::min_packet_in_burst
 	= {MAXIMAL_INTERPKT_TIME / 1000, (MAXIMAL_INTERPKT_TIME % 1000) * 1000};
 
-BSTATSPlugin::BSTATSPlugin(const std::string& params)
+BSTATSPlugin::BSTATSPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
 {
 	init(params.c_str());
 }
@@ -132,7 +131,7 @@ void BSTATSPlugin::update_record(RecordExtBSTATS* bstats_record, const Packet& p
 
 int BSTATSPlugin::post_create(Flow& rec, const Packet& pkt)
 {
-	RecordExtBSTATS* bstats_record = new RecordExtBSTATS();
+	RecordExtBSTATS* bstats_record = new RecordExtBSTATS(m_pluginID);
 
 	rec.add_extension(bstats_record);
 	update_record(bstats_record, pkt);
@@ -141,8 +140,7 @@ int BSTATSPlugin::post_create(Flow& rec, const Packet& pkt)
 
 int BSTATSPlugin::pre_update(Flow& rec, Packet& pkt)
 {
-	RecordExtBSTATS* bstats_record
-		= static_cast<RecordExtBSTATS*>(rec.get_extension(RecordExtBSTATS::REGISTERED_ID));
+	RecordExtBSTATS* bstats_record = static_cast<RecordExtBSTATS*>(rec.get_extension(m_pluginID));
 
 	update_record(bstats_record, pkt);
 	return 0;
@@ -159,12 +157,11 @@ void BSTATSPlugin::pre_export(Flow& rec)
 {
 	uint32_t packets = rec.src_packets + rec.dst_packets;
 	if (packets <= MINIMAL_PACKETS_IN_BURST) {
-		rec.remove_extension(RecordExtBSTATS::REGISTERED_ID);
+		rec.remove_extension(m_pluginID);
 		return;
 	}
 
-	RecordExtBSTATS* bstats_record
-		= static_cast<RecordExtBSTATS*>(rec.get_extension(RecordExtBSTATS::REGISTERED_ID));
+	RecordExtBSTATS* bstats_record = static_cast<RecordExtBSTATS*>(rec.get_extension(m_pluginID));
 
 	for (int direction = 0; direction < 2; direction++) {
 		if (bstats_record->BCOUNT < BSTATS_MAXELENCOUNT

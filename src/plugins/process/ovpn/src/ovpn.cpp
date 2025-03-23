@@ -49,8 +49,6 @@ struct __attribute__((packed)) rtp_header {
 	uint32_t ssrc;
 };
 
-int RecordExtOVPN::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest ovpnPluginManifest = {
 	.name = "ovpn",
 	.description = "Ovpn process plugin for parsing ovpn traffic.",
@@ -59,7 +57,8 @@ static const PluginManifest ovpnPluginManifest = {
 	.usage = nullptr,
 };
 
-OVPNPlugin::OVPNPlugin(const std::string& params)
+OVPNPlugin::OVPNPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
 {
 	init(params.c_str());
 }
@@ -202,7 +201,7 @@ void OVPNPlugin::update_record(RecordExtOVPN* vpn_data, const Packet& pkt)
 
 int OVPNPlugin::post_create(Flow& rec, const Packet& pkt)
 {
-	RecordExtOVPN* vpn_data = new RecordExtOVPN();
+	RecordExtOVPN* vpn_data = new RecordExtOVPN(m_pluginID);
 	rec.add_extension(vpn_data);
 
 	update_record(vpn_data, pkt);
@@ -211,19 +210,19 @@ int OVPNPlugin::post_create(Flow& rec, const Packet& pkt)
 
 int OVPNPlugin::pre_update(Flow& rec, Packet& pkt)
 {
-	RecordExtOVPN* vpn_data = (RecordExtOVPN*) rec.get_extension(RecordExtOVPN::REGISTERED_ID);
+	RecordExtOVPN* vpn_data = (RecordExtOVPN*) rec.get_extension(m_pluginID);
 	update_record(vpn_data, pkt);
 	return 0;
 }
 
 void OVPNPlugin::pre_export(Flow& rec)
 {
-	RecordExtOVPN* vpn_data = (RecordExtOVPN*) rec.get_extension(RecordExtOVPN::REGISTERED_ID);
+	RecordExtOVPN* vpn_data = (RecordExtOVPN*) rec.get_extension(m_pluginID);
 
 	// do not export ovpn for short flows, usually port scans
 	uint32_t packets = rec.src_packets + rec.dst_packets;
 	if (packets <= min_pckt_export_treshold) {
-		rec.remove_extension(RecordExtOVPN::REGISTERED_ID);
+		rec.remove_extension(m_pluginID);
 		return;
 	}
 	if ((rec.src_packets + rec.dst_packets) > min_pckt_treshold

@@ -52,8 +52,6 @@ void add_str(char* dst, ssize_t size, const char* begin, const char* end, const 
  * \brief Flow record extension header for storing HTTP requests.
  */
 struct RecordExtHTTP : public RecordExt {
-	static int REGISTERED_ID;
-
 	bool req;
 	bool resp;
 
@@ -72,8 +70,8 @@ struct RecordExtHTTP : public RecordExt {
 	/**
 	 * \brief Constructor.
 	 */
-	RecordExtHTTP()
-		: RecordExt(REGISTERED_ID)
+	RecordExtHTTP(int pluginID)
+		: RecordExt(pluginID)
 	{
 		req = false;
 		resp = false;
@@ -191,11 +189,11 @@ struct RecordExtHTTP : public RecordExt {
  */
 class HTTPPlugin : public ProcessPlugin {
 public:
-	HTTPPlugin(const std::string& params);
+	HTTPPlugin(const std::string& params, int pluginID);
 	~HTTPPlugin();
 	void init(const char* params);
 	void close();
-	RecordExt* get_ext() const { return new RecordExtHTTP(); }
+	RecordExt* get_ext() const { return new RecordExtHTTP(m_pluginID); }
 	OptionsParser* get_parser() const { return new OptionsParser("http", "Parse HTTP traffic"); }
 	std::string get_name() const { return "http"; }
 	ProcessPlugin* copy();

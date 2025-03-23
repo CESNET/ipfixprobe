@@ -50,8 +50,6 @@ UR_FIELDS(
  * \brief Flow record extension header for storing parsed DNS packets.
  */
 struct RecordExtDNS : public RecordExt {
-	static int REGISTERED_ID;
-
 	uint16_t id;
 	uint16_t answers;
 	uint8_t rcode;
@@ -67,8 +65,8 @@ struct RecordExtDNS : public RecordExt {
 	/**
 	 * \brief Constructor.
 	 */
-	RecordExtDNS()
-		: RecordExt(REGISTERED_ID)
+	RecordExtDNS(int pluginID)
+		: RecordExt(pluginID)
 	{
 		id = 0;
 		answers = 0;
@@ -150,13 +148,13 @@ struct RecordExtDNS : public RecordExt {
  */
 class DNSPlugin : public ProcessPlugin {
 public:
-	DNSPlugin(const std::string& params);
+	DNSPlugin(const std::string& params, int pluginID);
 	~DNSPlugin();
 	void init(const char* params);
 	void close();
 	OptionsParser* get_parser() const { return new OptionsParser("dns", "Parse DNS packets"); }
 	std::string get_name() const { return "dns"; }
-	RecordExt* get_ext() const { return new RecordExtDNS(); }
+	RecordExt* get_ext() const { return new RecordExtDNS(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

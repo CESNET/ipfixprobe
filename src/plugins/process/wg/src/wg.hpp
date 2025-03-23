@@ -53,14 +53,12 @@ UR_FIELDS(uint8 WG_CONF_LEVEL, uint32 WG_SRC_PEER, uint32 WG_DST_PEER)
  * \brief Flow record extension header for storing parsed WG packets.
  */
 struct RecordExtWG : public RecordExt {
-	static int REGISTERED_ID;
-
 	uint8_t possible_wg;
 	uint32_t src_peer;
 	uint32_t dst_peer;
 
-	RecordExtWG()
-		: RecordExt(REGISTERED_ID)
+	RecordExtWG(int pluginID)
+		: RecordExt(pluginID)
 	{
 		possible_wg = 0;
 		src_peer = 0;
@@ -123,13 +121,13 @@ struct RecordExtWG : public RecordExt {
  */
 class WGPlugin : public ProcessPlugin {
 public:
-	WGPlugin(const std::string& params);
+	WGPlugin(const std::string& params, int pluginID);
 	~WGPlugin();
 	void init(const char* params);
 	void close();
 	OptionsParser* get_parser() const { return new OptionsParser("wg", "Parse WireGuard traffic"); }
 	std::string get_name() const { return "wg"; }
-	RecordExt* get_ext() const { return new RecordExtWG(); }
+	RecordExt* get_ext() const { return new RecordExtWG(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

@@ -49,13 +49,11 @@ struct idpcontentArray {
 };
 
 struct RecordExtIDPCONTENT : public RecordExt {
-	static int REGISTERED_ID;
-
 	uint8_t pkt_export_flg[EXPORTED_PACKETS];
 	idpcontentArray idps[EXPORTED_PACKETS];
 
-	RecordExtIDPCONTENT()
-		: RecordExt(REGISTERED_ID)
+	RecordExtIDPCONTENT(int pluginID)
+		: RecordExt(pluginID)
 	{
 	}
 
@@ -123,7 +121,7 @@ struct RecordExtIDPCONTENT : public RecordExt {
  */
 class IDPCONTENTPlugin : public ProcessPlugin {
 public:
-	IDPCONTENTPlugin(const std::string& params);
+	IDPCONTENTPlugin(const std::string& params, int pluginID);
 	~IDPCONTENTPlugin();
 	void init(const char* params);
 	void close();
@@ -132,7 +130,7 @@ public:
 		return new OptionsParser("idpcontent", "Parse first bytes of flow payload");
 	}
 	std::string get_name() const { return "idpcontent"; }
-	RecordExt* get_ext() const { return new RecordExtIDPCONTENT(); }
+	RecordExt* get_ext() const { return new RecordExtIDPCONTENT(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

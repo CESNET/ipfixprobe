@@ -41,7 +41,11 @@ namespace ipxp {
  */
 class IPXP_API ProcessPlugin : public Plugin {
 public:
-	ProcessPlugin() {}
+	ProcessPlugin(int pluginID)
+		: m_pluginID(pluginID)
+	{
+	}
+
 	virtual ~ProcessPlugin() {}
 	virtual ProcessPlugin* copy() = 0;
 
@@ -102,6 +106,9 @@ public:
 	 * \param [in,out] rec Reference to flow record.
 	 */
 	virtual void pre_export(Flow& rec) { (void) rec; }
+
+protected:
+	int m_pluginID;
 };
 
 /**
@@ -167,6 +174,6 @@ class IPXP_API PluginFactory;
  *
  * Provides a factory for creating ProcessPlugin instances using a string-based constructor.
  */
-using ProcessPluginFactory = PluginFactory<ProcessPlugin, const std::string&>;
+using ProcessPluginFactory = PluginFactory<ProcessPlugin, const std::string&, int>;
 
 } // namespace ipxp

@@ -19,8 +19,6 @@
 
 namespace ipxp {
 
-int RecordExtBASICPLUS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest basicplusPluginManifest = {
 	.name = "basicplus",
 	.description = "Basicplus process plugin for parsing basicplus traffic.",
@@ -29,7 +27,8 @@ static const PluginManifest basicplusPluginManifest = {
 	.usage = nullptr,
 };
 
-BASICPLUSPlugin::BASICPLUSPlugin(const std::string& params)
+BASICPLUSPlugin::BASICPLUSPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
 {
 	(void) params;
 }
@@ -53,7 +52,7 @@ ProcessPlugin* BASICPLUSPlugin::copy()
 
 int BASICPLUSPlugin::post_create(Flow& rec, const Packet& pkt)
 {
-	RecordExtBASICPLUS* p = new RecordExtBASICPLUS();
+	RecordExtBASICPLUS* p = new RecordExtBASICPLUS(m_pluginID);
 
 	rec.add_extension(p);
 
@@ -71,8 +70,7 @@ int BASICPLUSPlugin::post_create(Flow& rec, const Packet& pkt)
 
 int BASICPLUSPlugin::pre_update(Flow& rec, Packet& pkt)
 {
-	RecordExtBASICPLUS* p
-		= (RecordExtBASICPLUS*) rec.get_extension(RecordExtBASICPLUS::REGISTERED_ID);
+	RecordExtBASICPLUS* p = (RecordExtBASICPLUS*) rec.get_extension(m_pluginID);
 	uint8_t dir = pkt.source_pkt ? 0 : 1;
 
 	if (p->ip_ttl[dir] < pkt.ip_ttl) {

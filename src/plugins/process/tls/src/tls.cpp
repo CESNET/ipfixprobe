@@ -11,10 +11,9 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-#include "tls.hpp"
-
 #include "md5.hpp"
 #include "sha256.hpp"
+#include "tls.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -27,7 +26,6 @@
 #include <stdio.h>
 
 namespace ipxp {
-int RecordExtTLS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
 static const PluginManifest tlsPluginManifest = {
 	.name = "tls",
@@ -51,7 +49,8 @@ static const PluginManifest tlsPluginManifest = {
 #define DEBUG_CODE(code)
 #endif
 
-TLSPlugin::TLSPlugin(const std::string& params)
+TLSPlugin::TLSPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
 {
 	init(params.c_str());
 }
@@ -68,7 +67,7 @@ std::string TLSPlugin::get_name() const
 
 RecordExtTLS* TLSPlugin::get_ext() const
 {
-	return new RecordExtTLS();
+	return new RecordExtTLS(m_pluginID);
 }
 
 TLSPlugin::~TLSPlugin()
@@ -102,7 +101,7 @@ int TLSPlugin::post_create(Flow& rec, const Packet& pkt)
 
 int TLSPlugin::pre_update(Flow& rec, Packet& pkt)
 {
-	auto* ext = static_cast<RecordExtTLS*>(rec.get_extension(RecordExtTLS::REGISTERED_ID));
+	auto* ext = static_cast<RecordExtTLS*>(rec.get_extension(m_pluginID));
 
 	if (ext != nullptr) {
 		if (!ext->server_hello_parsed) {
@@ -400,7 +399,7 @@ bool TLSPlugin::parse_tls(
 void TLSPlugin::add_tls_record(Flow& rec, const Packet& pkt)
 {
 	if (ext_ptr == nullptr) {
-		ext_ptr = new RecordExtTLS();
+		ext_ptr = new RecordExtTLS(m_pluginID);
 	}
 
 	if (parse_tls(pkt.payload, pkt.payload_len, ext_ptr, rec.ip_proto)) {

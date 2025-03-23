@@ -21,8 +21,6 @@
 
 namespace ipxp {
 
-int RecordExtWG::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest wgPluginManifest = {
 	.name = "wg",
 	.description = "Wg process plugin for parsing wg traffic.",
@@ -31,8 +29,9 @@ static const PluginManifest wgPluginManifest = {
 	.usage = nullptr,
 };
 
-WGPlugin::WGPlugin(const std::string& params)
-	: preallocated_record(nullptr)
+WGPlugin::WGPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
+	, preallocated_record(nullptr)
 	, flow_flush(false)
 	, total(0)
 	, identified(0)
@@ -78,7 +77,7 @@ int WGPlugin::post_create(Flow& rec, const Packet& pkt)
 
 int WGPlugin::pre_update(Flow& rec, Packet& pkt)
 {
-	RecordExtWG* vpn_data = (RecordExtWG*) rec.get_extension(RecordExtWG::REGISTERED_ID);
+	RecordExtWG* vpn_data = (RecordExtWG*) rec.get_extension(m_pluginID);
 	if (vpn_data != nullptr && vpn_data->possible_wg) {
 		bool res = parse_wg(
 			reinterpret_cast<const char*>(pkt.payload),
@@ -217,7 +216,7 @@ bool WGPlugin::parse_wg(
 int WGPlugin::add_ext_wg(const char* data, unsigned int payload_len, bool source_pkt, Flow& rec)
 {
 	if (preallocated_record == nullptr) {
-		preallocated_record = new RecordExtWG();
+		preallocated_record = new RecordExtWG(m_pluginID);
 	}
 	// try to parse WireGuard packet
 	if (!parse_wg(data, payload_len, source_pkt, preallocated_record)) {

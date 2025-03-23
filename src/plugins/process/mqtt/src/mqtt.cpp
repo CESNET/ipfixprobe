@@ -24,8 +24,6 @@ static const bool debug_mqtt = false;
 #endif
 namespace ipxp {
 
-int RecordExtMQTT::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest mqttPluginManifest = {
 	.name = "mqtt",
 	.description = "Mqtt process plugin for parsing mqtt traffic.",
@@ -38,7 +36,8 @@ static const PluginManifest mqttPluginManifest = {
 		},
 };
 
-MQTTPlugin::MQTTPlugin(const std::string& params)
+MQTTPlugin::MQTTPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
 {
 	init(params.c_str());
 }
@@ -53,7 +52,7 @@ int MQTTPlugin::post_create(Flow& rec, const Packet& pkt)
 int MQTTPlugin::pre_update(Flow& rec, Packet& pkt)
 {
 	const char* payload = reinterpret_cast<const char*>(pkt.payload);
-	RecordExt* ext = rec.get_extension(RecordExtMQTT::REGISTERED_ID);
+	RecordExt* ext = rec.get_extension(m_pluginID);
 	if (ext == nullptr) {
 		return 0;
 	} else {
@@ -212,7 +211,7 @@ bool MQTTPlugin::has_mqtt_protocol_name(const char* data, int payload_len) const
 void MQTTPlugin::add_ext_mqtt(const char* data, int payload_len, Flow& flow)
 {
 	if (recPrealloc == nullptr) {
-		recPrealloc = new RecordExtMQTT();
+		recPrealloc = new RecordExtMQTT(m_pluginID);
 	}
 	if (!parse_mqtt(data, payload_len, recPrealloc))
 		return;

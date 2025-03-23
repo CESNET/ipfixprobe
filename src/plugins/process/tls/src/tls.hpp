@@ -54,8 +54,6 @@ UR_FIELDS(
 #define TLS_EXT_TYPE_FIELD_ID 802
 #define TLS_EXT_LEN_FIELD_ID 803
 struct RecordExtTLS : public RecordExt {
-	static int REGISTERED_ID;
-
 	uint16_t version {0};
 	char alpn[BUFF_SIZE] {};
 	char sni[BUFF_SIZE] {};
@@ -69,8 +67,8 @@ struct RecordExtTLS : public RecordExt {
 	/**
 	 * \brief Constructor.
 	 */
-	RecordExtTLS()
-		: RecordExt(REGISTERED_ID)
+	RecordExtTLS(int pluginID)
+		: RecordExt(pluginID)
 	{
 	}
 
@@ -190,7 +188,7 @@ struct RecordExtTLS : public RecordExt {
  */
 class TLSPlugin : public ProcessPlugin {
 public:
-	TLSPlugin(const std::string& params);
+	TLSPlugin(const std::string& params, int pluginID);
 	~TLSPlugin() override;
 	void init(const char* params) override;
 	void close() override;

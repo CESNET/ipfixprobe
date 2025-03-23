@@ -68,8 +68,6 @@ public:
  * \brief Flow record extension header for storing parsed PHISTS packets.
  */
 struct RecordExtPHISTS : public RecordExt {
-	static int REGISTERED_ID;
-
 	typedef enum eHdrFieldID {
 		SPhistsSizes = 1060,
 		SPhistsIpt = 1061,
@@ -81,8 +79,8 @@ struct RecordExtPHISTS : public RecordExt {
 	uint32_t ipt_hist[2][HISTOGRAM_SIZE];
 	uint32_t last_ts[2];
 
-	RecordExtPHISTS()
-		: RecordExt(REGISTERED_ID)
+	RecordExtPHISTS(int pluginID)
+		: RecordExt(pluginID)
 	{
 		// inicializing histograms with zeros
 		for (int i = 0; i < 2; i++) {
@@ -184,13 +182,13 @@ struct RecordExtPHISTS : public RecordExt {
  */
 class PHISTSPlugin : public ProcessPlugin {
 public:
-	PHISTSPlugin(const std::string& params);
+	PHISTSPlugin(const std::string& params, int pluginID);
 	~PHISTSPlugin();
 	void init(const char* params);
 	void close();
 	OptionsParser* get_parser() const { return new PHISTSOptParser(); }
 	std::string get_name() const { return "phists"; }
-	RecordExt* get_ext() const { return new RecordExtPHISTS(); }
+	RecordExt* get_ext() const { return new RecordExtPHISTS(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

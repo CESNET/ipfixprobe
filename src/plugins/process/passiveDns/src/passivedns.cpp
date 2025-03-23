@@ -33,8 +33,6 @@
 
 namespace ipxp {
 
-int RecordExtPassiveDNS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest passivednsPluginManifest = {
 	.name = "passivedns",
 	.description = "Passivedns process plugin for parsing DNS A and AAAA records.",
@@ -71,8 +69,9 @@ static const PluginManifest passivednsPluginManifest = {
  */
 #define GET_OFFSET(half1, half2) ((((uint8_t) (half1) & 0x3F) << 8) | (uint8_t) (half2))
 
-PassiveDNSPlugin::PassiveDNSPlugin(const std::string& params)
-	: total(0)
+PassiveDNSPlugin::PassiveDNSPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
+	, total(0)
 	, parsed_a(0)
 	, parsed_aaaa(0)
 	, parsed_ptr(0)
@@ -309,7 +308,7 @@ PassiveDNSPlugin::parse_dns(const char* data, unsigned int payload_len, bool tcp
 
 			uint16_t type = ntohs(answer->atype);
 			if (type == DNS_TYPE_A || type == DNS_TYPE_AAAA) {
-				RecordExtPassiveDNS* rec = new RecordExtPassiveDNS();
+				RecordExtPassiveDNS* rec = new RecordExtPassiveDNS(m_pluginID);
 
 				size_t length = name.length();
 				if (length >= sizeof(rec->aname)) {
@@ -344,7 +343,7 @@ PassiveDNSPlugin::parse_dns(const char* data, unsigned int payload_len, bool tcp
 					list->add_extension(rec);
 				}
 			} else if (type == DNS_TYPE_PTR) {
-				RecordExtPassiveDNS* rec = new RecordExtPassiveDNS();
+				RecordExtPassiveDNS* rec = new RecordExtPassiveDNS(m_pluginID);
 
 				rec->id = ntohs(dns->id);
 				rec->rr_ttl = ntohl(answer->ttl);

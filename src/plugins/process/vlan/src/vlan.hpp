@@ -37,13 +37,11 @@ UR_FIELDS(uint16 VLAN_ID)
  * \brief Flow record extension header for storing parsed VLAN data.
  */
 struct RecordExtVLAN : public RecordExt {
-	static int REGISTERED_ID;
-
 	// vlan id is in the host byte order
 	uint16_t vlan_id;
 
-	RecordExtVLAN()
-		: RecordExt(REGISTERED_ID)
+	RecordExtVLAN(int pluginID)
+		: RecordExt(pluginID)
 		, vlan_id(0)
 	{
 	}
@@ -88,10 +86,10 @@ struct RecordExtVLAN : public RecordExt {
  */
 class VLANPlugin : public ProcessPlugin {
 public:
-	VLANPlugin(const std::string& params);
+	VLANPlugin(const std::string& params, int pluginID);
 	OptionsParser* get_parser() const { return new OptionsParser("vlan", "Parse VLAN traffic"); }
 	std::string get_name() const { return "vlan"; }
-	RecordExt* get_ext() const { return new RecordExtVLAN(); }
+	RecordExt* get_ext() const { return new RecordExtVLAN(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

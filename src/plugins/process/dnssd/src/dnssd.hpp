@@ -87,16 +87,14 @@ struct DnsSdRr {
  * \brief Flow record extension header for storing parsed DNSSD packets.
  */
 struct RecordExtDNSSD : public RecordExt {
-	static int REGISTERED_ID;
-
 	std::list<std::string> queries;
 	std::list<DnsSdRr> responses;
 
 	/**
 	 * \brief Constructor.
 	 */
-	RecordExtDNSSD()
-		: RecordExt(REGISTERED_ID)
+	RecordExtDNSSD(int pluginID)
+		: RecordExt(pluginID)
 	{
 	}
 
@@ -242,13 +240,13 @@ struct RecordExtDNSSD : public RecordExt {
  */
 class DNSSDPlugin : public ProcessPlugin {
 public:
-	DNSSDPlugin(const std::string& params);
+	DNSSDPlugin(const std::string& params, int pluginID);
 	~DNSSDPlugin();
 	void init(const char* params);
 	void close();
 	OptionsParser* get_parser() const { return new DNSSDOptParser(); }
 	std::string get_name() const { return "dnssd"; }
-	RecordExt* get_ext() const { return new RecordExtDNSSD(); }
+	RecordExt* get_ext() const { return new RecordExtDNSSD(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

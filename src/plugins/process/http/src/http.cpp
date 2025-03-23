@@ -10,9 +10,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "http.hpp"
-
 #include "common.hpp"
+#include "http.hpp"
 
 #include <cstdlib>
 #include <cstring>
@@ -26,8 +25,6 @@
 #endif
 
 namespace ipxp {
-
-int RecordExtHTTP::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
 static const PluginManifest httpPluginManifest = {
 	.name = "http",
@@ -58,8 +55,9 @@ static const PluginManifest httpPluginManifest = {
 #define HTTP_SETCOOKIE_NAME_DELIMITER "="
 #define STRING_DELIMITER ";"
 
-HTTPPlugin::HTTPPlugin(const std::string& params)
-	: recPrealloc(nullptr)
+HTTPPlugin::HTTPPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
+	, recPrealloc(nullptr)
 	, flow_flush(false)
 	, requests(0)
 	, responses(0)
@@ -108,7 +106,7 @@ int HTTPPlugin::pre_update(Flow& rec, Packet& pkt)
 	RecordExt* ext = nullptr;
 	const char* payload = reinterpret_cast<const char*>(pkt.payload);
 	if (is_request(payload, pkt.payload_len)) {
-		ext = rec.get_extension(RecordExtHTTP::REGISTERED_ID);
+		ext = rec.get_extension(m_pluginID);
 		if (ext == nullptr) { /* Check if header is present in flow. */
 			add_ext_http_request(payload, pkt.payload_len, rec);
 			return 0;
@@ -120,7 +118,7 @@ int HTTPPlugin::pre_update(Flow& rec, Packet& pkt)
 			return FLOW_FLUSH_WITH_REINSERT;
 		}
 	} else if (is_response(payload, pkt.payload_len)) {
-		ext = rec.get_extension(RecordExtHTTP::REGISTERED_ID);
+		ext = rec.get_extension(m_pluginID);
 		if (ext == nullptr) { /* Check if header is present in flow. */
 			add_ext_http_response(payload, pkt.payload_len, rec);
 			return 0;
@@ -587,7 +585,7 @@ bool HTTPPlugin::invalid_http_method(const char* data, int payload_len) const
 void HTTPPlugin::add_ext_http_request(const char* data, int payload_len, Flow& flow)
 {
 	if (recPrealloc == nullptr) {
-		recPrealloc = new RecordExtHTTP();
+		recPrealloc = new RecordExtHTTP(m_pluginID);
 	}
 
 	if (parse_http_request(data, payload_len, recPrealloc)) {
@@ -605,7 +603,7 @@ void HTTPPlugin::add_ext_http_request(const char* data, int payload_len, Flow& f
 void HTTPPlugin::add_ext_http_response(const char* data, int payload_len, Flow& flow)
 {
 	if (recPrealloc == nullptr) {
-		recPrealloc = new RecordExtHTTP();
+		recPrealloc = new RecordExtHTTP(m_pluginID);
 	}
 
 	if (parse_http_response(data, payload_len, recPrealloc)) {

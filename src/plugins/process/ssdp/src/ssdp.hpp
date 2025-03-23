@@ -44,8 +44,6 @@ UR_FIELDS(
  * \brief Flow record extension header for storing parsed SSDP packets.
  */
 struct RecordExtSSDP : public RecordExt {
-	static int REGISTERED_ID;
-
 	uint16_t port;
 	char nt[SSDP_URN_LEN];
 	char st[SSDP_URN_LEN];
@@ -55,8 +53,8 @@ struct RecordExtSSDP : public RecordExt {
 	/**
 	 * \brief Constructor.
 	 */
-	RecordExtSSDP()
-		: RecordExt(REGISTERED_ID)
+	RecordExtSSDP(int pluginID)
+		: RecordExt(pluginID)
 	{
 		port = 0;
 		nt[0] = 0;
@@ -147,13 +145,13 @@ struct RecordExtSSDP : public RecordExt {
  */
 class SSDPPlugin : public ProcessPlugin {
 public:
-	SSDPPlugin(const std::string& params);
+	SSDPPlugin(const std::string& params, int pluginID);
 	~SSDPPlugin();
 	void init(const char* params);
 	void close();
 	OptionsParser* get_parser() const { return new OptionsParser("ssdp", "Parse SSDP traffic"); }
 	std::string get_name() const { return "ssdp"; }
-	RecordExt* get_ext() const { return new RecordExtSSDP(); }
+	RecordExt* get_ext() const { return new RecordExtSSDP(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

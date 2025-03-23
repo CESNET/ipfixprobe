@@ -19,8 +19,6 @@
 
 namespace ipxp {
 
-int RecordExtIDPCONTENT::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest idpcontentPluginManifest = {
 	.name = "idpcontent",
 	.description = "Idpcontent process plugin for parsing idpcontent traffic.",
@@ -31,7 +29,8 @@ static const PluginManifest idpcontentPluginManifest = {
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
-IDPCONTENTPlugin::IDPCONTENTPlugin(const std::string& params)
+IDPCONTENTPlugin::IDPCONTENTPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
 {
 	init(params.c_str());
 }
@@ -71,7 +70,7 @@ void IDPCONTENTPlugin::update_record(RecordExtIDPCONTENT* idpcontent_data, const
 
 int IDPCONTENTPlugin::post_create(Flow& rec, const Packet& pkt)
 {
-	RecordExtIDPCONTENT* idpcontent_data = new RecordExtIDPCONTENT();
+	RecordExtIDPCONTENT* idpcontent_data = new RecordExtIDPCONTENT(m_pluginID);
 	memset(idpcontent_data->pkt_export_flg, 0, 2 * sizeof(uint8_t));
 	rec.add_extension(idpcontent_data);
 
@@ -82,7 +81,7 @@ int IDPCONTENTPlugin::post_create(Flow& rec, const Packet& pkt)
 int IDPCONTENTPlugin::post_update(Flow& rec, const Packet& pkt)
 {
 	RecordExtIDPCONTENT* idpcontent_data
-		= static_cast<RecordExtIDPCONTENT*>(rec.get_extension(RecordExtIDPCONTENT::REGISTERED_ID));
+		= static_cast<RecordExtIDPCONTENT*>(rec.get_extension(m_pluginID));
 	update_record(idpcontent_data, pkt);
 	return 0;
 }

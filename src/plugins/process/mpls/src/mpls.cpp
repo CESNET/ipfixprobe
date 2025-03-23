@@ -19,8 +19,6 @@
 
 namespace ipxp {
 
-int RecordExtMPLS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest mplsPluginManifest = {
 	.name = "mpls",
 	.description = "Mpls process plugin for parsing mpls traffic.",
@@ -29,9 +27,10 @@ static const PluginManifest mplsPluginManifest = {
 	.usage = nullptr,
 };
 
-MPLSPlugin::MPLSPlugin(const std::string& params)
+MPLSPlugin::MPLSPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
 {
-	(void) params;
+	init(params.c_str());
 }
 
 ProcessPlugin* MPLSPlugin::copy()
@@ -45,7 +44,7 @@ int MPLSPlugin::post_create(Flow& rec, const Packet& pkt)
 		return 0;
 	}
 
-	auto ext = new RecordExtMPLS();
+	auto ext = new RecordExtMPLS(m_pluginID);
 	ext->mpls = pkt.mplsTop;
 
 	rec.add_extension(ext);

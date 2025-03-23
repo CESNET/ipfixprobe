@@ -331,8 +331,6 @@ struct parser_strtok_t {
 };
 
 struct RecordExtSIP : public RecordExt {
-	static int REGISTERED_ID;
-
 	uint16_t msg_type; /* SIP message code (register, invite) < 100 or SIP response status > 100 */
 	uint16_t status_code;
 	char call_id[SIP_FIELD_LEN]; /* Call id. For sevice SIP traffic call id = 0 */
@@ -343,8 +341,8 @@ struct RecordExtSIP : public RecordExt {
 	char cseq[SIP_FIELD_LEN]; /* CSeq field of SIP packet */
 	char request_uri[SIP_FIELD_LEN]; /* Request-URI of SIP request */
 
-	RecordExtSIP()
-		: RecordExt(REGISTERED_ID)
+	RecordExtSIP(int pluginID)
+		: RecordExt(pluginID)
 	{
 		msg_type = 0;
 		status_code = 0;
@@ -465,13 +463,13 @@ struct RecordExtSIP : public RecordExt {
 
 class SIPPlugin : public ProcessPlugin {
 public:
-	SIPPlugin(const std::string& params);
+	SIPPlugin(const std::string& params, int pluginID);
 	~SIPPlugin();
 	void init(const char* params);
 	void close();
 	OptionsParser* get_parser() const { return new OptionsParser("sip", "Parse SIP traffic"); }
 	std::string get_name() const { return "sip"; }
-	RecordExt* get_ext() const { return new RecordExtSIP(); }
+	RecordExt* get_ext() const { return new RecordExtSIP(m_pluginID); }
 	ProcessPlugin* copy();
 	int post_create(Flow& rec, const Packet& pkt);
 	int pre_update(Flow& rec, Packet& pkt);

@@ -19,8 +19,6 @@
 
 namespace ipxp {
 
-int RecordExtVLAN::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest vlanPluginManifest = {
 	.name = "vlan",
 	.description = "Vlan process plugin for parsing vlan traffic.",
@@ -29,9 +27,10 @@ static const PluginManifest vlanPluginManifest = {
 	.usage = nullptr,
 };
 
-VLANPlugin::VLANPlugin(const std::string& params)
+VLANPlugin::VLANPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
 {
-	(void) params;
+	init(params.c_str());
 }
 
 ProcessPlugin* VLANPlugin::copy()
@@ -41,7 +40,7 @@ ProcessPlugin* VLANPlugin::copy()
 
 int VLANPlugin::post_create(Flow& rec, const Packet& pkt)
 {
-	auto ext = new RecordExtVLAN();
+	auto ext = new RecordExtVLAN(m_pluginID);
 	ext->vlan_id = pkt.vlan_id;
 	rec.add_extension(ext);
 	return 0;

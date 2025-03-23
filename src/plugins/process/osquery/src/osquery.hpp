@@ -69,7 +69,6 @@ namespace ipxp {
  * \brief Flow record extension header for storing parsed OSQUERY packets.
  */
 struct RecordExtOSQUERY : public RecordExt {
-	static int REGISTERED_ID;
 	std::string program_name;
 	std::string username;
 	std::string os_name;
@@ -82,8 +81,8 @@ struct RecordExtOSQUERY : public RecordExt {
 	std::string kernel_version;
 	std::string system_hostname;
 
-	RecordExtOSQUERY()
-		: RecordExt(REGISTERED_ID)
+	RecordExtOSQUERY(int pluginID)
+		: RecordExt(pluginID)
 	{
 		program_name = DEFAULT_FILL_TEXT;
 		username = DEFAULT_FILL_TEXT;
@@ -99,7 +98,7 @@ struct RecordExtOSQUERY : public RecordExt {
 	}
 
 	RecordExtOSQUERY(const RecordExtOSQUERY* record)
-		: RecordExt(REGISTERED_ID)
+		: RecordExt(record->m_ext_id)
 	{
 		program_name = record->program_name;
 		username = record->username;
@@ -361,7 +360,7 @@ private:
  * \brief Manager for communication with osquery
  */
 struct OsqueryRequestManager {
-	OsqueryRequestManager();
+	OsqueryRequestManager(int pluginID);
 
 	~OsqueryRequestManager();
 
@@ -512,12 +511,12 @@ private:
  */
 class OSQUERYPlugin : public ProcessPlugin {
 public:
-	OSQUERYPlugin(const std::string& params);
+	OSQUERYPlugin(const std::string& params, int pluginID);
 	~OSQUERYPlugin();
 	OSQUERYPlugin(const OSQUERYPlugin& p);
 	void init(const char* params);
 	void close();
-	RecordExt* get_ext() const { return new RecordExtOSQUERY(); }
+	RecordExt* get_ext() const { return new RecordExtOSQUERY(m_pluginID); }
 	OptionsParser* get_parser() const
 	{
 		return new OptionsParser(

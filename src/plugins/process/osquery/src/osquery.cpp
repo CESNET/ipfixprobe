@@ -25,8 +25,6 @@
 
 namespace ipxp {
 
-int RecordExtOSQUERY::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest osqueryPluginManifest = {
 	.name = "osquery",
 	.description = "Osquery process plugin for parsing osquery traffic.",
@@ -35,14 +33,16 @@ static const PluginManifest osqueryPluginManifest = {
 	.usage = nullptr,
 };
 
-OSQUERYPlugin::OSQUERYPlugin(const std::string& params)
-	: manager(nullptr)
+OSQUERYPlugin::OSQUERYPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
+	, manager(nullptr)
 	, numberOfSuccessfullyRequests(0)
 {
 	init(params.c_str());
 }
 
 OSQUERYPlugin::OSQUERYPlugin(const OSQUERYPlugin& p)
+	: ProcessPlugin(p.m_pluginID)
 {
 	(void) p;
 	init(nullptr);
@@ -56,7 +56,7 @@ OSQUERYPlugin::~OSQUERYPlugin()
 void OSQUERYPlugin::init(const char* params)
 {
 	(void) params;
-	manager = new OsqueryRequestManager();
+	manager = new OsqueryRequestManager(m_pluginID);
 	manager->readInfoAboutOS();
 }
 
@@ -164,7 +164,7 @@ void ConvertedFlowData::convertPort(uint16_t port, bool isSourcePort)
 	}
 }
 
-OsqueryRequestManager::OsqueryRequestManager()
+OsqueryRequestManager::OsqueryRequestManager(int pluginID)
 	: inputFD(0)
 	, outputFD(0)
 	, buffer(nullptr)
@@ -179,7 +179,7 @@ OsqueryRequestManager::OsqueryRequestManager()
 	pfd = new pollfd;
 	pfd->events = POLLIN;
 
-	recOsquery = new RecordExtOSQUERY();
+	recOsquery = new RecordExtOSQUERY(pluginID);
 
 	while (true) {
 		openOsqueryFD();

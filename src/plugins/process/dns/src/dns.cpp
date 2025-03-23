@@ -27,8 +27,6 @@
 
 namespace ipxp {
 
-int RecordExtDNS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest dnsPluginManifest = {
 	.name = "dns",
 	.description = "Dns process plugin for parsing dns traffic.",
@@ -64,8 +62,9 @@ static const PluginManifest dnsPluginManifest = {
  */
 #define GET_OFFSET(half1, half2) ((((uint8_t) (half1) & 0x3F) << 8) | (uint8_t) (half2))
 
-DNSPlugin::DNSPlugin(const std::string& params)
-	: queries(0)
+DNSPlugin::DNSPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
+	, queries(0)
 	, responses(0)
 	, total(0)
 	, data_begin(nullptr)
@@ -107,7 +106,7 @@ int DNSPlugin::post_create(Flow& rec, const Packet& pkt)
 int DNSPlugin::post_update(Flow& rec, const Packet& pkt)
 {
 	if (pkt.dst_port == 53 || pkt.src_port == 53) {
-		RecordExt* ext = rec.get_extension(RecordExtDNS::REGISTERED_ID);
+		RecordExt* ext = rec.get_extension(m_pluginID);
 		if (ext == nullptr) {
 			return add_ext_dns(
 				reinterpret_cast<const char*>(pkt.payload),
@@ -669,7 +668,7 @@ bool DNSPlugin::parse_dns(const char* data, unsigned int payload_len, bool tcp, 
  */
 int DNSPlugin::add_ext_dns(const char* data, unsigned int payload_len, bool tcp, Flow& rec)
 {
-	RecordExtDNS* ext = new RecordExtDNS();
+	RecordExtDNS* ext = new RecordExtDNS(m_pluginID);
 	if (!parse_dns(data, payload_len, tcp, ext)) {
 		delete ext;
 		return 0;

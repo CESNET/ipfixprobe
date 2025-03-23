@@ -23,8 +23,6 @@
 
 namespace ipxp {
 
-int RecordExtNETBIOS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest netbiosPluginManifest = {
 	.name = "netbios",
 	.description = "Netbios process plugin for parsing netbios traffic.",
@@ -32,8 +30,9 @@ static const PluginManifest netbiosPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage = nullptr,
 };
-NETBIOSPlugin::NETBIOSPlugin(const std::string& params)
-	: total_netbios_packets(0)
+NETBIOSPlugin::NETBIOSPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
+	, total_netbios_packets(0)
 {
 	init(params.c_str());
 }
@@ -75,7 +74,7 @@ int NETBIOSPlugin::post_update(Flow& rec, const Packet& pkt)
 
 int NETBIOSPlugin::add_netbios_ext(Flow& rec, const Packet& pkt)
 {
-	RecordExtNETBIOS* ext = new RecordExtNETBIOS();
+	RecordExtNETBIOS* ext = new RecordExtNETBIOS(m_pluginID);
 	if (parse_nbns(ext, pkt)) {
 		total_netbios_packets++;
 		rec.add_extension(ext);

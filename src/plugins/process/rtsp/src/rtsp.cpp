@@ -10,9 +10,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "rtsp.hpp"
-
 #include "common.hpp"
+#include "rtsp.hpp"
 
 #include <cstdlib>
 #include <cstring>
@@ -26,8 +25,6 @@
 #endif
 
 namespace ipxp {
-
-int RecordExtRTSP::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
 static const PluginManifest rtspPluginManifest = {
 	.name = "rtsp",
@@ -56,8 +53,9 @@ static const PluginManifest rtspPluginManifest = {
 #define RTSP_LINE_DELIMITER '\n'
 #define RTSP_KEYVAL_DELIMITER ':'
 
-RTSPPlugin::RTSPPlugin(const std::string& params)
-	: recPrealloc(nullptr)
+RTSPPlugin::RTSPPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
+	, recPrealloc(nullptr)
 	, flow_flush(false)
 	, requests(0)
 	, responses(0)
@@ -106,7 +104,7 @@ int RTSPPlugin::pre_update(Flow& rec, Packet& pkt)
 	RecordExt* ext = nullptr;
 	const char* payload = reinterpret_cast<const char*>(pkt.payload);
 	if (is_request(payload, pkt.payload_len)) {
-		ext = rec.get_extension(RecordExtRTSP::REGISTERED_ID);
+		ext = rec.get_extension(m_pluginID);
 		if (ext == nullptr) { /* Check if header is present in flow. */
 			add_ext_rtsp_request(payload, pkt.payload_len, rec);
 			return 0;
@@ -118,7 +116,7 @@ int RTSPPlugin::pre_update(Flow& rec, Packet& pkt)
 			return FLOW_FLUSH_WITH_REINSERT;
 		}
 	} else if (is_response(payload, pkt.payload_len)) {
-		ext = rec.get_extension(RecordExtRTSP::REGISTERED_ID);
+		ext = rec.get_extension(m_pluginID);
 		if (ext == nullptr) { /* Check if header is present in flow. */
 			add_ext_rtsp_response(payload, pkt.payload_len, rec);
 			return 0;
@@ -472,7 +470,7 @@ bool RTSPPlugin::valid_rtsp_method(const char* method) const
 void RTSPPlugin::add_ext_rtsp_request(const char* data, int payload_len, Flow& flow)
 {
 	if (recPrealloc == nullptr) {
-		recPrealloc = new RecordExtRTSP();
+		recPrealloc = new RecordExtRTSP(m_pluginID);
 	}
 
 	if (parse_rtsp_request(data, payload_len, recPrealloc)) {
@@ -490,7 +488,7 @@ void RTSPPlugin::add_ext_rtsp_request(const char* data, int payload_len, Flow& f
 void RTSPPlugin::add_ext_rtsp_response(const char* data, int payload_len, Flow& flow)
 {
 	if (recPrealloc == nullptr) {
-		recPrealloc = new RecordExtRTSP();
+		recPrealloc = new RecordExtRTSP(m_pluginID);
 	}
 
 	if (parse_rtsp_response(data, payload_len, recPrealloc)) {

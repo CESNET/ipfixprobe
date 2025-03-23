@@ -48,8 +48,6 @@ UR_FIELDS(
  * \brief Flow record extension header for storing parsed BASICPLUS packets.
  */
 struct RecordExtBASICPLUS : public RecordExt {
-	static int REGISTERED_ID;
-
 	uint8_t ip_ttl[2];
 	uint8_t ip_flg[2];
 	uint16_t tcp_win[2];
@@ -59,8 +57,8 @@ struct RecordExtBASICPLUS : public RecordExt {
 
 	bool dst_filled;
 
-	RecordExtBASICPLUS()
-		: RecordExt(REGISTERED_ID)
+	RecordExtBASICPLUS(int pluginID)
+		: RecordExt(pluginID)
 	{
 		ip_ttl[0] = 0;
 		ip_ttl[1] = 0;
@@ -140,7 +138,7 @@ struct RecordExtBASICPLUS : public RecordExt {
  */
 class BASICPLUSPlugin : public ProcessPlugin {
 public:
-	BASICPLUSPlugin(const std::string& params);
+	BASICPLUSPlugin(const std::string& params, int pluginID);
 	~BASICPLUSPlugin();
 	void init(const char* params);
 	void close();
@@ -151,7 +149,7 @@ public:
 			"Extend basic fields with TTL, TCP window, options, MSS and SYN size");
 	}
 	std::string get_name() const { return "basicplus"; }
-	RecordExt* get_ext() const { return new RecordExtBASICPLUS(); }
+	RecordExt* get_ext() const { return new RecordExtBASICPLUS(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

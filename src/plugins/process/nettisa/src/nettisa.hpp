@@ -53,8 +53,6 @@ UR_FIELDS(
  * \brief Flow record extension header for storing parsed NETTISA data.
  */
 struct RecordExtNETTISA : public RecordExt {
-	static int REGISTERED_ID;
-
 	float mean;
 	uint16_t min;
 	uint16_t max;
@@ -73,8 +71,8 @@ struct RecordExtNETTISA : public RecordExt {
 	uint64_t prev_time;
 	uint64_t sum_payload;
 
-	RecordExtNETTISA()
-		: RecordExt(REGISTERED_ID)
+	RecordExtNETTISA(int pluginID)
+		: RecordExt(pluginID)
 	{
 		mean = 0;
 		min = std::numeric_limits<uint16_t>::max();
@@ -173,10 +171,10 @@ struct RecordExtNETTISA : public RecordExt {
  */
 class NETTISAPlugin : public ProcessPlugin {
 public:
-	NETTISAPlugin(const std::string& params);
+	NETTISAPlugin(const std::string& params, int pluginID);
 	OptionsParser* get_parser() const { return new OptionsParser("nettisa", "Parse NetTiSA flow"); }
 	std::string get_name() const { return "nettisa"; }
-	RecordExt* get_ext() const { return new RecordExtNETTISA(); }
+	RecordExt* get_ext() const { return new RecordExtNETTISA(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

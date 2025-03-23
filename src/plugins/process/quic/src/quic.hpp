@@ -64,7 +64,6 @@ UR_FIELDS(
 #define QUIC_TLS_EXT_LEN_FIELD_ID 884
 
 struct RecordExtQUIC : public RecordExt {
-	static int REGISTERED_ID;
 	char sni[BUFF_SIZE] = {0};
 	char user_agent[BUFF_SIZE] = {0};
 	uint32_t quic_version;
@@ -124,8 +123,8 @@ struct RecordExtQUIC : public RecordExt {
 	bool client_hello_seen;
 	bool packet_from_server_seen;
 
-	RecordExtQUIC()
-		: RecordExt(REGISTERED_ID)
+	RecordExtQUIC(int pluginID)
+		: RecordExt(pluginID)
 	{
 		sni[0] = 0;
 		user_agent[0] = 0;
@@ -363,11 +362,11 @@ struct RecordExtQUIC : public RecordExt {
  */
 class QUICPlugin : public ProcessPlugin {
 public:
-	QUICPlugin(const std::string& params);
+	QUICPlugin(const std::string& params, int pluginID);
 	~QUICPlugin();
 	void init(const char* params);
 	void close();
-	RecordExt* get_ext() const { return new RecordExtQUIC(); }
+	RecordExt* get_ext() const { return new RecordExtQUIC(m_pluginID); }
 
 	OptionsParser* get_parser() const { return new OptionsParser("quic", "Parse QUIC traffic"); }
 

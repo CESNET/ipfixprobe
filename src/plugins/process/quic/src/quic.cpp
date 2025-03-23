@@ -21,7 +21,6 @@
 #include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 
 namespace ipxp {
-int RecordExtQUIC::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
 
 static const PluginManifest quicPluginManifest = {
 	.name = "quic",
@@ -31,9 +30,10 @@ static const PluginManifest quicPluginManifest = {
 	.usage = nullptr,
 };
 
-QUICPlugin::QUICPlugin(const std::string& params)
+QUICPlugin::QUICPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
 {
-	(void) params;
+	init(params.c_str());
 }
 
 QUICPlugin::~QUICPlugin()
@@ -521,11 +521,11 @@ int QUICPlugin::post_update(Flow& rec, const Packet& pkt)
 
 int QUICPlugin::add_quic(Flow& rec, const Packet& pkt)
 {
-	RecordExtQUIC* q_ptr = (RecordExtQUIC*) rec.get_extension(RecordExtQUIC::REGISTERED_ID);
+	RecordExtQUIC* q_ptr = (RecordExtQUIC*) rec.get_extension(m_pluginID);
 	bool new_qptr = false;
 	if (q_ptr == nullptr) {
 		new_qptr = true;
-		q_ptr = new RecordExtQUIC();
+		q_ptr = new RecordExtQUIC(m_pluginID);
 	}
 
 	int ret = process_quic(q_ptr, rec, pkt, new_qptr);

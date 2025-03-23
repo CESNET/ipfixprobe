@@ -44,7 +44,6 @@ UR_FIELDS(
  * \brief Flow record extension header for storing RTSP requests.
  */
 struct RecordExtRTSP : public RecordExt {
-	static int REGISTERED_ID;
 	bool req;
 	bool resp;
 
@@ -59,8 +58,8 @@ struct RecordExtRTSP : public RecordExt {
 	/**
 	 * \brief Constructor.
 	 */
-	RecordExtRTSP()
-		: RecordExt(REGISTERED_ID)
+	RecordExtRTSP(int pluginID)
+		: RecordExt(pluginID)
 	{
 		req = false;
 		resp = false;
@@ -169,13 +168,13 @@ struct RecordExtRTSP : public RecordExt {
  */
 class RTSPPlugin : public ProcessPlugin {
 public:
-	RTSPPlugin(const std::string& params);
+	RTSPPlugin(const std::string& params, int pluginID);
 	~RTSPPlugin();
 	void init(const char* params);
 	void close();
 	OptionsParser* get_parser() const { return new OptionsParser("rtsp", "Parse RTSP traffic"); }
 	std::string get_name() const { return "rtsp"; }
-	RecordExt* get_ext() const { return new RecordExtRTSP(); }
+	RecordExt* get_ext() const { return new RecordExtRTSP(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

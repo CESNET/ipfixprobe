@@ -37,13 +37,11 @@ UR_FIELDS(uint64 FLOW_ID)
  * \brief Flow record extension header for storing parsed FLOW_HASH data.
  */
 struct RecordExtFLOW_HASH : public RecordExt {
-	static int REGISTERED_ID;
-
 	// Value in host byte order
 	uint64_t flow_hash;
 
-	RecordExtFLOW_HASH()
-		: RecordExt(REGISTERED_ID)
+	RecordExtFLOW_HASH(int pluginID)
+		: RecordExt(pluginID)
 	{
 		flow_hash = 0;
 	}
@@ -91,7 +89,7 @@ struct RecordExtFLOW_HASH : public RecordExt {
  */
 class FLOW_HASHPlugin : public ProcessPlugin {
 public:
-	FLOW_HASHPlugin(const std::string& params);
+	FLOW_HASHPlugin(const std::string& params, int pluginID);
 	~FLOW_HASHPlugin();
 	void init(const char* params);
 	void close();
@@ -100,7 +98,7 @@ public:
 		return new OptionsParser("flow_hash", "Export flow hash as flow id");
 	}
 	std::string get_name() const { return "flow_hash"; }
-	RecordExt* get_ext() const { return new RecordExtFLOW_HASH(); }
+	RecordExt* get_ext() const { return new RecordExtFLOW_HASH(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

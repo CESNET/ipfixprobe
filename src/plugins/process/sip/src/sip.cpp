@@ -24,8 +24,6 @@
 
 namespace ipxp {
 
-int RecordExtSIP::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest sipPluginManifest = {
 	.name = "sip",
 	.description = "Sip process plugin for parsing sip traffic.",
@@ -34,8 +32,9 @@ static const PluginManifest sipPluginManifest = {
 	.usage = nullptr,
 };
 
-SIPPlugin::SIPPlugin(const std::string& params)
-	: requests(0)
+SIPPlugin::SIPPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
+	, requests(0)
 	, responses(0)
 	, total(0)
 	, flow_flush(false)
@@ -70,7 +69,7 @@ int SIPPlugin::post_create(Flow& rec, const Packet& pkt)
 		return 0;
 	}
 
-	RecordExtSIP* sip_data = new RecordExtSIP();
+	RecordExtSIP* sip_data = new RecordExtSIP(m_pluginID);
 	sip_data->msg_type = msg_type;
 	rec.add_extension(sip_data);
 	parser_process_sip(pkt, sip_data);

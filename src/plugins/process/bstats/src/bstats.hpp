@@ -68,8 +68,6 @@ struct RecordExtBSTATS : public RecordExt {
 		DStop = 1057
 	} eHdrFieldID;
 
-	static int REGISTERED_ID;
-
 	uint16_t burst_count[2];
 	uint8_t burst_empty[2];
 
@@ -78,8 +76,8 @@ struct RecordExtBSTATS : public RecordExt {
 	struct timeval brst_start[2][BSTATS_MAXELENCOUNT];
 	struct timeval brst_end[2][BSTATS_MAXELENCOUNT];
 
-	RecordExtBSTATS()
-		: RecordExt(REGISTERED_ID)
+	RecordExtBSTATS(int pluginID)
+		: RecordExt(pluginID)
 	{
 		memset(burst_count, 0, 2 * sizeof(uint16_t));
 		memset(burst_empty, 0, 2 * sizeof(uint8_t));
@@ -243,7 +241,7 @@ struct RecordExtBSTATS : public RecordExt {
  */
 class BSTATSPlugin : public ProcessPlugin {
 public:
-	BSTATSPlugin(const std::string& params);
+	BSTATSPlugin(const std::string& params, int pluginID);
 	~BSTATSPlugin();
 	void init(const char* params);
 	void close();
@@ -252,7 +250,7 @@ public:
 		return new OptionsParser("bstats", "Compute packet bursts stats");
 	}
 	std::string get_name() const { return "bstats"; }
-	RecordExt* get_ext() const { return new RecordExtBSTATS(); }
+	RecordExt* get_ext() const { return new RecordExtBSTATS(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int pre_create(Packet& pkt);

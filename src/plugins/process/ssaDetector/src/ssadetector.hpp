@@ -57,8 +57,6 @@ using dir_t = uint8_t;
  * \brief Flow record extension header for storing parsed SSADETECTOR data.
  */
 struct RecordExtSSADetector : public RecordExt {
-	static int REGISTERED_ID;
-
 	struct pkt_entry {
 		pkt_entry();
 		void reset();
@@ -95,8 +93,8 @@ struct RecordExtSSADetector : public RecordExt {
 	pkt_table syn_table {};
 	pkt_table syn_ack_table {};
 
-	RecordExtSSADetector()
-		: RecordExt(REGISTERED_ID)
+	RecordExtSSADetector(int pluginID)
+		: RecordExt(pluginID)
 	{
 	}
 
@@ -143,7 +141,7 @@ struct RecordExtSSADetector : public RecordExt {
  */
 class SSADetectorPlugin : public ProcessPlugin {
 public:
-	SSADetectorPlugin(const std::string& params);
+	SSADetectorPlugin(const std::string& params, int pluginID);
 	~SSADetectorPlugin();
 	void init(const char* params);
 	void close();
@@ -154,7 +152,7 @@ public:
 			"Check traffic for SYN-SYNACK-ACK sequence to find possible network tunnels.");
 	}
 	std::string get_name() const { return "SSADetector"; }
-	RecordExt* get_ext() const { return new RecordExtSSADetector(); }
+	RecordExt* get_ext() const { return new RecordExtSSADetector(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_update(Flow& rec, const Packet& pkt);

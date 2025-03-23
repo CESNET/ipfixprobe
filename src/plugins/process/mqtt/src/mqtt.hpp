@@ -70,9 +70,8 @@ public:
 };
 
 struct RecordExtMQTT : public RecordExt {
-	static int REGISTERED_ID;
-	RecordExtMQTT()
-		: RecordExt(REGISTERED_ID)
+	RecordExtMQTT(int pluginID)
+		: RecordExt(pluginID)
 		, type_cumulative(0)
 		, version(0)
 		, connection_flags(0)
@@ -157,11 +156,11 @@ struct RecordExtMQTT : public RecordExt {
 
 class MQTTPlugin : public ProcessPlugin {
 public:
-	MQTTPlugin(const std::string& params);
+	MQTTPlugin(const std::string& params, int pluginID);
 	int post_create(Flow& rec, const Packet& pkt) override;
 	int pre_update(Flow& rec, Packet& pkt) override;
 	int post_update(Flow& rec, const Packet& pkt) override;
-	RecordExt* get_ext() const { return new RecordExtMQTT(); }
+	RecordExt* get_ext() const { return new RecordExtMQTT(m_pluginID); }
 	OptionsParser* get_parser() const { return new MQTTOptionsParser(); }
 	std::string get_name() const { return "mqtt"; }
 	ProcessPlugin* copy();

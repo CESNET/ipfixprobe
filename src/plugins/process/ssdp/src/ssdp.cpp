@@ -19,8 +19,6 @@
 
 namespace ipxp {
 
-int RecordExtSSDP::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest ssdpPluginManifest = {
 	.name = "ssdp",
 	.description = "Ssdp process plugin for parsing ssdp traffic.",
@@ -42,8 +40,9 @@ enum header_types { LOCATION, NT, ST, SERVER, USER_AGENT, NONE };
 
 const char* headers[] = {"location", "nt", "st", "server", "user-agent"};
 
-SSDPPlugin::SSDPPlugin(const std::string& params)
-	: record(nullptr)
+SSDPPlugin::SSDPPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
+	, record(nullptr)
 	, notifies(0)
 	, searches(0)
 	, total(0)
@@ -71,7 +70,7 @@ ProcessPlugin* SSDPPlugin::copy()
 int SSDPPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	if (pkt.dst_port == 1900) {
-		record = new RecordExtSSDP();
+		record = new RecordExtSSDP(m_pluginID);
 		rec.add_extension(record);
 		record = nullptr;
 
@@ -265,7 +264,7 @@ void SSDPPlugin::parse_ssdp_message(Flow& rec, const Packet& pkt)
 	header_parser_conf parse_conf
 		= {headers,
 		   rec.ip_version,
-		   static_cast<RecordExtSSDP*>(rec.get_extension(RecordExtSSDP::REGISTERED_ID)),
+		   static_cast<RecordExtSSDP*>(rec.get_extension(m_pluginID)),
 		   0,
 		   nullptr};
 

@@ -10,9 +10,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "smtp.hpp"
-
 #include "common.hpp"
+#include "smtp.hpp"
 
 #include <cstring>
 #include <iostream>
@@ -23,8 +22,6 @@
 
 namespace ipxp {
 
-int RecordExtSMTP::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest smtpPluginManifest = {
 	.name = "smtp",
 	.description = "Smtp process plugin for parsing smtp traffic.",
@@ -33,8 +30,9 @@ static const PluginManifest smtpPluginManifest = {
 	.usage = nullptr,
 };
 
-SMTPPlugin::SMTPPlugin(const std::string& params)
-	: ext_ptr(nullptr)
+SMTPPlugin::SMTPPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
+	, ext_ptr(nullptr)
 	, total(0)
 	, replies_cnt(0)
 	, commands_cnt(0)
@@ -71,7 +69,7 @@ int SMTPPlugin::post_create(Flow& rec, const Packet& pkt)
 int SMTPPlugin::pre_update(Flow& rec, Packet& pkt)
 {
 	if (pkt.src_port == 25 || pkt.dst_port == 25) {
-		RecordExt* ext = rec.get_extension(RecordExtSMTP::REGISTERED_ID);
+		RecordExt* ext = rec.get_extension(m_pluginID);
 		if (ext == nullptr) {
 			create_smtp_record(rec, pkt);
 			return 0;
@@ -375,7 +373,7 @@ bool SMTPPlugin::parse_smtp_command(const char* data, int payload_len, RecordExt
 void SMTPPlugin::create_smtp_record(Flow& rec, const Packet& pkt)
 {
 	if (ext_ptr == nullptr) {
-		ext_ptr = new RecordExtSMTP();
+		ext_ptr = new RecordExtSMTP(m_pluginID);
 	}
 
 	if (update_smtp_record(ext_ptr, pkt)) {

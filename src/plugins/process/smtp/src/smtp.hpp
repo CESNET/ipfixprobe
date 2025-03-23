@@ -91,8 +91,6 @@ UR_FIELDS(
  * \brief Flow record extension header for storing parsed SMTP packets.
  */
 struct RecordExtSMTP : public RecordExt {
-	static int REGISTERED_ID;
-
 	uint32_t code_2xx_cnt;
 	uint32_t code_3xx_cnt;
 	uint32_t code_4xx_cnt;
@@ -109,8 +107,8 @@ struct RecordExtSMTP : public RecordExt {
 	/**
 	 * \brief Constructor.
 	 */
-	RecordExtSMTP()
-		: RecordExt(REGISTERED_ID)
+	RecordExtSMTP(int pluginID)
+		: RecordExt(pluginID)
 	{
 		code_2xx_cnt = 0;
 		code_3xx_cnt = 0;
@@ -206,13 +204,13 @@ struct RecordExtSMTP : public RecordExt {
  */
 class SMTPPlugin : public ProcessPlugin {
 public:
-	SMTPPlugin(const std::string& params);
+	SMTPPlugin(const std::string& params, int pluginID);
 	~SMTPPlugin();
 	void init(const char* params);
 	void close();
 	OptionsParser* get_parser() const { return new OptionsParser("smtp", "Parse SMTP traffic"); }
 	std::string get_name() const { return "smtp"; }
-	RecordExt* get_ext() const { return new RecordExtSMTP(); }
+	RecordExt* get_ext() const { return new RecordExtSMTP(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

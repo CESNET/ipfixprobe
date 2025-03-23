@@ -25,8 +25,6 @@
 
 namespace ipxp {
 
-int RecordExtPSTATS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest pstatsPluginManifest = {
 	.name = "pstats",
 	.description = "Pstats process plugin for computing packet bursts stats.",
@@ -48,8 +46,9 @@ static const PluginManifest pstatsPluginManifest = {
 #define DEBUG_MSG(format, ...)
 #endif
 
-PSTATSPlugin::PSTATSPlugin(const std::string& params)
-	: use_zeros(false)
+PSTATSPlugin::PSTATSPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
+	, use_zeros(false)
 	, skip_dup_pkts(false)
 {
 	init(params.c_str());
@@ -145,7 +144,7 @@ void PSTATSPlugin::update_record(RecordExtPSTATS* pstats_data, const Packet& pkt
 
 int PSTATSPlugin::post_create(Flow& rec, const Packet& pkt)
 {
-	RecordExtPSTATS* pstats_data = new RecordExtPSTATS();
+	RecordExtPSTATS* pstats_data = new RecordExtPSTATS(m_pluginID);
 	rec.add_extension(pstats_data);
 
 	update_record(pstats_data, pkt);
@@ -158,14 +157,13 @@ void PSTATSPlugin::pre_export(Flow& rec)
 	uint32_t packets = rec.src_packets + rec.dst_packets;
 	uint8_t flags = rec.src_tcp_flags | rec.dst_tcp_flags;
 	if (packets <= PSTATS_MINLEN && (flags & 0x02)) { // tcp SYN set
-		rec.remove_extension(RecordExtPSTATS::REGISTERED_ID);
+		rec.remove_extension(m_pluginID);
 	}
 }
 
 int PSTATSPlugin::post_update(Flow& rec, const Packet& pkt)
 {
-	RecordExtPSTATS* pstats_data
-		= (RecordExtPSTATS*) rec.get_extension(RecordExtPSTATS::REGISTERED_ID);
+	RecordExtPSTATS* pstats_data = (RecordExtPSTATS*) rec.get_extension(m_pluginID);
 	update_record(pstats_data, pkt);
 	return 0;
 }

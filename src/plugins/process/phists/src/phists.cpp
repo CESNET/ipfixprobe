@@ -25,8 +25,6 @@
 
 namespace ipxp {
 
-int RecordExtPHISTS::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest phistsPluginManifest = {
 	.name = "phists",
 	.description = "Phists process plugin for parsing phists traffic.",
@@ -51,8 +49,9 @@ const uint32_t PHISTSPlugin::log2_lookup32[32]
 	= {0, 9,  1,  10, 13, 21, 2,  29, 11, 14, 16, 18, 22, 25, 3, 30,
 	   8, 12, 20, 28, 15, 17, 24, 7,  19, 27, 23, 6,  26, 5,  4, 31};
 
-PHISTSPlugin::PHISTSPlugin(const std::string& params)
-	: use_zeros(false)
+PHISTSPlugin::PHISTSPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
+	, use_zeros(false)
 {
 	init(params.c_str());
 }
@@ -145,13 +144,13 @@ void PHISTSPlugin::pre_export(Flow& rec)
 	uint8_t flags = rec.src_tcp_flags | rec.dst_tcp_flags;
 
 	if (packets <= PHISTS_MINLEN && (flags & 0x02)) { // tcp SYN set
-		rec.remove_extension(RecordExtPHISTS::REGISTERED_ID);
+		rec.remove_extension(m_pluginID);
 	}
 }
 
 int PHISTSPlugin::post_create(Flow& rec, const Packet& pkt)
 {
-	RecordExtPHISTS* phists_data = new RecordExtPHISTS();
+	RecordExtPHISTS* phists_data = new RecordExtPHISTS(m_pluginID);
 
 	rec.add_extension(phists_data);
 
@@ -161,8 +160,7 @@ int PHISTSPlugin::post_create(Flow& rec, const Packet& pkt)
 
 int PHISTSPlugin::post_update(Flow& rec, const Packet& pkt)
 {
-	RecordExtPHISTS* phists_data
-		= (RecordExtPHISTS*) rec.get_extension(RecordExtPHISTS::REGISTERED_ID);
+	RecordExtPHISTS* phists_data = (RecordExtPHISTS*) rec.get_extension(m_pluginID);
 
 	update_record(phists_data, pkt);
 	return 0;

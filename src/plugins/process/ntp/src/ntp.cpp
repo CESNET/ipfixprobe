@@ -26,8 +26,6 @@
 
 namespace ipxp {
 
-int RecordExtNTP::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest ntpPluginManifest = {
 	.name = "ntp",
 	.description = "Ntp process plugin for parsing ntp traffic.",
@@ -45,12 +43,13 @@ static const PluginManifest ntpPluginManifest = {
 #define DEBUG_MSG(format, ...)
 #endif
 
-NTPPlugin::NTPPlugin(const std::string& params)
-	: requests(0)
+NTPPlugin::NTPPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
+	, requests(0)
 	, responses(0)
 	, total(0)
 {
-	(void) params;
+	init(params.c_str());
 }
 
 NTPPlugin::~NTPPlugin()
@@ -106,7 +105,7 @@ void NTPPlugin::finish(bool print_stats)
  */
 void NTPPlugin::add_ext_ntp(Flow& rec, const Packet& pkt)
 {
-	RecordExtNTP* ntp_data_ext = new RecordExtNTP();
+	RecordExtNTP* ntp_data_ext = new RecordExtNTP(m_pluginID);
 	if (!parse_ntp(pkt, ntp_data_ext)) {
 		delete ntp_data_ext; /*Don't add new extension packet.*/
 	} else {

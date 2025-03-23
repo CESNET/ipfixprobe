@@ -86,8 +86,6 @@ public:
  * \brief Flow record extension header for storing parsed PSTATS packets.
  */
 struct RecordExtPSTATS : public RecordExt {
-	static int REGISTERED_ID;
-
 	uint16_t pkt_sizes[PSTATS_MAXELEMCOUNT];
 	uint8_t pkt_tcp_flgs[PSTATS_MAXELEMCOUNT];
 	struct timeval pkt_timestamps[PSTATS_MAXELEMCOUNT];
@@ -107,8 +105,8 @@ struct RecordExtPSTATS : public RecordExt {
 
 	static const uint32_t CesnetPem = 8057;
 
-	RecordExtPSTATS()
-		: RecordExt(REGISTERED_ID)
+	RecordExtPSTATS(int pluginID)
+		: RecordExt(pluginID)
 	{
 		pkt_count = 0;
 	}
@@ -215,13 +213,13 @@ struct RecordExtPSTATS : public RecordExt {
  */
 class PSTATSPlugin : public ProcessPlugin {
 public:
-	PSTATSPlugin(const std::string& params);
+	PSTATSPlugin(const std::string& params, int pluginID);
 	~PSTATSPlugin();
 	void init(const char* params);
 	void close();
 	OptionsParser* get_parser() const { return new PSTATSOptParser(); }
 	std::string get_name() const { return "pstats"; }
-	RecordExt* get_ext() const { return new RecordExtPSTATS(); }
+	RecordExt* get_ext() const { return new RecordExtPSTATS(m_pluginID); }
 	ProcessPlugin* copy();
 	int post_create(Flow& rec, const Packet& pkt);
 	int post_update(Flow& rec, const Packet& pkt);

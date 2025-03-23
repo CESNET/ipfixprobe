@@ -297,7 +297,9 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 
 		try {
 			auto& processPluginFactory = ProcessPluginFactory::getInstance();
-			processPlugin = processPluginFactory.createShared(process_name, process_params);
+			const int pluginID = ProcessPluginIDGenerator::instance().generatePluginID();
+			processPlugin
+				= processPluginFactory.createShared(process_name, process_params, pluginID);
 			if (processPlugin == nullptr) {
 				throw IPXPError("invalid process plugin " + process_name);
 			}

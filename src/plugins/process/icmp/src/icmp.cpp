@@ -19,8 +19,6 @@
 
 namespace ipxp {
 
-int RecordExtICMP::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest icmpPluginManifest = {
 	.name = "icmp",
 	.description = "ICMP process plugin for parsing icmp traffic.",
@@ -29,9 +27,10 @@ static const PluginManifest icmpPluginManifest = {
 	.usage = nullptr,
 };
 
-ICMPPlugin::ICMPPlugin(const std::string& params)
+ICMPPlugin::ICMPPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
 {
-	(void) params;
+	init(params.c_str());
 }
 
 ProcessPlugin* ICMPPlugin::copy()
@@ -45,7 +44,7 @@ int ICMPPlugin::post_create(Flow& rec, const Packet& pkt)
 		if (pkt.payload_len < sizeof(RecordExtICMP::type_code))
 			return 0;
 
-		auto ext = new RecordExtICMP();
+		auto ext = new RecordExtICMP(m_pluginID);
 
 		// the type and code are the first two bytes, type on MSB and code on LSB
 		// in the network byte order

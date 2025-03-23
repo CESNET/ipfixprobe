@@ -35,8 +35,6 @@ UR_FIELDS(uint8 OVPN_CONF_LEVEL)
  * \brief Flow record extension header for storing parsed VPNDETECTOR packets.
  */
 struct RecordExtOVPN : RecordExt {
-	static int REGISTERED_ID;
-
 	uint8_t possible_vpn;
 	uint32_t large_pkt_cnt;
 	uint32_t data_pkt_cnt;
@@ -44,8 +42,8 @@ struct RecordExtOVPN : RecordExt {
 	uint32_t status;
 	ipaddr_t client_ip;
 
-	RecordExtOVPN()
-		: RecordExt(REGISTERED_ID)
+	RecordExtOVPN(int pluginID)
+		: RecordExt(pluginID)
 	{
 		possible_vpn = 0;
 		large_pkt_cnt = 0;
@@ -92,7 +90,7 @@ struct RecordExtOVPN : RecordExt {
  */
 class OVPNPlugin : public ProcessPlugin {
 public:
-	OVPNPlugin(const std::string& params);
+	OVPNPlugin(const std::string& params, int pluginID);
 	~OVPNPlugin();
 	void init(const char* params);
 	void close();
@@ -101,7 +99,7 @@ public:
 		return new OptionsParser("ovpn", "OpenVPN detector plugin");
 	}
 	std::string get_name() const { return "ovpn"; }
-	RecordExt* get_ext() const { return new RecordExtOVPN(); }
+	RecordExt* get_ext() const { return new RecordExtOVPN(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

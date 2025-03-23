@@ -37,8 +37,6 @@ UR_FIELDS(bytes MPLS_TOP_LABEL_STACK_SECTION)
  * \brief Flow record extension header for storing parsed MPLS data.
  */
 struct RecordExtMPLS : public RecordExt {
-	static int REGISTERED_ID;
-
 	// Contents are (from MSb to LSb):
 	//   20-bit - Label,
 	//   3-bit  - Traffic class / EXP,
@@ -46,8 +44,8 @@ struct RecordExtMPLS : public RecordExt {
 	//   8-bit  - TTL (Time To Live)
 	uint32_t mpls;
 
-	RecordExtMPLS()
-		: RecordExt(REGISTERED_ID)
+	RecordExtMPLS(int pluginID)
+		: RecordExt(pluginID)
 		, mpls(0)
 	{
 	}
@@ -96,10 +94,10 @@ struct RecordExtMPLS : public RecordExt {
  */
 class MPLSPlugin : public ProcessPlugin {
 public:
-	MPLSPlugin(const std::string& params);
+	MPLSPlugin(const std::string& params, int pluginID);
 	OptionsParser* get_parser() const { return new OptionsParser("mpls", "Parse MPLS traffic"); }
 	std::string get_name() const { return "mpls"; }
-	RecordExt* get_ext() const { return new RecordExtMPLS(); }
+	RecordExt* get_ext() const { return new RecordExtMPLS(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

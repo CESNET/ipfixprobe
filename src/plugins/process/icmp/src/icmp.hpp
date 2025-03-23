@@ -36,12 +36,10 @@ UR_FIELDS(uint16 L4_ICMP_TYPE_CODE)
  * \brief Flow record extension header for storing parsed ICMP data.
  */
 struct RecordExtICMP : public RecordExt {
-	static int REGISTERED_ID;
-
 	uint16_t type_code;
 
-	RecordExtICMP()
-		: RecordExt(REGISTERED_ID)
+	RecordExtICMP(int pluginID)
+		: RecordExt(pluginID)
 	{
 		type_code = 0;
 	}
@@ -92,11 +90,11 @@ struct RecordExtICMP : public RecordExt {
  */
 class ICMPPlugin : public ProcessPlugin {
 public:
-	ICMPPlugin(const std::string& params);
+	ICMPPlugin(const std::string& params, int pluginID);
 
 	OptionsParser* get_parser() const { return new OptionsParser("icmp", "Parse ICMP traffic"); }
 	std::string get_name() const { return "icmp"; }
-	RecordExt* get_ext() const { return new RecordExtICMP(); }
+	RecordExt* get_ext() const { return new RecordExtICMP(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

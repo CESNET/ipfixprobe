@@ -36,13 +36,11 @@ UR_FIELDS(string NB_NAME, uint8 NB_SUFFIX)
  * \brief Flow record extension header for storing parsed NETBIOS packets.
  */
 struct RecordExtNETBIOS : public RecordExt {
-	static int REGISTERED_ID;
-
 	std::string netbios_name;
 	char netbios_suffix;
 
-	RecordExtNETBIOS()
-		: RecordExt(REGISTERED_ID)
+	RecordExtNETBIOS(int pluginID)
+		: RecordExt(pluginID)
 		, netbios_suffix(0)
 	{
 	}
@@ -92,7 +90,7 @@ struct RecordExtNETBIOS : public RecordExt {
  */
 class NETBIOSPlugin : public ProcessPlugin {
 public:
-	NETBIOSPlugin(const std::string& params);
+	NETBIOSPlugin(const std::string& params, int pluginID);
 	~NETBIOSPlugin();
 	void init(const char* params);
 	void close();
@@ -101,7 +99,7 @@ public:
 		return new OptionsParser("netbios", "Parse netbios traffic");
 	}
 	std::string get_name() const { return "netbios"; }
-	RecordExt* get_ext() const { return new RecordExtNETBIOS(); }
+	RecordExt* get_ext() const { return new RecordExtNETBIOS(m_pluginID); }
 	ProcessPlugin* copy();
 
 	int post_create(Flow& rec, const Packet& pkt);

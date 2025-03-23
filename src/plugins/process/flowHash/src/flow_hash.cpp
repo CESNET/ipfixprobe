@@ -19,8 +19,6 @@
 
 namespace ipxp {
 
-int RecordExtFLOW_HASH::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest flowhashPluginManifest = {
 	.name = "flow_hash",
 	.description = "flow_hash process plugin for parsing flow_hash value.",
@@ -29,7 +27,8 @@ static const PluginManifest flowhashPluginManifest = {
 	.usage = nullptr,
 };
 
-FLOW_HASHPlugin::FLOW_HASHPlugin(const std::string& params)
+FLOW_HASHPlugin::FLOW_HASHPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
 {
 	init(params.c_str());
 }
@@ -51,7 +50,7 @@ ProcessPlugin* FLOW_HASHPlugin::copy()
 int FLOW_HASHPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	(void) pkt;
-	auto ext = new RecordExtFLOW_HASH();
+	auto ext = new RecordExtFLOW_HASH(m_pluginID);
 
 	ext->flow_hash = rec.flow_hash;
 

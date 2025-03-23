@@ -20,8 +20,6 @@
 
 namespace ipxp {
 
-int RecordExtSSADetector::REGISTERED_ID = ProcessPluginIDGenerator::instance().generatePluginID();
-
 static const PluginManifest ssadetectorPluginManifest = {
 	.name = "ssadetector",
 	.description = "Ssadetector process plugin for parsing vpn_automaton traffic.",
@@ -30,7 +28,8 @@ static const PluginManifest ssadetectorPluginManifest = {
 	.usage = nullptr,
 };
 
-SSADetectorPlugin::SSADetectorPlugin(const std::string& params)
+SSADetectorPlugin::SSADetectorPlugin(const std::string& params, int pluginID)
+	: ProcessPlugin(pluginID)
 {
 	init(params.c_str());
 }
@@ -119,9 +118,9 @@ int SSADetectorPlugin::post_update(Flow& rec, const Packet& pkt)
 		return 0;
 	}
 
-	record = (RecordExtSSADetector*) rec.get_extension(RecordExtSSADetector::REGISTERED_ID);
+	record = (RecordExtSSADetector*) rec.get_extension(m_pluginID);
 	if (record == nullptr) {
-		record = new RecordExtSSADetector();
+		record = new RecordExtSSADetector(m_pluginID);
 		rec.add_extension(record);
 	}
 
@@ -160,12 +159,11 @@ void SSADetectorPlugin::pre_export(Flow& rec)
 	// do not export for small packets flows
 	uint32_t packets = rec.src_packets + rec.dst_packets;
 	if (packets <= MIN_PKT_IN_FLOW) {
-		rec.remove_extension(RecordExtSSADetector::REGISTERED_ID);
+		rec.remove_extension(m_pluginID);
 		return;
 	}
 
-	RecordExtSSADetector* record
-		= (RecordExtSSADetector*) rec.get_extension(RecordExtSSADetector::REGISTERED_ID);
+	RecordExtSSADetector* record = (RecordExtSSADetector*) rec.get_extension(m_pluginID);
 	const auto& suspects = record->suspects;
 	if (suspects < MIN_NUM_SUSPECTS) {
 		return;
