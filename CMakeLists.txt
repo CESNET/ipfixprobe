@@ -54,6 +54,7 @@ include(cmake/dependencies.cmake)
 add_subdirectory(external)
 add_subdirectory(src)
 add_subdirectory(pkg)
+add_subdirectory(init)
 
 if (ENABLE_TESTS)
     if (NOT ENABLE_NEMEA OR NOT ENABLE_OUTPUT_UNIREC OR NOT ENABLE_INPUT_PCAP)

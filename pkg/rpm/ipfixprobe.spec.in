@@ -4,6 +4,8 @@
 %bcond_with output_unirec
 %bcond_with process_experimental
 
+%global _unitdir %{_prefix}/lib/systemd/system
+
 Name:          ipfixprobe
 Version:       @VERSION@
 Release:       @RELEASE@%{?dist}
@@ -107,6 +109,8 @@ that make up the main components of the test environment.
 %files
 %license LICENSE
 %{_bindir}/ipfixprobe
+%{_bindir}/ipfixprobed
+
 %{_libdir}/ipfixprobe/input/libipfixprobe-input-raw.so
 
 %{_libdir}/ipfixprobe/output/libipfixprobe-output-ipfix.so
@@ -136,6 +140,13 @@ that make up the main components of the test environment.
 %{_libdir}/ipfixprobe/process/libipfixprobe-process-ssdp.so
 
 %{_libdir}/ipfixprobe/storage/libipfixprobe-storage-cache.so
+
+%{_sysconfdir}/ipfixprobe/link0.conf.example
+%{_sysconfdir}/ipfixprobe/dpdk_direct.conf.example
+%{_sysconfdir}/ipfixprobe/dpdk_mring.conf.example
+
+%{_unitdir}/ipfixprobe-monitoring.target
+%{_unitdir}/ipfixprobe@.service
 
 %if %{with input_pcap}
 %files input-pcap
