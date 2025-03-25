@@ -26,7 +26,7 @@ jobs:
       run: git config --system --add safe.directory $PWD
     - name: Create build directory
       run: mkdir build
-    - name: Configure CMake 
+    - name: Configure CMake
       run: |
         cd build
         cmake3 .. -DENABLE_NEMEA=ON -DENABLE_INPUT_PCAP=ON -DENABLE_OUTPUT_UNIREC=ON -DENABLE_PROCESS_EXPERIMENTAL=ON -DENABLE_TESTS=ON

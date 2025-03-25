@@ -4,7 +4,7 @@ heading: ipfixprobe usage
 ---
 
 <section style="padding:0px; padding-bottom:100px">
-<div class="container">	
+<div class="container">
 	This guide expects ipfixprobe is already installed, see <a href="{{ site.baseurl }}{% link get_options.html %}">installation step</a>.
 
 	The following sections describe alternative ways how to run ipfixprobe.
@@ -14,7 +14,7 @@ heading: ipfixprobe usage
 		<h1 class = "clickable">Systemd service (recommended)</h1>
 		<p>The ipfixprobe can be set up to be used as a daemon to continuously process incoming packets from the boot up:</p>
 		<p>Create your <b>instance.conf</b> configuration, and save it in <b>/etc/ipfixprobe/</b><br>
-		
+
 		<span style="background-color: #ffe59e; " >All settings are explained in the <a href="https://github.com/CESNET/ipfixprobe/blob/master/init/link0.conf.example">example file</a></span>
 
 		<p>To start the systemd service, use:</p>
@@ -43,10 +43,10 @@ heading: ipfixprobe usage
 		<p>The ipfixprobe consists of one <b>input</b>, zero or one <b>output</b>, one <b>storage</b> and zero or more <b>process</b> plugins.	</p>
 		{% for plugin in site.how  %}
 			<div class="text editable">
-				<p class="post-details"></p>	
+				<p class="post-details"></p>
 				<h2 style="float:'left'">{{ plugin.title | raw }}</h2>
 				<p>{{ plugin.description | raw }}</p>
-			</div>	
+			</div>
 			{% for option in plugin.options  %}
 				<hr>
 				<h4> {{ option.title }}</h4>
@@ -189,7 +189,7 @@ heading: ipfixprobe usage
 		  sibling = sibling.nextElementSibling;
 		}
 	}
-	
+
    document.querySelectorAll('.clickable').forEach(clickable => {
 	clickable.addEventListener('click', function() {
 		const clicked = this;
@@ -199,7 +199,7 @@ heading: ipfixprobe usage
 			return;
 		}
 		hideAll();
-		
+
 		while (sibling && sibling.tagName !== 'H1') {
 		  sibling.classList.remove('hidden');
 		  sibling = sibling.nextElementSibling;

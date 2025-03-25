@@ -1,7 +1,7 @@
 ---
 title: OSQUERY
-description: List of unirec fields exported together with basic flow fields on interface by OSQUERY plugin.    
-fields: 
+description: List of unirec fields exported together with basic flow fields on interface by OSQUERY plugin.
+fields:
   -
     name: "PROGRAM_NAME"
     type: "string"

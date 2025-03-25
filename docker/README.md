@@ -1,4 +1,4 @@
-# ipfixprobe Docker wrapper 
+# ipfixprobe Docker wrapper
 
 This repository contains a Docker container that processes network traffic from a pcap file using `ipfixprobe`. It accepts a pcap file and a processing script, runs it inside the container, and outputs the results in CSV format.
 
@@ -25,7 +25,7 @@ docker build -t docker_ipfixprobe .
 
 ### Run
 To run, use
-    
+
 ```bash
 bash ./ipfixprobe_wrapper.sh <process_script.sh> <input_file.pcap> <output_file.csv>
 ```

@@ -79,12 +79,12 @@ BuildRequires: cmake >= 3.12
 BuildRequires: libunwind-devel
 BuildRequires: libatomic-devel
 BuildRequires: pthread
-Requires: libatomic   
+Requires: libatomic
 Requires: fuse3
 Requires: telemetry
 Requires: lz4
 Requires: openssl
-BuildRequires: doxygen 
+BuildRequires: doxygen
 BuildRequires: pkgconfig
 BuildRequires: lz4-devel
 BuildRequires: openssl-devel

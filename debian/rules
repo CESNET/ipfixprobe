@@ -23,12 +23,9 @@ override_dh_auto_configure:
 	dh_auto_configure -- --with-pcap --with-quic
 
 # debmake generated override targets
-# For example, set multiarch library install file path.  
+# For example, set multiarch library install file path.
 # See dpkg-architecture(1)
 #DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 #override_dh_auto_configure:
 #	cmake -DCMAKE_INSTALL_PREFIX=/usr \
 #             -DLIBDIR=/usr/lib/$(DEB_HOST_MULTIARCH)
-
-
-

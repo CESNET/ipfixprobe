@@ -24,7 +24,7 @@ option(ENABLE_RPMBUILD              "Enable build of RPM package"               
 option(ENABLE_TESTS                 "Build tests (make test)"                                 OFF)
 
 if(ENABLE_MILISECONDS_TIMESTAMP)
-    add_compile_definitions(IPXP_TS_MSEC)
+	add_compile_definitions(IPXP_TS_MSEC)
 endif()
 
 if(ENABLE_NEMEA)
@@ -57,12 +57,12 @@ add_subdirectory(pkg)
 add_subdirectory(init)
 
 if (ENABLE_TESTS)
-    if (NOT ENABLE_NEMEA OR NOT ENABLE_OUTPUT_UNIREC OR NOT ENABLE_INPUT_PCAP)
-        message(FATAL_ERROR
-            "ENABLE_TESTS requires ENABLE_NEMEA, "
-            "ENABLE_INPUT_PCAP and ENABLE_OUTPUT_UNIREC to be enabled."
-        )
-    endif()
+	if (NOT ENABLE_NEMEA OR NOT ENABLE_OUTPUT_UNIREC OR NOT ENABLE_INPUT_PCAP)
+		message(FATAL_ERROR
+			"ENABLE_TESTS requires ENABLE_NEMEA, "
+			"ENABLE_INPUT_PCAP and ENABLE_OUTPUT_UNIREC to be enabled."
+		)
+	endif()
 	enable_testing()
-    add_subdirectory(tests)
+	add_subdirectory(tests)
 endif()

@@ -21,7 +21,7 @@ inputs:
     description: 'Install DPDK dependencies'
     required: false
     default: false
-  
+
   nemea:
     description: 'Install NEMEA dependencies'
     required: false
@@ -31,7 +31,7 @@ inputs:
     description: 'Install dependencies for tests'
     required: false
     default: false
-    
+
 runs:
   using: 'composite'
   steps:
@@ -40,7 +40,7 @@ runs:
       run: |
         dnf config-manager --set-enabled ol9_codeready_builder
         dnf install -y dnf-plugins-core epel-release
-        dnf install -y make gcc-c++ cmake3 git rpm-build 
+        dnf install -y make gcc-c++ cmake3 git rpm-build
         dnf install -y fuse3-devel openssl-devel gcc-toolset-14-libatomic-devel libunwind-devel lz4-devel
 
     - name: Install clang tools
@@ -48,7 +48,7 @@ runs:
       shell: bash
       run: |
         dnf install -y clang clang-tools-extra
-    
+
     - name: Install libpcap-devel
       if: ${{ inputs.pcap == 'true' }}
       shell: bash
@@ -61,20 +61,20 @@ runs:
       run: |
         dnf copr enable @CESNET/nfb-framework
         dnf install -y nfb-framework numactl-devel
-      
+
     - name: Install DPDK dependencies
       if: ${{ inputs.dpdk == 'true' }}
       shell: bash
       run: |
         dnf install -y dpdk-devel
-    
+
     - name: Install NEMEA dependencies
       if: ${{ inputs.nemea == 'true' }}
       shell: bash
       run: |
         dnf copr enable @CESNET/NEMEA-stable
         dnf install -y nemea-framework-devel
-    
+
     - name: Install dependencies for tests
       if: ${{ inputs.tests == 'true' }}
       shell: bash

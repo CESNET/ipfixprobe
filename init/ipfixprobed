@@ -49,7 +49,7 @@ if [ -e "$CONFFILE" ]; then
             echo "Missing DPDK_RING_STARTIDX in configuration of DPDK_RING mode, using 0."
             DPDK_RING_STARTIDX=0
          fi
-         
+
          # mring interfaces
          dpdkinput=("-i" "dpdk-ring${affinities[0]};r=$(printf "$DPDK_RING_PATTERN" "$DPDK_RING_STARTIDX")${DPDK_OPTS};e=$DPDK_LCORES $DPDK_EXTRA_EAL")
          plugin_idx=1

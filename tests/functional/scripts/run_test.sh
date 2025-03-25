@@ -30,10 +30,9 @@ run_test() {
 		echo "$1 plugin test OK"
 		return 0
 	fi
-	
+
 	echo "$plugin_name plugin test FAILED"
 	return 1
 }
 
 run_test
-

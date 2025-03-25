@@ -1,7 +1,7 @@
 ---
 title: PassiveDNS
-description: List of unirec fields exported together with basic flow fields on interface by PassiveDNS plugin.    
-fields: 
+description: List of unirec fields exported together with basic flow fields on interface by PassiveDNS plugin.
+fields:
   -
     name: "DNS_ID"
     type: "uint16"

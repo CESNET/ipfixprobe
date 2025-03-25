@@ -17,12 +17,12 @@ find_path(NUMA_INCLUDE_DIR numa.h)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
-  NUMA
-  REQUIRED_VARS NUMA_INCLUDE_DIR NUMA_LIBRARY
-  FAIL_MESSAGE "NUMA not found! Try to install numactl-devel package.")
+	NUMA
+	REQUIRED_VARS NUMA_INCLUDE_DIR NUMA_LIBRARY
+	FAIL_MESSAGE "NUMA not found! Try to install numactl-devel package.")
 
 if(NUMA_FOUND AND NOT TARGET numa::numa)
-  add_library(numa::numa INTERFACE IMPORTED)
-  set_property(TARGET numa::numa PROPERTY INTERFACE_LINK_LIBRARIES "${NUMA_LIBRARY}")
-  set_property(TARGET numa::numa PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${NUMA_INCLUDE_DIR}")
+	add_library(numa::numa INTERFACE IMPORTED)
+	set_property(TARGET numa::numa PROPERTY INTERFACE_LINK_LIBRARIES "${NUMA_LIBRARY}")
+	set_property(TARGET numa::numa PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${NUMA_INCLUDE_DIR}")
 endif()

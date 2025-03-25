@@ -11,15 +11,15 @@ set_target_properties(ipfixprobe-output-ipfix PROPERTIES
 	VISIBILITY_INLINES_HIDDEN YES
 )
 
-target_include_directories(ipfixprobe-output-ipfix PRIVATE 
+target_include_directories(ipfixprobe-output-ipfix PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
 )
 
-target_link_libraries(ipfixprobe-output-ipfix PRIVATE 
+target_link_libraries(ipfixprobe-output-ipfix PRIVATE
 	lz4::lz4
 )
 
 install(
-    TARGETS ipfixprobe-output-ipfix
-    LIBRARY DESTINATION "${INSTALL_DIR_LIB}/ipfixprobe/output/"
+	TARGETS ipfixprobe-output-ipfix
+	LIBRARY DESTINATION "${INSTALL_DIR_LIB}/ipfixprobe/output/"
 )

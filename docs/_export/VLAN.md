@@ -1,7 +1,7 @@
 ---
 title: VLAN
-description: List of fields exported together with basic flow fields on the interface by VLAN plugin.    
-fields: 
+description: List of fields exported together with basic flow fields on the interface by VLAN plugin.
+fields:
   -
     name: "VLAN_ID"
     type: "uint16"

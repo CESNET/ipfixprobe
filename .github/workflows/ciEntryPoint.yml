@@ -27,7 +27,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       os: ${{ matrix.os }}
-  
+
   make-tests:
     needs: [build-os-matrix]
     strategy:

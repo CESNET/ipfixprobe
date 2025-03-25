@@ -1,7 +1,7 @@
 ---
 title: QUIC
-description: List of fields exported together with basic flow fields on interface by quic plugin. -with-quic-ch-full-tls-ext enables extraction of all TLS extensions in the Client Hello.    
-fields: 
+description: List of fields exported together with basic flow fields on interface by quic plugin. -with-quic-ch-full-tls-ext enables extraction of all TLS extensions in the Client Hello.
+fields:
   -
     name: "QUIC_SNI"
     type: "string"

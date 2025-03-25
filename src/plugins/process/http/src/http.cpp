@@ -10,8 +10,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "common.hpp"
 #include "http.hpp"
+
+#include "common.hpp"
 
 #include <cstdlib>
 #include <cstring>

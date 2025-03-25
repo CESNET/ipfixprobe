@@ -71,7 +71,7 @@ Here are the examples of various plugins usage:
 `./ipfixprobe -i 'dpdk-ring;r=rx_ipfixprobe_0;e= --proc-type=secondary' -i 'dpdk-ring;r=rx_ipfixprobe_1' -i 'dpdk-ring;r=rx_ipfixprobe_2' -i 'dpdk-ring;r=rx_ipfixprobe_3' -o 'text'`
 ```
 
-## Build 
+## Build
 
 ### Requirements
 - libatomic
@@ -129,7 +129,7 @@ To install ipfixprobe with NEMEA dependency from binary RPM packages, it is poss
 
 ## Telemetry
 
-`ipfixprobe` exports statistics and other diagnostic information through a telemetry interface based on appFs library, which leverages the fuse3 library (filesystem in userspace) to allow telemetry data to be accessed and manipulated 
+`ipfixprobe` exports statistics and other diagnostic information through a telemetry interface based on appFs library, which leverages the fuse3 library (filesystem in userspace) to allow telemetry data to be accessed and manipulated
 through standard filesystem operations.
 
 ```
@@ -264,4 +264,3 @@ Turn off message buffering using `buffer=off` option and set `timeout=WAIT` on o
 ```
 ./ipfixprobe -i 'pcap;file=traffic.pcap' -o 'unirec;i=u:out:timeout=WAIT:buffer=off'
 ```
-

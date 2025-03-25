@@ -1,7 +1,7 @@
 ---
 title: PSTATS
-description: "List of unirec fields exported on interface by PSTATS plugin. The plugin is compiled to gather statistics for the first PSTATS_MAXELEMCOUNT (30 by default) packets in the biflow record. Note: the following fields are UniRec arrays (or basicList in IPFIX)."    
-fields: 
+description: "List of unirec fields exported on interface by PSTATS plugin. The plugin is compiled to gather statistics for the first PSTATS_MAXELEMCOUNT (30 by default) packets in the biflow record. Note: the following fields are UniRec arrays (or basicList in IPFIX)."
+fields:
   -
     name: "PPI_PKT_LENGTHS"
     type: "uint16*"

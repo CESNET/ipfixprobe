@@ -10,8 +10,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "common.hpp"
 #include "smtp.hpp"
+
+#include "common.hpp"
 
 #include <cstring>
 #include <iostream>

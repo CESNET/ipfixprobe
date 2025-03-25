@@ -24,4 +24,4 @@ jobs:
     - name: Check out repository code
       uses: actions/checkout@v4
     - name: Check editorconfig
-      run: ec --exclude .git
+      run: ec --exclude .git --exclude tests/functional/inputs

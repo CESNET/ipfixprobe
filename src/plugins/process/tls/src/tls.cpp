@@ -11,9 +11,10 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
+#include "tls.hpp"
+
 #include "md5.hpp"
 #include "sha256.hpp"
-#include "tls.hpp"
 
 #include <algorithm>
 #include <cctype>

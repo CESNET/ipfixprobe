@@ -1,7 +1,7 @@
 ---
 title: PHISTS
-description: List of fields exported together with basic flow fields on the interface by PHISTS plugin. The plugin exports the histograms of Payload sizes and Inter-Packet-Times for each direction. The histograms bins are scaled logarithmicaly and are shown in following table.    
-fields: 
+description: List of fields exported together with basic flow fields on the interface by PHISTS plugin. The plugin exports the histograms of Payload sizes and Inter-Packet-Times for each direction. The histograms bins are scaled logarithmicaly and are shown in following table.
+fields:
   -
     name: "D_PHISTS_IPT"
     type: "uint32*"

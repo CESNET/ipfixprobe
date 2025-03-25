@@ -1,10 +1,10 @@
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/tests/functional/results)
 
 macro(add_process_plugin_test test_name plugin_name pcap_file)
-    add_test(
-        NAME ${test_name}
-        COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/scripts/run_test.sh ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${plugin_name} ${pcap_file}
-    )
+	add_test(
+		NAME ${test_name}
+		COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/scripts/run_test.sh ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${plugin_name} ${pcap_file}
+	)
 endmacro()
 
 add_process_plugin_test(BasicProcessPlugin basic mixed.pcap)
@@ -29,13 +29,13 @@ add_process_plugin_test(VlanProcessPlugin vlan vlan.pcap)
 add_process_plugin_test(WgProcessPlugin wg wg.pcap)
 
 if (ENABLE_PROCESS_EXPERIMENTAL)
-    add_process_plugin_test(SipProcessPlugin sip sip.pcap)
-    add_process_plugin_test(RtspProcessPlugin rtsp rtsp.pcap)
-    add_process_plugin_test(NtpProcessPlugin ntp ntp.pcap)
-    add_process_plugin_test(NettisaProcessPlugin nettisa mixed.pcap)
+	add_process_plugin_test(SipProcessPlugin sip sip.pcap)
+	add_process_plugin_test(RtspProcessPlugin rtsp rtsp.pcap)
+	add_process_plugin_test(NtpProcessPlugin ntp ntp.pcap)
+	add_process_plugin_test(NettisaProcessPlugin nettisa mixed.pcap)
 endif()
 
 add_custom_target(tests
-    COMMAND ${CMAKE_CTEST_COMMAND}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+	COMMAND ${CMAKE_CTEST_COMMAND}
+	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )

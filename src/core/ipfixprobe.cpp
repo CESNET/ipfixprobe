@@ -26,8 +26,9 @@
  *
  */
 
-#include "buildConfig.hpp"
 #include "ipfixprobe.hpp"
+
+#include "buildConfig.hpp"
 #include "stacktrace.hpp"
 #include "stats.hpp"
 

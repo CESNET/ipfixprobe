@@ -1,7 +1,7 @@
 ---
 title: OVPN
-description: List of fields exported together with basic flow fields on interface by OVPN plugin.    
-fields: 
+description: List of fields exported together with basic flow fields on interface by OVPN plugin.
+fields:
   -
     name: "OVPN_CONF_LEVEL"
     type: "uint8"

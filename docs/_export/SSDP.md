@@ -1,7 +1,7 @@
 ---
 title: SSDP
-description: List of unirec fields exported together with basic flow fields on interface by SSDP plugin.    
-fields: 
+description: List of unirec fields exported together with basic flow fields on interface by SSDP plugin.
+fields:
   -
     name: "SSDP_LOCATION_PORT"
     type: "uint16"

@@ -1,7 +1,7 @@
 ---
 title: NetBIOS
-description: List of fields exported together with basic flow fields on interface by NetBIOS plugin.    
-fields: 
+description: List of fields exported together with basic flow fields on interface by NetBIOS plugin.
+fields:
   -
     name: "NB_NAME"
     type: "string"

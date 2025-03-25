@@ -1,7 +1,7 @@
 ---
 title: MQTT
-description: List of unirec fields exported together with basic flow fields on interface by MQTT plugin.    
-fields: 	
+description: List of unirec fields exported together with basic flow fields on interface by MQTT plugin.
+fields:
   -
     name: "MQTT_TYPE_CUMULATIVE"
     type: "uint16"

@@ -1,7 +1,7 @@
 Source: ipfixprobe
 Section: net
 Priority: standard
-Maintainer: Tomas Cejka <cejkat@cesnet.cz> 
+Maintainer: Tomas Cejka <cejkat@cesnet.cz>
 Build-Depends: autoconf (>=2.69), pkg-config, libtool, make (>=4.2.1), debhelper (>=9),
 	openssl, libpcap-dev, libpcap0.8, libssl-dev, libatomic1, liblz4-dev
 Standards-Version: 4.5.0
@@ -18,4 +18,3 @@ Description: IPFIX flow exporter is capable of capturing and online processing
  network packets to compute an aggregated IP flow record. The exporter contains
  several plugins that extend flow records with additional fields and
  characteristics.
-

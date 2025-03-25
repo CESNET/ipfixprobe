@@ -1,7 +1,7 @@
 ---
 title: MPLS
-description: List of fields exported together with basic flow fields on interface by mpls plugin.    
-fields: 
+description: List of fields exported together with basic flow fields on interface by mpls plugin.
+fields:
   -
     name: "MPLS_TOP_LABEL_STACK_SECTION"
     type: "bytes"
