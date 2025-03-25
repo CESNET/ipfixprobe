@@ -12,7 +12,7 @@ include(cmake/installation.cmake)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
-option(ENABLE_INPUT_PCAP            "Enable build of input PCAP plugin"                       ON)
+option(ENABLE_INPUT_PCAP            "Enable build of input PCAP plugin"                       OFF)
 option(ENABLE_INPUT_DPDK            "Enable build of input DPDK plugin"                       OFF)
 option(ENABLE_INPUT_NFB             "Enable build of input NFB plugin"                        OFF)
 option(ENABLE_OUTPUT_UNIREC         "Enable build of output UNIREC plugin"                    OFF)

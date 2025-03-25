@@ -1,11 +1,8 @@
-%bcond_with input_pcap
-%bcond_with input_dpdk
-%bcond_with input_nfb
-%bcond_with process_experimental
+%bcond_with output_unirec
 
 %global _unitdir %{_prefix}/lib/systemd/system
 
-Name:          ipfixprobe
+Name:          ipfixprobe-nemea
 Version:       @VERSION@
 Release:       @RELEASE@%{?dist}
 Summary:       IPFIX flow exporter with various extending IPFIX elements exported by plugins.
@@ -14,52 +11,22 @@ Group:         Liberouter
 License:       BSD
 Vendor:        CESNET, z.s.p.o.
 BuildRoot:     %{_tmppath}/%{name}-%{version}-%{release}
-Provides:      ipfixprobe
+Provides:      ipfixprobe-nemea
 Obsoletes:     ipfixprobe-ndp < 5.0.0
 Obsoletes:     ipfixprobe-dpdk < 5.0.0
-Conflicts:     ipfixprobe-nemea, ipfixprobe-msec
+Conflicts:     ipfixprobe, ipfixprobe-msec, ipfixprobe-process-experimental
 Source0:       %{name}-%{version}.tar.gz
 
-%if %{with input_pcap}
-%package input-pcap
-Summary: Input plugin to read packets from files and interfaces using libpcap.
+%if %{with output_unirec}
+%package output-unirec
+Summary: Output plugin to export records in unirec format.
 
-%description input-pcap
-Input plugin for libpcap.
+%description output-unirec
+Output plugin for unirec.
 
-BuildRequires: libpcap-devel
-Requires: libpcap
-%endif
-
-%if %{with input_dpdk}
-%package input-dpdk
-Summary: Input plugin to read packets from interfaces using dpdk.
-
-%description input-dpdk
-Input plugin for dpdk.
-
-BuildRequires: dpdk-devel
-Requires: dpdk
-%endif
-
-%if %{with input_nfb}
-%package input-nfb
-Summary: Input plugin to read packets from nfb cards.
-
-%description input-nfb
-Input plugin for nfb cards.
-
-BuildRequires: nfb-framework
-Requires: nfb-framework
-%endif
-
-%if %{with process_experimental}
-%package process-experimental
-Summary: Experimental process plugins.
-
-%description process-experimental
-Experimental process plugins.
-
+BuildRequires: unirec
+Requires: unirec
+Requires: ipfixprobe-nemea
 %endif
 
 BuildRoot:     %{_tmppath}/%{name}-%{version}-%{release}
@@ -72,6 +39,7 @@ BuildRequires: gcc-toolset-14-libatomic-devel
 BuildRequires: pkgconfig
 BuildRequires: lz4-devel
 BuildRequires: openssl-devel
+BuildRequires: nemea-framework-devel
 
 Requires: libatomic
 Requires: fuse3
@@ -90,7 +58,7 @@ that make up the main components of the test environment.
 %autosetup
 
 %build
-%cmake -DCMAKE_BUILD_TYPE=Release %{?with_input_pcap:-DENABLE_INPUT_PCAP=ON} %{?with_input_dpdk:-DENABLE_INPUT_DPDK=ON} %{?with_input_nfb:-DENABLE_INPUT_NFB=ON} %{?with_process_experimental: -DENABLE_PROCESS_EXPERIMENTAL=ON}
+%cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_NEMEA=ON %{?with_output_unirec: -DENABLE_OUTPUT_UNIREC=ON}
 %cmake_build
 
 %install
@@ -138,28 +106,10 @@ that make up the main components of the test environment.
 %{_unitdir}/ipfixprobe-monitoring.target
 %{_unitdir}/ipfixprobe@.service
 
-%if %{with input_pcap}
-%files input-pcap
-%{_libdir}/ipfixprobe/input/libipfixprobe-input-pcap.so
+%if %{with output_unirec}
+%files output-unirec
+%{_libdir}/ipfixprobe/output/libipfixprobe-output-unirec.so
 %endif
 
-%if %{with input_nfb}
-%files input-nfb
-%{_libdir}/ipfixprobe/input/libipfixprobe-input-nfb.so
-%endif
-
-%if %{with input_dpdk}
-%files input-dpdk
-%{_libdir}/ipfixprobe/input/libipfixprobe-input-dpdk.so
-%endif
-
-%if %{with process_experimental}
-%files process-experimental
-%{_libdir}/ipfixprobe/process/libipfixprobe-process-nettisa.so
-%{_libdir}/ipfixprobe/process/libipfixprobe-process-sip.so
-%{_libdir}/ipfixprobe/process/libipfixprobe-process-rtsp.so
-%{_libdir}/ipfixprobe/process/libipfixprobe-process-mpls.so
-%{_libdir}/ipfixprobe/process/libipfixprobe-process-ntp.so
-%endif
 
 %changelog
