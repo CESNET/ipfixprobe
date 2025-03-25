@@ -278,12 +278,6 @@ namespace ipxp {
 #define OSQUERY_KERNEL_VERSION(F) F(8057, 861, -1, nullptr)
 #define OSQUERY_SYSTEM_HOSTNAME(F) F(8057, 862, -1, nullptr)
 
-#ifdef WITH_FLEXPROBE
-#define FX_FRAME_SIGNATURE(F) F(5715, 1010, 18, nullptr)
-#define FX_INPUT_INTERFACE(F) F(5715, 1015, 1, nullptr)
-#define FX_TCP_TRACKING(F) F(5715, 1020, 1, nullptr)
-#endif
-
 #define WG_CONF_LEVEL(F) F(8057, 1100, 1, nullptr)
 #define WG_SRC_PEER(F) F(8057, 1101, 4, nullptr)
 #define WG_DST_PEER(F) F(8057, 1102, 4, nullptr)
@@ -589,16 +583,6 @@ namespace ipxp {
 
 #define IPFIX_MPLS_TEMPLATE(F) F(MPLS_TOP_LABEL_STACK_SECTION)
 
-#ifdef WITH_FLEXPROBE
-#define IPFIX_FLEXPROBE_DATA_TEMPLATE(F) F(FX_FRAME_SIGNATURE) F(FX_INPUT_INTERFACE)
-#define IPFIX_FLEXPROBE_TCP_TEMPLATE(F) F(FX_TCP_TRACKING)
-#define IPFIX_FLEXPROBE_ENCR_TEMPLATE(F)
-#else
-#define IPFIX_FLEXPROBE_DATA_TEMPLATE(F)
-#define IPFIX_FLEXPROBE_TCP_TEMPLATE(F)
-#define IPFIX_FLEXPROBE_ENCR_TEMPLATE(F)
-#endif
-
 /**
  * List of all known templated.
  *
@@ -628,9 +612,6 @@ namespace ipxp {
 	IPFIX_WG_TEMPLATE(F)                                                                           \
 	IPFIX_QUIC_TEMPLATE(F)                                                                         \
 	IPFIX_OSQUERY_TEMPLATE(F)                                                                      \
-	IPFIX_FLEXPROBE_DATA_TEMPLATE(F)                                                               \
-	IPFIX_FLEXPROBE_TCP_TEMPLATE(F)                                                                \
-	IPFIX_FLEXPROBE_ENCR_TEMPLATE(F)                                                               \
 	IPFIX_SSADETECTOR_TEMPLATE(F)                                                                  \
 	IPFIX_ICMP_TEMPLATE(F)                                                                         \
 	IPFIX_VLAN_TEMPLATE(F)                                                                         \
