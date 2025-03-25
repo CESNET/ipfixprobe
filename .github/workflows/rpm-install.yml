@@ -1,0 +1,33 @@
+name: rpm-install
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+
+jobs:
+  rpm-install:
+    runs-on: ubuntu-latest
+    container: ${{ inputs.os }}
+    steps:
+    - name: Install dependencies
+      run: |
+        dnf config-manager --set-enabled ol9_codeready_builder
+        dnf install -y dnf-plugins-core epel-release
+        dnf copr enable @CESNET/nfb-framework
+        dnf copr enable @CESNET/NEMEA-stable
+    - name: extract artifact name
+      run: |
+        OS=${{ inputs.os }}
+        echo "artifactName=$(echo ${OS/:/}-rpm)" >> $GITHUB_ENV
+    - name: download RPM artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ env.artifactName }}
+    - name: install RPM artifact
+      run: |
+        dnf install -y $(ls *.rpm | grep -Ev 'ipfixprobe-msec|ipfixprobe-nemea|ipfixprobe-output-unirec|debuginfo|debugsource')
+        dnf install -y $(ls ipfixprobe-msec-*.rpm | grep -Ev 'debuginfo|debugsource') --allowerasing
+        dnf install -y $(ls ipfixprobe-nemea-*.rpm ipfixprobe-output-unirec*.rpm | grep -Ev 'debuginfo|debugsource') --allowerasing

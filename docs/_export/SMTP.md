@@ -1,7 +1,7 @@
 ---
 title: SMTP
-description: List of unirec fields exported on interface by SMTP plugin.    
-fields: 
+description: List of unirec fields exported on interface by SMTP plugin.
+fields:
   -
     name: "SMTP_2XX_STAT_CODE_COUNT"
     type: "uint32"

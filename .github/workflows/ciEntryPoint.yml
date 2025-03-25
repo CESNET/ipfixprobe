@@ -1,0 +1,56 @@
+name: Continuous Integration pipeline
+
+on: push
+
+jobs:
+  check:
+    uses: ./.github/workflows/check.yml
+  build-os-matrix:
+    needs: check
+    runs-on: ubuntu-latest
+    outputs:
+      os: ${{ steps.os.outputs.os }}
+    steps:
+      - name: Build OS Array
+        id: os
+        run: |
+          osArray=()
+          osArray+=("oraclelinux:9")
+          osArray=$(jq --compact-output --null-input '$ARGS.positional' --args -- "${osArray[@]}")
+          echo "Updated os list: $osArray"
+          echo "os=$osArray" >> $GITHUB_OUTPUT
+  build:
+    needs: [build-os-matrix]
+    strategy:
+      matrix:
+        os: ${{ fromJSON(needs.build-os-matrix.outputs.os) }}
+    uses: ./.github/workflows/build.yml
+    with:
+      os: ${{ matrix.os }}
+
+  make-tests:
+    needs: [build-os-matrix]
+    strategy:
+      matrix:
+        os: ${{ fromJSON(needs.build-os-matrix.outputs.os) }}
+    uses: ./.github/workflows/tests.yml
+    with:
+      os: ${{ matrix.os }}
+
+  rpm-build:
+    needs: [build-os-matrix]
+    strategy:
+      matrix:
+        os: ${{ fromJSON(needs.build-os-matrix.outputs.os) }}
+    uses: ./.github/workflows/rpm-build.yml
+    with:
+      os: ${{ matrix.os }}
+
+  rpm-install:
+    needs: [build-os-matrix, rpm-build]
+    strategy:
+      matrix:
+        os: ${{ fromJSON(needs.build-os-matrix.outputs.os) }}
+    uses: ./.github/workflows/rpm-install.yml
+    with:
+      os: ${{ matrix.os }}

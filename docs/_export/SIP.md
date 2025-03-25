@@ -1,7 +1,7 @@
 ---
 title: SIP
-description: List of unirec fields exported together with basic flow fields on interface by SIP plugin.    
-fields: 
+description: List of unirec fields exported together with basic flow fields on interface by SIP plugin.
+fields:
   -
     name: "SIP_MSG_TYPE"
     type: "uint16"

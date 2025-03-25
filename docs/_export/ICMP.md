@@ -1,7 +1,7 @@
 ---
 title: ICMP
-description: List of fields exported together with basic flow fields on interface by icmp plugin.    
-fields: 
+description: List of fields exported together with basic flow fields on interface by icmp plugin.
+fields:
   -
     name: "L4_ICMP_TYPE_CODE"
     type: "uint16"

@@ -7,11 +7,11 @@ options:
   title: "Text"
   description: "Provides human readable output to the terminal or file."
   parameters:
-    - 
-      name: "f or file" 
+    -
+      name: "f or file"
       description: "Defines path to savefile to write output in instead of stdout."
-    - 
-      name: "m or mac" 
+    -
+      name: "m or mac"
       description: "Boolean flag. Mac addresses are hidden if set."
 
   runs:
@@ -25,26 +25,26 @@ options:
   title: "IPFIX"
   description: "Exports data in the IPFIX format"
   parameters:
-    - 
-      name: "h or host" 
+    -
+      name: "h or host"
       description: "Defines ip address of remote collector."
-    - 
-      name: "p or port " 
+    -
+      name: "p or port "
       description: "Defines collector port to send data to."
-    - 
-      name: "m or mtu" 
+    -
+      name: "m or mtu"
       description: "Defines maximum size of ipfix packet payload sent."
-    - 
-      name: "u or udp" 
+    -
+      name: "u or udp"
       description: "Boolean flag. UDP is used if set."
-    - 
-      name: "n or non-blocking-tcp" 
+    -
+      name: "n or non-blocking-tcp"
       description: "Boolean flag. Non-blocking-tcp socket is used if set."
-    - 
-      name: "I or id" 
+    -
+      name: "I or id"
       description: "Defines exporter id."
-    - 
-      name: "t or template" 
+    -
+      name: "t or template"
       description: "Defines template refresh rate in seconds."
   runs:
     -
@@ -57,23 +57,23 @@ options:
   title: "UNIREC"
   description: "Exports data in the UNIREC format"
   parameters:
-    - 
-      name: "i or ifc" 
+    -
+      name: "i or ifc"
       description: "Defines unirec interface to use."
-    - 
-      name: "p or plugins" 
+    -
+      name: "p or plugins"
       description: "Defines plugin-interface mapping. Plugins can be grouped like '(p1,p2,p3),p4,(p5,p6)."
-    - 
-      name: "o or odid" 
+    -
+      name: "o or odid"
       description: "Boolean flag.If set exports ODID field."
-    - 
-      name: "e or eof" 
+    -
+      name: "e or eof"
       description: "Boolean flag.If set sends eof messag on exit."
-    - 
-      name: "I or id" 
+    -
+      name: "I or id"
       description: "Defines exporter id."
-    - 
-      name: "h or help" 
+    -
+      name: "h or help"
       description: "Prints libtrap help."
   runs:
     -

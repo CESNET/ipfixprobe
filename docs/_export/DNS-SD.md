@@ -1,7 +1,7 @@
 ---
 title: DNS-SD
-description: List of unirec fields exported together with basic flow fields on interface by DNS-SD plugin.    
-fields: 
+description: List of unirec fields exported together with basic flow fields on interface by DNS-SD plugin.
+fields:
   -
     name: "DNSSD_QUERIES"
     type: "string"

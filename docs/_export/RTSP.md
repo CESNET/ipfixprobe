@@ -1,7 +1,7 @@
 ---
 title: RTSP
-description: List of unirec fields exported together with basic flow fields on interface by RTSP plugin.    
-fields: 
+description: List of unirec fields exported together with basic flow fields on interface by RTSP plugin.
+fields:
   -
     name: "RTSP_REQUEST_METHOD"
     type:   "string"

@@ -1,16 +1,16 @@
 ---
 title: Export data
-heading: Export data   
+heading: Export data
 ---
 
 
 {% assign sorted_export = site.export | sort: 'title' %}
 <section style="padding:0px; padding-bottom:100px">
-  <div class="container"> 
+  <div class="container">
     <div class="blog-post text-container">
       <p>Process plugins can export data. Export format of each plugin is described in this section</p>
       <div class="text editable"  style="display: flex;flex-direction: column;justify-content: center;align-items: left;">
-      {% for export_table in sorted_export  %} 
+      {% for export_table in sorted_export  %}
       <hr>
       <h1 class="clickable" id = "{{export_table.title}}">{{export_table.title}}</h1>
 	  {% assign textId = export_table.title | append: "_text" %}
@@ -26,7 +26,7 @@ heading: Export data
     </tr>
   </thead>
   <tbody>
-    {% for row in export_table.fields  %} 
+    {% for row in export_table.fields  %}
     <tr>
       <td>{{row.name}}</td>
       <td>{{row.type}}</td>

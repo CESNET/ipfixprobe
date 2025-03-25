@@ -1,7 +1,7 @@
 ---
 title: WG
-description: List of fields exported together with basic flow fields on interface by WG plugin.    
-fields: 
+description: List of fields exported together with basic flow fields on interface by WG plugin.
+fields:
   -
     name: "WG_CONF_LEVEL"
     type: "uint8"

@@ -25,20 +25,20 @@
 
 #pragma once
 
-#include <string_view>
 #include <memory>
+#include <string_view>
+
 #include <telemetry.hpp>
 
 namespace ipxp {
 
 class TelemetryUtils {
 public:
-	
 	/**
 	 * @brief Register a File in the telemetry holder
-	 * 
+	 *
 	 * If the file is already registered, it will not be registered again.
-	 * 
+	 *
 	 * @param directory Directory to register the file in
 	 * @param filename Name of the file
 	 * @param ops File operations
@@ -49,15 +49,15 @@ public:
 		telemetry::FileOps ops)
 	{
 		if (directory->getEntry(filename)) {
-        	return;
-    	}
+			return;
+		}
 
-    	auto file = directory->addFile(filename, ops);
-    	m_holder.add(file);
+		auto file = directory->addFile(filename, ops);
+		m_holder.add(file);
 	}
 
 protected:
-    telemetry::Holder m_holder;
+	telemetry::Holder m_holder;
 };
 
-}
+} // namespace ipxp

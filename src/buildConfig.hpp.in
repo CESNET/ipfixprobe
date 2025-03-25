@@ -1,0 +1,17 @@
+/**
+ * @file
+ * @brief Build configuration
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+#pragma once
+
+#define IPXP_APP_NAME "ipfixprobe"
+#define IPXP_APP_VERSION "@VERSION@"
+
+#define IPXP_DEFAULT_PLUGINS_DIR "@INSTALL_DIR_LIB@/ipfixprobe/"

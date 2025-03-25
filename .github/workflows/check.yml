@@ -1,0 +1,27 @@
+name: check
+
+on: [workflow_call]
+
+jobs:
+  clang-checks:
+    runs-on: ubuntu-latest
+    container: oraclelinux:9
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v4
+    - name: Install dependencies
+      uses: ./.github/actions/install-dependencies
+      with:
+        clang-tools: true
+        pcap: true
+    - name: make format-check
+      run: make format
+
+  editor-config:
+    runs-on: ubuntu-latest
+    container: mstruebing/editorconfig-checker
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v4
+    - name: Check editorconfig
+      run: ec --exclude .git --exclude tests/functional/inputs

@@ -1,7 +1,7 @@
 ---
 title: Basic plus
-description: List of unirec fields exported together with basic flow fields on interface by basicplus plugin. Fields without _REV suffix are fields from source flow. Fields with _REV are from the opposite direction.    
-fields: 
+description: List of unirec fields exported together with basic flow fields on interface by basicplus plugin. Fields without _REV suffix are fields from source flow. Fields with _REV are from the opposite direction.
+fields:
   -
     name: "IP_TTL"
     type:  "uint8"

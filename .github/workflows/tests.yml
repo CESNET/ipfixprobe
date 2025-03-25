@@ -1,0 +1,36 @@
+name: build
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    container: ${{ inputs.os }}
+    steps:
+    - name: Install git
+      run: dnf install -y git
+    - name: Check out repository code
+      uses: actions/checkout@v4
+    - name: Install dependencies
+      uses: ./.github/actions/install-dependencies
+      with:
+        pcap: true
+        nemea: true
+        tests: true
+    - name: Mark github workspace as safe
+      run: git config --system --add safe.directory $PWD
+    - name: Create build directory
+      run: mkdir build
+    - name: Configure CMake
+      run: |
+        cd build
+        cmake3 .. -DENABLE_NEMEA=ON -DENABLE_INPUT_PCAP=ON -DENABLE_OUTPUT_UNIREC=ON -DENABLE_PROCESS_EXPERIMENTAL=ON -DENABLE_TESTS=ON
+    - name: make tests
+      run: |
+        make
+        make tests

@@ -1,7 +1,7 @@
 ---
 title: IDPContent
-description: List of fields exported together with basic flow fields on the interface by IDPContent plugin. The plugin is compiled to export IDPCONTENT_SIZE (100 by default) bytes from the first data packet in SRC -> DST direction, and the first data packet in DST -> SRC direction.    
-fields: 
+description: List of fields exported together with basic flow fields on the interface by IDPContent plugin. The plugin is compiled to export IDPCONTENT_SIZE (100 by default) bytes from the first data packet in SRC -> DST direction, and the first data packet in DST -> SRC direction.
+fields:
   -
     name: "IDP_CONTENT"
     type: "bytes"

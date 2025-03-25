@@ -1,0 +1,34 @@
+name: build
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ${{ inputs.os }}
+    steps:
+    - name: Install git
+      run: dnf install -y git
+    - name: Check out repository code
+      uses: actions/checkout@v4
+    - name: Install dependencies
+      uses: ./.github/actions/install-dependencies
+      with:
+        pcap: true
+        dpdk: true
+        nfb: true
+    - name: Mark github workspace as safe
+      run: git config --system --add safe.directory $PWD
+    - name: Create build directory
+      run: mkdir build
+    - name: Configure CMake
+      run: |
+        cd build
+        cmake3 .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_INPUT_PCAP=ON -DENABLE_INPUT_DPDK=ON -DENABLE_INPUT_NFB=ON -DENABLE_PROCESS_EXPERIMENTAL=ON
+    - name: make
+      run: make

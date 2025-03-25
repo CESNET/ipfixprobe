@@ -31,11 +31,11 @@
 extern "C" {
 #endif
 
-#include <stdio.h>
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 
-#define IPX_API
+#define IPX_API __attribute__((visibility("default")))
 
 typedef void ipx_msg_t;
 
@@ -52,6 +52,7 @@ typedef void ipx_msg_t;
  */
 
 /** Internal ring buffer type  */
+struct IPX_API ipx_ring;
 typedef struct ipx_ring ipx_ring_t;
 
 /**
@@ -65,15 +66,13 @@ typedef struct ipx_ring ipx_ring_t;
  * \param[in] mw_mode Multi-writer mode (multiple writers can writer into the buffer)
  * \return A pointer to the buffer or NULL (in case of an error).
  */
-IPX_API ipx_ring_t *
-ipx_ring_init(uint32_t size, bool mw_mode);
+IPX_API ipx_ring_t* ipx_ring_init(uint32_t size, bool mw_mode);
 
 /**
  * \brief A ring buffer to destroy
  * \param[in] ring
  */
-IPX_API void
-ipx_ring_destroy(ipx_ring_t *ring);
+IPX_API void ipx_ring_destroy(ipx_ring_t* ring);
 
 /**
  * \brief Add a message into the ring buffer
@@ -85,8 +84,7 @@ ipx_ring_destroy(ipx_ring_t *ring);
  * \param[in] ring Ring buffer
  * \param[in] msg  Message to be added into the ring buffer
  */
-IPX_API void
-ipx_ring_push(ipx_ring_t *ring, ipx_msg_t *msg);
+IPX_API void ipx_ring_push(ipx_ring_t* ring, ipx_msg_t* msg);
 
 /**
  * \brief Get a message from the ring buffer
@@ -96,8 +94,7 @@ ipx_ring_push(ipx_ring_t *ring, ipx_msg_t *msg);
  * \param[in] ring Ring buffer
  * \return Pointer to the message
  */
-IPX_API ipx_msg_t *
-ipx_ring_pop(ipx_ring_t *ring);
+IPX_API ipx_msg_t* ipx_ring_pop(ipx_ring_t* ring);
 
 /**
  * \brief Change (i.e. disable/enable) multi-writer mode
@@ -108,14 +105,11 @@ ipx_ring_pop(ipx_ring_t *ring);
  * \param[in] ring Ring buffer
  * \param[in] mode New mode
  */
-IPX_API void
-ipx_ring_mw_mode(ipx_ring_t *ring, bool mode);
+IPX_API void ipx_ring_mw_mode(ipx_ring_t* ring, bool mode);
 
-IPX_API uint32_t
-ipx_ring_cnt(const ipx_ring_t *ring);
+IPX_API uint32_t ipx_ring_cnt(const ipx_ring_t* ring);
 
-IPX_API uint32_t
-ipx_ring_size(const ipx_ring_t *ring);
+IPX_API uint32_t ipx_ring_size(const ipx_ring_t* ring);
 
 /**
  * @}

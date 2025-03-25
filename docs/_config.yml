@@ -12,7 +12,7 @@ disqus_shortname:
 # Values for the jekyll-seo-tag gem (https://github.com/jekyll/jekyll-seo-tag)
 logo: /siteicon.svg
 description: "ipfixprobe is a tool for creating network flows and exporting them to a remote collector using the IPFIX protocol. It is an essential tool for maintinaing network security."
-author: 
+author:
   name: "Karel Hynek (CESNET z.s.p.o.)"
   email: "hynekkar@cesnet.cz"
   twitter: # twitter username without the @ symbol

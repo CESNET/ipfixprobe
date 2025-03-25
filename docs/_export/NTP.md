@@ -1,7 +1,7 @@
 ---
 title: NTP
-description: List of unirec fields exported together with basic flow fields on interface by NTP plugin.    
-fields: 
+description: List of unirec fields exported together with basic flow fields on interface by NTP plugin.
+fields:
   -
     name: "NTP_LEAP"
     type: "uint8"

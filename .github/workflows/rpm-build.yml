@@ -1,0 +1,52 @@
+name: rpm-build
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+
+jobs:
+  rpm-build:
+    runs-on: ubuntu-latest
+    container: ${{ inputs.os }}
+    steps:
+    - name: Install git
+      run: dnf install -y git
+    - name: Check out repository code
+      uses: actions/checkout@v4
+    - name: Install dependencies
+      uses: ./.github/actions/install-dependencies
+      with:
+        pcap: true
+        dpdk: true
+        nfb: true
+        nemea: true
+
+    - name: Mark github workspace as safe
+      run: git config --system --add safe.directory $PWD
+    - name: Create build directory
+      run: mkdir build
+    - name: Configure CMake to make rpm
+      run: |
+        cd build
+        cmake3 .. -DCMAKE_BUILD_TYPE=Release -DENABLE_INPUT_PCAP=ON -DENABLE_INPUT_DPDK=ON -DENABLE_INPUT_NFB=ON -DENABLE_PROCESS_EXPERIMENTAL=ON
+        make rpm
+    - name: make rpm-msec
+      run: make rpm-msec
+    - name: make rpm-nemea
+      run: |
+        cd build
+        cmake3 .. -DCMAKE_BUILD_TYPE=Release -DENABLE_OUTPUT_UNIREC=ON
+        make rpm-nemea
+    - name: extract artifact name
+      run: |
+        OS=${{ inputs.os }}
+        echo "artifactName=$(echo ${OS/:/}-rpm)" >> $GITHUB_ENV
+    - name: upload RPM artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.artifactName }}
+        path: ./build/pkg/rpm/rpmbuild/RPMS/x86_64
+        retention-days: 1
