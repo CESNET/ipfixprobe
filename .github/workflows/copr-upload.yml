@@ -1,0 +1,47 @@
+name: upload SRPM to copr
+
+on:
+  push:
+    branches:
+      - release
+      - stable
+
+jobs:
+  upload-srpm-to-copr:
+    runs-on: ubuntu-latest
+    container: oraclelinux:9
+    steps:
+    - name: Install git
+      run: dnf install -y git
+    - name: Check out repository code
+      uses: actions/checkout@v4
+    - name: Install dependencies
+      uses: ./.github/actions/install-dependencies
+      with:
+        pcap: true
+        dpdk: true
+        nfb: true
+        nemea: true
+    - name: Install copr-cli
+      run: |
+        dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+        dnf install -y copr-cli
+    - name: Mark github workspace as safe
+      run: git config --system --add safe.directory $PWD
+    - name: make rpm
+      run: make rpm
+    - name: make rpm-msec
+      run: make rpm-msec
+    - name: make rpm-nemea
+      run: make rpm-nemea
+    - name: Create copr config
+      run: |
+        mkdir ~/.config
+        echo "${{ secrets.COPR_CONFIG }}" >> ~/.config/copr
+    - name: Upload SRPM to copr
+      run: |
+        if [ "${{ github.ref }}" == "refs/heads/release" ]; then
+          copr build @CESNET/ipfixprobe-testing build/pkg/rpm/rpmbuild/SRPMS/*
+        elif [ "${{ github.ref }}" == "refs/heads/stable" ]; then
+          copr build @CESNET/ipfixprobe build/pkg/rpm/rpmbuild/SRPMS/*
+        fi
