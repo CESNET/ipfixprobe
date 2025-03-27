@@ -13,6 +13,8 @@
 
 #include "quic_parser.hpp"
 
+#include <algorithm>
+
 #ifdef DEBUG_QUIC
 #define DEBUG_MSG(format, ...) fprintf(stderr, format, ##__VA_ARGS__)
 #else
