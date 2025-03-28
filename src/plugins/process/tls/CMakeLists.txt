@@ -27,6 +27,7 @@ if(ENABLE_NEMEA)
 	target_link_libraries(ipfixprobe-process-tls PRIVATE
 		-Wl,--whole-archive ipfixprobe-nemea-fields -Wl,--no-whole-archive
 		unirec::unirec
+		trap::trap
 	)
 endif()
 
