@@ -20,37 +20,65 @@ Obsoletes:     ipfixprobe-dpdk < 5.0.0
 Conflicts:     ipfixprobe-nemea, ipfixprobe-msec
 Source0:       %{name}-%{version}.tar.gz
 
+BuildRoot:     %{_tmppath}/%{name}-%{version}-%{release}
+%if 0%{?rhel} == 8
+BuildRequires: gcc-toolset-14
+BuildRequires: gcc-toolset-14-gcc
+BuildRequires: gcc-toolset-14-gcc-c++
+%endif
+
+%if 0%{?rhel} == 9
+BuildRequires: gcc >= 10
+BuildRequires: gcc-c++ >= 10
+%endif
+
+BuildRequires: make
+BuildRequires: cmake >= 3.12
+BuildRequires: libunwind-devel
+BuildRequires: gcc-toolset-14-libatomic-devel
+BuildRequires: pkgconfig
+BuildRequires: lz4-devel
+BuildRequires: openssl-devel
+BuildRequires: git
+
+Requires: libatomic
+Requires: fuse3
+Requires: lz4
+Requires: openssl
+
+%description
+ipfixprobe is a network traffic analysis tool that exports IPFIX flows with extended elements via plugins.
+
 %if %{with input_pcap}
 %package input-pcap
 Summary: Input plugin to read packets from files and interfaces using libpcap.
+Requires: libpcap
+BuildRequires: libpcap-devel
 
 %description input-pcap
 Input plugin for libpcap.
-
-BuildRequires: libpcap-devel
-Requires: libpcap
 %endif
 
 %if %{with input_dpdk}
 %package input-dpdk
 Summary: Input plugin to read packets from interfaces using dpdk.
+BuildRequires: dpdk-devel
+Requires: dpdk
 
 %description input-dpdk
 Input plugin for dpdk.
-
-BuildRequires: dpdk-devel
-Requires: dpdk
 %endif
 
 %if %{with input_nfb}
 %package input-nfb
 Summary: Input plugin to read packets from nfb cards.
+BuildRequires: nfb-framework
+BuildRequires: numactl-devel
+Requires: nfb-framework
+Requires: numactl
 
 %description input-nfb
 Input plugin for nfb cards.
-
-BuildRequires: nfb-framework
-Requires: nfb-framework
 %endif
 
 %if %{with process_experimental}
@@ -59,37 +87,18 @@ Summary: Experimental process plugins.
 
 %description process-experimental
 Experimental process plugins.
-
 %endif
-
-BuildRoot:     %{_tmppath}/%{name}-%{version}-%{release}
-BuildRequires: (gcc >= 10 or gcc-toolset-13-gcc)
-BuildRequires: (gcc-c++ >= 10 or gcc-toolset-13-gcc-c++)
-BuildRequires: make
-BuildRequires: cmake >= 3.12
-BuildRequires: libunwind-devel
-BuildRequires: gcc-toolset-14-libatomic-devel
-BuildRequires: pkgconfig
-BuildRequires: lz4-devel
-BuildRequires: openssl-devel
-
-Requires: libatomic
-Requires: fuse3
-Requires: telemetry
-Requires: lz4
-Requires: openssl
 
 # Make sure that build is always performed out-of-source
 %undefine __cmake_in_source_build
-
-%description
-The package contains tools, configuration files and traffic samples
-that make up the main components of the test environment.
 
 %prep
 %autosetup
 
 %build
+%if 0%{?rhel} == 8
+source /opt/rh/gcc-toolset-14/enable
+%endif
 %cmake -DCMAKE_BUILD_TYPE=Release %{?with_input_pcap:-DENABLE_INPUT_PCAP=ON} %{?with_input_dpdk:-DENABLE_INPUT_DPDK=ON} %{?with_input_nfb:-DENABLE_INPUT_NFB=ON} %{?with_process_experimental: -DENABLE_PROCESS_EXPERIMENTAL=ON}
 %cmake_build
 

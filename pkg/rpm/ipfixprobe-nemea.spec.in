@@ -11,27 +11,24 @@ Group:         Liberouter
 License:       BSD
 Vendor:        CESNET, z.s.p.o.
 BuildRoot:     %{_tmppath}/%{name}-%{version}-%{release}
-Provides:      ipfixprobe-nemea
+Provides:      ipfixprobe
 Obsoletes:     ipfixprobe-ndp < 5.0.0
 Obsoletes:     ipfixprobe-dpdk < 5.0.0
 Conflicts:     ipfixprobe, ipfixprobe-msec, ipfixprobe-process-experimental
 Source0:       %{name}-%{version}.tar.gz
 
-%if %{with output_unirec}
-%package output-unirec
-Summary: Output plugin to export records in unirec format.
-
-%description output-unirec
-Output plugin for unirec.
-
-BuildRequires: unirec
-Requires: unirec
-Requires: ipfixprobe-nemea
+BuildRoot:     %{_tmppath}/%{name}-%{version}-%{release}
+%if 0%{?rhel} == 8
+BuildRequires: gcc-toolset-14
+BuildRequires: gcc-toolset-14-gcc
+BuildRequires: gcc-toolset-14-gcc-c++
 %endif
 
-BuildRoot:     %{_tmppath}/%{name}-%{version}-%{release}
-BuildRequires: (gcc >= 10 or gcc-toolset-13-gcc)
-BuildRequires: (gcc-c++ >= 10 or gcc-toolset-13-gcc-c++)
+%if 0%{?rhel} == 9
+BuildRequires: gcc >= 10
+BuildRequires: gcc-c++ >= 10
+%endif
+
 BuildRequires: make
 BuildRequires: cmake >= 3.12
 BuildRequires: libunwind-devel
@@ -40,24 +37,39 @@ BuildRequires: pkgconfig
 BuildRequires: lz4-devel
 BuildRequires: openssl-devel
 BuildRequires: nemea-framework-devel
+BuildRequires: git
 
 Requires: libatomic
 Requires: fuse3
-Requires: telemetry
 Requires: lz4
 Requires: openssl
 
+%description
+ipfixprobe is a network traffic analysis tool that exports IPFIX flows with extended elements via plugins.
+Builded with NEMEA support.
+
+%if %{with output_unirec}
+%package output-unirec
+Summary: Output plugin to export records in unirec format.
+BuildRequires: unirec
+Requires: unirec
+Requires: ipfixprobe-nemea
+
+%description output-unirec
+Output plugin for unirec.
+%endif
+
+
 # Make sure that build is always performed out-of-source
 %undefine __cmake_in_source_build
-
-%description
-The package contains tools, configuration files and traffic samples
-that make up the main components of the test environment.
 
 %prep
 %autosetup
 
 %build
+%if 0%{?rhel} == 8
+source /opt/rh/gcc-toolset-14/enable
+%endif
 %cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_NEMEA=ON %{?with_output_unirec: -DENABLE_OUTPUT_UNIREC=ON}
 %cmake_build
 
