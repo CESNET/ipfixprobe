@@ -2,8 +2,9 @@ FROM rockylinux:9
 
 RUN dnf install -y dnf-plugins-core && \
     dnf copr -y enable @CESNET/NEMEA && \
+    dnf copr -y enable @CESNET/ipfixprobe && \
     dnf install -y epel-release && \
-    dnf install -y ipfixprobe-nemea ipfixprobe-output-unirec nemea && \
+    dnf install -y ipfixprobe-nemea ipfixprobe-nemea-output-unirec nemea && \
     dnf clean all
 
 RUN mkdir -p /output
