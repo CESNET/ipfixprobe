@@ -25,7 +25,13 @@ static const PluginManifest ssadetectorPluginManifest = {
 	.description = "Ssadetector process plugin for parsing vpn_automaton traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser(
+				"ssadetector",
+				"Check traffic for SYN-SYNACK-ACK sequence to find possible network tunnels.");
+			parser.usage(std::cout);
+		},
 };
 
 SSADetectorPlugin::SSADetectorPlugin(const std::string& params, int pluginID)

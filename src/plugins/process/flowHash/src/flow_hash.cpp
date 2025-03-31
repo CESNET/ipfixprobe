@@ -24,7 +24,11 @@ static const PluginManifest flowhashPluginManifest = {
 	.description = "flowhash process plugin for parsing flowhash value.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("flowhash", "Export flow hash as flow id");
+			parser.usage(std::cout);
+		},
 };
 
 FLOW_HASHPlugin::FLOW_HASHPlugin(const std::string& params, int pluginID)

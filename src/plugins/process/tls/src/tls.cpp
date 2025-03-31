@@ -33,7 +33,11 @@ static const PluginManifest tlsPluginManifest = {
 	.description = "Tls process plugin for parsing tls traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("tls", "Parse TLS traffic");
+			parser.usage(std::cout);
+		},
 };
 
 // Print debug message if debugging is allowed.

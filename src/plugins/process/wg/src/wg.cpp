@@ -26,7 +26,11 @@ static const PluginManifest wgPluginManifest = {
 	.description = "Wg process plugin for parsing wg traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("wg", "Parse WireGuard traffic");
+			parser.usage(std::cout);
+		},
 };
 
 WGPlugin::WGPlugin(const std::string& params, int pluginID)

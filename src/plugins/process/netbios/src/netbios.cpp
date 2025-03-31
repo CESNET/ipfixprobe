@@ -28,7 +28,11 @@ static const PluginManifest netbiosPluginManifest = {
 	.description = "Netbios process plugin for parsing netbios traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("netbios", "Parse netbios traffic");
+			parser.usage(std::cout);
+		},
 };
 NETBIOSPlugin::NETBIOSPlugin(const std::string& params, int pluginID)
 	: ProcessPlugin(pluginID)

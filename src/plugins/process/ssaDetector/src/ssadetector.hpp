@@ -148,10 +148,10 @@ public:
 	OptionsParser* get_parser() const
 	{
 		return new OptionsParser(
-			"SSADetector",
+			"ssadetector",
 			"Check traffic for SYN-SYNACK-ACK sequence to find possible network tunnels.");
 	}
-	std::string get_name() const { return "SSADetector"; }
+	std::string get_name() const { return "ssadetector"; }
 	RecordExt* get_ext() const { return new RecordExtSSADetector(m_pluginID); }
 	ProcessPlugin* copy();
 

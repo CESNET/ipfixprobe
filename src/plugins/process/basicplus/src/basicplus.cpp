@@ -24,7 +24,13 @@ static const PluginManifest basicplusPluginManifest = {
 	.description = "Basicplus process plugin for parsing basicplus traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser(
+				"basicplus",
+				"Extend basic fields with TTL, TCP window, options, MSS and SYN size");
+			parser.usage(std::cout);
+		},
 };
 
 BASICPLUSPlugin::BASICPLUSPlugin(const std::string& params, int pluginID)

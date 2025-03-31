@@ -29,7 +29,11 @@ static const PluginManifest sipPluginManifest = {
 	.description = "Sip process plugin for parsing sip traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("sip", "Parse SIP traffic");
+			parser.usage(std::cout);
+		},
 };
 
 SIPPlugin::SIPPlugin(const std::string& params, int pluginID)

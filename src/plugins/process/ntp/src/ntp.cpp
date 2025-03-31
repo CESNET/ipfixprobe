@@ -31,7 +31,11 @@ static const PluginManifest ntpPluginManifest = {
 	.description = "Ntp process plugin for parsing ntp traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("ntp", "Parse NTP traffic");
+			parser.usage(std::cout);
+		},
 };
 
 // #define DEBUG_NTP
