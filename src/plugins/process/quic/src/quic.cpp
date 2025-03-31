@@ -27,7 +27,11 @@ static const PluginManifest quicPluginManifest = {
 	.description = "Quic process plugin for parsing quic traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("quic", "Parse QUIC traffic");
+			parser.usage(std::cout);
+		},
 };
 
 QUICPlugin::QUICPlugin(const std::string& params, int pluginID)

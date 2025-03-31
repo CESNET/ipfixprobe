@@ -24,7 +24,11 @@ static const PluginManifest idpcontentPluginManifest = {
 	.description = "Idpcontent process plugin for parsing idpcontent traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("idpcontent", "Parse first bytes of flow payload");
+			parser.usage(std::cout);
+		},
 };
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))

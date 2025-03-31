@@ -32,7 +32,11 @@ static const PluginManifest rtspPluginManifest = {
 	.description = "Rtsp process plugin for parsing rtsp traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("rtsp", "Parse RTSP traffic");
+			parser.usage(std::cout);
+		},
 };
 
 // #define DEBUG_RTSP

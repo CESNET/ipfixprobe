@@ -24,7 +24,11 @@ static const PluginManifest ssdpPluginManifest = {
 	.description = "Ssdp process plugin for parsing ssdp traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("ssdp", "Parse SSDP traffic");
+			parser.usage(std::cout);
+		},
 };
 
 // #define DEBUG_SSDP

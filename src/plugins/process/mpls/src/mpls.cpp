@@ -24,7 +24,11 @@ static const PluginManifest mplsPluginManifest = {
 	.description = "Mpls process plugin for parsing mpls traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("mpls", "Parse MPLS traffic");
+			parser.usage(std::cout);
+		},
 };
 
 MPLSPlugin::MPLSPlugin(const std::string& params, int pluginID)

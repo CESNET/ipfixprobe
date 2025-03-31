@@ -24,7 +24,11 @@ static const PluginManifest vlanPluginManifest = {
 	.description = "Vlan process plugin for parsing vlan traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("vlan", "Parse VLAN traffic");
+			parser.usage(std::cout);
+		},
 };
 
 VLANPlugin::VLANPlugin(const std::string& params, int pluginID)

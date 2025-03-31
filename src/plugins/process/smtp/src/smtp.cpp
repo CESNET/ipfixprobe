@@ -28,7 +28,11 @@ static const PluginManifest smtpPluginManifest = {
 	.description = "Smtp process plugin for parsing smtp traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("smtp", "Parse SMTP traffic");
+			parser.usage(std::cout);
+		},
 };
 
 SMTPPlugin::SMTPPlugin(const std::string& params, int pluginID)
