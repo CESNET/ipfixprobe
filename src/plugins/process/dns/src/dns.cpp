@@ -32,7 +32,11 @@ static const PluginManifest dnsPluginManifest = {
 	.description = "Dns process plugin for parsing dns traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("dns", "Parse DNS traffic");
+			parser.usage(std::cout);
+		},
 };
 // #define DEBUG_DNS
 

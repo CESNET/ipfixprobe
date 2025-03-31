@@ -30,7 +30,13 @@ static const PluginManifest osqueryPluginManifest = {
 	.description = "Osquery process plugin for parsing osquery traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser(
+				"osquery",
+				"Collect information about locally outbound flows from OS");
+			parser.usage(std::cout);
+		},
 };
 
 OSQUERYPlugin::OSQUERYPlugin(const std::string& params, int pluginID)

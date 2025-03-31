@@ -32,7 +32,11 @@ static const PluginManifest httpPluginManifest = {
 	.description = "http process plugin for parsing http traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("http", "Parse HTTP traffic");
+			parser.usage(std::cout);
+		},
 };
 
 // #define DEBUG_HTTP

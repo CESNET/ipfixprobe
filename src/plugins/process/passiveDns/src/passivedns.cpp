@@ -38,7 +38,11 @@ static const PluginManifest passivednsPluginManifest = {
 	.description = "Passivedns process plugin for parsing DNS A and AAAA records.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("passivedns", "Parse A, AAAA and PTR records from DNS traffic");
+			parser.usage(std::cout);
+		},
 };
 
 // #define DEBUG_PASSIVEDNS

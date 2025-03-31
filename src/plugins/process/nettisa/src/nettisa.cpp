@@ -25,7 +25,11 @@ static const PluginManifest nettisaPluginManifest = {
 	.description = "Nettisa process plugin for parsing Nettisa flow.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("nettisa", "Parse NetTiSA flow");
+			parser.usage(std::cout);
+		},
 };
 
 NETTISAPlugin::NETTISAPlugin(const std::string& params, int pluginID)

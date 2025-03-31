@@ -24,7 +24,11 @@ static const PluginManifest icmpPluginManifest = {
 	.description = "ICMP process plugin for parsing icmp traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("icmp", "Parse ICMP traffic");
+			parser.usage(std::cout);
+		},
 };
 
 ICMPPlugin::ICMPPlugin(const std::string& params, int pluginID)

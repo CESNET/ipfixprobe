@@ -24,7 +24,11 @@ static const PluginManifest bstatsPluginManifest = {
 	.description = "Bstats process plugin for computing packet bursts stats.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("bstats", "Compute packet bursts stats");
+			parser.usage(std::cout);
+		},
 };
 
 const struct timeval BSTATSPlugin::min_packet_in_burst

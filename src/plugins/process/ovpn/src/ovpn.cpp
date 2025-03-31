@@ -54,7 +54,11 @@ static const PluginManifest ovpnPluginManifest = {
 	.description = "Ovpn process plugin for parsing ovpn traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
-	.usage = nullptr,
+	.usage =
+		[]() {
+			OptionsParser parser("ovpn", "OpenVPN detector plugin");
+			parser.usage(std::cout);
+		},
 };
 
 OVPNPlugin::OVPNPlugin(const std::string& params, int pluginID)
