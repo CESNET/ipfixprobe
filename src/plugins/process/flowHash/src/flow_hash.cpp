@@ -20,8 +20,8 @@
 namespace ipxp {
 
 static const PluginManifest flowhashPluginManifest = {
-	.name = "flow_hash",
-	.description = "flow_hash process plugin for parsing flow_hash value.",
+	.name = "flowhash",
+	.description = "flowhash process plugin for parsing flowhash value.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
 	.usage = nullptr,

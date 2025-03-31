@@ -95,9 +95,9 @@ public:
 	void close();
 	OptionsParser* get_parser() const
 	{
-		return new OptionsParser("flow_hash", "Export flow hash as flow id");
+		return new OptionsParser("flowhash", "Export flow hash as flow id");
 	}
-	std::string get_name() const { return "flow_hash"; }
+	std::string get_name() const { return "flowhash"; }
 	RecordExt* get_ext() const { return new RecordExtFLOW_HASH(m_pluginID); }
 	ProcessPlugin* copy();
 
