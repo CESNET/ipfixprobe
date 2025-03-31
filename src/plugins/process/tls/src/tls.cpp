@@ -134,6 +134,9 @@ static std::string concatenate_vector_to_string(const std::vector<uint16_t>& vec
 
 static std::string concatenate_vector_to_hex_string(const std::vector<uint16_t>& vector)
 {
+	if (vector.empty()) {
+		return "";
+	}
 	auto res = std::accumulate(
 		vector.begin(),
 		vector.end(),
@@ -150,6 +153,9 @@ static std::string concatenate_vector_to_hex_string(const std::vector<uint16_t>&
 static std::string
 concatenate_extensions_vector_to_string(const std::vector<TLSExtension>& extensions)
 {
+	if (extensions.empty()) {
+		return "";
+	}
 	auto res = std::accumulate(
 		extensions.begin(),
 		extensions.end(),
