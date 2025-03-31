@@ -94,7 +94,7 @@ static void printPluginsUsage(const std::vector<PluginManifest>& pluginsManifest
 		} else {
 			std::cout << pluginManifest.name << std::endl;
 		}
-		std::cout << "------------------\n";
+		std::cout << std::endl;
 	}
 }
 
