@@ -141,6 +141,7 @@ source /opt/rh/gcc-toolset-14/enable
 %{_libdir}/ipfixprobe/storage/libipfixprobe-storage-cache.so
 
 %{_libdir}/ipfixprobe/schema.json
+%{_libdir}/ipfixprobe/config2args.py
 
 %{_unitdir}/ipfixprobe-monitoring.target
 %{_unitdir}/ipfixprobe@.service
