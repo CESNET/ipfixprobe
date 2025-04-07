@@ -95,10 +95,6 @@ source /opt/rh/gcc-toolset-14/enable
 
 %{_libdir}/ipfixprobe/storage/libipfixprobe-storage-cache.so
 
-%{_sysconfdir}/ipfixprobe/link0.conf.example
-%{_sysconfdir}/ipfixprobe/dpdk_direct.conf.example
-%{_sysconfdir}/ipfixprobe/dpdk_mring.conf.example
-
 %{_unitdir}/ipfixprobe-monitoring.target
 %{_unitdir}/ipfixprobe@.service
 
