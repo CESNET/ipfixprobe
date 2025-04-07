@@ -1,0 +1,101 @@
+# Input plugin configuration (input_plugin)
+input_plugin:
+  # IMPORTANT: Only one input plugin can be specified. Choose one of the following options:
+  # raw, pcap_file, pcap_live, ndp, dpdk_ring, or dpdk.
+
+  raw:
+    interface: eth0  # Network interface name to capture traffic from [required]
+    blocks_count: 2048  # Number of blocks in the circular buffer (must be a power of 2)
+    packets_in_block: 32  # Number of packets per block (must be a power of 2)
+
+  pcap_file:
+    file: /path/to/pcap/file.pcap  # Path to the PCAP file to read from [required]
+    bpf_filter: null  # Optional BPF filter (e.g., "port 80"), null = no filter
+
+  pcap_live:
+    interface: eth0  # Network interface for live packet capture [required]
+    bpf_filter: null  # Optional BPF filter (null = no filter)
+    snap_length: 65535  # Maximum packet capture length
+
+  ndp:
+    device: /dev/nfb0  # Device for packet capture (e.g., /dev/nfb0) [required]
+    queues: "0-15"  # List of queue IDs (e.g., "0,1,2-3,7") [required]
+
+  dpdk_ring:
+    ring_name: ring0  # Name of the shared DPDK ring buffer [required]
+    eal_opts: null  # EAL options (null = default options)
+    burst_size: 64  # Number of packets processed in each burst (cycle)
+
+  dpdk:
+    allowed_nics: "0000:00:00.0,0000:00:00.1" # List of allowed NICs (PCI addresses) [required]
+    burst_size: 64  # Number of packets processed in each burst (cycle)
+    mempool_size: 8192  # Size of the memory pool (must be a power of 2)
+    rx_queues: 1  # Number of RX (receive) queues
+    workers_cpu_list: [0] # List of CPU cores assigned to RX queues (must match rx_queues)
+    eal_opts: null  # EAL options (null = default options)
+    mtu: null  # Maximum Transmission Unit (defaults to RTE_ETHER_MAX_LEN)
+
+# Storage configuration (storage)
+storage:
+  cache:
+    size_exponent: 20  # Cache size as a power of 2 (e.g., 2^20)
+    line_size_exponent: 4  # Cache line size as a power of 2 (e.g., 2^4)
+  timeouts:
+    active: 65  # Active timeout duration (in seconds)
+    inactive: 300  # Inactive timeout duration (in seconds)
+  split_biflow: true  # Whether to split biflow into uniflow (true/false)
+
+  fragmentation_cache:
+    enabled: true  # Enable fragmentation cache (true/false)
+    size: 10007  # Fragmentation cache size (minimum 1)
+    timeout: 3  # Timeout for fragments in the cache (in seconds)
+
+# List of active process plugins (process_plugins)
+process_plugins:
+  - http  # HTTP protocol plugin
+  - dns   # DNS protocol plugin
+  - quic  # QUIC protocol plugin
+  - tls   # TLS protocol plugin
+  # ...
+
+# Output plugin configuration (output_plugin)
+output_plugin:
+  # IMPORTANT: Only one output plugin can be specified. Choose one of the following options:
+  # ipfix, unirec, or text.
+
+  ipfix:
+    collector:
+      host: localhost  # IPFIX collector address [required]
+      port: 4739  # IPFIX collector port [required]
+    mtu: 1458  # Maximum size of IPFIX packets
+    exporter:
+      id: 0  # Exporter ID for IPFIX [required]
+      dir: 0  # Direction bit field value (0 = incoming, 1 = outgoing)
+
+    protocol:
+      # IMPORTANT: Only one protocol can be selected: udp or tcp.
+      udp:
+        template_refresh: 60  # Template refresh rate for UDP protocol (in seconds)
+      tcp:
+        non_blocking: false  # Whether to use non-blocking TCP sockets (true/false)
+
+    compression:
+      lz4:
+        enabled: true  # Enable LZ4 compression for IPFIX (true/false)
+        buffer_size: 4500  # Buffer size for LZ4 compression (default: mtu * 3)
+
+  text:
+    file: /path/to/output/file.txt  # Path to output file (use null for stdout)
+
+# Telemetry settings (telemetry)
+telemetry:
+  appfs:
+    enabled: true  # Enable AppFS telemetry (true/false)
+    mount_point: /var/run/ipfixprobe/  # Mount point for telemetry data storage
+
+# General configuration (general)
+general:
+  queues_size:
+    input: 64  # Size of the input packet queue [required]
+    output: 16536  # Size of the output packet queue [required]
+  cpu_list: []  # List of CPUs used for running the main application

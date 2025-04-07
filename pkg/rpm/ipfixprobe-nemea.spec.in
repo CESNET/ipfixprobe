@@ -113,6 +113,7 @@ source /opt/rh/gcc-toolset-14/enable
 
 %{_libdir}/ipfixprobe/schema.json
 %{_libdir}/ipfixprobe/config2args.py
+%{_sysconfdir}/ipfixprobe/link0.conf.example
 
 %{_unitdir}/ipfixprobe-monitoring.target
 %{_unitdir}/ipfixprobe@.service

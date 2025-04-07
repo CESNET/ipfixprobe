@@ -1,4 +1,5 @@
 install(FILES
+	link0.conf.example
 	DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/ipfixprobe
 )
 
