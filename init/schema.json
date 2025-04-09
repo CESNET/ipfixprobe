@@ -1,0 +1,455 @@
+{
+  "type": "object",
+  "properties": {
+    "input_plugin": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "raw": {
+              "type": "object",
+              "properties": {
+                "interface": {
+                  "type": "string"
+                },
+                "blocks_count": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "packets_in_block": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "interface"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "raw"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "pcap_file": {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "bpf_filter": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "file"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "pcap_file"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "pcap_live": {
+              "type": "object",
+              "properties": {
+                "interface": {
+                  "type": "string"
+                },
+                "bpf_filter": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "snap_length": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "interface"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "pcap_live"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ndp": {
+              "type": "object",
+              "properties": {
+                "device": {
+                  "type": "string"
+                },
+                "queues": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "device",
+                "queues"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "ndp"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "dpdk_ring": {
+              "type": "object",
+              "properties": {
+                "ring_name": {
+                  "type": "string"
+                },
+                "eal_opts": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "burst_size": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "ring_name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "dpdk_ring"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "dpdk": {
+              "type": "object",
+              "properties": {
+                "allowed_nics": {
+                  "type": "string"
+                },
+                "burst_size": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "mempool_size": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "rx_queues": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "workers_cpu_list": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                "eal_opts": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "mtu": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "allowed_nics"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "dpdk"
+          ]
+        }
+      ]
+    },
+    "output_plugin": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "ipfix": {
+              "type": "object",
+              "properties": {
+                "collector": {
+                  "type": "object",
+                  "properties": {
+                    "host": {
+                      "type": "string"
+                    },
+                    "port": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "host",
+                    "port"
+                  ],
+                  "additionalProperties": false
+                },
+                "mtu": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "exporter": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "dir": {
+                      "type": "integer",
+                      "enum": [
+                        0,
+                        1
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "protocol": {
+                  "type": "object",
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "udp": {
+                          "type": "object",
+                          "properties": {
+                            "template_refresh": {
+                              "type": "integer",
+                              "minimum": 1
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "udp"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "tcp": {
+                          "type": "object",
+                          "properties": {
+                            "non_blocking": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "tcp"
+                      ]
+                    }
+                  ]
+                },
+                "compression": {
+                  "type": "object",
+                  "properties": {
+                    "lz4": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "buffer_size": {
+                          "type": "integer",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "enabled"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "lz4"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "collector",
+                "protocol"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "ipfix"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "telemetry": {
+      "type": "object",
+      "properties": {
+        "appfs": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "mount_point": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "mount_point"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "appfs"
+      ],
+      "additionalProperties": false
+    },
+    "general": {
+      "type": "object",
+      "properties": {
+        "queues_size": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "output": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "cpu_list": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "storage": {
+      "type": "object",
+      "properties": {
+        "cache": {
+          "type": "object",
+          "properties": {
+            "size_exponent": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "line_size_exponent": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "timeouts": {
+          "type": "object",
+          "properties": {
+            "active": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "inactive": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "split_biflow": {
+          "type": "boolean"
+        },
+        "fragmentation_cache": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "timeout": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "enabled"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "input_plugin",
+    "output_plugin"
+  ]
+}

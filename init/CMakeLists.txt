@@ -9,3 +9,4 @@ install(FILES
 )
 
 install(PROGRAMS ipfixprobed DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES schema.json DESTINATION "${INSTALL_DIR_LIB}/ipfixprobe/")
