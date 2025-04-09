@@ -43,6 +43,9 @@ Requires: libatomic
 Requires: fuse3
 Requires: lz4
 Requires: openssl
+Requires: python3
+Requires: python3-pyyaml
+Requires: python3-jsonschema
 
 %description
 ipfixprobe is a network traffic analysis tool that exports IPFIX flows with extended elements via plugins.
