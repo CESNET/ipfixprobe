@@ -1,209 +1,101 @@
-# Set up shell-like variables
-# Lines starting with '#' are comments.
+# Input plugin configuration (input_plugin)
+input_plugin:
+  # IMPORTANT: Only one input plugin can be specified. Choose one of the following options:
+  # raw, pcap_file, pcap_live, ndp, dpdk_ring, or dpdk.
 
-# $$$$$$\                                 $$\
-# \_$$  _|                                $$ |
-#   $$ |  $$$$$$$\   $$$$$$\  $$\   $$\ $$$$$$\
-#   $$ |  $$  __$$\ $$  __$$\ $$ |  $$ |\_$$  _|
-#   $$ |  $$ |  $$ |$$ /  $$ |$$ |  $$ |  $$ |
-#   $$ |  $$ |  $$ |$$ |  $$ |$$ |  $$ |  $$ |$$\
-# $$$$$$\ $$ |  $$ |$$$$$$$  |\$$$$$$  |  \$$$$  |
-# \______|\__|  \__|$$  ____/  \______/    \____/
-#                   $$ |
-#                   $$ |
-#                   \__|
-#
-# Settings depend on type of input plugin.
-# For DPDK, skip to the related section and leave INPUT[*] array commented.
-#
-# For PCAP / NDP / raw, create a list of activated input plugins (arguments for -i parameter).
-#
-#   Specify the array of input plugins with arguments using INPUT[], indexes (subscripts) must be unique.
-#
-# See `ipfixprobe --help input` for more information
+  raw:
+    interface: eth0  # Network interface name to capture traffic from [required]
+    blocks_count: 2048  # Number of blocks in the circular buffer (must be a power of 2)
+    packets_in_block: 32  # Number of packets per block (must be a power of 2)
 
-# Example of PCAP:
-#
-#INPUT[0]="pcap;ifc=eno2"
+  pcap_file:
+    file: /path/to/pcap/file.pcap  # Path to the PCAP file to read from [required]
+    bpf_filter: null  # Optional BPF filter (e.g., "port 80"), null = no filter
 
-# Example of NDP:
-#
-#INPUT[0]="ndp;dev=/dev/nfb0:0"
-#INPUT[1]="ndp;dev=/dev/nfb0:1"
+  pcap_live:
+    interface: eth0  # Network interface for live packet capture [required]
+    bpf_filter: null  # Optional BPF filter (null = no filter)
+    snap_length: 65535  # Maximum packet capture length
 
-# Example of raw:
-#
-#INPUT[0]="raw;ifc=eno2"
+  ndp:
+    device: /dev/nfb0  # Device for packet capture (e.g., /dev/nfb0) [required]
+    queues: "0-15"  # List of queue IDs (e.g., "0,1,2-3,7") [required]
 
-# Other examples:
-#
-# INPUT[0]="dpdk;p=0;q=16;i=0"
+  dpdk_ring:
+    ring_name: ring0  # Name of the shared DPDK ring buffer [required]
+    eal_opts: null  # EAL options (null = default options)
+    burst_size: 64  # Number of packets processed in each burst (cycle)
 
-# INPUT[0]="raw;i=wlo1"
+  dpdk:
+    allowed_nics: "0000:00:00.0,0000:00:00.1" # List of allowed NICs (PCI addresses) [required]
+    burst_size: 64  # Number of packets processed in each burst (cycle)
+    mempool_size: 8192  # Size of the memory pool (must be a power of 2)
+    rx_queues: 1  # Number of RX (receive) queues
+    workers_cpu_list: [0] # List of CPU cores assigned to RX queues (must match rx_queues)
+    eal_opts: null  # EAL options (null = default options)
+    mtu: null  # Maximum Transmission Unit (defaults to RTE_ETHER_MAX_LEN)
 
-# INPUT[0]="pcap;i=wlo1"
+# Storage configuration (storage)
+storage:
+  cache:
+    size_exponent: 20  # Cache size as a power of 2 (e.g., 2^20)
+    line_size_exponent: 4  # Cache line size as a power of 2 (e.g., 2^4)
+  timeouts:
+    active: 65  # Active timeout duration (in seconds)
+    inactive: 300  # Inactive timeout duration (in seconds)
+  split_biflow: true  # Whether to split biflow into uniflow (true/false)
 
-# or specify inputs using loop
-# for i in `seq 0 15`; do
-# INPUT[$i]="ndp;dev=/dev/nfb0:$i"
-# done
+  fragmentation_cache:
+    enabled: true  # Enable fragmentation cache (true/false)
+    size: 10007  # Fragmentation cache size (minimum 1)
+    timeout: 3  # Timeout for fragments in the cache (in seconds)
 
-#===================================================
-# DPDK input plugin settings
-# --------------------------------------------------
-#
-# It is recommended to use either DPDK or NDP.
-#
-# Enable USE_DPDK input by setting USE_DPDK=1:
+# List of active process plugins (process_plugins)
+process_plugins:
+  - http  # HTTP protocol plugin
+  - dns   # DNS protocol plugin
+  - quic  # QUIC protocol plugin
+  - tls   # TLS protocol plugin
+  # ...
 
-#USE_DPDK=1
+# Output plugin configuration (output_plugin)
+output_plugin:
+  # IMPORTANT: Only one output plugin can be specified. Choose one of the following options:
+  # ipfix, unirec, or text.
 
-# Required: Set number of parallel queues (RSS feature):
-#DPDK_QUEUES_COUNT=8
+  ipfix:
+    collector:
+      host: localhost  # IPFIX collector address [required]
+      port: 4739  # IPFIX collector port [required]
+    mtu: 1458  # Maximum size of IPFIX packets
+    exporter:
+      id: 0  # Exporter ID for IPFIX [required]
+      dir: 0  # Direction bit field value (0 = incoming, 1 = outgoing)
 
-# Set mapping of DPDK lcores to threads:
-#DPDK_LCORES="(0-7)@(0,2,4,6,8,10,12,14)"
+    protocol:
+      # IMPORTANT: Only one protocol can be selected: udp or tcp.
+      udp:
+        template_refresh: 60  # Template refresh rate for UDP protocol (in seconds)
+      tcp:
+        non_blocking: false  # Whether to use non-blocking TCP sockets (true/false)
 
-# Set input workers CPU affinity, each worker is mapped on single core
-# array must have the same size as DPDK_QUEUES_COUNT
-# when DPDK_INPUT_WORKER_CPUS is specified, DPDK_LCORES does not affect input workers
-#DPDK_INPUT_WORKER_CPUS=(0 2 4 6 8 10 12 14)
+    compression:
+      lz4:
+        enabled: true  # Enable LZ4 compression for IPFIX (true/false)
+        buffer_size: 4500  # Buffer size for LZ4 compression (default: mtu * 3)
 
-# Extra options for DPDK EAL, passed to e= option of `dpdk` or `dpdk-ring` plugin.
-# * Use --file-prefix to separate DPDK application into new namespace.
-# * Use --proc-type=secondary for Option B) to receive packets via mrings created
-#   by some other primary DPDK application.
-#DPDK_EXTRA_EAL="--file-prefix 0000:17:00.0_0 --proc-type=secondary"
+  text:
+    file: /path/to/output/file.txt  # Path to output file (use null for stdout)
 
-# Additional options of DPDK plugin separated by `;`
-#    m ~ Size of the memory pool for received packets (only for Option A)
-#    b ~ Size of the MBUF packet buffer
-#DPDK_OPTS="m=2000;b=2048"
+# Telemetry settings (telemetry)
+telemetry:
+  appfs:
+    enabled: true  # Enable AppFS telemetry (true/false)
+    mount_point: /var/run/ipfixprobe/  # Mount point for telemetry data storage
 
-#----------------------------------------
-# Option A) DPDK direct device
-#----------------------------------------
-
-# Required: Set PCIe address in the format <[domain:]bus:devid.func> for example:
-#DPDK_DEVICE="0000:43:00.0"
-
-# Note that DPDK_DEVICE can be extended by driver-specific parameters, e.g.:
-#
-#DPDK_DEVICE=0000:17:00.0,rxhdr_dynfield=1,reta_index_global=1,queue_driver=native
-#
-# this example shows parameters for FPGA firmware by CESNET:
-#  rxhdr_dynfield=1 ~ memory allocation
-#  reta_index_global=1 ~ enable redirection table to enhance RSS among multiple ports
-#  queue_driver=native ~ DPDK driver mode
-
-# Required: Set network device port, can be a list separated by comma:
-#DPDK_PORT=0
-
-#----------------------------------------
-# Option B) DPDK mring input instead of DPDK_DEVICE
-#----------------------------------------
-
-# Enable option B) instead of A), receive packets via DPDK mrings
-#DPDK_RING=1
-
-# Required: set pattern to generate mring identifiers, use %i of printf format to place index:
-#DPDK_RING_PATTERN="rx_ipfixprobe_%i"
-
-# set starting index to generate mring identifiers (e.g., startidx=8 with DPDK_QUEUES_COUNT=4 makes indexes 8, 9, 10, 11)
-#DPDK_RING_STARTIDX=0
-
-#===================================================
-
-# $$$$$$$\                                                              $$\
-# $$  __$$\                                                             \__|
-# $$ |  $$ | $$$$$$\   $$$$$$\   $$$$$$$\  $$$$$$\   $$$$$$$\  $$$$$$$\ $$\ $$$$$$$\   $$$$$$\
-# $$$$$$$  |$$  __$$\ $$  __$$\ $$  _____|$$  __$$\ $$  _____|$$  _____|$$ |$$  __$$\ $$  __$$\
-# $$  ____/ $$ |  \__|$$ /  $$ |$$ /      $$$$$$$$ |\$$$$$$\  \$$$$$$\  $$ |$$ |  $$ |$$ /  $$ |
-# $$ |      $$ |      $$ |  $$ |$$ |      $$   ____| \____$$\  \____$$\ $$ |$$ |  $$ |$$ |  $$ |
-# $$ |      $$ |      \$$$$$$  |\$$$$$$$\ \$$$$$$$\ $$$$$$$  |$$$$$$$  |$$ |$$ |  $$ |\$$$$$$$ |
-# \__|      \__|       \______/  \_______| \_______|\_______/ \_______/ \__|\__|  \__| \____$$ |
-#                                                                                     $$\   $$ |
-#                                                                                     \$$$$$$  |
-#                                                                                      \______/
-#
-# List of activated process plugins (arguments for -p parameter), to skip plugins, use "basic" only:
-# PROCESS=(basic)
-#
-# See `ipfixprobe -h process` for the list of available plugins.
-#
-PROCESS=(pstats tls http ssdp "dnssd;txt")
-
-#
-# $$$$$$$$\ $$\                                $$$$$$\                      $$\
-# $$  _____|$$ |                              $$  __$$\                     $$ |
-# $$ |      $$ | $$$$$$\  $$\  $$\  $$\       $$ /  \__| $$$$$$\   $$$$$$$\ $$$$$$$\   $$$$$$\
-# $$$$$\    $$ |$$  __$$\ $$ | $$ | $$ |      $$ |       \____$$\ $$  _____|$$  __$$\ $$  __$$\
-# $$  __|   $$ |$$ /  $$ |$$ | $$ | $$ |      $$ |       $$$$$$$ |$$ /      $$ |  $$ |$$$$$$$$ |
-# $$ |      $$ |$$ |  $$ |$$ | $$ | $$ |      $$ |  $$\ $$  __$$ |$$ |      $$ |  $$ |$$   ____|
-# $$ |      $$ |\$$$$$$  |\$$$$$\$$$$  |      \$$$$$$  |\$$$$$$$ |\$$$$$$$\ $$ |  $$ |\$$$$$$$\
-# \__|      \__| \______/  \_____\____/        \______/  \_______| \_______|\__|  \__| \_______|
-#
-#
-# Size of flow cache, exponent to the power of two
-CACHE_SIZE=17
-
-# Active and inactive timeout in seconds
-ACTIVE_TIMEOUT=300
-INACTIVE_TIMEOUT=65
-
-# Enable/disable fragmentation cache (true, false)
-FRAG_CACHE_ENABLE=true
-
-# size of fragmentation cache
-FRAG_CACHE_SIZE=10007
-
-# timeout in seconds for fragments in fragmentation cache
-FRAG_CACHE_TIMEOUT=3
-
-#
-#  $$$$$$\              $$\                           $$\
-# $$  __$$\             $$ |                          $$ |
-# $$ /  $$ |$$\   $$\ $$$$$$\    $$$$$$\  $$\   $$\ $$$$$$\
-# $$ |  $$ |$$ |  $$ |\_$$  _|  $$  __$$\ $$ |  $$ |\_$$  _|
-# $$ |  $$ |$$ |  $$ |  $$ |    $$ /  $$ |$$ |  $$ |  $$ |
-# $$ |  $$ |$$ |  $$ |  $$ |$$\ $$ |  $$ |$$ |  $$ |  $$ |$$\
-#  $$$$$$  |\$$$$$$  |  \$$$$  |$$$$$$$  |\$$$$$$  |  \$$$$  |
-#  \______/  \______/    \____/ $$  ____/  \______/    \____/
-#                               $$ |
-#                               $$ |
-#                               \__|
-#
-# The following variables set IPFIX output.
-#
-# Link / ODID identifier
-LINK=0
-
-# Direction / interface identifier
-DIR=0
-
-# Address and port of the IPFIX collector
-HOST=127.0.0.1
-PORT=4739
-
-# Use UDP yes/no? (instead of TCP)
-UDP=yes
-
-# Use non-blocking socket for TCP connection yes/no?
-NON_BLOCKING_TCP=no
-
-# Export ipfix template every N seconds (UDP)
-TEMPLATE_REFRESH_RATE=300
-
-# Define output worker (thread) affinity, e.g. CPU core isolated from the scheduler
-#OUTPUT_WORKER_CPU=12
-
-# Enable LZ4 compression (only with TCP)
-LZ4_COMPRESSION=no
-
-####### Fuse telemetry
-
-USE_FUSE=0
-FUSE_MOUNT_POINT="/var/run/ipfixprobe"
-
-# Specify any extra global arguments, e.g. size of input queue
-#EXTRA_ARGS="-q 2048"
+# General configuration (general)
+general:
+  queues_size:
+    input: 64  # Size of the input packet queue [required]
+    output: 16536  # Size of the output packet queue [required]
+  cpu_list: []  # List of CPUs used for running the main application
