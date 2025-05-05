@@ -74,6 +74,10 @@ if (ENABLE_OUTPUT_UNIREC)
 	list(APPEND RPMBUILD_ARGS_NEMEA "--with" "output_unirec")
 endif()
 
+if (ENABLE_PROCESS_EXPERIMENTAL)
+	list(APPEND RPMBUILD_ARGS_NEMEA "--with" "process_experimental")
+endif()
+
 configure_file("${SPEC_FILE_IN_NEMEA}" "${SPEC_FILE_NEMEA}" @ONLY)
 
 add_custom_target(rpm-nemea

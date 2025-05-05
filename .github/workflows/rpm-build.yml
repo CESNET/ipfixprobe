@@ -38,7 +38,7 @@ jobs:
     - name: make rpm-nemea
       run: |
         cd build
-        cmake3 .. -DCMAKE_BUILD_TYPE=Release -DENABLE_OUTPUT_UNIREC=ON
+        cmake3 .. -DCMAKE_BUILD_TYPE=Release -DENABLE_OUTPUT_UNIREC=ON -DENABLE_PROCESS_EXPERIMENTAL=ON
         make rpm-nemea
     - name: extract artifact name
       run: |
