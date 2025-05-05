@@ -30,4 +30,4 @@ jobs:
       run: |
         dnf install -y $(ls *.rpm | grep -Ev 'ipfixprobe-msec|ipfixprobe-nemea|ipfixprobe-output-unirec|debuginfo|debugsource')
         dnf install -y $(ls ipfixprobe-msec-*.rpm | grep -Ev 'debuginfo|debugsource') --allowerasing
-        dnf install -y $(ls ipfixprobe-nemea-*.rpm ipfixprobe-output-unirec*.rpm | grep -Ev 'debuginfo|debugsource') --allowerasing
+        dnf install -y $(ls ipfixprobe-nemea-*.rpm | grep -Ev 'debuginfo|debugsource') --allowerasing
