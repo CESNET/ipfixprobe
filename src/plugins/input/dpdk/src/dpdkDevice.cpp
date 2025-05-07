@@ -168,7 +168,9 @@ void DpdkDevice::initMemPools(uint16_t memPoolSize)
 {
 	constexpr int MEMPOOL_CACHE_SIZE = 256;
 	constexpr int VLAN_HDR_LEN = 4;
-	const int max_packet_size = m_mtuSize + RTE_ETHER_HDR_LEN + VLAN_HDR_LEN;
+	constexpr int DPDK_MBUF_ALIGN = 1024;
+	const int max_packet_size
+		= RTE_ALIGN_CEIL(m_mtuSize + RTE_ETHER_HDR_LEN + VLAN_HDR_LEN, DPDK_MBUF_ALIGN);
 
 	m_memPools.reserve(m_rxQueueCount);
 
