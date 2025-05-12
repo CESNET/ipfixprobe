@@ -16,6 +16,21 @@ dnf install -y dnf-plugins-core && dnf copr -y enable @CESNET/NEMEA
 dnf install ipfixprobe
 ```
 
+## Available Plugins
+
+# Input Plugins
+
+This table contains a list of available input plugins, their maximum throughput, and the complexity of use.
+
+| Plugin        | Max Throughput | Usage Complexity        | Plugin Link                              |
+|---------------|----------------|-------------------------|------------------------------------------|
+| `pcap_live`   | ~1 Gbps        | Easy                    | [pcap_live](./src/plugins/input/pcap/README.md#pcap-live-input-plugin)    |
+| `pcap_file`   | ~1 Gbps        | Easy                    | [pcap_file](./src/plugins/input/pcap/README.md#pcap-file-input-plugin)    |
+| `raw`         | ~1 Gbps        | Easy                    | [raw](./src/plugins/input/raw/README.md)           |
+| `dpdk`        | 400 Gbps       | Complex                 | [dpdk](./src/plugins/input/dpdk/README.md#dpdk-input-plugin)         |
+| `dpdk-ring`   | 400 Gbps       | Complex                 | [dpdk-ring](./src/plugins/input/dpdk/README.md)    |
+| `ndp`         | 400 Gbps       | Medium                  | [ndp](./src/plugins/input/nfb/README.md)           |
+
 ## Parameters
 ### Module specific parameters
 - `-i ARGS`       Activate input plugin  (-h input for help)
