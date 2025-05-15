@@ -25,6 +25,8 @@
 
 #pragma once
 
+#include "../../src/plugins/input/parser/topPorts.hpp"
+
 #include <array>
 #include <cstdint>
 #include <string>
@@ -162,6 +164,23 @@ struct VlanStats {
  * \brief Structure for storing parser statistics.
  */
 struct ParserStats {
+	ParserStats(size_t top_ports_count)
+		: top_ports(top_ports_count)
+		, mpls_packets(0)
+		, vlan_packets(0)
+		, pppoe_packets(0)
+		, trill_packets(0)
+		, ipv4_packets(0)
+		, ipv6_packets(0)
+		, tcp_packets(0)
+		, udp_packets(0)
+		, seen_packets(0)
+		, unknown_packets(0)
+	{
+	}
+
+	TopPorts top_ports;
+
 	uint64_t mpls_packets;
 	uint64_t vlan_packets;
 	uint64_t pppoe_packets;

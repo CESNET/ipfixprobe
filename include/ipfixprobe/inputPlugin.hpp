@@ -96,7 +96,7 @@ protected:
 	};
 
 	/// Statistics related to packet parsing.
-	ParserStats m_parser_stats = {};
+	ParserStats m_parser_stats {10};
 
 private:
 	void create_parser_stats_telemetry(

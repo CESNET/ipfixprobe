@@ -13,6 +13,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <numeric>
+
 #include <ipfixprobe/inputPlugin.hpp>
 
 namespace ipxp {
@@ -35,6 +37,19 @@ static telemetry::Content get_parser_stats_content(const ParserStats& parserStat
 
 	dict["seen_packets"] = parserStats.seen_packets;
 	dict["unknown_packets"] = parserStats.unknown_packets;
+	const std::vector<TopPorts::PortStats>& ports = parserStats.top_ports.get_top_ports();
+	if (ports.empty()) {
+		dict["top_10_ports"] = "";
+	} else {
+		std::string top_ports = ports[0].to_string();
+		dict["top_10_ports"] = std::accumulate(
+			ports.begin() + 1,
+			ports.end(),
+			top_ports,
+			[](std::string acc, const TopPorts::PortStats& port_frequency) {
+				return acc + ", " + port_frequency.to_string();
+			});
+	}
 	return dict;
 }
 
