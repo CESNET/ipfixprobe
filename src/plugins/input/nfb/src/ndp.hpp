@@ -81,7 +81,9 @@ private:
 
 	telemetry::Content get_queue_telemetry();
 
-	NdpReader ndpReader;
+	NdpReader ndpReader[2];
+	std::size_t m_readers_count;
+	uint64_t m_reader_idx = 0;
 	RxStats m_stats = {};
 
 	void init_ifc(const std::string& dev);

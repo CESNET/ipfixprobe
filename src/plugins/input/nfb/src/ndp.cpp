@@ -43,6 +43,31 @@ static const PluginManifest ndpPluginManifest = {
 		},
 };
 
+static std::vector<std::string> parseDevices(const std::string& input)
+{
+	std::vector<std::string> result;
+
+	size_t colon_pos = input.find(':');
+	std::string suffix;
+	std::string devices;
+
+	if (colon_pos != std::string::npos) {
+		devices = input.substr(0, colon_pos);
+		suffix = input.substr(colon_pos);
+	} else {
+		devices = input;
+		suffix = "";
+	}
+
+	std::stringstream ss(devices);
+	std::string dev;
+	while (std::getline(ss, dev, ',')) {
+		result.push_back(dev + suffix);
+	}
+
+	return result;
+}
+
 NdpPacketReader::NdpPacketReader(const std::string& params)
 {
 	init(params.c_str());
@@ -65,18 +90,29 @@ void NdpPacketReader::init(const char* params)
 	if (parser.m_dev.empty()) {
 		throw PluginError("specify device path");
 	}
+
 	init_ifc(parser.m_dev);
 }
 
 void NdpPacketReader::close()
 {
-	ndpReader.close();
+	for (size_t i = 0; i < m_readers_count; i++) {
+		ndpReader[i].close();
+	}
 }
 
 void NdpPacketReader::init_ifc(const std::string& dev)
 {
-	if (ndpReader.init_interface(dev) != 0) {
-		throw PluginError(ndpReader.error_msg);
+	const std::vector<std::string> devs = parseDevices(dev);
+	m_readers_count = devs.size();
+	if (m_readers_count > 2) {
+		throw PluginError("too many devices specified");
+	}
+
+	for (size_t i = 0; i < m_readers_count; i++) {
+		if (ndpReader[i].init_interface(devs[i]) != 0) {
+			throw PluginError(ndpReader[i].error_msg);
+		}
 	}
 }
 
@@ -88,9 +124,11 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock& packets)
 	size_t read_pkts = 0;
 	int ret = -1;
 
+	NdpReader& reader = ndpReader[m_reader_idx++ % m_readers_count];
+
 	packets.cnt = 0;
 	for (unsigned i = 0; i < packets.size; i++) {
-		ret = ndpReader.get_pkt(&ndp_packet, &timestamp);
+		ret = reader.get_pkt(&ndp_packet, &timestamp);
 		if (ret == 0) {
 			if (opt.pblock->cnt) {
 				break;
@@ -98,7 +136,7 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock& packets)
 			return Result::TIMEOUT;
 		} else if (ret < 0) {
 			// Error occured.
-			throw PluginError(ndpReader.error_msg);
+			throw PluginError(reader.error_msg);
 		}
 		read_pkts++;
 		parse_packet(
