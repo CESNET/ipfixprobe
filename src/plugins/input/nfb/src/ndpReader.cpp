@@ -198,6 +198,46 @@ void NdpReader::set_sw_timestamp(struct timeval* tv)
 	tv->tv_usec = micros;
 }
 
+int NdpReader::get_packets(std::span<struct ndp_packet> packets, std::span<timeval> timestamps)
+{
+	if (blocked_packets > 128) {
+		ndp_rx_burst_put(rx_handle);
+		blocked_packets = 0;
+	}
+
+	const unsigned received = ndp_rx_burst_get(rx_handle, packets.data(), packets.size());
+	for (unsigned i = 0; i < received; i++) {
+		struct ndp_packet* ndp_packet = &packets[i];
+		if (fw_type == NdpFwType::NDP_FW_HANIC) {
+			uint64_t* fw_ts = &((NdpHeader*) (ndp_packet->header))->timestamp;
+			if (*fw_ts == 0) {
+				set_sw_timestamp((struct timeval*) &timestamps[i]);
+			} else {
+				convert_fw_ts_to_timeval(fw_ts, (struct timeval*) &timestamps[i]);
+			}
+		} else {
+			uint8_t header_id = ndp_packet_flag_header_id_get(ndp_packet);
+			if (header_id >= ndk_timestamp_offsets.size()) {
+				set_sw_timestamp((struct timeval*) &timestamps[i]);
+			} else if (ndk_timestamp_offsets[header_id] == std::numeric_limits<uint32_t>::max()) {
+				set_sw_timestamp((struct timeval*) &timestamps[i]);
+			} else {
+				uint64_t* fw_ts = (uint64_t*) ((uint8_t*) ndp_packet->header
+											   + ndk_timestamp_offsets[header_id]);
+				if (*fw_ts == std::numeric_limits<uint64_t>::max()) {
+					set_sw_timestamp((struct timeval*) &timestamps[i]);
+				} else {
+					convert_fw_ts_to_timeval(fw_ts, (struct timeval*) &timestamps[i]);
+				}
+			}
+		}
+	}
+
+	blocked_packets += received;
+
+	return received;
+}
+
 int NdpReader::get_pkt(struct ndp_packet** ndp_packet_out, struct timeval* timestamp)
 {
 	if (ndp_packet_buffer_processed >= ndp_packet_buffer_packets) {

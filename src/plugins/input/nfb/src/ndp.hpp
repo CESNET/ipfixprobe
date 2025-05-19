@@ -14,6 +14,9 @@
 
 #include "ndpReader.hpp"
 
+#include <memory>
+#include <span>
+
 #include <ipfixprobe/inputPlugin.hpp>
 #include <ipfixprobe/options.hpp>
 #include <ipfixprobe/packet.hpp>
@@ -81,8 +84,13 @@ private:
 
 	telemetry::Content get_queue_telemetry();
 
-	NdpReader ndpReader;
+	NdpReader ndpReader[2];
+	std::size_t m_readers_count;
+	uint64_t m_reader_idx = 0;
 	RxStats m_stats = {};
+
+	std::unique_ptr<struct ndp_packet[]> ndp_packet_burst;
+	std::array<timeval, 64> timestamps;
 
 	void init_ifc(const std::string& dev);
 };
