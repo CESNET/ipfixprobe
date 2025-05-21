@@ -63,12 +63,11 @@ def get_cpus_for_pci_device(pci_address: str) -> list[int]:
     """
     # Get the NUMA node
     numa_path = Path(f"/sys/bus/pci/devices/{pci_address}/numa_node")
-    if not numa_path.exists():
-        raise FileNotFoundError(f"NUMA node info for PCI address {pci_address} does not exist.")
-
-    numa_node = numa_path.read_text().strip()
-    if numa_node == "-1":
-        raise ValueError(f"Device {pci_address} is not assigned to any NUMA node.")
+    numa_node = 0
+    if numa_path.exists():
+        numa_node = numa_path.read_text().strip()
+        if numa_node == "-1":
+            numa_node = 0
 
     # Run lscpu to get CPU information
     result = subprocess.run(["lscpu"], capture_output=True, text=True, check=True)
@@ -138,10 +137,17 @@ def process_input_dpdk_plugin(settings):
         workers_cpu_list = cpu_list[:rx_queues]
 
     # Main parameter for DPDK with $eal_opts
-    primary_param = f"-i \"dpdk;p={','.join(str(i) for i in range(nic_count))};"
+    first_cpu = workers_cpu_list[0]
+    if first_cpu is not None:
+        primary_param = f"-i \"dpdk@{first_cpu};p={','.join(str(i) for i in range(nic_count))};"
+    else:
+        primary_param = f"-i \"dpdk;p={','.join(str(i) for i in range(nic_count))};"
+
     burst_size = settings.get("burst_size", 64)
     if burst_size is not None:
         primary_param += f"b={burst_size};"
+
+    primary_param += f"q={rx_queues};"
 
     mempool_size = settings.get("mempool_size", 8192)
     if mempool_size is not None:
@@ -153,11 +159,7 @@ def process_input_dpdk_plugin(settings):
     primary_param += f"eal={eal}\""
 
     params = []
-    first_cpu = workers_cpu_list[0]
-    if first_cpu is not None:
-        params.append(f"{primary_param}@{first_cpu}")
-    else:
-        params.append(primary_param)
+    params.append(primary_param)
 
     for i in range(1, rx_queues):
         cpu = workers_cpu_list[i]
