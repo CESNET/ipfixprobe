@@ -29,11 +29,11 @@ jobs:
     - name: Mark github workspace as safe
       run: git config --system --add safe.directory $PWD
     - name: make rpm
-      run: make rpm
+      run: make -j $(nproc) rpm
     - name: make rpm-msec
-      run: make rpm-msec
+      run: make -j $(nproc) rpm-msec
     - name: make rpm-nemea
-      run: make rpm-nemea
+      run: make -j $(nproc) rpm-nemea
     - name: Create copr config
       run: |
         mkdir ~/.config

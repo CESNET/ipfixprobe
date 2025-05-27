@@ -32,5 +32,5 @@ jobs:
         cmake3 .. -DENABLE_NEMEA=ON -DENABLE_INPUT_PCAP=ON -DENABLE_OUTPUT_UNIREC=ON -DENABLE_PROCESS_EXPERIMENTAL=ON -DENABLE_TESTS=ON
     - name: make tests
       run: |
-        make
+        make -j $(nproc)
         make tests
