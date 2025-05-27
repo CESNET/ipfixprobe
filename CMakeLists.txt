@@ -17,13 +17,13 @@ option(ENABLE_INPUT_DPDK            "Enable build of input DPDK plugin"         
 option(ENABLE_INPUT_NFB             "Enable build of input NFB plugin"                        OFF)
 option(ENABLE_OUTPUT_UNIREC         "Enable build of output UNIREC plugin"                    OFF)
 option(ENABLE_PROCESS_EXPERIMENTAL  "Enable build of experimental process plugins"            OFF)
-option(ENABLE_MILISECONDS_TIMESTAMP "Compile ipfixprobe with miliseconds timestamp precesion" OFF)
+option(ENABLE_MILLISECONDS_TIMESTAMP "Compile ipfixprobe with miliseconds timestamp precesion" OFF)
 option(ENABLE_NEMEA                 "Enable build of NEMEA plugins"                           OFF)
 
 option(ENABLE_RPMBUILD              "Enable build of RPM package"                             ON)
 option(ENABLE_TESTS                 "Build tests (make test)"                                 OFF)
 
-if(ENABLE_MILISECONDS_TIMESTAMP)
+if(ENABLE_MILLISECONDS_TIMESTAMP)
 	add_compile_definitions(IPXP_TS_MSEC)
 endif()
 

@@ -57,7 +57,7 @@ Export timestamp in milliseconds.
 %if 0%{?rhel} == 8
 source /opt/rh/gcc-toolset-14/enable
 %endif
-%cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_MILISECONDS_TIMESTAMP=ON
+%cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_MILLISECONDS_TIMESTAMP=ON
 %cmake_build
 
 %install
