@@ -101,7 +101,7 @@ uint64_t pntoh64(const void* p)
 	int shift = 56;
 
 	for (unsigned x = 0; x < 8; x++) {
-		buffer |= (uint64_t) * ((const uint8_t*) (p) + x) << (shift - (x * 8));
+		buffer |= (uint64_t) *((const uint8_t*) (p) + x) << (shift - (x * 8));
 	}
 	return buffer;
 }
