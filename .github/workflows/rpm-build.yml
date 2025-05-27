@@ -32,14 +32,14 @@ jobs:
       run: |
         cd build
         cmake3 .. -DCMAKE_BUILD_TYPE=Release -DENABLE_INPUT_PCAP=ON -DENABLE_INPUT_DPDK=ON -DENABLE_INPUT_NFB=ON -DENABLE_PROCESS_EXPERIMENTAL=ON
-        make rpm
+        make -j $(nproc) rpm
     - name: make rpm-msec
-      run: make rpm-msec
+      run: make -j $(nproc) rpm-msec
     - name: make rpm-nemea
       run: |
         cd build
         cmake3 .. -DCMAKE_BUILD_TYPE=Release -DENABLE_OUTPUT_UNIREC=ON -DENABLE_PROCESS_EXPERIMENTAL=ON
-        make rpm-nemea
+        make -j $(nproc) rpm-nemea
     - name: extract artifact name
       run: |
         OS=${{ inputs.os }}
