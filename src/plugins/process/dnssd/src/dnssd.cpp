@@ -356,7 +356,7 @@ void DNSSDPlugin::process_rdata(
 		if (!(txt_all_records || matches_service(it, name))) { // all_records overrides filter
 			break;
 		}
-		size_t len = (uint8_t) * (data++);
+		size_t len = (uint8_t) *(data++);
 		size_t total_len = len + 1;
 		std::list<std::string>::const_iterator sit;
 		std::string txt;
@@ -378,7 +378,7 @@ void DNSSDPlugin::process_rdata(
 			}
 
 			data += len;
-			len = (uint8_t) * (data++);
+			len = (uint8_t) *(data++);
 			total_len += len + 1;
 		}
 	} break;
