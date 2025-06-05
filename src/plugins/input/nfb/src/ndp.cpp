@@ -11,7 +11,6 @@
  */
 
 #include "ndp.hpp"
-
 #include "parser.hpp"
 
 #include <cstdio>
@@ -124,28 +123,40 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock& packets)
 	size_t read_pkts = 0;
 	int ret = -1;
 
-	NdpReader& reader = ndpReader[m_reader_idx++ % m_readers_count];
-
 	packets.cnt = 0;
-	for (unsigned i = 0; i < packets.size; i++) {
-		ret = reader.get_pkt(&ndp_packet, &timestamp);
-		if (ret == 0) {
-			if (opt.pblock->cnt) {
+
+	bool any_timeout = false;
+
+	for (unsigned r = 0; r < m_readers_count; ++r) {
+		NdpReader& reader = ndpReader[(m_reader_idx++) % m_readers_count];
+
+		for (unsigned i = 0; i < packets.size; ++i) {
+			ret = reader.get_pkt(&ndp_packet, &timestamp);
+			if (ret == 0) {
+				any_timeout = true;
+				break;
+			} else if (ret < 0) {
+				// Error occured.
+				throw PluginError(reader.error_msg);
+			}
+
+			++read_pkts;
+			parse_packet(
+				&opt,
+				m_parser_stats,
+				timestamp,
+				ndp_packet->data,
+				ndp_packet->data_length,
+				ndp_packet->data_length);
+
+			if (opt.pblock->cnt >= packets.size) {
 				break;
 			}
-			return Result::TIMEOUT;
-		} else if (ret < 0) {
-			// Error occured.
-			throw PluginError(reader.error_msg);
 		}
-		read_pkts++;
-		parse_packet(
-			&opt,
-			m_parser_stats,
-			timestamp,
-			ndp_packet->data,
-			ndp_packet->data_length,
-			ndp_packet->data_length);
+
+		if (opt.pblock->cnt) {
+			break;
+		}
 	}
 
 	m_seen += read_pkts;
@@ -154,7 +165,13 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock& packets)
 	m_stats.receivedPackets += read_pkts;
 	m_stats.receivedBytes += packets.bytes;
 
-	return opt.pblock->cnt ? Result::PARSED : Result::NOT_PARSED;
+	if (opt.pblock->cnt) {
+		return Result::PARSED;
+	} else if (any_timeout) {
+		return Result::TIMEOUT;
+	} else {
+		return Result::NOT_PARSED;
+	}
 }
 
 void NdpPacketReader::configure_telemetry_dirs(
