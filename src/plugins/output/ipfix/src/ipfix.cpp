@@ -879,7 +879,7 @@ int IPFIXExporter::send_packet(ipfix_packet_t* packet)
 	auto data = packetDataBuffer.getCompressed();
 
 	/* sendto() does not guarantee that everything will be send in one piece */
-	while (sent < dataLen) {
+	while (fd != -1 && sent < dataLen) {
 		/* Send data to collector (TCP and SCTP ignores last two arguments) */
 		ret = sendto(
 			fd,
