@@ -1,5 +1,9 @@
 add_subdirectory(raw)
 
+if (ENABLE_INPUT_SOCK)
+	add_subdirectory(sock)
+endif()
+
 if (ENABLE_INPUT_PCAP)
 	add_subdirectory(pcap)
 endif()

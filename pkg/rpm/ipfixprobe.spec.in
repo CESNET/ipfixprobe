@@ -2,6 +2,7 @@
 %bcond_with input_dpdk
 %bcond_with input_nfb
 %bcond_with process_experimental
+%bcond_with input_sock
 
 %global _unitdir %{_prefix}/lib/systemd/system
 
@@ -62,6 +63,16 @@ BuildRequires: libpcap-devel
 Input plugin for libpcap.
 %endif
 
+%if %{with input_sock}
+%package input-sock
+Summary: Input plugin to read flow records from a unix domain socket using libsock.
+Requires: libsock
+BuildRequires: libsock-devel
+
+%description input-sock
+Input plugin for libsock.
+%endif
+
 %if %{with input_dpdk}
 %package input-dpdk
 Summary: Input plugin to read packets from interfaces using dpdk.
@@ -102,7 +113,7 @@ Experimental process plugins.
 %if 0%{?rhel} == 8
 source /opt/rh/gcc-toolset-14/enable
 %endif
-%cmake -DCMAKE_BUILD_TYPE=Release %{?with_input_pcap:-DENABLE_INPUT_PCAP=ON} %{?with_input_dpdk:-DENABLE_INPUT_DPDK=ON} %{?with_input_nfb:-DENABLE_INPUT_NFB=ON} %{?with_process_experimental: -DENABLE_PROCESS_EXPERIMENTAL=ON}
+%cmake -DCMAKE_BUILD_TYPE=Release %{?with_input_pcap:-DENABLE_INPUT_PCAP=ON} %{?with_input_sock:-DENABLE_INPUT_SOCK=ON} %{?with_input_dpdk:-DENABLE_INPUT_DPDK=ON} %{?with_input_nfb:-DENABLE_INPUT_NFB=ON} %{?with_process_experimental: -DENABLE_PROCESS_EXPERIMENTAL=ON}
 %cmake_build
 
 %install
@@ -153,6 +164,12 @@ source /opt/rh/gcc-toolset-14/enable
 %if %{with input_pcap}
 %files input-pcap
 %{_libdir}/ipfixprobe/input/libipfixprobe-input-pcap.so
+%endif
+
+%if %{with input_sock}
+%files input-sock
+%{_libdir}/ipfixprobe/input/libipfixprobe-input-sock.so
+%{_libdir}/ipfixprobe/process/libipfixprobe-process-sockpktinfo.so
 %endif
 
 %if %{with input_nfb}
