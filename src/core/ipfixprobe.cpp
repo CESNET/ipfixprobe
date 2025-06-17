@@ -76,9 +76,7 @@ void register_handlers()
 	signal(SIGTERM, signal_handler);
 	signal(SIGINT, signal_handler);
 	signal(SIGSEGV, signal_handler);
-#ifdef WITH_NEMEA
 	signal(SIGPIPE, SIG_IGN);
-#endif
 }
 
 void error(std::string msg)
