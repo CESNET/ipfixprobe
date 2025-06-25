@@ -38,13 +38,17 @@ BuildRequires: cmake >= 3.12
 BuildRequires: libunwind-devel
 BuildRequires: gcc-toolset-14-libatomic-devel
 BuildRequires: pkgconfig
+%if %{with lz4}
 BuildRequires: lz4-devel
+%endif
 BuildRequires: openssl-devel
 BuildRequires: git
 
 Requires: libatomic
 Requires: fuse3
+%if %{with lz4}
 Requires: lz4
+%endif
 Requires: openssl
 Requires: python3
 Requires: python3-pyyaml
@@ -113,7 +117,7 @@ Experimental process plugins.
 %if 0%{?rhel} == 8
 source /opt/rh/gcc-toolset-14/enable
 %endif
-%cmake -DCMAKE_BUILD_TYPE=Release %{?with_input_pcap:-DENABLE_INPUT_PCAP=ON} %{?with_input_sock:-DENABLE_INPUT_SOCK=ON} %{?with_input_dpdk:-DENABLE_INPUT_DPDK=ON} %{?with_input_nfb:-DENABLE_INPUT_NFB=ON} %{?with_process_experimental: -DENABLE_PROCESS_EXPERIMENTAL=ON}
+%cmake -DCMAKE_BUILD_TYPE=Release %{?with_output_lz4:-DENABLE_OUTPUT_LZ4=ON} %{?with_input_pcap:-DENABLE_INPUT_PCAP=ON} %{?with_input_sock:-DENABLE_INPUT_SOCK=ON} %{?with_input_dpdk:-DENABLE_INPUT_DPDK=ON} %{?with_input_nfb:-DENABLE_INPUT_NFB=ON} %{?with_process_experimental: -DENABLE_PROCESS_EXPERIMENTAL=ON}
 %cmake_build
 
 %install

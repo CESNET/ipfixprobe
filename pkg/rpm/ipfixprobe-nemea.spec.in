@@ -35,14 +35,18 @@ BuildRequires: cmake >= 3.12
 BuildRequires: libunwind-devel
 BuildRequires: gcc-toolset-14-libatomic-devel
 BuildRequires: pkgconfig
+%if %{with lz4}
 BuildRequires: lz4-devel
+%endif
 BuildRequires: openssl-devel
 BuildRequires: nemea-framework-devel
 BuildRequires: git
 
 Requires: libatomic
 Requires: fuse3
+%if %{with lz4}
 Requires: lz4
+%endif
 Requires: openssl
 Requires: python3
 Requires: python3-pyyaml
