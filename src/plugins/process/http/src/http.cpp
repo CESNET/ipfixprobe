@@ -94,49 +94,61 @@ ProcessPlugin* HTTPPlugin::copy()
 	return new HTTPPlugin(*this);
 }
 
-int HTTPPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction HTTPPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	const char* payload = reinterpret_cast<const char*>(pkt.payload);
 	if (is_request(payload, pkt.payload_len)) {
 		add_ext_http_request(payload, pkt.payload_len, rec);
 	} else if (is_response(payload, pkt.payload_len)) {
 		add_ext_http_response(payload, pkt.payload_len, rec);
-	}
+	} 
 
-	return 0;
+	return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
-int HTTPPlugin::pre_update(Flow& rec, Packet& pkt)
+ProcessPlugin::FlowAction HTTPPlugin::pre_update(Flow& rec, Packet& pkt)
 {
-	RecordExt* ext = nullptr;
+	auto* ext = static_cast<RecordExtHTTP*>(rec.get_extension(m_pluginID));
 	const char* payload = reinterpret_cast<const char*>(pkt.payload);
-	if (is_request(payload, pkt.payload_len)) {
-		ext = rec.get_extension(m_pluginID);
+
+	if (is_request(payload, pkt.payload_len)) {		
 		if (ext == nullptr) { /* Check if header is present in flow. */
 			add_ext_http_request(payload, pkt.payload_len, rec);
-			return 0;
+			return ProcessPlugin::FlowAction::GET_ALL_DATA;
 		}
+		ext->parsing_failed = 0;
 
-		parse_http_request(payload, pkt.payload_len, static_cast<RecordExtHTTP*>(ext));
+		parse_http_request(payload, pkt.payload_len, ext);
 		if (flow_flush) {
 			flow_flush = false;
-			return FLOW_FLUSH_WITH_REINSERT;
+			return ProcessPlugin::FlowAction::FLUSH_WITH_REINSERT;
 		}
 	} else if (is_response(payload, pkt.payload_len)) {
-		ext = rec.get_extension(m_pluginID);
 		if (ext == nullptr) { /* Check if header is present in flow. */
 			add_ext_http_response(payload, pkt.payload_len, rec);
-			return 0;
+			return ProcessPlugin::FlowAction::GET_ALL_DATA;
 		}
+		ext->parsing_failed = 0;
 
-		parse_http_response(payload, pkt.payload_len, static_cast<RecordExtHTTP*>(ext));
+		parse_http_response(payload, pkt.payload_len, ext);
 		if (flow_flush) {
 			flow_flush = false;
-			return FLOW_FLUSH_WITH_REINSERT;
+			return ProcessPlugin::FlowAction::FLUSH_WITH_REINSERT;
 		}
+	} else if (ext != nullptr) {
+		ext->parsing_failed++;
 	}
 
-	return 0;
+	if (ext != nullptr) {
+		return ext->parsing_failed >= RecordExtHTTP::MAX_PARSING_FAILED_COUNT ?
+		ProcessPlugin::FlowAction::GET_NO_DATA :
+		ProcessPlugin::FlowAction::GET_ALL_DATA;
+	}
+
+	return rec.src_packets + rec.dst_packets >= RecordExtHTTP::MAX_PARSING_FAILED_COUNT ?
+		ProcessPlugin::FlowAction::GET_NO_DATA :
+		ProcessPlugin::FlowAction::GET_ALL_DATA;
+
 }
 
 void HTTPPlugin::finish(bool print_stats)

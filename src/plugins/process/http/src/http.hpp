@@ -67,6 +67,9 @@ struct RecordExtHTTP : public RecordExt {
 	char server[128];
 	char set_cookie[512];
 
+	uint16_t parsing_failed;
+	static constexpr size_t MAX_PARSING_FAILED_COUNT = 30; 
+
 	/**
 	 * \brief Constructor.
 	 */
@@ -84,6 +87,7 @@ struct RecordExtHTTP : public RecordExt {
 		content_type[0] = 0;
 		server[0] = 0;
 		set_cookie[0] = 0;
+		parsing_failed = 0;
 	}
 
 #ifdef WITH_NEMEA
@@ -198,8 +202,8 @@ public:
 	std::string get_name() const { return "http"; }
 	ProcessPlugin* copy();
 
-	int post_create(Flow& rec, const Packet& pkt);
-	int pre_update(Flow& rec, Packet& pkt);
+	ProcessPlugin::FlowAction post_create(Flow& rec, const Packet& pkt) override;
+	ProcessPlugin::FlowAction pre_update(Flow& rec, Packet& pkt) override;
 	void finish(bool print_stats);
 
 private:
