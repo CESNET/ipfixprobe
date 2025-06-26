@@ -51,7 +51,7 @@ ProcessPlugin* FLOW_HASHPlugin::copy()
 	return new FLOW_HASHPlugin(*this);
 }
 
-int FLOW_HASHPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction FLOW_HASHPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	(void) pkt;
 	auto ext = new RecordExtFLOW_HASH(m_pluginID);
@@ -60,7 +60,7 @@ int FLOW_HASHPlugin::post_create(Flow& rec, const Packet& pkt)
 
 	rec.add_extension(ext);
 
-	return 0;
+	return ProcessPlugin::FlowAction::GET_NO_DATA;
 }
 
 static const PluginRegistrar<FLOW_HASHPlugin, ProcessPluginFactory>
