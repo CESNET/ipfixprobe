@@ -98,26 +98,26 @@ ProcessPlugin* TLSPlugin::copy()
 	return new TLSPlugin(*this);
 }
 
-int TLSPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction TLSPlugin::post_create(Flow& rec, const Packet& pkt)
 {
-	add_tls_record(rec, pkt);
-	return 0;
+	return add_tls_record(rec, pkt);
 }
 
-int TLSPlugin::pre_update(Flow& rec, Packet& pkt)
+ProcessPlugin::FlowAction TLSPlugin::pre_update(Flow& rec, Packet& pkt)
 {
 	auto* ext = static_cast<RecordExtTLS*>(rec.get_extension(m_pluginID));
 
 	if (ext != nullptr) {
 		if (!ext->server_hello_parsed) {
 			// Add ALPN from server packet
-			parse_tls(pkt.payload, pkt.payload_len, ext, rec.ip_proto);
+			if (parse_tls(pkt.payload, pkt.payload_len, ext, rec.ip_proto)) {
+				return ProcessPlugin::FlowAction::GET_NO_DATA;
+			}
 		}
-		return 0;
+		return ProcessPlugin::FlowAction::GET_ALL_DATA;
 	}
-	add_tls_record(rec, pkt);
-
-	return 0;
+	
+	return add_tls_record(rec, pkt);
 }
 
 static std::string concatenate_vector_to_string(const std::vector<uint16_t>& vector)
@@ -390,6 +390,8 @@ bool TLSPlugin::parse_tls(
 			rec->extensions_buffer_size = count_to_copy;
 		}
 		rec->version = parser.get_handshake()->version.version;
+		//rec->version = parser.get_supported_versions().empty() ? parser.get_handshake()->version.version
+		//													   : parser.get_supported_versions()[0];
 		parser.save_server_names(rec->sni, sizeof(rec->sni));
 		md5_get_bin(get_ja3_string(parser), rec->ja3);
 		auto ja4 = get_ja4_string(parser, ip_proto);
@@ -407,7 +409,7 @@ bool TLSPlugin::parse_tls(
 	return false;
 }
 
-void TLSPlugin::add_tls_record(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction TLSPlugin::add_tls_record(Flow& rec, const Packet& pkt)
 {
 	if (ext_ptr == nullptr) {
 		ext_ptr = new RecordExtTLS(m_pluginID);
@@ -421,6 +423,8 @@ void TLSPlugin::add_tls_record(Flow& rec, const Packet& pkt)
 		rec.add_extension(ext_ptr);
 		ext_ptr = nullptr;
 	}
+
+	return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 void TLSPlugin::finish(bool print_stats)
