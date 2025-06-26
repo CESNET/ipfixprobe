@@ -672,6 +672,7 @@ void parse_packet(
 		return;
 	}
 	Packet* pkt = &opt->pblock->pkts[opt->pblock->cnt];
+	pkt->external_export = false;
 	uint16_t data_offset = 0;
 
 	DEBUG_MSG("---------- packet parser  #%u -------------\n", ++s_total_pkts);
