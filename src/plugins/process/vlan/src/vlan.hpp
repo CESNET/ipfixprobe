@@ -92,7 +92,7 @@ public:
 	RecordExt* get_ext() const { return new RecordExtVLAN(m_pluginID); }
 	ProcessPlugin* copy();
 
-	int post_create(Flow& rec, const Packet& pkt);
+	ProcessPlugin::FlowAction post_create(Flow& rec, const Packet& pkt);
 };
 
 } // namespace ipxp
