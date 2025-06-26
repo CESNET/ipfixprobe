@@ -42,17 +42,17 @@ ProcessPlugin* MPLSPlugin::copy()
 	return new MPLSPlugin(*this);
 }
 
-int MPLSPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction MPLSPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	if (pkt.mplsTop == 0) {
-		return 0;
+		return ProcessPlugin::FlowAction::GET_NO_DATA;
 	}
 
 	auto ext = new RecordExtMPLS(m_pluginID);
 	ext->mpls = pkt.mplsTop;
 
 	rec.add_extension(ext);
-	return 0;
+	return ProcessPlugin::FlowAction::GET_NO_DATA;
 }
 
 static const PluginRegistrar<MPLSPlugin, ProcessPluginFactory> mplsRegistrar(mplsPluginManifest);
