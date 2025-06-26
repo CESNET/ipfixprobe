@@ -79,7 +79,7 @@ ProcessPlugin* OSQUERYPlugin::copy()
 	return new OSQUERYPlugin(*this);
 }
 
-int OSQUERYPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction OSQUERYPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	(void) pkt;
 	ConvertedFlowData flowDataIPv4(rec.src_ip.v4, rec.dst_ip.v4, rec.src_port, rec.dst_port);
@@ -91,7 +91,7 @@ int OSQUERYPlugin::post_create(Flow& rec, const Packet& pkt)
 		numberOfSuccessfullyRequests++;
 	}
 
-	return 0;
+	return ProcessPlugin::FlowAction::GET_NO_DATA;
 }
 
 void OSQUERYPlugin::finish(bool print_stats)
