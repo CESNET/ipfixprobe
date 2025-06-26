@@ -142,13 +142,15 @@ void PSTATSPlugin::update_record(RecordExtPSTATS* pstats_data, const Packet& pkt
 	}
 }
 
-int PSTATSPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction PSTATSPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	RecordExtPSTATS* pstats_data = new RecordExtPSTATS(m_pluginID);
 	rec.add_extension(pstats_data);
 
 	update_record(pstats_data, pkt);
-	return 0;
+	return pstats_data->pkt_count < PSTATS_MAXELEMCOUNT
+		? ProcessPlugin::FlowAction::GET_ALL_DATA
+		: ProcessPlugin::FlowAction::GET_NO_DATA;
 }
 
 void PSTATSPlugin::pre_export(Flow& rec)
@@ -161,11 +163,13 @@ void PSTATSPlugin::pre_export(Flow& rec)
 	}
 }
 
-int PSTATSPlugin::post_update(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction PSTATSPlugin::post_update(Flow& rec, const Packet& pkt)
 {
 	RecordExtPSTATS* pstats_data = (RecordExtPSTATS*) rec.get_extension(m_pluginID);
 	update_record(pstats_data, pkt);
-	return 0;
+	return pstats_data->pkt_count < PSTATS_MAXELEMCOUNT
+		? ProcessPlugin::FlowAction::GET_ALL_DATA
+		: ProcessPlugin::FlowAction::GET_NO_DATA;
 }
 
 static const PluginRegistrar<PSTATSPlugin, ProcessPluginFactory>
