@@ -120,7 +120,7 @@ source /opt/rh/gcc-toolset-14/enable
 %{_libdir}/ipfixprobe/process/libipfixprobe-process-ssadetector.so
 %{_libdir}/ipfixprobe/process/libipfixprobe-process-ssdp.so
 
-%{_libdir}/ipfixprobe/storage/libipfixprobe-storage-cache.so
+%{_libdir}/ipfixprobe/storage/libipfixprobe-storage-cache-ctt.so
 
 %{_libdir}/ipfixprobe/schema.json
 %{_libdir}/ipfixprobe/config2args.py
