@@ -37,6 +37,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <ipfixprobe/cttmeta.hpp>
 
 namespace ipxp {
 
@@ -100,7 +101,10 @@ struct Packet : public Record {
 	uint16_t buffer_size; /**< Size of buffer */
 
 	bool source_pkt; /**< Direction of packet from flow point of view */
-
+	
+	std::optional<CttMetadata> cttmeta; /**< Metadata from CTT */
+	bool external_export; /**< True if packet payload is ctt export data */
+ 
 	/**
 	 * \brief Constructor.
 	 */
@@ -142,6 +146,7 @@ struct Packet : public Record {
 		, buffer(nullptr)
 		, buffer_size(0)
 		, source_pkt(true)
+      	, external_export(false)
 	{
 	}
 };
