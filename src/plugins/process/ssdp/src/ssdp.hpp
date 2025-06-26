@@ -154,8 +154,8 @@ public:
 	RecordExt* get_ext() const { return new RecordExtSSDP(m_pluginID); }
 	ProcessPlugin* copy();
 
-	int post_create(Flow& rec, const Packet& pkt);
-	int pre_update(Flow& rec, Packet& pkt);
+	ProcessPlugin::FlowAction post_create(Flow& rec, const Packet& pkt);
+	ProcessPlugin::FlowAction pre_update(Flow& rec, Packet& pkt);
 	void finish(bool print_stats);
 
 	/**
