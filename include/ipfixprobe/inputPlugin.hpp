@@ -20,10 +20,12 @@
 #include "parser-stats.hpp"
 #include "plugin.hpp"
 #include "telemetry-utils.hpp"
+#include "cttConfig.hpp"
 
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <optional>
 
 #include <telemetry.hpp>
 
@@ -65,6 +67,11 @@ public:
 	void set_telemetry_dirs(
 		std::shared_ptr<telemetry::Directory> plugin_dir,
 		std::shared_ptr<telemetry::Directory> queues_dir);
+
+	virtual std::optional<CttConfig> get_ctt_config() const 
+	{
+		return std::nullopt;
+	}
 
 	/// Number of packets seen by the plugin.
 	uint64_t m_seen = 0;
