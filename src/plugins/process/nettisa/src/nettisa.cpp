@@ -85,7 +85,7 @@ void NETTISAPlugin::update_record(
 	}
 }
 
-int NETTISAPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction NETTISAPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	RecordExtNETTISA* nettisa_data = new RecordExtNETTISA(m_pluginID);
 	rec.add_extension(nettisa_data);
@@ -93,15 +93,15 @@ int NETTISAPlugin::post_create(Flow& rec, const Packet& pkt)
 	nettisa_data->prev_time = timeval2usec(pkt.ts);
 
 	update_record(nettisa_data, pkt, rec);
-	return 0;
+	return ProcessPlugin::FlowAction::GET_ONLY_METADATA;
 }
 
-int NETTISAPlugin::post_update(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction NETTISAPlugin::post_update(Flow& rec, const Packet& pkt)
 {
 	RecordExtNETTISA* nettisa_data = (RecordExtNETTISA*) rec.get_extension(m_pluginID);
 
 	update_record(nettisa_data, pkt, rec);
-	return 0;
+	return ProcessPlugin::FlowAction::GET_ONLY_METADATA;
 }
 
 void NETTISAPlugin::pre_export(Flow& rec)
