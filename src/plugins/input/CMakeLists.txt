@@ -11,3 +11,7 @@ endif()
 if (ENABLE_INPUT_NFB)
 	add_subdirectory(nfb)
 endif()
+
+if (ENABLE_CTT)
+	add_subdirectory(nfb-meta)
+endif()

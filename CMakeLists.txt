@@ -19,6 +19,7 @@ option(ENABLE_OUTPUT_UNIREC         "Enable build of output UNIREC plugin"      
 option(ENABLE_PROCESS_EXPERIMENTAL  "Enable build of experimental process plugins"            OFF)
 option(ENABLE_MILLISECONDS_TIMESTAMP "Compile ipfixprobe with miliseconds timestamp precesion" OFF)
 option(ENABLE_NEMEA                 "Enable build of NEMEA plugins"                           OFF)
+option(ENABLE_CTT                   "Enable support of conaction tracking table"              OFF)
 
 option(ENABLE_RPMBUILD              "Enable build of RPM package"                             ON)
 option(ENABLE_TESTS                 "Build tests (make test)"                                 OFF)
@@ -48,6 +49,8 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -ggdb3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -ggdb3")
+
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 include(cmake/dependencies.cmake)
 

@@ -6,6 +6,8 @@ add_library(ipfixprobe-input-nfb MODULE
 	src/ndpHeader.hpp
 	src/ndpReader.cpp
 	src/ndpReader.hpp
+	src/ndpCore.hpp
+	src/ndpCore.cpp
 	../parser/parser.cpp
 	../parser/parser.hpp
 )
