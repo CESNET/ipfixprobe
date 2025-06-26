@@ -57,12 +57,6 @@ ProcessPlugin* BSTATSPlugin::copy()
 	return new BSTATSPlugin(*this);
 }
 
-int BSTATSPlugin::pre_create(Packet& pkt)
-{
-	(void) pkt;
-	return 0;
-}
-
 #define BCOUNT burst_count[direction]
 void BSTATSPlugin::initialize_new_burst(
 	RecordExtBSTATS* bstats_record,
@@ -133,28 +127,23 @@ void BSTATSPlugin::update_record(RecordExtBSTATS* bstats_record, const Packet& p
 	}
 }
 
-int BSTATSPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction BSTATSPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	RecordExtBSTATS* bstats_record = new RecordExtBSTATS(m_pluginID);
 
 	rec.add_extension(bstats_record);
 	update_record(bstats_record, pkt);
-	return 0;
+	return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
-int BSTATSPlugin::pre_update(Flow& rec, Packet& pkt)
+ProcessPlugin::FlowAction BSTATSPlugin::pre_update(Flow& rec, Packet& pkt)
 {
 	RecordExtBSTATS* bstats_record = static_cast<RecordExtBSTATS*>(rec.get_extension(m_pluginID));
 
 	update_record(bstats_record, pkt);
-	return 0;
-}
-
-int BSTATSPlugin::post_update(Flow& rec, const Packet& pkt)
-{
-	(void) rec;
-	(void) pkt;
-	return 0;
+	return bstats_record->burst_count[0] + bstats_record->burst_count[1] >= BSTATS_MAXELENCOUNT ?
+		ProcessPlugin::FlowAction::GET_NO_DATA :
+		ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 void BSTATSPlugin::pre_export(Flow& rec)
