@@ -37,6 +37,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <bitset>
 
 #ifdef WITH_NEMEA
 #include <unirec/unirec.h>
@@ -233,38 +234,61 @@ struct Record {
 	virtual ~Record() { remove_extensions(); }
 };
 
-#define FLOW_END_INACTIVE 0x01
-#define FLOW_END_ACTIVE 0x02
-#define FLOW_END_EOF 0x03
-#define FLOW_END_FORCED 0x04
-#define FLOW_END_NO_RES 0x05
+enum FlowEndReason : int {
+	FLOW_END_INACTIVE = 0x1, /**< Flow ended due to inactivity timeout. */
+	FLOW_END_ACTIVE = 0x2, /**< Flow ended due to active timeout. */
+	FLOW_END_EOF = 0x3, /**< Flow ended due to end of flow (TCP FIN or RST). */
+	FLOW_END_FORCED = 0x4, /**< Flow ended due to process plugin flushes */
+	FLOW_END_NO_RES = 0x5 /**< Flow ended due to lack of resources (e.g. full cache line). */
+};
 
 /**
  * \brief Flow record struct constaining basic flow record data and extension headers.
  */
 struct Flow : public Record {
-	uint64_t flow_hash;
+    static inline const int MAXIMAL_PROCESS_PLUGIN_COUNT = 64;
+    /**
+     * \brief Plugins status struct describes flow information required by process plugins.
+     */
+    struct PluginsStatus {
+        // get_no_data[i] == true -> i-th process plugin requires no flow data
+        // get_no_data[i] == false && get_all_data[i] == true -> i-th process plugin requires all
+        // available flow data
+        // get_no_data[i] == false && get_all_data[i] == false -> i-th process plugin requires
+        // only metadata
+        std::bitset<MAXIMAL_PROCESS_PLUGIN_COUNT> get_all_data;
+        std::bitset<MAXIMAL_PROCESS_PLUGIN_COUNT> get_no_data;
+    };
 
-	struct timeval time_first;
-	struct timeval time_last;
-	uint64_t src_bytes;
-	uint64_t dst_bytes;
-	uint32_t src_packets;
-	uint32_t dst_packets;
-	uint8_t src_tcp_flags;
-	uint8_t dst_tcp_flags;
+    uint64_t flow_hash;
+    uint64_t flow_hash_ctt;     /**< Flow hash for CTT. */
 
-	uint8_t ip_version;
+    PluginsStatus plugins_status; /**< Statuses of the process plugins for this flow, used to check
+                                     if the flow process plugins requires all available data, only
+                                     metadata or nothing of this. */
 
-	uint8_t ip_proto;
-	uint16_t src_port;
-	uint16_t dst_port;
-	ipaddr_t src_ip;
-	ipaddr_t dst_ip;
+   struct timeval time_first;
+   struct timeval time_last;
+   uint64_t src_bytes;
+   uint64_t dst_bytes;
+   uint32_t src_packets;
+   uint32_t dst_packets;
+   uint8_t  src_tcp_flags;
+   uint8_t  dst_tcp_flags;
 
-	uint8_t src_mac[6];
-	uint8_t dst_mac[6];
-	uint8_t end_reason;
+   uint8_t  ip_version;
+   uint16_t vlan_id;
+
+   uint8_t  ip_proto;
+   uint16_t src_port;
+   uint16_t dst_port;
+   ipaddr_t src_ip;
+   ipaddr_t dst_ip;
+
+   uint8_t src_mac[6];
+   uint8_t dst_mac[6];
+   uint8_t end_reason;
+   bool swapped; /**< Flow addresses and ports were swapped on creation. */
 };
 
 } // namespace ipxp
