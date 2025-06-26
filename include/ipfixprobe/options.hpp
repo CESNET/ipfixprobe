@@ -49,7 +49,7 @@ public:
 
 	OptionsParser();
 	OptionsParser(const std::string& name, const std::string& info);
-	~OptionsParser();
+	virtual ~OptionsParser();
 	OptionsParser(OptionsParser& p) = delete;
 	OptionsParser(OptionsParser&& p) = delete;
 	void operator=(OptionsParser& p) = delete;
