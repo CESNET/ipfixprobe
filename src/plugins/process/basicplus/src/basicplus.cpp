@@ -56,7 +56,7 @@ ProcessPlugin* BASICPLUSPlugin::copy()
 	return new BASICPLUSPlugin(*this);
 }
 
-int BASICPLUSPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction BASICPLUSPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	RecordExtBASICPLUS* p = new RecordExtBASICPLUS(m_pluginID);
 
@@ -71,10 +71,10 @@ int BASICPLUSPlugin::post_create(Flow& rec, const Packet& pkt)
 		p->tcp_syn_size = pkt.ip_len;
 	}
 
-	return 0;
+	return ProcessPlugin::FlowAction::GET_ONLY_METADATA;
 }
 
-int BASICPLUSPlugin::pre_update(Flow& rec, Packet& pkt)
+ProcessPlugin::FlowAction BASICPLUSPlugin::pre_update(Flow& rec, Packet& pkt)
 {
 	RecordExtBASICPLUS* p = (RecordExtBASICPLUS*) rec.get_extension(m_pluginID);
 	uint8_t dir = pkt.source_pkt ? 0 : 1;
@@ -91,7 +91,7 @@ int BASICPLUSPlugin::pre_update(Flow& rec, Packet& pkt)
 	}
 	// update tcp options mask across the tcp flow
 	p->tcp_opt[dir] |= pkt.tcp_options;
-	return 0;
+	return ProcessPlugin::FlowAction::GET_ONLY_METADATA;
 }
 
 static const PluginRegistrar<BASICPLUSPlugin, ProcessPluginFactory>
