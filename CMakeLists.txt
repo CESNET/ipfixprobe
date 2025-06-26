@@ -21,7 +21,7 @@ option(ENABLE_OUTPUT_LZ4            "Enable Build of output LZ4 compression"    
 option(ENABLE_PROCESS_EXPERIMENTAL  "Enable build of experimental process plugins"            OFF)
 option(ENABLE_MILLISECONDS_TIMESTAMP "Compile ipfixprobe with miliseconds timestamp precesion" OFF)
 option(ENABLE_NEMEA                 "Enable build of NEMEA plugins"                           OFF)
-
+option(ENABLE_UNWIND                "Enable Build with Lib unwind"                            OFF)
 option(ENABLE_RPMBUILD              "Enable build of RPM package"                             ON)
 option(ENABLE_TESTS                 "Build tests (make test)"                                 OFF)
 

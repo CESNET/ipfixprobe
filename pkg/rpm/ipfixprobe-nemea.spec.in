@@ -32,7 +32,9 @@ BuildRequires: gcc-c++ >= 10
 
 BuildRequires: make
 BuildRequires: cmake >= 3.12
+%if %{with unwind}
 BuildRequires: libunwind-devel
+%endif
 BuildRequires: gcc-toolset-14-libatomic-devel
 BuildRequires: pkgconfig
 %if %{with lz4}

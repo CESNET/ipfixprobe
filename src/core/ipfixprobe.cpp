@@ -65,7 +65,9 @@ void signal_handler(int sig)
 {
 	(void) sig;
 	if (sig == SIGSEGV) {
+#ifdef WITH_UNWIND
 		st_dump(STDERR_FILENO, sig);
+#endif
 		abort();
 	}
 	stop = 1;

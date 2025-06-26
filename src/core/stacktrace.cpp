@@ -36,6 +36,7 @@
 #define UNW_LOCAL_ONLY
 #include "stacktrace.hpp"
 
+#ifdef WITH_UNWIND
 #include <libunwind.h>
 
 namespace ipxp {
@@ -192,3 +193,4 @@ void st_dump(int fd, int sig)
 }
 
 } // namespace ipxp
+#endif
