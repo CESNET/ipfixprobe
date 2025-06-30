@@ -61,10 +61,14 @@ public:
 	 * @brief Sets the telemetry directories for this plugin.
 	 * @param plugin_dir Shared pointer to the plugin-specific telemetry directory.
 	 * @param queues_dir Shared pointer to the telemetry directory for queues.
+	 * @param summary_dir Shared pointer to the telemetry directory for summary statistics.
+	 * @param pipeline_dir Shared pointer to the telemetry directory for the pipeline.
 	 */
 	void set_telemetry_dirs(
 		std::shared_ptr<telemetry::Directory> plugin_dir,
-		std::shared_ptr<telemetry::Directory> queues_dir);
+		std::shared_ptr<telemetry::Directory> queues_dir,
+		std::shared_ptr<telemetry::Directory> summary_dir,
+		std::shared_ptr<telemetry::Directory> pipeline_dir);
 
 	/// Number of packets seen by the plugin.
 	uint64_t m_seen = 0;
@@ -95,7 +99,10 @@ protected:
 	ParserStats m_parser_stats = {};
 
 private:
-	void create_parser_stats_telemetry(std::shared_ptr<telemetry::Directory> queues_dir);
+	void create_parser_stats_telemetry(
+		std::shared_ptr<telemetry::Directory> queues_dir,
+		std::shared_ptr<telemetry::Directory> summaryDirectory,
+		std::shared_ptr<telemetry::Directory> pipelineDirectory);
 };
 
 /**
