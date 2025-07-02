@@ -56,6 +56,32 @@ public:
 		m_holder.add(file);
 	}
 
+	/**
+	 * @brief Register an aggregated file in the telemetry holder
+	 *
+	 * If the file is already registered, it will not be registered again.
+	 *
+	 * @param directory Directory to register the file in
+	 * @param name Name of the aggregated file
+	 * @param aggFilesPattern Pattern for aggregated files
+	 * @param aggOps Aggregation operations to perform on the files
+	 * @param patternRootDir Optional root directory for pattern matching
+	 */
+	void register_agg_file(
+		std::shared_ptr<telemetry::Directory> directory,
+		const std::string_view& name,
+		const std::string& aggFilesPattern,
+		const std::vector<telemetry::AggOperation>& aggOps,
+		std::shared_ptr<telemetry::Directory> patternRootDir = nullptr)
+	{
+		if (directory->getEntry(name)) {
+			return;
+		}
+
+		auto file = directory->addAggFile(name, aggFilesPattern, aggOps, patternRootDir);
+		m_holder.add(file);
+	}
+
 protected:
 	telemetry::Holder m_holder;
 };
