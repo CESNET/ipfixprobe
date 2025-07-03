@@ -9,6 +9,7 @@
 ipfixprobe is a high-performance flow exporter. It creates bidirectional flows from packet input and exports them to output interface. The ipfixprobe support vide variety of flow extenstion for application layer protocol information. The flow extension can be turned on with process plugins. We support TLS, QUIC, HTTP, DNS and many more. Just check our [documentation](https://ipfixprobe.cesnet.cz).
 
 [![](https://img.shields.io/badge/license-BSD-blue.svg)](https://github.com/CESNET/ipfixprobe/blob/master/LICENSE)
+[![](https://img.shields.io/badge/docs-ipfixprobe-blue.svg)](https://ipfixprobe.cesnet.cz)
 ![Coverity Scan](https://img.shields.io/coverity/scan/22112)
 ![GitHub top language](https://img.shields.io/github/languages/top/CESNET/ipfixprobe)
 
