@@ -14,10 +14,10 @@ ipfixprobe is a high-performance flow exporter. It creates bidirectional flows f
 
 
 ## 🛠️ Installation
-The RPM packages for RHEL based distributions can be downloaded from our  [copr repository](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/package/ipfixprobe/). Or just simply run:
+The RPM packages for RHEL based distributions can be downloaded from our  [copr repository](https://copr.fedorainfracloud.org/coprs/g/CESNET/ipfixprobe/package/ipfixprobe/). Or just simply run:
 
 ```
-dnf install -y dnf-plugins-core && dnf copr -y enable @CESNET/NEMEA
+dnf install -y dnf-plugins-core &&dnf copr enable @CESNET/ipfixprobe
 dnf install ipfixprobe
 ```
 
