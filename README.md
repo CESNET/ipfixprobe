@@ -1,12 +1,17 @@
-<p align="center">
-    <img src="https://raw.githubusercontent.com/CESNET/ipfixprobe/refs/heads/master/docs/images/ipfixprobe-horizontal.svg" width="450">
-</p>
+<div align="center">
+<picture>
+  <source srcset="https://raw.githubusercontent.com/CESNET/ipfixprobe/refs/heads/master/docs/images/logo/logo_horizontal_white.svg" width="450" media="(prefers-color-scheme: dark)">
+  <img src="https://raw.githubusercontent.com/CESNET/ipfixprobe/refs/heads/master/docs/images/logo/logo_horizontal_color.svg" width="450">
+</picture>
+</div>
+</br>
+
+ipfixprobe is a high-performance flow exporter. It creates bidirectional flows from packet input and exports them to output interface. The ipfixprobe support vide variety of flow extenstion for application layer protocol information. The flow extension can be turned on with process plugins. We support TLS, QUIC, HTTP, DNS and many more. Just check our [documentation](https://ipfixprobe.cesnet.cz).
 
 [![](https://img.shields.io/badge/license-BSD-blue.svg)](https://github.com/CESNET/ipfixprobe/blob/master/LICENSE)
 ![Coverity Scan](https://img.shields.io/coverity/scan/22112)
 ![GitHub top language](https://img.shields.io/github/languages/top/CESNET/ipfixprobe)
 
-ipfixprobe is a high-performance flow exporter. It creates bidirectional flows from packet input and exports them to output interface. The ipfixprobe support vide variety of flow extenstion for application layer protocol information. The flow extension can be turned on with process plugins. We support TLS, QUIC, HTTP, DNS and many more. Just check our [documentation](https://ipfixprobe.cesnet.cz).
 
 ## Installation
 The RPM packages for RHEL based distributions can be downloaded from our  [copr repository](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/package/ipfixprobe/). Or just simply run:
