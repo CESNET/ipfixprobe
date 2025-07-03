@@ -286,13 +286,10 @@ For more information, visit the [input plugin documentation](https://ipfixprobe.
 
 ### 📤 Output
 
-There are several currently available output plugins, such as:
+Similarly as in input, the output availability also depends on the installed packages.
+By default, installed the `ipfixprobe` package enables standard `ipfix` and `text` output.
 
-- `ipfix` standard IPFIX [RFC 5101](https://tools.ietf.org/html/rfc5101)
-- `unirec` data source for the [NEMEA system](https://nemea.liberouter.org), the output is in the UniRec format sent via a configurable interface using [https://nemea.liberouter.org/trap-ifcspec/](https://nemea.liberouter.org/trap-ifcspec/)
-- `text` output in human readable text format on standard output file descriptor (stdout)
-
-The output flow records are composed of information provided by the enabled plugins (using `-p` parameter, see [Flow Data Extension - Processing Plugins](./README.md#flow-data-extension---processing-plugins)).
+To exanble [NEMEA system](https://nemea.liberouter.org) output, you should install `ipfixprobe-nemea` instead of ipfixprobe
 
 See `ipfixprobe -h output` for more information and complete list of output plugins and their parameters.
 
