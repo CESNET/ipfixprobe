@@ -13,7 +13,7 @@ ipfixprobe is a high-performance flow exporter. It creates bidirectional flows f
 ![GitHub top language](https://img.shields.io/github/languages/top/CESNET/ipfixprobe)
 
 
-## Installation
+## 🛠️ Installation
 The RPM packages for RHEL based distributions can be downloaded from our  [copr repository](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/package/ipfixprobe/). Or just simply run:
 
 ```
@@ -21,7 +21,7 @@ dnf install -y dnf-plugins-core && dnf copr -y enable @CESNET/NEMEA
 dnf install ipfixprobe
 ```
 
-## Parameters
+## 🔧 Parameters
 ### Module specific parameters
 - `-i ARGS`       Activate input plugin  (-h input for help)
 - `-s ARGS`       Activate storage plugin (-h storage for help)
@@ -39,13 +39,13 @@ dnf install ipfixprobe
 - `-h [PLUGIN]`   Print help text. Supported help for input, storage, output and process plugins
 - `-V`            Show version and exit
 
-### Help
+### ❓ Help
 Printing general help is done using the `-h` parameter. To print help for specific plugins, `-h` with parameter is used.
 This parameter accepts `input`, `storage`, `process`, `output` or name of a plugin (or path to a .so file with plugin).
 
-## Example
+## 📖 Example
 Here are the examples of various plugins usage:
-```
+```bash
 # Capture from wlp2s0 interface using raw sockets, print flows to console
 ./ipfixprobe -i 'raw;ifc=wlp2s0' -o 'text'
 
@@ -78,61 +78,103 @@ Here are the examples of various plugins usage:
 
 ## Build
 
-### Requirements
-- libatomic
-- [telemetry](https://github.com/CESNET/telemetry) (mandatory) — can be installed from the [COPR repository](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA-stable/package/telemetry/) or built from source code
-- kernel version at least 3.19 when using raw sockets input plugin enabled by default (disable with `--without-raw` parameter for `./configure`)
-- [libpcap](http://www.tcpdump.org/) when compiling with pcap plugin (`--with-pcap` parameter)
-- netcope-common [COMBO cards](https://www.liberouter.org/technologies/cards/) when compiling with ndp plugin (`--with-ndp` parameter)
-- libunwind-devel when compiling with stack unwind on crash feature (`--with-unwind` parameter)
-- [nemea](http://github.com/CESNET/Nemea-Framework) when compiling with unirec output plugin (`--with-nemea` parameter)
-- cloned submodule with googletest framework to enabled optional tests (`--with-gtest` parameter)
+### 📦 Requirements
 
-To compile DPDK interfaces, make sure you have DPDK libraries (and development files) installed and set the `PKG_CONFIG_PATH` environment variable if necessary. You can obtain the latest DPDK at http://core.dpdk.org/download/ Use `--with-dpdk` parameter of the `configure` script to enable it.
+- `libatomic`
+- [telemetry](https://github.com/CESNET/telemetry) (**required**) Installable from the [COPR repository](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA-stable/package/telemetry/) or buildable from source
+- Linux kernel version **≥ 3.19**
+- [libpcap](http://www.tcpdump.org/) — required for PCAP input plugin (`-DENABLE_INPUT_PCAP`)
+- `netcope-common` — required for NDP input plugin with [COMBO cards](https://www.liberouter.org/technologies/cards/) (`-DENABLE_INPUT_NFB`)
+- `libunwind-devel`
+- [NEMEA](http://github.com/CESNET/Nemea-Framework) — required for UniRec output plugin (`-DENABLE_NEMEA`, `-DENABLE_OUTPUT_UNIREC`)
+- [DPDK](http://core.dpdk.org/download/) — required for DPDK input plugin (`-DENABLE_INPUT_DPDK`)
 
-### Source codes
+> For most conventional monitoring use-cases (not requiring high-speed packet libraries like DPDK or NDP), you can install required dependencies using the following commands:
 
-This project uses a standard process of:
+#### 🐧 RHEL9-based distributions
 
+```bash
+sudo yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL9/codeready/builder/x86_64/
+sudo dnf copr enable @CESNET/NEMEA-stable
+sudo dnf install -y git wget curl net-tools gcc gcc-c++ \
+    libtool lz4-devel rpm-build fuse3-devel make cmake rpm \
+    libatomic libunwind-devel openssl-devel pkgconf-pkg-config \
+    telemetry gcc-toolset-14-libatomic-devel
 ```
+
+---
+
+### ⚙️ Project Setup with CMake
+
+This project uses the standard CMake build system. Example setup:
+
+```bash
 git clone --recurse-submodules https://github.com/CESNET/ipfixprobe
 cd ipfixprobe
-autoreconf -i
-./configure
-make
-sudo make install
+mkdir build && cd build
+cmake -DCMAKE_INSTALL_PREFIX=/usr ..
 ```
 
-Check `./configure --help` for more details and settings.
+To view available build options:
 
-### RPM packages
+```bash
+cmake -LAH
+```
 
-RPM package can be created in the following versions using `--with` parameter of `rpmbuild`:
-- `--with pcap` enables RPM with pcap input plugin
-- `--with ndp` enables RPM with netcope-common, i.e., ndp input plugin
-- `--with nemea` enables RPM with unirec output plugin
-- `--without raw` disables RPM with default raw socket input plugin
-- `--with unwind` enables RPM with stack unwinding feature
+### 🔧 Notable CMake Build Options
 
-These parameters affect required dependencies of the RPM and build process.
+| Option                          | Description                                                              |
+|--------------------------------|--------------------------------------------------------------------------|
+| `ENABLE_MILISECONDS_TIMESTAMPS`| Enable millisecond timestamp precision                                   |
+| `ENABLE_NEMEA`                 | Enable support for NEMEA modules                                         |
+| `ENABLE_RPMBUILD`              | Enable building of RPM packages (enabled by default)                     |
+| `ENABLE_TESTS`                 | Enable building of unit and integration tests                            |
+| `ENABLE_INPUT_PCAP`            | Build PCAP input plugin (requires `libpcap`)                             |
+| `ENABLE_INPUT_NFB`             | Build NFB input plugin (requires `netcope-common`)                       |
+| `ENABLE_INPUT_DPDK`            | Build DPDK input plugin (requires `dpdk`)                                |
 
-The default configuration of the RPM can be created using simply: `make rpm`
 
-Alternative versions (described in the following section) can be created by:
-- NEMEA version of RPM: `make rpm-nemea`
-- NDP version of RPM: `make rpm-ndp`
+---
 
-We use [COPR infrastructure](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/) to build and serve RPM packages for EPEL9.
-It is not possible to pass arguments to rpmbuild, so there is an option in configure to enforce NEMEA dependency:
+### 🛠️ Build from Source
 
-`./configure --enable-coprrpm && make srpm`
+Once the CMake project is configured, build the project using:
 
-The output source RPM can be uploaded to copr.
+```bash
+make -j
+```
 
-To install ipfixprobe with NEMEA dependency from binary RPM packages, it is possible to follow instructions on:
-[https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/](https://copr.fedorainfracloud.org/coprs/g/CESNET/NEMEA/)
+The resulting binary will be located at:
 
-## Telemetry
+```bash
+ipfixprobe/build/src/core/ipfixprobe
+```
+
+To install the binary system-wide:
+
+```bash
+make install
+```
+
+---
+
+### 📦 Build RPM Packages
+
+RPM packages are created automatically based on the enabled CMake options.
+
+If the project is configured with `ENABLE_RPMBUILD` (enabled by default), you can build RPM packages using:
+
+```bash
+make -j rpm
+```
+
+The resulting RPM files will be located in:
+
+```
+ipfixprobe/build/pkg/rpm/rpmbuild/
+```
+
+## 📈 Telemetry
 
 `ipfixprobe` exports statistics and other diagnostic information through a telemetry interface based on appFs library, which leverages the fuse3 library (filesystem in userspace) to allow telemetry data to be accessed and manipulated
 through standard filesystem operations.
@@ -228,7 +270,7 @@ The pipeline directory provides statistics for all worker queues. Each queue is 
     ```
 
 
-## Input / Output of the flow exporter
+## 📥 Input / Output of the flow exporter
 
 The availability of the input and output interfaces depends on the ipfixprobe build settings. By default, we provide RPM package with pcap and raw inputs. The default provided outpus are ipfix and text.
 
@@ -245,7 +287,7 @@ from special HW acceleration FPGA cards.  For more information about the cards,
 visit [COMBO cards](https://www.liberouter.org/technologies/cards/) or contact
 us.
 
-### Output
+### 📤 Output
 
 There are several currently available output plugins, such as:
 
@@ -261,7 +303,7 @@ LZ4 compression:
 ipfix plugin supports LZ4 compression algorithm over tcp. See plugin's help for more information.
 
 
-## Possible issues
+## ⚠️ Possible issues
 ### Flows are not send to output interface when reading small pcap file (NEMEA output)
 
 Turn off message buffering using `buffer=off` option and set `timeout=WAIT` on output interfaces.
