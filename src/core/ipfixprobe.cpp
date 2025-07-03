@@ -65,7 +65,9 @@ void signal_handler(int sig)
 {
 	(void) sig;
 	if (sig == SIGSEGV) {
+#ifdef WITH_UNWIND
 		st_dump(STDERR_FILENO, sig);
+#endif
 		abort();
 	}
 	stop = 1;
@@ -76,9 +78,7 @@ void register_handlers()
 	signal(SIGTERM, signal_handler);
 	signal(SIGINT, signal_handler);
 	signal(SIGSEGV, signal_handler);
-#ifdef WITH_NEMEA
 	signal(SIGPIPE, SIG_IGN);
-#endif
 }
 
 void error(std::string msg)
