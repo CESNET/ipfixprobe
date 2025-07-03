@@ -6,7 +6,7 @@
 </div>
 </br>
 
-ipfixprobe is a high-performance flow exporter. It creates bidirectional flows from packet input and exports them to output interface. The ipfixprobe support vide variety of flow extenstion for application layer protocol information. The flow extension can be turned on with process plugins. We support TLS, QUIC, HTTP, DNS and many more. Just check our [documentation](https://ipfixprobe.cesnet.cz).
+The ipfixprobe is a high-performance flow exporter. It creates bidirectional flows from packet input and exports them to output interface. The ipfixprobe support vide variety of flow extenstion for application layer protocol information. The flow extension can be turned on with process plugins. We support TLS, QUIC, HTTP, DNS and many more. Just check our [documentation](https://ipfixprobe.cesnet.cz).
 
 [![](https://img.shields.io/badge/license-BSD-blue.svg)](https://github.com/CESNET/ipfixprobe/blob/master/LICENSE)
 [![](https://img.shields.io/badge/docs-ipfixprobe-blue.svg)](https://ipfixprobe.cesnet.cz)
@@ -105,7 +105,7 @@ sudo dnf install -y git wget curl net-tools gcc gcc-c++ \
 
 ---
 
-### ⚙️ Project Setup with CMake
+### ⚙️ Project build with CMake
 
 This project uses the standard CMake build system. Example setup:
 
@@ -116,13 +116,15 @@ mkdir build && cd build
 cmake -DCMAKE_INSTALL_PREFIX=/usr ..
 ```
 
-To view available build options:
+#### 🔧 Notable CMake Build Options
+
+Run the command to view all available build options:
 
 ```bash
 cmake -LAH
 ```
 
-### 🔧 Notable CMake Build Options
+The most notable options are:
 
 | Option                          | Description                                                              |
 |--------------------------------|--------------------------------------------------------------------------|
@@ -137,7 +139,7 @@ cmake -LAH
 
 ---
 
-### 🛠️ Build from Source
+#### 🛠️ Build from Source
 
 Once the CMake project is configured, build the project using:
 
@@ -159,7 +161,7 @@ make install
 
 ---
 
-### 📦 Build RPM Packages
+#### 📦 Build RPM Packages
 
 RPM packages are created automatically based on the enabled CMake options.
 
@@ -273,7 +275,7 @@ The pipeline directory provides statistics for all worker queues. Each queue is 
 
 ## 📥 Input / Output of the flow exporter
 
-The availability of input and output types depends on the installed packages or enabled build options (see Project Setup with CMake).
+The availability of input and output types depends on the installed packages or enabled build options (see section of README Project Setup with CMake).
 By default, installing the `ipfixprobe` package enables standard raw socket output.
 
 To enable additional input capabilities, install the corresponding input plugin packages:
@@ -290,11 +292,11 @@ For more information, visit the [input plugin documentation](https://ipfixprobe.
 Similarly as in input, the output availability also depends on the installed packages.
 By default, installed the `ipfixprobe` package enables standard `ipfix` and `text` output.
 
-To exanble [NEMEA system](https://nemea.liberouter.org) output, you should install `ipfixprobe-nemea` instead of ipfixprobe
+To add [NEMEA system](https://nemea.liberouter.org) output capability, you should install `ipfixprobe-nemea` instead of ipfixprobe
 
 See `ipfixprobe -h output` for more information and complete list of output plugins and their parameters.
 
-LZ4 compression:
+#### LZ4 compression:
 ipfix plugin supports LZ4 compression algorithm over tcp. See plugin's help for more information.
 
 
