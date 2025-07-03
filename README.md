@@ -272,20 +272,17 @@ The pipeline directory provides statistics for all worker queues. Each queue is 
 
 ## 📥 Input / Output of the flow exporter
 
-The availability of the input and output interfaces depends on the ipfixprobe build settings. By default, we provide RPM package with pcap and raw inputs. The default provided outpus are ipfix and text.
+The availability of input and output types depends on the installed packages or enabled build options (see Project Setup with CMake).
+By default, installing the `ipfixprobe` package enables standard raw socket output.
 
-When the project is configured with `./configure --with-nemea`, the flow
-exporter supports NEMEA output via TRAP IFC besides the default IPFIX output.
-For more information about NEMEA, visit
-[https://nemea.liberouter.org](https://nemea.liberouter.org).
+To enable additional input capabilities, install the corresponding input plugin packages:
 
-The flow exporter supports compilation with libpcap (`./configure --with-pcap`), which allows for receiving packets
-from PCAP file or network interface card.
+- `ipfixprobe-input-dpdk` – enables DPDK input support
+- `ipfixprobe-input-nfb` – enables NFB input support
+- `ipfixprobe-input-pcap` – enables libpcap input support
 
-When the project is configured with `./configure --with-ndp`, it is prepared for high-speed packet transfer
-from special HW acceleration FPGA cards.  For more information about the cards,
-visit [COMBO cards](https://www.liberouter.org/technologies/cards/) or contact
-us.
+For more information, visit the [input plugin documentation](https://ipfixprobe.cesnet.cz/en/plugins) or run `ipfixprobe -h input` for more information and complete list of input plugins and their parameters.
+
 
 ### 📤 Output
 
