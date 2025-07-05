@@ -157,9 +157,9 @@ struct RecordExtMQTT : public RecordExt {
 class MQTTPlugin : public ProcessPlugin {
 public:
 	MQTTPlugin(const std::string& params, int pluginID);
-	int post_create(Flow& rec, const Packet& pkt) override;
-	int pre_update(Flow& rec, Packet& pkt) override;
-	int post_update(Flow& rec, const Packet& pkt) override;
+	ProcessPlugin::FlowAction post_create(Flow& rec, const Packet& pkt) override;
+	ProcessPlugin::FlowAction pre_update(Flow& rec, Packet& pkt) override;
+	ProcessPlugin::FlowAction post_update(Flow& rec, const Packet& pkt) override;
 	RecordExt* get_ext() const { return new RecordExtMQTT(m_pluginID); }
 	OptionsParser* get_parser() const { return new MQTTOptionsParser(); }
 	std::string get_name() const { return "mqtt"; }

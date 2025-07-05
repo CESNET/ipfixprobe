@@ -42,12 +42,12 @@ ProcessPlugin* VLANPlugin::copy()
 	return new VLANPlugin(*this);
 }
 
-int VLANPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction VLANPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	auto ext = new RecordExtVLAN(m_pluginID);
 	ext->vlan_id = pkt.vlan_id;
 	rec.add_extension(ext);
-	return 0;
+	return ProcessPlugin::FlowAction::GET_ONLY_METADATA;
 }
 
 static const PluginRegistrar<VLANPlugin, ProcessPluginFactory> vlanRegistrar(vlanPluginManifest);

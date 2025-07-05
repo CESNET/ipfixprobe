@@ -2,6 +2,7 @@
 %bcond_with input_dpdk
 %bcond_with input_nfb
 %bcond_with process_experimental
+%bcond_with ctt
 
 %global _unitdir %{_prefix}/lib/systemd/system
 
@@ -84,6 +85,24 @@ Requires: numactl
 Input plugin for nfb cards.
 %endif
 
+%if %{with ctt}
+%package ctt
+Summary: Ctt.
+BuildRequires: nfb-framework
+BuildRequires: numactl-devel
+BuildRequires: libctt-devel
+BuildRequires: libfeta-devel
+Requires: nfb-framework
+Requires: numactl
+Requires: libctt
+Requires: libfeta
+Requires: cttctl
+Requires: ndk-nic-ctl
+
+%description ctt
+Ctt package.
+%endif
+
 %if %{with process_experimental}
 %package process-experimental
 Summary: Experimental process plugins.
@@ -102,7 +121,7 @@ Experimental process plugins.
 %if 0%{?rhel} == 8
 source /opt/rh/gcc-toolset-14/enable
 %endif
-%cmake -DCMAKE_BUILD_TYPE=Release %{?with_input_pcap:-DENABLE_INPUT_PCAP=ON} %{?with_input_dpdk:-DENABLE_INPUT_DPDK=ON} %{?with_input_nfb:-DENABLE_INPUT_NFB=ON} %{?with_process_experimental: -DENABLE_PROCESS_EXPERIMENTAL=ON}
+%cmake -DCMAKE_BUILD_TYPE=Release %{?with_ctt:-DENABLE_CTT=ON} %{?with_input_pcap:-DENABLE_INPUT_PCAP=ON} %{?with_input_dpdk:-DENABLE_INPUT_DPDK=ON} %{?with_input_nfb:-DENABLE_INPUT_NFB=ON} %{?with_process_experimental: -DENABLE_PROCESS_EXPERIMENTAL=ON}
 %cmake_build
 
 %install
@@ -141,7 +160,9 @@ source /opt/rh/gcc-toolset-14/enable
 %{_libdir}/ipfixprobe/process/libipfixprobe-process-ssadetector.so
 %{_libdir}/ipfixprobe/process/libipfixprobe-process-ssdp.so
 
+%if %{without ctt}
 %{_libdir}/ipfixprobe/storage/libipfixprobe-storage-cache.so
+%endif
 
 %{_libdir}/ipfixprobe/schema.json
 %{_libdir}/ipfixprobe/config2args.py
@@ -158,6 +179,12 @@ source /opt/rh/gcc-toolset-14/enable
 %if %{with input_nfb}
 %files input-nfb
 %{_libdir}/ipfixprobe/input/libipfixprobe-input-nfb.so
+%endif
+
+%if %{with ctt}
+%files ctt
+%{_libdir}/ipfixprobe/input/libipfixprobe-input-nfb-meta.so
+%{_libdir}/ipfixprobe/storage/libipfixprobe-storage-cache-ctt.so
 %endif
 
 %if %{with input_dpdk}

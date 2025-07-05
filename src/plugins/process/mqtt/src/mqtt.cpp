@@ -42,23 +42,25 @@ MQTTPlugin::MQTTPlugin(const std::string& params, int pluginID)
 	init(params.c_str());
 }
 
-int MQTTPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction MQTTPlugin::post_create(Flow& rec, const Packet& pkt)
 {
-	if (has_mqtt_protocol_name(reinterpret_cast<const char*>(pkt.payload), pkt.payload_len))
+	if (has_mqtt_protocol_name(reinterpret_cast<const char*>(pkt.payload), pkt.payload_len)) {
 		add_ext_mqtt(reinterpret_cast<const char*>(pkt.payload), pkt.payload_len, rec);
-	return 0;
+		return ProcessPlugin::FlowAction::GET_ALL_DATA;
+	}
+	return ProcessPlugin::FlowAction::GET_NO_DATA;
 }
 
-int MQTTPlugin::pre_update(Flow& rec, Packet& pkt)
+ProcessPlugin::FlowAction MQTTPlugin::pre_update(Flow& rec, Packet& pkt)
 {
 	const char* payload = reinterpret_cast<const char*>(pkt.payload);
 	RecordExt* ext = rec.get_extension(m_pluginID);
 	if (ext == nullptr) {
-		return 0;
+		return ProcessPlugin::FlowAction::GET_NO_DATA;
 	} else {
 		parse_mqtt(payload, pkt.payload_len, static_cast<RecordExtMQTT*>(ext));
 	}
-	return 0;
+	return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 /**
@@ -179,16 +181,13 @@ bool MQTTPlugin::parse_mqtt(const char* data, int payload_len, RecordExtMQTT* re
 	return true;
 }
 
-int MQTTPlugin::post_update(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction MQTTPlugin::post_update([[maybe_unused]] Flow& rec, [[maybe_unused]] const Packet& pkt)
 {
-	(void) pkt;
-	(void) rec;
-
 	if (flow_flush) {
 		flow_flush = false;
-		return FLOW_FLUSH;
+		return ProcessPlugin::FlowAction::FLUSH;
 	}
-	return 0;
+	return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
 /**

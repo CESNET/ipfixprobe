@@ -200,12 +200,12 @@ public:
 
 	ProcessPlugin* copy();
 
-	int post_create(Flow& rec, const Packet& pkt) override;
-	int pre_update(Flow& rec, Packet& pkt) override;
+	ProcessPlugin::FlowAction post_create(Flow& rec, const Packet& pkt) override;
+	ProcessPlugin::FlowAction pre_update(Flow& rec, Packet& pkt) override;
 	void finish(bool print_stats);
 
 private:
-	void add_tls_record(Flow&, const Packet&);
+	ProcessPlugin::FlowAction add_tls_record(Flow&, const Packet&);
 	bool parse_tls(const uint8_t* data, uint16_t payload_len, RecordExtTLS* rec, uint8_t ip_proto);
 
 	RecordExtTLS* ext_ptr {nullptr};

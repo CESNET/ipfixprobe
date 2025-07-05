@@ -71,7 +71,7 @@ ProcessPlugin* SSDPPlugin::copy()
 	return new SSDPPlugin(*this);
 }
 
-int SSDPPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction SSDPPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	if (pkt.dst_port == 1900) {
 		record = new RecordExtSSDP(m_pluginID);
@@ -79,16 +79,18 @@ int SSDPPlugin::post_create(Flow& rec, const Packet& pkt)
 		record = nullptr;
 
 		parse_ssdp_message(rec, pkt);
+		return ProcessPlugin::FlowAction::GET_ALL_DATA;
 	}
-	return 0;
+	return ProcessPlugin::FlowAction::GET_NO_DATA;
 }
 
-int SSDPPlugin::pre_update(Flow& rec, Packet& pkt)
+ProcessPlugin::FlowAction SSDPPlugin::pre_update(Flow& rec, Packet& pkt)
 {
 	if (pkt.dst_port == 1900) {
 		parse_ssdp_message(rec, pkt);
+		return ProcessPlugin::FlowAction::GET_ALL_DATA;
 	}
-	return 0;
+	return ProcessPlugin::FlowAction::GET_NO_DATA;
 }
 
 void SSDPPlugin::finish(bool print_stats)

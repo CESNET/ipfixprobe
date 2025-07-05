@@ -102,14 +102,14 @@ public:
 	RecordExt* get_ext() const { return new RecordExtNETBIOS(m_pluginID); }
 	ProcessPlugin* copy();
 
-	int post_create(Flow& rec, const Packet& pkt);
-	int post_update(Flow& rec, const Packet& pkt);
+	ProcessPlugin::FlowAction post_create(Flow& rec, const Packet& pkt);
+	ProcessPlugin::FlowAction post_update(Flow& rec, const Packet& pkt);
 	void finish(bool print_stats);
 
 private:
 	int total_netbios_packets;
 
-	int add_netbios_ext(Flow& rec, const Packet& pkt);
+	ProcessPlugin::FlowAction add_netbios_ext(Flow& rec, const Packet& pkt);
 	bool parse_nbns(RecordExtNETBIOS* rec, const Packet& pkt);
 	int get_query_count(const char* payload, uint16_t payload_length);
 	bool store_first_query(const char* payload, RecordExtNETBIOS* rec);

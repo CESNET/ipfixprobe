@@ -63,7 +63,10 @@ void input_storage_worker(
 	const clockid_t clk_id = CLOCK_MONOTONIC;
 #endif
 
-	while (!terminate_input) {
+	while (storagePlugin->requires_input()) {
+		if (terminate_input) {
+			storagePlugin->terminate_input();
+		}
 		block.cnt = 0;
 		block.bytes = 0;
 
@@ -92,7 +95,9 @@ void input_storage_worker(
 				diff.tv_sec--;
 			}
 			storagePlugin->export_expired(ts.tv_sec + diff.tv_sec);
-			usleep(1);
+			if (!terminate_input) {
+				usleep(1);
+			}
 			continue;
 		} else if (ret == InputPlugin::Result::PARSED) {
 			stats.packets = inputPlugin->m_seen;

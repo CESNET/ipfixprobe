@@ -42,6 +42,7 @@
 #include <thread>
 
 #include <ipfixprobe/pluginFactory/pluginFactory.hpp>
+#include <ipfixprobe/cttConfig.hpp>
 #include <poll.h>
 #include <signal.h>
 #include <unistd.h>
@@ -414,6 +415,9 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 				= storagePluginFactory.createShared(storage_name, storage_params, output_queue);
 			if (storagePlugin == nullptr) {
 				throw IPXPError("invalid storage plugin " + storage_name);
+			}
+			if (std::optional<CttConfig> config = inputPlugin->get_ctt_config(); config.has_value()) {
+				storagePlugin->init_ctt(*config);
 			}
 			storagePlugin->set_telemetry_dir(pipeline_queue_dir);
 			conf.storagePlugins.emplace_back(storagePlugin);

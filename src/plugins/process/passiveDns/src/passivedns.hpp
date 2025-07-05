@@ -138,8 +138,8 @@ public:
 	std::string get_name() const { return "passivedns"; }
 	RecordExt* get_ext() const { return new RecordExtPassiveDNS(m_pluginID); }
 	ProcessPlugin* copy();
-	int post_create(Flow& rec, const Packet& pkt);
-	int post_update(Flow& rec, const Packet& pkt);
+	ProcessPlugin::FlowAction post_create(Flow& rec, const Packet& pkt);
+	ProcessPlugin::FlowAction post_update(Flow& rec, const Packet& pkt);
 	void finish(bool print_stats);
 
 private:
@@ -152,7 +152,7 @@ private:
 	uint32_t data_len; /**< Length of packet payload. */
 
 	RecordExtPassiveDNS* parse_dns(const char* data, unsigned int payload_len, bool tcp);
-	int add_ext_dns(const char* data, unsigned int payload_len, bool tcp, Flow& rec);
+	ProcessPlugin::FlowAction add_ext_dns(const char* data, unsigned int payload_len, bool tcp, Flow& rec);
 
 	std::string get_name(const char* data) const;
 	size_t get_name_length(const char* data) const;

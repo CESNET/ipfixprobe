@@ -15,7 +15,7 @@ if (ENABLE_INPUT_DPDK)
 	pkg_check_modules(DPDK REQUIRED libdpdk)
 endif()
 
-if (ENABLE_INPUT_NFB)
+if (ENABLE_INPUT_NFB OR ENABLE_CTT)
 	find_package(NFB REQUIRED)
 	find_package(NUMA REQUIRED)
 endif()

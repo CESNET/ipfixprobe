@@ -216,7 +216,7 @@ public:
 	RecordExt* get_ext() const { return new RecordExtNTP(m_pluginID); }
 	ProcessPlugin* copy();
 
-	int post_create(Flow& rec, const Packet& pkt);
+	ProcessPlugin::FlowAction post_create(Flow& rec, const Packet& pkt);
 	void finish(bool print_stats);
 
 private:

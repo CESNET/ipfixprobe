@@ -133,8 +133,8 @@ public:
 	RecordExt* get_ext() const { return new RecordExtIDPCONTENT(m_pluginID); }
 	ProcessPlugin* copy();
 
-	int post_create(Flow& rec, const Packet& pkt);
-	int post_update(Flow& rec, const Packet& pkt);
+	ProcessPlugin::FlowAction post_create(Flow& rec, const Packet& pkt);
+	ProcessPlugin::FlowAction post_update(Flow& rec, const Packet& pkt);
 	void update_record(RecordExtIDPCONTENT* pstats_data, const Packet& pkt);
 };
 

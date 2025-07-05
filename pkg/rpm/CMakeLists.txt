@@ -30,6 +30,10 @@ if (ENABLE_INPUT_NFB)
 	list(APPEND RPMBUILD_ARGS "--with" "input_nfb")
 endif()
 
+if (ENABLE_CTT)
+	list(APPEND RPMBUILD_ARGS "--with" "ctt")
+endif()
+
 if (ENABLE_PROCESS_EXPERIMENTAL)
 	list(APPEND RPMBUILD_ARGS "--with" "process_experimental")
 endif()

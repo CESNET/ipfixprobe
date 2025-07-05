@@ -63,14 +63,14 @@ ProcessPlugin* SIPPlugin::copy()
 	return new SIPPlugin(*this);
 }
 
-int SIPPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction SIPPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	(void) rec;
 	uint16_t msg_type;
 
 	msg_type = parse_msg_type(pkt);
 	if (msg_type == SIP_MSG_TYPE_INVALID) {
-		return 0;
+		return ProcessPlugin::FlowAction::GET_NO_DATA;
 	}
 
 	RecordExtSIP* sip_data = new RecordExtSIP(m_pluginID);
@@ -78,20 +78,20 @@ int SIPPlugin::post_create(Flow& rec, const Packet& pkt)
 	rec.add_extension(sip_data);
 	parser_process_sip(pkt, sip_data);
 
-	return 0;
+	return ProcessPlugin::FlowAction::GET_ALL_DATA;
 }
 
-int SIPPlugin::pre_update(Flow& rec, Packet& pkt)
+ProcessPlugin::FlowAction SIPPlugin::pre_update(Flow& rec, Packet& pkt)
 {
 	(void) rec;
 	uint16_t msg_type;
 
 	msg_type = parse_msg_type(pkt);
 	if (msg_type != SIP_MSG_TYPE_INVALID) {
-		return FLOW_FLUSH_WITH_REINSERT;
+		return ProcessPlugin::FlowAction::FLUSH_WITH_REINSERT;
 	}
 
-	return 0;
+	return ProcessPlugin::FlowAction::GET_NO_DATA;
 }
 
 void SIPPlugin::finish(bool print_stats)

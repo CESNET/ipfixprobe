@@ -102,8 +102,8 @@ public:
 	RecordExt* get_ext() const { return new RecordExtOVPN(m_pluginID); }
 	ProcessPlugin* copy();
 
-	int post_create(Flow& rec, const Packet& pkt);
-	int pre_update(Flow& rec, Packet& pkt);
+	ProcessPlugin::FlowAction post_create(Flow& rec, const Packet& pkt);
+	ProcessPlugin::FlowAction pre_update(Flow& rec, Packet& pkt);
 	void update_record(RecordExtOVPN* vpn_data, const Packet& pkt);
 	void pre_export(Flow& rec);
 

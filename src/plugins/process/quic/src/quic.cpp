@@ -347,7 +347,7 @@ void QUICPlugin::set_packet_type(RecordExtQUIC* quic_data, Flow& rec, uint8_t pa
 	}
 }
 
-int QUICPlugin::process_quic(
+ProcessPlugin::FlowAction QUICPlugin::process_quic(
 	RecordExtQUIC* quic_data,
 	Flow& rec,
 	const Packet& pkt,
@@ -399,7 +399,7 @@ int QUICPlugin::process_quic(
 
 		if (version == QUICParser::QUIC_VERSION::version_negotiation) {
 			set_cid_fields(quic_data, rec, &process_quic, toServer, new_quic_flow, pkt);
-			return FLOW_FLUSH;
+			return ProcessPlugin::FlowAction::FLUSH;
 		}
 
 		// export if parsed CH
@@ -490,40 +490,27 @@ int QUICPlugin::process_quic(
 			break;
 		}
 
-		return QUIC_DETECTED;
+		return ProcessPlugin::FlowAction::GET_ALL_DATA;
 	} else {
 		// Even if no QUIC detected store packets, which will only include the QUIC bit.
 		uint8_t packets = 0;
 		process_quic.quic_get_packets(packets);
 		set_packet_type(quic_data, rec, packets);
 	}
-	return QUIC_NOT_DETECTED;
+	return ProcessPlugin::FlowAction::GET_NO_DATA;
 } // QUICPlugin::process_quic
 
-int QUICPlugin::pre_create(Packet& pkt)
-{
-	(void) pkt;
-	return 0;
-}
-
-int QUICPlugin::post_create(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction QUICPlugin::post_create(Flow& rec, const Packet& pkt)
 {
 	return add_quic(rec, pkt);
 }
 
-int QUICPlugin::pre_update(Flow& rec, Packet& pkt)
-{
-	(void) rec;
-	(void) pkt;
-	return 0;
-}
-
-int QUICPlugin::post_update(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction QUICPlugin::post_update(Flow& rec, const Packet& pkt)
 {
 	return add_quic(rec, pkt);
 }
 
-int QUICPlugin::add_quic(Flow& rec, const Packet& pkt)
+ProcessPlugin::FlowAction QUICPlugin::add_quic(Flow& rec, const Packet& pkt)
 {
 	RecordExtQUIC* q_ptr = (RecordExtQUIC*) rec.get_extension(m_pluginID);
 	bool new_qptr = false;
@@ -532,18 +519,18 @@ int QUICPlugin::add_quic(Flow& rec, const Packet& pkt)
 		q_ptr = new RecordExtQUIC(m_pluginID);
 	}
 
-	int ret = process_quic(q_ptr, rec, pkt, new_qptr);
+	ProcessPlugin::FlowAction ret = process_quic(q_ptr, rec, pkt, new_qptr);
 	// Test if QUIC extension is not set
-	if (new_qptr && ((ret == QUIC_DETECTED) || (ret == FLOW_FLUSH))) {
+	if (new_qptr && ((ret == ProcessPlugin::FlowAction::GET_ALL_DATA) || (ret == ProcessPlugin::FlowAction::FLUSH))) {
 		rec.add_extension(q_ptr);
 	}
-	if (new_qptr && (ret == QUIC_NOT_DETECTED)) {
+	if (new_qptr && (ret == ProcessPlugin::FlowAction::GET_NO_DATA)) {
 		// If still no record delete q_ptr
 		delete q_ptr;
 	}
 	// Correct if QUIC has already been detected
-	if (!new_qptr && (ret == QUIC_NOT_DETECTED)) {
-		return QUIC_DETECTED;
+	if (!new_qptr && (ret == ProcessPlugin::FlowAction::GET_NO_DATA)) {
+		return ProcessPlugin::FlowAction::GET_ALL_DATA;
 	}
 	return ret;
 }
