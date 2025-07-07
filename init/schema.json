@@ -93,8 +93,11 @@
             "ndp": {
               "type": "object",
               "properties": {
-                "device": {
-                  "type": "string"
+		"device": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                   }
                 },
                 "queues": {
                   "type": "string"

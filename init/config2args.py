@@ -214,6 +214,12 @@ def process_input_ndp_plugin(settings):
     if device is None:
         raise ValueError("device must be specified in the ndp plugin configuration.")
 
+    process_plugins = settings.get("device", [])
+    if not isinstance(process_plugins, list):
+        raise ValueError("Invalid process plugins configuration format.")
+
+    res = ','.join(process_plugins)
+
     queues = settings.get("queues")
     if queues is None:
         raise ValueError("queues must be specified in the ndp plugin configuration.")
@@ -221,7 +227,7 @@ def process_input_ndp_plugin(settings):
     # Parse the queues
     parsed_queues = parse_ndp_queues(queues)
 
-    params = [f'-i "ndp;dev={device}:{queue_id}"' for queue_id in parsed_queues]
+    params = [f'-i "ndp;dev={res}:{queue_id}"' for queue_id in parsed_queues]
     return " ".join(params)
 
 def process_input_pcap_file_plugin(settings):
