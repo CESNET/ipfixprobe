@@ -30,6 +30,7 @@
 
 #include "headers.hpp"
 
+#include <array>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
@@ -765,8 +766,10 @@ void parse_packet(
 
 	if (pkt->ethertype == ETH_P_IP) {
 		stats.ipv4_packets++;
+		stats.ipv4_bytes += caplen;
 	} else if (pkt->ethertype == ETH_P_IPV6) {
 		stats.ipv6_packets++;
+		stats.ipv6_bytes += caplen;
 	}
 
 	uint16_t pkt_len = caplen;
@@ -789,6 +792,8 @@ void parse_packet(
 		pkt->payload_len = pkt_len - data_offset;
 	}
 	pkt->payload = pkt->packet + data_offset;
+
+	stats.vlan_stats[pkt->vlan_id].update(*pkt);
 
 	DEBUG_MSG("Payload length:\t%u\n", pkt->payload_len);
 	DEBUG_MSG("Packet parser exits: packet parsed\n");

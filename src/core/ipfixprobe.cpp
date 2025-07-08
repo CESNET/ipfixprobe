@@ -373,6 +373,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 	// Input
 	auto input_dir = conf.telemetry_root_node->addDir("input");
 	auto pipeline_dir = conf.telemetry_root_node->addDir("pipeline");
+	auto summary_dir = pipeline_dir->addDir("summary");
 	auto flowcache_dir = conf.telemetry_root_node->addDir("flowcache");
 	size_t pipeline_idx = 0;
 	for (auto& it : parser.m_input) {
@@ -393,7 +394,11 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 			if (inputPlugin == nullptr) {
 				throw IPXPError("invalid input plugin " + input_name);
 			}
-			inputPlugin->set_telemetry_dirs(input_plugin_dir, pipeline_queue_dir);
+			inputPlugin->set_telemetry_dirs(
+				input_plugin_dir,
+				pipeline_queue_dir,
+				summary_dir,
+				pipeline_dir);
 			conf.inputPlugins.emplace_back(inputPlugin);
 		} catch (PluginError& e) {
 			throw IPXPError(input_name + std::string(": ") + e.what());

@@ -2,6 +2,7 @@
 
 #include "ndpHeader.hpp"
 
+#include <span>
 #include <string>
 #include <vector>
 
@@ -49,6 +50,8 @@ public:
 	int get_pkt(struct ndp_packet** ndp_packet, struct timeval* timestamp);
 	std::string error_msg;
 
+	int get_packets(std::span<struct ndp_packet> packets, std::span<timeval> timestamps);
+
 private:
 	void set_booted_fw();
 	void convert_fw_ts_to_timeval(const uint64_t* fw_ts, struct timeval* tv);
@@ -59,6 +62,8 @@ private:
 	uint64_t processed_packets;
 	uint16_t packet_bufferSize;
 	uint64_t timeout;
+
+	uint64_t blocked_packets = 0;
 
 	NdpFwType fw_type;
 	std::vector<uint32_t> ndk_timestamp_offsets;

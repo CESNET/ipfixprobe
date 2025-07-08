@@ -28,7 +28,7 @@ BuildRequires: gcc-toolset-14-gcc
 BuildRequires: gcc-toolset-14-gcc-c++
 %endif
 
-%if 0%{?rhel} == 9
+%if 0%{?rhel} >= 9
 BuildRequires: gcc >= 10
 BuildRequires: gcc-c++ >= 10
 %endif
@@ -38,7 +38,10 @@ BuildRequires: cmake >= 3.12
 %if %{with unwind}
 BuildRequires: libunwind-devel
 %endif
+
+%if 0%{?rhel} <= 9
 BuildRequires: gcc-toolset-14-libatomic-devel
+%endif
 BuildRequires: pkgconfig
 %if %{with lz4}
 BuildRequires: lz4-devel
