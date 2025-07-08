@@ -1,7 +1,7 @@
 # Input plugin configuration (input_plugin)
 input_plugin:
   # IMPORTANT: Only one input plugin can be specified. Choose one of the following options:
-  # raw, pcap_file, pcap_live, ndp, dpdk_ring, or dpdk.
+  # raw, pcap_file, pcap_live, ndp, dpdk_ring, or dpdk, sock.
 
   raw:
     interface: eth0  # Network interface name to capture traffic from [required]
@@ -34,6 +34,9 @@ input_plugin:
     workers_cpu_list: [0] # List of CPU cores assigned to RX queues (must match rx_queues)
     eal_opts: null  # EAL options (null = default options)
     mtu: null  # Maximum Transmission Unit (defaults to RTE_ETHER_MAX_LEN)
+
+  sock:
+    sock: Unix domain socket path [required]
 
 # Storage configuration (storage)
 storage:
