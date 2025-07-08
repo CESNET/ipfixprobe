@@ -64,9 +64,9 @@ const uint32_t DEFAULT_FPS = 0; // unlimited
 void signal_handler(int sig)
 {
 	(void) sig;
-	if (sig == SIGSEGV) {
+	if (sig == SIGSEGV || sig == SIGABRT) {
 		st_dump(STDERR_FILENO, sig);
-		abort();
+		exit(EXIT_FAILURE);
 	}
 	stop = 1;
 }
@@ -76,6 +76,7 @@ void register_handlers()
 	signal(SIGTERM, signal_handler);
 	signal(SIGINT, signal_handler);
 	signal(SIGSEGV, signal_handler);
+	signal(SIGABRT, signal_handler);
 #ifdef WITH_NEMEA
 	signal(SIGPIPE, SIG_IGN);
 #endif
