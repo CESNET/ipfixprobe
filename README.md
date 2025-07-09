@@ -6,21 +6,185 @@
 </div>
 </br>
 
-The ipfixprobe is a high-performance flow exporter. It creates bidirectional flows from packet input and exports them to output interface. The ipfixprobe support vide variety of flow extenstion for application layer protocol information. The flow extension can be turned on with process plugins. We support TLS, QUIC, HTTP, DNS and many more. Just check our [documentation](https://ipfixprobe.cesnet.cz).
+The ipfixprobe is a high-performance, modular flow exporter that processes packets into bidirectional flows and exports them via a selected output plugin.
+It supports a wide range of application-layer protocol parsers, including TLS, QUIC, HTTP, DNS, and many others. These protocol-specific extensions can be enabled via process plugins in the configuration.
+
+Need more details? Check out our [documentation](https://ipfixprobe.cesnet.cz) for a full list of supported protocols and usage examples.
 
 [![](https://img.shields.io/badge/license-BSD-blue.svg)](https://github.com/CESNET/ipfixprobe/blob/master/LICENSE)
 [![](https://img.shields.io/badge/docs-ipfixprobe-blue.svg)](https://ipfixprobe.cesnet.cz)
 ![Coverity Scan](https://img.shields.io/coverity/scan/22112)
 ![GitHub top language](https://img.shields.io/github/languages/top/CESNET/ipfixprobe)
 
+## ✨ Key Features
 
-## 🛠️ Installation
-The RPM packages for RHEL based distributions can be downloaded from our  [copr repository](https://copr.fedorainfracloud.org/coprs/g/CESNET/ipfixprobe/package/ipfixprobe/). Or just simply run:
+- Modular input–parser–output architecture
+- High-speed processing (DPDK, multi-threaded, NUMA-aware)
+- Built-in protocol parsers: TLS, QUIC, HTTP, DNS, …
+- Bidirectional flow (biflow) support
+- Real-time telemetry and statistics
 
+## 📦 Installation
+
+If you are running a RHEL system or one of its derivatives (e.g. Oracle Linux, Rocky Linux, CentOS Stream), the easiest way to install
+ipfixprobe is from our [copr repository](https://copr.fedorainfracloud.org/coprs/g/CESNET/ipfixprobe/).
+
+```bash
+$ dnf install dnf-plugins-core # Extra step necessary on some systems
+$ dnf copr enable @CESNET/ipfixprobe
+$ dnf install ipfixprobe
 ```
-dnf install -y dnf-plugins-core &&dnf copr enable @CESNET/ipfixprobe
-dnf install ipfixprobe
+
+This installs the main `ipfixprobe` binary along with core functionality.
+
+#### 🗃️ Available Packages
+
+The Copr repository provides modular RPM packages, so you can install only what you need.
+The following packages are available and can be installed individually as needed:
+
+| Package Name                                | Description                                                                 |
+|--------------------------------------------|-----------------------------------------------------------------------------|
+| `ipfixprobe`                                | Core binary with common process/output plugins. |
+| `ipfixprobe-msec`                           | Core binary with common process/output plugins. Uses millisecond timestamps (compatible with Flowmon collector) |
+| `ipfixprobe-input-pcap`                     | Input plugin for PCAP files and live capture                               |
+| `ipfixprobe-input-dpdk`                     | High-speed input plugin using DPDK                                         |
+| `ipfixprobe-input-nfb`                      | Input plugin for CESNET NFB/NDP cards                                      |
+| `ipfixprobe-process-experimental`           | Extra (possibly unstable) process plugins                                  |
+
+For other systems, follow the build instructions below.
+
+## 🛠️ Build
+
+You can build ipfixprobe from source using standard CMake.
+This lets you customize the build by enabling optional plugins and features as needed.
+
+**Note:** Some plugins may require additional dependencies beyond the basic requirements.
+
+### RHEL/CentOS:
+
+#### 🧰 Requirements
+
+```bash
+$ dnf install epel-release git make cmake gcc-c++ rpm-build
+$ dnf install libunwind-devel lz4-devel openssl-devel fuse3-devel
+
+# for RHEL 8/9
+$ dnf install gcc-toolset-14-libatomic-devel
+
+# for RHEL 10+
+$ dnf install libatomic
 ```
+
+### Debian/Ubuntu:
+#### 🧰 Requirements
+
+TODO
+
+#### 🧱 Build steps
+
+```bash
+git clone https://github.com/CESNET/ipfixprobe.git
+cd ipfixprobe
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
+# make install
+```
+
+#### ⚙️ Optional build flags
+You can enable or disable optional plugins and features via CMake flags:
+
+| Flag                               | Default | Description                                                      |
+| ---------------------------------- | ------- | ---------------------------------------------------------------- |
+| `-DENABLE_MILLISECONDS_TIMESTAMP=ON` | OFF     | Use millisecond precision timestamps (for Flowmon compatibility) |
+| `-DENABLE_INPUT_PCAP=ON`             | OFF     | Enable PCAP input plugin (live & file) (requires `libpcap`)    |
+| `-DENABLE_INPUT_DPDK=ON`             | OFF     | Enable high-speed DPDK input plugin    (requires `dpdk-devel`) |
+| `-DENABLE_INPUT_NFB=ON`              | OFF     | Enable input plugin for CESNET NFB/NDP cards (requires `netcope-common`) |
+| `-DENABLE_PROCESS_EXPERIMENTAL=ON`   | OFF     | Enable experimental process plugins                            |
+| `-DENABLE_NEMEA=ON`                  | OFF     | Enable support for NEMEA modules (requires `nemea-framework-devel` ) |
+
+Run the command to view all available build options:
+
+```bash
+cmake -LAH
+```
+
+#### Example
+To build with DPDK and PCAP input support, and install to /usr:
+
+```cmake
+cmake .. \
+  -DCMAKE_INSTALL_PREFIX=/usr \
+  -DENABLE_INPUT_PCAP=ON \
+  -DENABLE_INPUT_DPDK=ON
+```
+
+
+## 🧩 Available Plugins
+
+### Input Plugins
+List of input plugins with estimated performance and configuration complexity.
+
+| Plugin        | Max Throughput | Usage Complexity | Description                               |
+|---------------|----------------|------------------|-------------------------------------------|
+| [`pcap_live`](./src/plugins/input/pcap/README.md#pcap-live-input-plugin) | ~1 Gbps   | Easy    | captures packets from a live network interface |
+| [`pcap_file`](./src/plugins/input/pcap/README.md#pcap-file-input-plugin) | ~1 Gbps   | Easy    | reads packets from an offline PCAP file       |
+| [`raw`](./src/plugins/input/raw/README.md)                               | ~1 Gbps   | Easy    | captures packets using a raw socket           |
+| [`ndp`](./src/plugins/input/nfb/README.md)                               | 400 Gbps  | Medium  | uses CESNET NFB/NDP hardware for packet input |
+| [`dpdk`](./src/plugins/input/dpdk/README.md#dpdk-input-plugin)           | 400 Gbps  | Complex | receives packets via high-performance DPDK    |
+| [`dpdk-ring`](./src/plugins/input/dpdk/README.md)                        | 400 Gbps  | Complex | receives packets from a shared DPDK memory ring |
+
+---
+
+### Process Plugins
+
+These plugins extract protocol-specific or behavioral information from packets and enrich flow records with metadata.
+
+| Plugin        | Description                                                  |
+|---------------|--------------------------------------------------------------|
+| [`basic`](./src/plugins/process/basic/README.md)           | extracts basic L3/L4 flow fields (IPs, ports, protocol)      |
+| [`icmp`](./src/plugins/process/icmp/README.md)             | extracts ICMP type/code and related metadata                 |
+| [`http`](./src/plugins/process/http/README.md)             | extracts HTTP methods, hosts, URIs, status codes             |
+| [`tls`](./src/plugins/process/tls/README.md)               | extracts TLS handshake info (SNI, version, JA3, etc.)        |
+| [`ovpn`](./src/plugins/process/ovpn/README.md)             | extracts metadata from OpenVPN tunnels                       |
+| [`wg`](./src/plugins/process/wg/README.md)                 | parses WireGuard handshake and endpoint metadata             |
+| [`quic`](./src/plugins/process/quic/README.md)             | parses QUIC protocol including SNI, versions, ALPN           |
+| [`basicplus`](./src/plugins/process/basicplus/README.md)   | adds common L3/L4 flow fields (e.g., ports, IPs, TCP flags)  |
+| [`bstats`](./src/plugins/process/bstats/README.md)         | basic flow statistics (packet/byte counters, duration, ...)  |
+| [`dns`](./src/plugins/process/dns/README.md)               | extracts DNS queries, responses, and domains                 |
+| [`dnssd`](./src/plugins/process/dnssd/README.md)           | parses DNS Service Discovery (mDNS) traffic                  |
+| [`flowHash`](./src/plugins/process/flowHash/README.md)     | extracts a flow hash                                         |
+| [`idpContent`](./src/plugins/process/idpContent/README.md) | parses IDP content in flows                                  |
+| [`mpls`](./src/plugins/process/mpls/README.md)             | extracts MPLS labels and encapsulation metadata              |
+| [`mqtt`](./src/plugins/process/mqtt/README.md)             | parses MQTT protocol traffic (IoT messaging)                 |
+| [`netbios`](./src/plugins/process/netbios/README.md)       | extracts NetBIOS session and name service info               |
+| [`nettisa`](./src/plugins/process/nettisa/README.md)       | parses NETTISA related metadata (experimental)               |
+| [`ntp`](./src/plugins/process/ntp/README.md)               | extracts NTP timestamps and server info                      |
+| [`osquery`](./src/plugins/process/osquery/README.md)       | parses osquery-generated data streams                        |
+| [`passiveDns`](./src/plugins/process/passiveDns/README.md) | generates passive DNS entries from observed DNS traffic      |
+| [`phists`](./src/plugins/process/phists/README.md)         | parses phishing-related signatures (heuristic)               |
+| [`pstats`](./src/plugins/process/pstats/README.md)         | advanced packet statistics (e.g., inter-packet gaps)         |
+| [`rtsp`](./src/plugins/process/rtsp/README.md)             | extracts RTSP stream metadata                                |
+| [`sip`](./src/plugins/process/sip/README.md)               | parses SIP call setup, headers, and codecs                   |
+| [`smtp`](./src/plugins/process/smtp/README.md)             | extracts SMTP envelope data (from, to, subject, etc.)        |
+| [`ssaDetector`](./src/plugins/process/ssaDetector/README.md) | performs simple anomaly detection based on traffic patterns |
+| [`ssdp`](./src/plugins/process/ssdp/README.md)             | parses SSDP (UPnP discovery) protocol                        |
+| [`vlan`](./src/plugins/process/vlan/README.md)             | extracts VLAN IDs and QinQ encapsulation                     |
+
+---
+### Output Plugins
+
+These plugins export flow records to various formats and external systems.
+
+| Plugin        | Description                                                                 |
+|---------------|-----------------------------------------------------------------------------|
+| [`ipfix`](./src/plugins/output/ipfix/README.md)     | exports flow records in IPFIX format to a remote collector (UDP/TCP) |
+| [`text`](./src/plugins/output/text/README.md)       | writes flow records in human-readable text to a file or stdout |
+| [`unirec`](./src/plugins/output/unirec/README.md)   | exports flow records using the UniRec format for NEMEA/TRAP ecosystem |
+
+---
+
+
 
 ## 🔧 Parameters
 ### Module specific parameters
