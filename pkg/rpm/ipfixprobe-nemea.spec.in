@@ -121,6 +121,7 @@ source /opt/rh/gcc-toolset-14/enable
 %{_libdir}/ipfixprobe/process/libipfixprobe-process-passivedns.so
 %{_libdir}/ipfixprobe/process/libipfixprobe-process-ssadetector.so
 %{_libdir}/ipfixprobe/process/libipfixprobe-process-ssdp.so
+%{_libdir}/ipfixprobe/process/libipfixprobe-process-tcp-rtt.so
 
 %{_libdir}/ipfixprobe/storage/libipfixprobe-storage-cache.so
 
