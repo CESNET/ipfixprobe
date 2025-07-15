@@ -306,6 +306,8 @@ namespace ipxp {
 
 #define MPLS_TOP_LABEL_STACK_SECTION F(0, 70, -1, nullptr)
 
+#define TCP_RTT(F) F(8057, 1040, 4, nullptr)
+
 /**
  * IPFIX Templates - list of elements
  *
@@ -460,6 +462,8 @@ namespace ipxp {
 	F(MQTT_LAST_RETURN_CODE)                                                                       \
 	F(MQTT_PUBLISH_FLAGS)                                                                          \
 	F(MQTT_TOPICS)
+
+#define IPFIX_TCP_RTT_TEMPLATE(F) F(TCP_RTT)
 
 #define IPFIX_PSTATS_TEMPLATE(F)                                                                   \
 	F(STATS_PCKT_SIZES)                                                                            \
