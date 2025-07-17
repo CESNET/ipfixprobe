@@ -20,6 +20,8 @@
 #include <string_view>
 #include <vector>
 
+namespace ipxp {
+
 /**
  * @brief Manages field handlers and schema registrations.
  *
@@ -54,3 +56,5 @@ private:
 	std::vector<FieldSchema> m_schemas;
 	std::atomic<std::size_t> m_fieldIndex = 0;
 };
+
+} // namespace ipxp

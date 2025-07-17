@@ -3,12 +3,15 @@
 #include "fieldHandler.hpp"
 #include "flowRecord.hpp"
 #include "packet.hpp"
+#include "packetOfFlowData.hpp"
 
 #include <array>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <type_traits>
+
+namespace ipxp {
 
 /**
  * @brief Represents the possible actions a processing plugin can request after handling a packet.
@@ -194,3 +197,9 @@ private:
 
 template<typename Enum>
 using FieldHandlers = EnumArray<Enum, FieldHandler, enum_size<Enum>()>;
+/*class FieldHandlers {
+protected:
+	EnumArray<Enum, FieldHandler, enum_size<Enum>()> m_fieldHandlers;
+};*/
+
+} // namespace ipxp

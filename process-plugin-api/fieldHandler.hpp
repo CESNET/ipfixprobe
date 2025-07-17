@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 using BitIndexType = uint8_t;
+namespace ipxp {
 
 /**
  * @brief Represents a handle to a single field within a FlowRecord.
@@ -92,3 +93,5 @@ private:
 	static constexpr BitIndexType s_invalidIndex = std::numeric_limits<BitIndexType>::max();
 	BitIndexType m_bitIndex;
 };
+
+} // namespace ipxp

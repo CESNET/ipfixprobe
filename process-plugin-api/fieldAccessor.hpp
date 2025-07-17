@@ -6,6 +6,8 @@
 #include <string>
 #include <variant>
 
+namespace ipxp {
+
 /**
  * @brief Accessor for reading a scalar field of type T from a binary structure using offset.
  *
@@ -95,3 +97,5 @@ using VectorValueGetter = std::variant<
  * Used in output fields to provide unified access to underlying data.
  */
 using GenericValueGetter = std::variant<ScalarValueGetter, VectorValueGetter>;
+
+} // namespace ipxp

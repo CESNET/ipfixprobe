@@ -10,6 +10,8 @@
 #include <iostream>
 #include <memory>
 
+namespace ipxp {
+
 static constexpr std::size_t MAX_FIELD_SIZE = 192;
 static constexpr std::size_t MAX_PLUGIN_SIZE = 32;
 
@@ -94,3 +96,5 @@ private:
 
 	friend class FlowRecordBuilder;
 };
+
+} // namespace ipxp
