@@ -13,6 +13,8 @@
 #include "dummyProcessPlugin.hpp"
 #include "processPlugin.hpp"
 
+namespace ipxp {
+
 static size_t alignUp(size_t offset, size_t alignment)
 {
 	return (offset + alignment - 1) & ~(alignment - 1);
@@ -125,3 +127,5 @@ private:
 	std::mutex m_mutex;
 	std::vector<PluginPrototype> m_pluginPrototypes;
 };
+
+} // namespace ipxp

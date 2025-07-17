@@ -12,6 +12,8 @@
 #include <string_view>
 #include <vector>
 
+namespace ipxp {
+
 /**
  * @brief Represents the schema of a flow record, including field definitions and biflow mappings.
  *
@@ -144,3 +146,5 @@ private:
 	std::vector<FieldDescription> m_fields;
 	std::vector<BiflowPair> m_biflowPairs;
 };
+
+} // namespace ipxp

@@ -3,6 +3,8 @@
 #include "outputField.hpp"
 #include "outputPlugin.hpp"
 
+namespace ipxp {
+
 template<typename T>
 static void
 printScalar(const OutputField& field, const ScalarAccessor<T>& accessor, const void* data)
@@ -74,3 +76,5 @@ public:
 		flowRecord.forEachPlugin(fn);
 	}
 };
+
+} // namespace ipxp

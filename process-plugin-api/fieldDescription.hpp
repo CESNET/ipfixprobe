@@ -7,6 +7,8 @@
 #include <string>
 #include <variant>
 
+namespace ipxp {
+
 /**
  * @brief Describes a field in a flow record schema.
  *
@@ -27,3 +29,5 @@ struct FieldDescription {
 	/// Value getter that allows access to the field's value in a record.
 	GenericValueGetter getter;
 };
+
+} // namespace ipxp

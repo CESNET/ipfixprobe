@@ -9,6 +9,8 @@
 
 // #include "processPlugin.hpp"
 
+namespace ipxp {
+
 class ProcessPlugin;
 
 class PluginsMetadata {
@@ -109,3 +111,5 @@ private:
 };
 
 #endif
+
+} // namespace ipxp

@@ -4,6 +4,8 @@
 #include "fieldDescription.hpp"
 #include "flowRecord.hpp"
 
+namespace ipxp {
+
 /**
  * @brief Represents a resolved output field that can be queried from a FlowRecord.
  *
@@ -84,3 +86,5 @@ private:
 	/// Bit index used to check presence in FlowRecord.
 	const std::size_t m_bitIndex;
 };
+
+} // namespace ipxp

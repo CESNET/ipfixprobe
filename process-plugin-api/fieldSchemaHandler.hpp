@@ -7,6 +7,8 @@
 #include <string_view>
 #include <unordered_map>
 
+namespace ipxp {
+
 /**
  * @brief Provides access to field handlers by name.
  *
@@ -53,3 +55,5 @@ private:
 
 	std::unordered_map<std::string, FieldHandler> m_fieldHandlers;
 };
+
+} // namespace ipxp

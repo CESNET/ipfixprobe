@@ -5,16 +5,8 @@
 #include "fieldSchema.hpp"
 #include "processPlugin.hpp"
 #include "flowRecord.hpp"
+#include "directionalField.hpp"
 
-enum Direction : std::size_t { Forward = 0, Reverse = 1 };
-
-template<typename T>
-struct DirectionalField {
-	T values[2];
-
-	T& operator[](Direction d) { return values[static_cast<std::size_t>(d)]; }
-	const T& operator[](Direction d) const { return values[static_cast<std::size_t>(d)]; }
-};
 
 /*
 struct DummyExport {
@@ -33,6 +25,8 @@ struct DummyExport {
 	std::vector<uint64_t> packetsRev;
 };
 */
+
+namespace ipxp {
 
 struct DummyExport {
 	DirectionalField<uint8_t> ipTtl;
@@ -170,10 +164,11 @@ public:
 		return FlowAction::RequestNoData;
 	}
 
-	FlowAction onFlowUpdate(FlowRecord& flowRecord, const Packet& packet) override
+	FlowAction onFlowUpdate(FlowRecord& flowRecord, const Packet& packet, const PacketOfFlowData& data) override
 	{
 		(void) flowRecord;
 		(void) packet;
+		(void) data;
 
 		m_exportData.packets[Direction::Forward] = {1, 2, 3, 4, 5, 6};
 		m_fieldHandlers[DummyFields::PACKETS].setAsAvailable(flowRecord);
@@ -200,3 +195,5 @@ public:
 private:
 	DummyExport m_exportData;
 };
+
+} // namespace ipxp

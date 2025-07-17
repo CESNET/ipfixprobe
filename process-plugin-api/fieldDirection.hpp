@@ -3,7 +3,9 @@
 #include <cstdint>
 #include <stdexcept>
 
-/**
+namespace ipxp {
+
+	/**
  * @brief Enum representing the direction of a flow field.
  *
  * FieldDirection enum is used to represent the possible directions for a field.
@@ -87,3 +89,5 @@ inline const char* toString(FieldDirection dir)
 		throw std::invalid_argument("Unknown FieldDirection value.");
 	}
 }
+
+} // namespace ipxp

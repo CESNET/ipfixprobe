@@ -3,6 +3,8 @@
 #include <string>
 #include <utility>
 
+namespace ipxp {
+
 /**
  * @brief Represents a pair of field names that are semantically linked in a bidirectional flow.
  *
@@ -46,3 +48,5 @@ struct BiflowPair {
 	 */
 	bool operator!=(const BiflowPair& other) const { return !(*this == other); }
 };
+
+} // namespace ipxp
