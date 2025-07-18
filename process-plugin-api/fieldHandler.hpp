@@ -6,6 +6,8 @@
 #include <limits>
 #include <stdexcept>
 
+using BitIndexType = uint8_t;
+
 /**
  * @brief Represents a handle to a single field within a FlowRecord.
  *
@@ -57,7 +59,7 @@ public:
 
 	/// Returns the bit index associated with this field.
 	[[nodiscard]]
-	std::size_t getIndex() const noexcept
+	BitIndexType getIndex() const noexcept
 	{
 		return m_bitIndex;
 	}
@@ -73,7 +75,7 @@ private:
 	friend class FieldManager;
 
 	/// Constructor used only by FieldManager to create a valid handler.
-	explicit FieldHandler(std::size_t bitIndex) noexcept
+	explicit FieldHandler(BitIndexType bitIndex) noexcept
 		: m_bitIndex(bitIndex)
 	{
 	}
@@ -87,6 +89,6 @@ private:
 	}
 
 	/// Special value used to mark an uninitialized handler.
-	static constexpr std::size_t s_invalidIndex = std::numeric_limits<std::size_t>::max();
-	std::size_t m_bitIndex;
+	static constexpr BitIndexType s_invalidIndex = std::numeric_limits<BitIndexType>::max();
+	BitIndexType m_bitIndex;
 };
