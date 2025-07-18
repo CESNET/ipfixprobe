@@ -179,6 +179,54 @@ std::string vec2str(const std::vector<T>& vec)
  */
 void memcpy_le32toh(uint32_t* dest, const uint32_t* src);
 
+constexpr static inline
+timeval operator+(const timeval& a, const timeval& b) noexcept
+{
+	constexpr time_t USEC_IN_SEC = 1'000'000;
+
+	timeval result{};
+	result.tv_sec = a.tv_sec + b.tv_sec;
+	result.tv_usec = a.tv_usec + b.tv_usec;
+	if (result.tv_usec >= USEC_IN_SEC) {
+		result.tv_sec++;
+		result.tv_usec -= USEC_IN_SEC;
+	}
+	return result;
+}
+
+constexpr static inline
+timeval operator-(const timeval& a) noexcept
+{
+	timeval result{};
+	result.tv_sec = -a.tv_sec;
+	result.tv_usec = -a.tv_usec;
+	return result;
+}
+
+constexpr static inline
+timeval operator-(const timeval& a, const timeval& b) noexcept
+{
+	return a + (-b);
+}
+
+constexpr static inline
+bool operator>(const timeval& a, const timeval& b) noexcept
+{
+	return std::tie(a.tv_sec, a.tv_usec) > std::tie(b.tv_sec, b.tv_usec);
+}
+
+constexpr static inline
+bool operator<(const timeval& a, const timeval& b) noexcept
+{
+	return std::tie(a.tv_sec, a.tv_usec) < std::tie(b.tv_sec, b.tv_usec);
+}
+
+constexpr static inline
+bool operator==(const timeval& a, const timeval& b) noexcept
+{
+	return not (a < b) and not (b < a);
+}
+
 } // namespace ipxp
 
 #endif /* IPXP_UTILS_HPP */
