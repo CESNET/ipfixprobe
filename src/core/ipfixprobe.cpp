@@ -448,7 +448,9 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 					conf.iqueue_size,
 					conf.max_pkts,
 					input_res,
-					input_stats),
+					input_stats,
+					pipeline_idx,
+					&conf.finished_workers),
 				input_res,
 				input_stats},
 			   {storagePlugin, storage_process_plugins}};

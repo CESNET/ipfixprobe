@@ -71,13 +71,46 @@ struct OutputWorker {
 	ipx_ring_t* queue;
 };
 
+class FinishedWorkers {
+	constexpr static size_t MAX_WORKERS = 64;
+	enum class WorkerStatus : uint8_t {
+		IN_PROGRESS = 0,
+		FINISHED = 1
+	};
+	std::array<WorkerStatus, MAX_WORKERS> workers_status;
+
+public:
+	FinishedWorkers() noexcept
+	{
+		workers_status.fill(WorkerStatus::FINISHED);
+	}
+
+	void mark_in_progress(size_t worker_id) noexcept
+	{
+		workers_status[worker_id] = WorkerStatus::IN_PROGRESS;
+	}
+
+	void mark_finished(size_t worker_id) noexcept
+	{
+		workers_status[worker_id] = WorkerStatus::FINISHED;
+	}
+
+	bool all_finished() const noexcept
+	{
+		return std::all_of(workers_status.begin(), workers_status.end(),
+		                   [](WorkerStatus status) { return status == WorkerStatus::FINISHED; });
+	}
+};
+
 void input_storage_worker(
 	std::shared_ptr<InputPlugin> inputPlugin,
 	std::shared_ptr<StoragePlugin> storagePlugin,
 	size_t queue_size,
 	uint64_t pkt_limit,
 	std::promise<WorkerResult>* out,
-	std::atomic<InputStats>* out_stats);
+	std::atomic<InputStats>* out_stats,
+	size_t worker_id,
+	FinishedWorkers* finished_workers);
 void output_worker(
 	std::shared_ptr<OutputPlugin> outputPlugin,
 	ipx_ring_t* queue,

@@ -43,7 +43,9 @@ void input_storage_worker(
 	size_t queue_size,
 	uint64_t pkt_limit,
 	std::promise<WorkerResult>* out,
-	std::atomic<InputStats>* out_stats)
+	std::atomic<InputStats>* out_stats,
+	size_t worker_id,
+	FinishedWorkers* finished_workers)
 {
 	struct timespec start_cache;
 	struct timespec end_cache;
@@ -54,6 +56,7 @@ void input_storage_worker(
 	InputPlugin::Result ret;
 	InputStats stats = {0, 0, 0, 0, 0};
 	WorkerResult res = {false, ""};
+	finished_workers->mark_in_progress(worker_id);
 
 	PacketBlock block(queue_size);
 
@@ -63,9 +66,12 @@ void input_storage_worker(
 	const clockid_t clk_id = CLOCK_MONOTONIC;
 #endif
 
-	while (storagePlugin->requires_input()) {
+	while (!finished_workers->all_finished()) {
 		if (terminate_input) {
 			storagePlugin->terminate_input();
+		}
+		if (!storagePlugin->requires_input()) {
+			finished_workers->mark_finished(worker_id);
 		}
 		block.cnt = 0;
 		block.bytes = 0;

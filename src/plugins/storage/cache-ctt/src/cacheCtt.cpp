@@ -168,11 +168,6 @@ void NHTFlowCacheCtt::flush_ctt(const timeval now) noexcept
       m_table_flushed = !m_ctt_flow_seen; 
       m_ctt_flow_seen = false;
    }
-
-   if (m_ctt_flows_flushed >= 16) {
-      m_ctt_flows_flushed = 0;
-      usleep(400);   
-   }
 }
 
 std::optional<feta::OffloadMode> NHTFlowCacheCtt::get_offload_mode(size_t flow_index) noexcept

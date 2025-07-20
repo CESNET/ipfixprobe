@@ -325,6 +325,7 @@ struct ipxp_conf_t {
 	} active;
 
 	std::vector<WorkPipeline> pipelines;
+	FinishedWorkers finished_workers;
 	std::vector<OutputWorker> outputs;
 
 	std::vector<std::atomic<InputStats>*> input_stats;
