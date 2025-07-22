@@ -1,0 +1,32 @@
+name: checkIpfixElements
+
+on: [workflow_call]
+
+jobs:
+  ipfix-elements-checks:
+    runs-on: ubuntu-latest
+    container: oraclelinux:9
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v4
+    - name: Install dependencies
+      run: |
+        dnf install -y dnf-plugins-core epel-release cpp
+        dnf copr enable @CESNET/NEMEA
+        dnf install cesnet-ipfix-elements
+    - name: Check IPFIX elements
+      run: |
+        cd include/ipfixprobe
+        diff_output=$(comm -23 \
+        <(echo -e '#include "ipfix-elements.hpp"\n#define F(ENUMBER, EID, LENGTH, SOURCE) \
+        e ## ENUMBER ## id ## EID\n#define X(FIELD) FIELD(F),\nstart\nIPFIX_ENABLED_TEMPLATES(X)\n \
+        ' | cpp | sed -n '/^start/,$p;' | sed 's/start//; s/, \?/\n/g' | sort | uniq) \
+        <(/opt/libfds/bin/get-ipfix-elementlist-from-libfds.py /opt/libfds/system/elements/* | sort | uniq))
+
+        if [ -n "$diff_output" ]; then
+          echo "Missing IPFIX elements:"
+          echo "$diff_output"
+          exit 1
+        else
+          echo "All IPFIX elements are present."
+        fi
