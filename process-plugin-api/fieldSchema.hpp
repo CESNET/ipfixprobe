@@ -14,6 +14,25 @@
 
 namespace ipxp {
 
+template<typename Field>
+using FieldPair = std::pair<Field, std::string_view>;
+
+template<typename Field>
+using BiflowFieldPair = std::pair<FieldPair<Field>, FieldPair<Field>>;
+
+template<typename Field>
+using FieldVariant = std::variant<FieldPair<Field>, BiflowFieldPair<Field>>;
+
+template<typename Field>
+FieldVariant<Field> makeBiflowPair(FieldPair<Field> field1, FieldPair<Field> field2) {
+    return FieldVariant<Field>(BiflowFieldPair<Field>{field1, field2});
+}
+
+template<typename Field>
+FieldVariant<Field> makeFieldPair(Field field, std::string_view name) {
+    return FieldVariant<Field>(FieldPair<Field>{field, name});
+}
+
 /**
  * @brief Represents the schema of a flow record, including field definitions and biflow mappings.
  *
@@ -87,6 +106,17 @@ public:
 
 		m_biflowPairs.emplace_back(
 			BiflowPair {std::string(forwardFieldName), std::string(reverseFieldName)});
+	}
+
+	template<typename Field>
+	void addBiflowPairs(const std::vector<FieldVariant<Field>>& pairs)
+	{
+		for (const FieldVariant<Field>& fieldVariant : pairs) {
+			if (std::holds_alternative<BiflowFieldPair<Field>>(fieldVariant)) {
+				const auto& [field1, field2] = std::get<BiflowFieldPair<Field>>(fieldVariant);
+				addBiflowPair(field1.second, field2.second);
+			}
+		}
 	}
 
 	/**

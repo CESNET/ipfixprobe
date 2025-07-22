@@ -131,8 +131,8 @@ static FieldSchema createDummySchema()
 }
 
 class DummyPlugin
-	: private FieldHandlers<DummyFields>
-	, public ProcessPlugin {
+	//: private FieldHandlers<DummyFields>,
+	: public ProcessPlugin {
 public:
 	DummyPlugin(const std::string& params, FieldManager& manager)
 	{
@@ -164,11 +164,10 @@ public:
 		return FlowAction::RequestNoData;
 	}
 
-	FlowAction onFlowUpdate(FlowRecord& flowRecord, const Packet& packet, const PacketOfFlowData& data) override
+	FlowAction onFlowUpdate(FlowRecord& flowRecord, const Packet& packet) override
 	{
 		(void) flowRecord;
 		(void) packet;
-		(void) data;
 
 		m_exportData.packets[Direction::Forward] = {1, 2, 3, 4, 5, 6};
 		m_fieldHandlers[DummyFields::PACKETS].setAsAvailable(flowRecord);
@@ -194,6 +193,7 @@ public:
 
 private:
 	DummyExport m_exportData;
+	FieldHandlers<DummyFields> m_fieldHandlers;
 };
 
 } // namespace ipxp

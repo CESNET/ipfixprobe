@@ -86,7 +86,7 @@ public:
 	 *
 	 * Can be used for cleanup or finalization.
 	 */
-	virtual void onFlowExport() {}
+	virtual void onFlowExport(FlowRecord& flowRecord) {}
 
 	/**
 	 * @brief Returns a pointer to the data to be exported.
@@ -197,6 +197,8 @@ private:
 
 template<typename Enum>
 using FieldHandlers = EnumArray<Enum, FieldHandler, enum_size<Enum>()>;
+
+
 /*class FieldHandlers {
 protected:
 	EnumArray<Enum, FieldHandler, enum_size<Enum>()> m_fieldHandlers;
