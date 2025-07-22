@@ -51,6 +51,9 @@ struct Packet : public Record {
 	uint16_t ethertype;
 
 	uint16_t ip_len; /**< Length of IP header + its payload */
+		uint16_t tcp_window;
+	uint64_t tcp_options;
+	uint32_t tcp_mss;
 	uint16_t ip_payload_len; /**< Length of IP payload */
 	uint8_t ip_version;
 	uint8_t ip_ttl;

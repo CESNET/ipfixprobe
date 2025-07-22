@@ -12,7 +12,6 @@ int main()
 	ipxp::FlowRecordBuilder builder;
 	ipxp::FieldManager manager;
 	ipxp::Packet packet;
-	ipxp::PacketOfFlowData data;
 
 	builder.addProcessPlugin("dummy", "params", manager);
 
@@ -23,7 +22,7 @@ int main()
 			[&](ipxp::ProcessPlugin* plugin) { plugin->onFlowCreate(flowRecord, packet); });
 
 		flowRecord.forEachPlugin(
-			[&](ipxp::ProcessPlugin* plugin) { plugin->onFlowUpdate(flowRecord, packet, data); });
+			[&](ipxp::ProcessPlugin* plugin) { plugin->onFlowUpdate(flowRecord, packet); });
 	} catch (std::exception& ex) {
 		std::cout << ex.what() << "\n";
 		return 1;

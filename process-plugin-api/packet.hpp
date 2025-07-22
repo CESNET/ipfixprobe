@@ -19,8 +19,10 @@ struct Packet {
     uint32_t tcpMss;
     TcpFlags tcpFlags;
 
-    uint32_t actualLength;
+    uint32_t realLength;
     uint32_t receivedLength;
+
+    Direction direction;
 
 };
 
