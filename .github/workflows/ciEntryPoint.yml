@@ -54,3 +54,7 @@ jobs:
     uses: ./.github/workflows/rpm-install.yml
     with:
       os: ${{ matrix.os }}
+
+  ipfix-elements-check:
+    needs: [rpm-build]
+    uses: ./.github/workflows/checkIpfixElemets.yml
