@@ -193,7 +193,7 @@ namespace ipxp {
 #define TLS_VERSION(F) F(39499, 333, 2, nullptr)
 #define TLS_ALPN(F) F(39499, 337, -1, nullptr)
 #define TLS_JA3(F) F(39499, 357, -1, nullptr)
-#define TLS_JA4(F) F(39499, 358, -1, nullptr)
+#define TLS_JA4(F) F(8057, 809, -1, nullptr)
 #define TLS_EXT_TYPE(F) F(0, 291, -1, nullptr)
 #define TLS_EXT_LEN(F) F(0, 291, -1, nullptr)
 
