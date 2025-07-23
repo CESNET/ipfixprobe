@@ -153,9 +153,6 @@ static std::string concatenate_vector_to_hex_string(const std::vector<uint16_t>&
 static std::string
 concatenate_extensions_vector_to_string(const std::vector<TLSExtension>& extensions)
 {
-	if (extensions.empty()) {
-		return "";
-	}
 	auto res = std::accumulate(
 		extensions.begin(),
 		extensions.end(),
@@ -166,7 +163,10 @@ concatenate_extensions_vector_to_string(const std::vector<TLSExtension>& extensi
 			}
 			return a + std::to_string(extension.type) + "-";
 		});
-	res.pop_back();
+
+	if (!res.empty()) {
+		res.pop_back();
+	}
 	return res;
 }
 
