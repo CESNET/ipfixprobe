@@ -306,7 +306,7 @@ namespace ipxp {
 
 #define MPLS_TOP_LABEL_STACK_SECTION F(0, 70, -1, nullptr)
 
-#define TCP_RTT(F) F(8057, 1040, 4, nullptr)
+#define TCP_RTT(F) F(8057, 904, 8, nullptr)
 
 /**
  * IPFIX Templates - list of elements
