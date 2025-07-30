@@ -32,6 +32,7 @@ target_link_libraries(ipfixprobe-core
 	atomic::atomic
 	unwind::unwind
 	${CMAKE_DL_LIBS}
+	top-ports
 )
 
 add_executable(ipfixprobe main.cpp)
