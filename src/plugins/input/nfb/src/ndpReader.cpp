@@ -60,21 +60,19 @@ int NdpReader::init_interface(const std::string& interface)
 		return 1;
 	}
 
-	struct bitmask* bits = nullptr;
 	int node_id;
 	rx_handle = ndp_open_rx_queue(dev_handle, channel);
 	if (!rx_handle) {
 		error_msg = std::string() + "error opening NDP queue of NFB device";
 		return 1;
 	}
-	if (((node_id = ndp_queue_get_numa_node(rx_handle)) >= 0)
-		&& // OPTIONAL: bind thread to correct NUMA node
-		((bits = numa_allocate_nodemask()) != nullptr)) {
-		(void) numa_bitmask_setbit(bits, node_id);
-		numa_bind(bits);
-		numa_free_nodemask(bits);
+	if ((node_id = ndp_queue_get_numa_node(rx_handle)) >= 0) {
+		// allow memory to be allocated on other nodes if preferred is unavailable
+		constexpr int PREFERRED_NODE_POLICY = 0;
+		numa_set_bind_policy(PREFERRED_NODE_POLICY);
+		numa_set_preferred(node_id);
 	} else {
-		error_msg = std::string() + "warning - NUMA node binding failed\n";
+		error_msg = "warning - NUMA node detection failed\n";
 		return 1;
 	}
 	if (ndp_queue_start(rx_handle)) { // start capturing data from NDP queue
