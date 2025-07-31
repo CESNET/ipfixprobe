@@ -19,7 +19,9 @@
 #include <endian.h>
 #include <errno.h>
 #include <fcntl.h>
+#ifdef WITH_LZ4
 #include <lz4.h>
+#endif
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -170,14 +172,16 @@ void IPFIXExporter::init(const char* params)
 	dir_bit_field = parser.m_dir;
 	templateRefreshTime = parser.m_template_refresh_time;
 
-	int res;
+	int res = -1;
 	// check if compression is enabled
 	if (parser.m_lz4_compression) {
+#ifdef WITH_LZ4
 		res = packetDataBuffer.init(
 			true,
 			LZ4_COMPRESSBOUND(mtu) + CompressBuffer::C_ADD_SIZE,
 			// mtu * 3 is arbitrary value, it should be more than mtu * 2
 			std::max(parser.m_lz4_buffer_size, mtu * 3));
+#endif
 	} else {
 		res = packetDataBuffer.init(false, 0, mtu);
 	}
@@ -879,7 +883,7 @@ int IPFIXExporter::send_packet(ipfix_packet_t* packet)
 	auto data = packetDataBuffer.getCompressed();
 
 	/* sendto() does not guarantee that everything will be send in one piece */
-	while (sent < dataLen) {
+	while (fd != -1 && sent < dataLen) {
 		/* Send data to collector (TCP and SCTP ignores last two arguments) */
 		ret = sendto(
 			fd,
@@ -1189,7 +1193,9 @@ CompressBuffer::CompressBuffer()
 	, readSize(0)
 	, lastReadIndex(0)
 	, lastReadSize(0)
+#ifdef WITH_LZ4
 	, lz4Stream(nullptr)
+#endif
 {
 }
 
@@ -1216,12 +1222,12 @@ int CompressBuffer::init(bool compress, size_t compressSize, size_t writeSize)
 		return -1;
 	}
 	compressedSize = compressSize;
-
+#ifdef WITH_LZ4
 	lz4Stream = LZ4_createStream();
 	if (!lz4Stream) {
 		return -1;
 	}
-
+#endif
 	shouldResetConnection = true;
 
 	return 0;
@@ -1297,7 +1303,7 @@ int CompressBuffer::compress()
 		readSize = 0;
 		return compressedSize;
 	}
-
+#ifdef WITH_LZ4
 	// resize the buffer if it may not be large enough
 	if (compressedSize < LZ4_COMPRESSBOUND(readSize) + C_ADD_SIZE) {
 		auto newSize = LZ4_COMPRESSBOUND(readSize);
@@ -1366,6 +1372,9 @@ int CompressBuffer::compress()
 	readSize = 0;
 
 	return res + (com - compressed);
+#else
+	return 0;
+#endif
 }
 
 const uint8_t* CompressBuffer::getCompressed() const
@@ -1425,12 +1434,12 @@ void CompressBuffer::close()
 		compressed = nullptr;
 		compressedSize = 0;
 	}
-
+#ifdef WITH_LZ4
 	if (lz4Stream) {
 		LZ4_freeStream(lz4Stream);
 		lz4Stream = nullptr;
 	}
-
+#endif
 	shouldResetConnection = false;
 	shouldCompress = false;
 	readIndex = 0;
