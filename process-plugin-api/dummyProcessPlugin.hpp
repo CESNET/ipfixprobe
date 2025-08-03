@@ -175,7 +175,7 @@ public:
 		return FlowAction::RequestNoData;
 	}
 
-	void onFlowExport() override {}
+	void onFlowExport(FlowRecord& flowRecord) override {}
 
 	const void* getExportData() const noexcept override { return &m_exportData; }
 

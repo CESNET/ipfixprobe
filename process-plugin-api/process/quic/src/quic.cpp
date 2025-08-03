@@ -1,0 +1,272 @@
+/**
+ * @file
+ * @brief Plugin for parsing basicplus traffic.
+ * @author Jiri Havranek <havranek@cesnet.cz>
+ * @author Pavel Siska <siska@cesnet.cz>
+ * @date 2025
+ *
+ * Copyright (c) 2025 CESNET
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+#include "burstStats.hpp"
+
+#include <iostream>
+
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
+#include <pluginFactory.hpp>
+#include <fieldSchema.hpp>
+#include <fieldManager.hpp>
+
+namespace ipxp {
+
+static const PluginManifest quicPluginManifest = {
+	.name = "quic",
+	.description = "Quic process plugin for parsing quic traffic.",
+	.pluginVersion = "1.0.0",
+	.apiVersion = "1.0.0",
+	.usage =
+		[]() {
+			/*OptionsParser parser("quic", "Parse QUIC traffic");
+			parser.usage(std::cout);*/
+		},
+};
+
+const inline std::vector<FieldPair<BurstStatsFields>> fields = {
+	{BurstStatsFields::SBI_BRST_PACKETS, "SBI_BRST_PACKETS"},
+};
+
+
+static FieldSchema createQUICSchema()
+{
+	FieldSchema schema("quic");
+
+	schema.addVectorField<uint32_t>(
+		"SBI_BRST_PACKETS",
+		FieldDirection::Forward,
+		[](const void* thisPtr) -> std::span<const uint32_t> {
+			return reinterpret_cast<const BurstStatsExport*>(thisPtr)
+				->getPackets(Direction::Forward);
+		});
+
+	schema.addBiflowPair("SBI_BRST_TIME_START", "DBI_BRST_TIME_START");
+	schema.addBiflowPair("SBI_BRST_TIME_STOP", "DBI_BRST_TIME_STOP");
+
+	return schema;
+}
+
+QUICPlugin::QUICPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+{
+	const FieldSchema schema = createQUICSchema();
+	const FieldSchemaHandler schemaHandler = manager.registerSchema(schema);
+
+	for (const auto& [field, name] : fields) {
+		m_fieldHandlers[field] = schemaHandler.getFieldHandler(name);
+	}
+}
+
+int QUICPlugin::process_quic(
+	RecordExtQUIC* quic_data,
+	Flow& rec,
+	const Packet& pkt,
+	bool new_quic_flow)
+{
+	QUICParser process_quic;
+
+	// Test for QUIC LH packet in UDP payload
+	if (process_quic.quic_check_quic_long_header_packet(
+			pkt,
+			quic_data->initial_dcid,
+			quic_data->initial_dcid_length)) {
+		uint32_t version;
+		process_quic.quic_get_version(version);
+
+		// Get kinds of packet included in datagram
+		uint8_t packets = 0;
+		process_quic.quic_get_packets(packets);
+
+		// Store all QUIC packet types contained in each packet
+		set_packet_type(quic_data, rec, packets);
+
+		// A 0-RTT carries the same QUIC version as the Client Initial Hello.
+		// 0-RTT and compatible version negotiation is not defined.
+		// We ignore those cases because it might be defined in the future
+		if ((packets & QUICParser::PACKET_TYPE_FLAG::F_ZERO_RTT) == 0) {
+			quic_data->quic_version = version;
+		}
+
+		// Simple version, more advanced information is available after Initial parsing
+		int toServer = get_direction_to_server_and_set_port(
+			&process_quic,
+			quic_data,
+			process_quic.quic_get_server_port(),
+			pkt,
+			new_quic_flow);
+
+		if (packets & QUICParser::PACKET_TYPE_FLAG::F_ZERO_RTT) {
+			uint8_t zero_rtt_pkts = 0;
+			process_quic.quic_get_zero_rtt(zero_rtt_pkts);
+
+			if ((uint16_t) zero_rtt_pkts + (uint16_t) quic_data->quic_zero_rtt > 0xFF) {
+				quic_data->quic_zero_rtt = 0xFF;
+			} else {
+				quic_data->quic_zero_rtt += zero_rtt_pkts;
+			}
+		}
+		uint8_t parsed_initial = 0;
+
+		if (version == QUICParser::QUIC_VERSION::version_negotiation) {
+			set_cid_fields(quic_data, rec, &process_quic, toServer, new_quic_flow, pkt);
+			return FLOW_FLUSH;
+		}
+
+		// export if parsed CH
+		quic_data->parsed_ch |= process_quic.quic_get_parsed_ch();
+
+		switch (process_quic.quic_get_packet_type()) {
+		case QUICParser::PACKET_TYPE::INITIAL:
+			process_quic.quic_get_parsed_initial(parsed_initial);
+			// Store DCID from first observed Initial packet. This is used in the crypto operations.
+			// Check length works because the first Initial must have a non-zero DCID.
+			if (quic_data->initial_dcid_length == 0) {
+				process_quic.quic_get_dcid_len(quic_data->initial_dcid_length);
+				process_quic.quic_get_dcid(quic_data->initial_dcid);
+				// Once established it can only be changed by a retry packet.
+			}
+
+			if (parsed_initial && (process_quic.quic_get_tls_hs_type() == 1)) {
+				// Successful CH parsing
+				set_stored_cid_fields(quic_data, new_quic_flow);
+				set_client_hello_fields(&process_quic, rec, quic_data, pkt, new_quic_flow);
+				quic_data->client_hello_seen = true;
+
+				if (!quic_data->tls_ext_type_set) {
+					process_quic.quic_get_tls_ext_type(quic_data->tls_ext_type);
+					process_quic.quic_get_tls_ext_type_len(quic_data->tls_ext_type_len);
+					quic_data->tls_ext_type_set = true;
+				}
+
+				if (!quic_data->tls_ext_len_set) {
+					process_quic.quic_get_tls_extension_lengths(quic_data->tls_ext_len);
+					process_quic.quic_get_tls_extension_lengths_len(quic_data->tls_ext_len_len);
+					quic_data->tls_ext_len_set = true;
+				}
+
+				if (!quic_data->tls_ext_set) {
+					process_quic.quic_get_tls_ext(quic_data->tls_ext);
+					process_quic.quic_get_tls_ext_len(quic_data->tls_ext_length);
+					quic_data->tls_ext_set = true;
+				}
+				break;
+			}
+			// Update accounting for information from CH, SH.
+			toServer = get_direction_to_server_and_set_port(
+				&process_quic,
+				quic_data,
+				process_quic.quic_get_server_port(),
+				pkt,
+				new_quic_flow);
+			// fallthrough to set cids
+			[[fallthrough]];
+		case QUICParser::PACKET_TYPE::HANDSHAKE:
+			// -1 sets stores intermediately.
+			set_cid_fields(quic_data, rec, &process_quic, toServer, new_quic_flow, pkt);
+			break;
+		case QUICParser::PACKET_TYPE::RETRY:
+			quic_data->cnt_retry_packets += 1;
+			/*
+			 * A client MUST accept and process at most one Retry packet for each connection
+			 * attempt. After the client has received and processed an Initial or Retry packet from
+			 * the server, it MUST discard any subsequent Retry packets that it receives.
+			 */
+			if (quic_data->cnt_retry_packets == 1) {
+				// Additionally set token len
+				process_quic.quic_get_scid(quic_data->retry_scid);
+				process_quic.quic_get_scid_len(quic_data->retry_scid_length);
+				// Update DCID for decryption
+				process_quic.quic_get_dcid_len(quic_data->initial_dcid_length);
+				process_quic.quic_get_scid(quic_data->initial_dcid);
+
+				process_quic.quic_get_token_length(quic_data->quic_token_length);
+			}
+
+			if (!quic_data->occid_set) {
+				process_quic.quic_get_dcid(quic_data->occid);
+				process_quic.quic_get_dcid_len(quic_data->occid_length);
+				quic_data->occid_set = true;
+			}
+
+			break;
+		case QUICParser::PACKET_TYPE::ZERO_RTT:
+			// Connection IDs are identical to Client Initial CH. The DCID might be OSCID at first
+			// and change to SCID later. We ignore the DCID.
+			if (!quic_data->occid_set) {
+				process_quic.quic_get_scid(quic_data->occid);
+				process_quic.quic_get_scid_len(quic_data->occid_length);
+				quic_data->occid_set = true;
+			}
+			break;
+		}
+
+		return QUIC_DETECTED;
+	} else {
+		// Even if no QUIC detected store packets, which will only include the QUIC bit.
+		uint8_t packets = 0;
+		process_quic.quic_get_packets(packets);
+		set_packet_type(quic_data, rec, packets);
+	}
+	return QUIC_NOT_DETECTED;
+} // QUICPlugin::process_quic
+
+FlowAction QUICPlugin::parseQUIC(Flow& rec, const Packet& pkt) noexcept
+{
+
+	int ret = process_quic(q_ptr, rec, pkt, new_qptr);
+	// Test if QUIC extension is not set
+	if (new_qptr && ((ret == QUIC_DETECTED) || (ret == FLOW_FLUSH))) {
+		rec.add_extension(q_ptr);
+	}
+	if (new_qptr && (ret == QUIC_NOT_DETECTED)) {
+		// If still no record delete q_ptr
+		delete q_ptr;
+	}
+	// Correct if QUIC has already been detected
+	if (!new_qptr && (ret == QUIC_NOT_DETECTED)) {
+		return QUIC_DETECTED;
+	}
+	return ret;
+}
+
+FlowAction QUICPlugin::onFlowCreate(FlowRecord& flowRecord, const Packet& packet)
+{
+	return parseQUIC(flowRecord, packet);
+}
+
+FlowAction QUICPlugin::onFlowUpdate(FlowRecord& flowRecord, const Packet& packet)
+{
+	return parseQUIC(flowRecord, packet);
+}
+
+void QUICPlugin::onFlowExport(FlowRecord& flowRecord) {
+
+}
+
+ProcessPlugin* QUICPlugin::clone(std::byte* constructAtAddress) const
+{
+	return std::construct_at(reinterpret_cast<QUICPlugin*>(constructAtAddress), *this);
+}
+
+std::string QUICPlugin::getName() const { 
+	return quicPluginManifest.name; 
+}
+
+const void* QUICPlugin::getExportData() const noexcept {
+	return &m_exportData;
+}	
+
+static const PluginRegistrar<QUICPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+	quicRegistrar(quicPluginManifest);
+
+} // namespace ipxp

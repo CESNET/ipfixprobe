@@ -8,7 +8,7 @@ SRC := main.cpp $(wildcard process/*/src/*.cpp)
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) $^ -I. -I../include/ipfixprobe/pluginFactory -o $@
+	$(CXX) $(CXXFLAGS) $^ -I. -I../include/ipfixprobe/pluginFactory -Iprocess/common -o $@
 
 clean:
 	rm -f $(TARGET)

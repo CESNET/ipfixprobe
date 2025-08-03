@@ -40,9 +40,7 @@ public:
 
 	FlowAction onFlowCreate(FlowRecord& flowRecord, const Packet& packet) override;
 
-	FlowAction onFlowUpdate(FlowRecord& flowRecord, const Packet& packet, const PacketOfFlowData& data) override;
-
-	void onFlowExport() override;
+	FlowAction onFlowUpdate(FlowRecord& flowRecord, const Packet& packet) override;
 
 	ProcessPlugin* clone(std::byte* constructAtAddress) const override;
 
@@ -57,6 +55,7 @@ public:
 
 private:
 	BasicPlusExport m_exportData;
+	FieldHandlers<BasicPlusFields> m_fieldHandlers;
 };
 
 } // namespace ipxp

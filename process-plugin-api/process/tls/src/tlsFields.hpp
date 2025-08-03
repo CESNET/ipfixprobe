@@ -1,0 +1,29 @@
+#pragma once
+
+#include <cstddef>
+
+namespace ipxp
+{
+
+enum class QUICFields : std::size_t {
+	QUIC_SNI = 0,
+	QUIC_USER_AGENT,
+	QUIC_VERSION,
+	QUIC_CLIENT_VERSION,
+	QUIC_TOKEN_LENGTH,
+	QUIC_OCCID,
+	QUIC_OSCID,
+	QUIC_SCID,
+	QUIC_RETRY_SCID,
+	QUIC_MULTIPLEXED,
+	QUIC_ZERO_RTT,
+	QUIC_SERVER_PORT,
+	QUIC_PACKETS,
+	QUIC_CH_PARSED,
+	QUIC_TLS_EXT_TYPE,
+	QUIC_TLS_EXT_LEN,
+	QUIC_TLS_EXT,
+	FIELDS_SIZE,
+};    
+    
+} // namespace ipxp

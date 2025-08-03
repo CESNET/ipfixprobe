@@ -2,27 +2,33 @@
 
 #include <cstdint>
 #include <sys/time.h>
+#include <span>
+#include <optional>
 
 #include "directionalField.hpp"
-#include "tcpFlags.hpp"
+#include "tcpData.hpp"
+#include "flowKey.hpp"
 
 namespace ipxp
 {
 
 struct Packet {
-    timeval timestamp;
-    uint8_t ipTtl;
-    uint8_t ipFlags;
-    uint16_t ipLength;
-    uint16_t tcpWindow;
-    uint64_t tcpOptions;
-    uint32_t tcpMss;
-    TcpFlags tcpFlags;
+    FlowKey flowKey{};
 
-    uint32_t realLength;
-    uint32_t receivedLength;
+    uint64_t timestamp{0};
+    uint8_t ipTtl{0};
+    uint8_t ipFlags{0};
+    uint16_t ipLength{0};
 
-    Direction direction;
+    std::optional<TCPData> tcpData{std::nullopt};
+
+    uint32_t realLength{0};
+    //uint32_t receivedLength{0};
+
+    Direction direction{Direction::Forward};
+
+    std::span<const std::byte> payload;   
+    std::optional<uint32_t> mplsTopLabel;
 
 };
 
