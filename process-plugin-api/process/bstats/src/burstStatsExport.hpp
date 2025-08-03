@@ -24,13 +24,10 @@ private:
 		DStop = 1057
 	} eHdrFieldID;*/
 
-	DirectionalField<uint16_t> burst_count;
-	DirectionalField<uint8_t> burst_empty;
-
 	DirectionalField<boost::container::static_vector<uint32_t, MAX_BURST_COUNT>> packets;
 	DirectionalField<boost::container::static_vector<uint32_t, MAX_BURST_COUNT>> bytes;
-	DirectionalField<boost::container::static_vector<timeval, MAX_BURST_COUNT>> start;
-	DirectionalField<boost::container::static_vector<timeval, MAX_BURST_COUNT>> end;
+	DirectionalField<boost::container::static_vector<uint64_t, MAX_BURST_COUNT>> start;
+	DirectionalField<boost::container::static_vector<uint64_t, MAX_BURST_COUNT>> end;
 
 public:
 
@@ -41,17 +38,17 @@ public:
 	
 	std::span<const uint32_t> getBytes(const Direction direction) const noexcept
 	{
-		return std::span<uint32_t>(packets[direction].data(), packets[direction].size());
+		return std::span<const uint32_t>(bytes[direction].data(), static_cast<std::size_t>(bytes[direction].size()));
 	}
 
-	std::span<const uint32_t> getStartTimestamps(const Direction direction) const noexcept
+	std::span<const uint64_t> getStartTimestamps(const Direction direction) const noexcept
 	{
-		return std::span<uint32_t>(packets[direction].data(), packets[direction].size());
+		return std::span<const uint64_t>(start[direction].data(), static_cast<std::size_t>(start[direction].size()));
 	}
 
-	std::span<const uint32_t> getEndTimestamps(const Direction direction) const noexcept
+	std::span<const uint64_t> getEndTimestamps(const Direction direction) const noexcept
 	{
-		return std::span<const uint32_t>(packets[direction].begin(), packets[direction].end());
+		return std::span<const uint64_t>(&*end[direction].begin(), static_cast<std::size_t>(end[direction].size()));
 	}
 
 	inline
@@ -77,8 +74,8 @@ public:
 
 		packets[direction].push_back(0);
 		bytes[direction].push_back(0);
-		start[direction].push_back({});
-		end[direction].push_back({});
+		start[direction].push_back(0);
+		end[direction].push_back(0);
 
 		return back(direction);
 	}

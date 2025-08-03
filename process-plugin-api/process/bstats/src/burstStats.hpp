@@ -22,9 +22,7 @@
 
 namespace ipxp {
 
-class BurstStatsPlugin 
-	: //private FieldHandlers<BurstStatsFields>, 
-	public ProcessPlugin {
+class BurstStatsPlugin : public ProcessPlugin {
 public:
 	BurstStatsPlugin(const std::string& params, FieldManager& manager);
 

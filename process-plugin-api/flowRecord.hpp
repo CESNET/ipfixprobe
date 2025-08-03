@@ -9,6 +9,9 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include "tcpFlags.hpp"
+
+#include "flowKey.hpp"
 
 namespace ipxp {
 
@@ -18,39 +21,12 @@ static constexpr std::size_t MAX_PLUGIN_SIZE = 32;
 using PluginsBitset = std::bitset<MAX_PLUGIN_SIZE>;
 using FieldsBitset = std::bitset<MAX_FIELD_SIZE>;
 
-union IPAddress {
-	std::array<uint8_t, 16> u8;
-	std::array<uint16_t, 8> u16;
-	std::array<uint32_t, 4> u32;
-	std::array<uint64_t, 2> u64;
-
-	IPAddress() { std::memset(&u8, 0, sizeof(u8)); };
-	IPAddress(uint32_t ipv4)
-	{
-		(void) ipv4; // Suppress unused warning
-	};
-	IPAddress(const std::array<uint8_t, 16>& ipv6)
-	{
-		(void) ipv6; // Suppress unused warning
-	};
-	// const bool isIPv4() {};
-	// const bool isIPv6() {};
-	//  TODO: comparison functions,...
-};
-
 struct DirectionalData {
 	uint64_t timeStart = 0;
 	uint64_t timeEnd = 0;
 	uint64_t packets = 0;
 	uint64_t bytes = 0;
-};
-
-struct FlowKey {
-	IPAddress srcIp;
-	IPAddress dstIp;
-	uint16_t srcPort;
-	uint16_t dstPort;
-	uint8_t l4Protocol;
+    TcpFlags tcpFlags{};
 };
 
 class FlowRecord {

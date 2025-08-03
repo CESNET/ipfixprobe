@@ -19,7 +19,6 @@
 #include <pluginFactory.hpp>
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
-#include <packetOfFlowData.hpp>
 
 namespace ipxp {
 
@@ -69,31 +68,31 @@ static FieldSchema createBurstStatsSchema()
 		FieldDirection::Forward,
 		[](const void* thisPtr) -> std::span<const uint32_t> {
 			return reinterpret_cast<const BurstStatsExport*>(thisPtr)
-				->getPackets(Direction::Forward);
+				->getBytes(Direction::Forward);
 		});
 
-	schema.addVectorField<uint32_t>(
+	/*schema.addVectorField<timeval>(
 		"SBI_BRST_TIME_START",
 		FieldDirection::Forward,
-		[](const void* thisPtr) -> std::span<const uint32_t> {
+		[](const void* thisPtr) -> std::span<const timeval> {
 			return reinterpret_cast<const BurstStatsExport*>(thisPtr)
-				->getPackets(Direction::Forward);
+				->getStartTimestamps(Direction::Forward);
 		});
 
-	schema.addVectorField<uint32_t>(
+	schema.addVectorField<timeval>(
 		"SBI_BRST_TIME_STOP",
 		FieldDirection::Forward,
-		[](const void* thisPtr) -> std::span<const uint32_t> {
+		[](const void* thisPtr) -> std::span<const timeval> {
 			return reinterpret_cast<const BurstStatsExport*>(thisPtr)
-				->getPackets(Direction::Forward);
-		});
+				->getEndTimestamps(Direction::Forward);
+		});*/
 
 	schema.addVectorField<uint32_t>(
 		"DBI_BRST_PACKETS",
 		FieldDirection::Forward,
 		[](const void* thisPtr) -> std::span<const uint32_t> {
 			return reinterpret_cast<const BurstStatsExport*>(thisPtr)
-				->getPackets(Direction::Forward);
+				->getPackets(Direction::Reverse);
 		});
 
 	schema.addVectorField<uint32_t>(
@@ -101,24 +100,24 @@ static FieldSchema createBurstStatsSchema()
 		FieldDirection::Forward,
 		[](const void* thisPtr) -> std::span<const uint32_t> {
 			return reinterpret_cast<const BurstStatsExport*>(thisPtr)
-				->getPackets(Direction::Forward);
+				->getBytes(Direction::Reverse);
 		});
 
-	schema.addVectorField<uint32_t>(
+	/*schema.addVectorField<timeval>(
 		"DBI_BRST_TIME_START",
 		FieldDirection::Forward,
-		[](const void* thisPtr) -> std::span<const uint32_t> {
+		[](const void* thisPtr) -> std::span<const timeval> {
 			return reinterpret_cast<const BurstStatsExport*>(thisPtr)
-				->getPackets(Direction::Forward);
+				->getStartTimestamps(Direction::Reverse);
 		});
 
-	schema.addVectorField<uint32_t>(
+	schema.addVectorField<timeval>(
 		"DBI_BRST_TIME_STOP",
 		FieldDirection::Forward,
-		[](const void* thisPtr) -> std::span<const uint32_t> {
+		[](const void* thisPtr) -> std::span<const timeval> {
 			return reinterpret_cast<const BurstStatsExport*>(thisPtr)
-				->getPackets(Direction::Forward);
-		});
+				->getEndTimestamps(Direction::Reverse);
+		});*/
 
 	schema.addBiflowPair("SBI_BRST_PACKETS", "DBI_BRST_PACKETS");
 	schema.addBiflowPair("SBI_BRST_BYTES", "DBI_BRST_BYTES");
@@ -146,7 +145,7 @@ FlowAction BurstStatsPlugin::onFlowCreate(FlowRecord& flowRecord, const Packet& 
 		return FlowAction::RequestNoData;
 	}
 
-	updateBursts(*burst, flowRecord, packet, Direction::Forward);
+	updateBursts(*burst, flowRecord, packet);
 
 	return FlowAction::RequestTrimmedData;
 }
@@ -165,28 +164,27 @@ void BurstStatsPlugin::updateBursts(Burst& burst, FlowRecord& flowRecord,
 	burst.bytes += packet.realLength;	
 	m_fieldHandlers[byteFields[packet.direction]].setAsAvailable(flowRecord);
 
-	burst.end = packet.timestamp;
+	burst.end.get() = packet.timestamp;
 	m_fieldHandlers[endFields[packet.direction]].setAsAvailable(flowRecord);
 
 	if (burst.packets == 1) {
-		burst.start = packet.timestamp;
+		burst.start.get() = packet.timestamp;
 		m_fieldHandlers[startFields[packet.direction]].setAsAvailable(flowRecord);
 	}
 }
-
 
 FlowAction BurstStatsPlugin::onFlowUpdate(FlowRecord& flowRecord, 
 	const Packet& packet)
 {
 	std::optional<Burst> burst = m_exportData.back(packet.direction);
 	if (!burst.has_value() || !burst->belongs(packet.timestamp)) {
-		burst = m_exportData.push(packet.direction)
+		burst = m_exportData.push(packet.direction);
 	}
 	if (!burst.has_value()) {
 		return FlowAction::RequestNoData;
 	}
 	
-	updateBursts(burst, packet);
+	updateBursts(*burst, flowRecord, packet);
 
 	return FlowAction::RequestTrimmedData;
 }
@@ -204,10 +202,9 @@ void BurstStatsPlugin::makeAllFieldsUnavailable(FlowRecord& flowRecord) noexcept
 
 }
 
-
 void BurstStatsPlugin::onFlowExport(FlowRecord& flowRecord) {
 	const uint32_t packets 
-		= flowRecord.dataForward.packets + flowRecord.dataReverse.packets;
+		= static_cast<uint32_t>(flowRecord.dataForward.packets + flowRecord.dataReverse.packets);
 	if (packets <= MINIMAL_PACKETS_COUNT) {
 		makeAllFieldsUnavailable(flowRecord);
 		return;

@@ -86,7 +86,7 @@ public:
 	 *
 	 * Can be used for cleanup or finalization.
 	 */
-	virtual void onFlowExport(FlowRecord& flowRecord) {}
+	virtual void onFlowExport([[maybe_unused]]FlowRecord& flowRecord) {}
 
 	/**
 	 * @brief Returns a pointer to the data to be exported.

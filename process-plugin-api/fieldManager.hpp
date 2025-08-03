@@ -38,7 +38,7 @@ public:
 
 		FieldSchemaHandler schemaHandler;
 		for (const auto& field : schema.getFields()) {
-			FieldHandler fieldHandler(m_fieldIndex);
+			FieldHandler fieldHandler(static_cast<BitIndexType>(m_fieldIndex));
 			schemaHandler.registerField(field.name, fieldHandler);
 			m_fields.emplace_back(OutputField(field, m_fieldIndex));
 

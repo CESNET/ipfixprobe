@@ -9,15 +9,15 @@ namespace ipxp
 
 struct Burst {
     
-    constexpr static timeval MAX_INTERPACKET_TIMEDIFF = {1, 0};
+    constexpr static uint64_t MAX_INTERPACKET_TIMEDIFF = 1'000'000;
 
-    uint32_t& packets;
-	uint32_t& bytes;
-	timeval& start;
-	timeval& end;
+    std::reference_wrapper<uint32_t> packets;
+	std::reference_wrapper<uint32_t> bytes;
+	std::reference_wrapper<uint64_t> start;
+	std::reference_wrapper<uint64_t> end;
 
     constexpr inline
-    bool belongs(const timeval& time) const noexcept 
+    bool belongs(const uint64_t& time) const noexcept 
     {
         return time - end < MAX_INTERPACKET_TIMEDIFF;
     }

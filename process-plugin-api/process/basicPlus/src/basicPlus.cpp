@@ -45,42 +45,52 @@ static FieldSchema createBasicPlusSchema()
 		"IP_TTL",
 		FieldDirection::Forward,
 		offsetof(BasicPlusExport, ipTtl.values[Direction::Forward]));
+
 	schema.addScalarField<uint8_t>(
 		"IP_TTL_REV",
 		FieldDirection::Reverse,
 		offsetof(BasicPlusExport, ipTtl.values[Direction::Reverse]));
+
 	schema.addScalarField<uint8_t>(
 		"IP_FLG",
 		FieldDirection::Forward,
 		offsetof(BasicPlusExport, ipFlag.values[Direction::Forward]));
+
 	schema.addScalarField<uint8_t>(
 		"IP_FLG_REV",
 		FieldDirection::Reverse,
 		offsetof(BasicPlusExport, ipFlag.values[Direction::Reverse]));
+
 	schema.addScalarField<uint16_t>(
 		"TCP_WIN",
 		FieldDirection::Forward,
 		offsetof(BasicPlusExport, tcpWindow.values[Direction::Forward]));
+
 	schema.addScalarField<uint16_t>(
 		"TCP_WIN_REV",
 		FieldDirection::Reverse,
 		offsetof(BasicPlusExport, tcpWindow.values[Direction::Reverse]));
+
 	schema.addScalarField<uint64_t>(
 		"TCP_OPT",
 		FieldDirection::Forward,
 		offsetof(BasicPlusExport, tcpOption.values[Direction::Forward]));
+
 	schema.addScalarField<uint64_t>(
 		"TCP_OPT_REV",
 		FieldDirection::Reverse,
 		offsetof(BasicPlusExport, tcpOption.values[Direction::Reverse]));
+
 	schema.addScalarField<uint32_t>(
 		"TCP_MSS",
 		FieldDirection::Forward,
 		offsetof(BasicPlusExport, tcpMss.values[Direction::Forward]));
+
 	schema.addScalarField<uint32_t>(
 		"TCP_MSS_REV",
 		FieldDirection::Reverse,
 		offsetof(BasicPlusExport, tcpMss.values[Direction::Reverse]));
+
 	schema.addScalarField<uint16_t>(
 		"TCP_SYN_SIZE",
 		FieldDirection::DirectionalIndifferent,
@@ -100,7 +110,6 @@ BasicPlusPlugin::BasicPlusPlugin([[maybe_unused]]const std::string& params, Fiel
 	const FieldSchema schema = createBasicPlusSchema();
 	const FieldSchemaHandler schemaHandler = manager.registerSchema(schema);
 
-	
 	m_fieldHandlers[BasicPlusFields::IP_TTL] = schemaHandler.getFieldHandler("IP_TTL");
 	m_fieldHandlers[BasicPlusFields::IP_TTL_REV] = schemaHandler.getFieldHandler("IP_TTL_REV");
 	m_fieldHandlers[BasicPlusFields::IP_FLG] = schemaHandler.getFieldHandler("IP_FLG");
@@ -123,16 +132,20 @@ FlowAction BasicPlusPlugin::onFlowCreate(FlowRecord& flowRecord, const Packet& p
 	m_exportData.ipFlag[Direction::Forward] = packet.ipFlags;
 	m_fieldHandlers[BasicPlusFields::IP_FLG].setAsAvailable(flowRecord);
 
-	m_exportData.tcpWindow[Direction::Forward] = packet.tcpWindow;
+	if (!packet.tcpData.has_value()) {
+		return FlowAction::RequestTrimmedData;
+	}
+
+	m_exportData.tcpWindow[Direction::Forward] = packet.tcpData->window;
 	m_fieldHandlers[BasicPlusFields::TCP_WIN].setAsAvailable(flowRecord);
 
-	m_exportData.tcpOption[Direction::Forward] = packet.tcpOptions;
+	m_exportData.tcpOption[Direction::Forward] = packet.tcpData->options;
 	m_fieldHandlers[BasicPlusFields::TCP_OPT].setAsAvailable(flowRecord);
 
-	m_exportData.tcpMss[Direction::Forward] = packet.tcpMss;
+	m_exportData.tcpMss[Direction::Forward] = packet.tcpData->mss;
 	m_fieldHandlers[BasicPlusFields::TCP_MSS].setAsAvailable(flowRecord);
 
-	if (packet.tcpFlags.flags.synchronize) { // check if SYN packet
+	if (packet.tcpData->flags.bitfields.synchronize) { // check if SYN packet
 		m_exportData.tcpSynSize = packet.ipLength;
 		m_fieldHandlers[BasicPlusFields::TCP_SYN_SIZE].setAsAvailable(flowRecord);
 	}
@@ -140,37 +153,40 @@ FlowAction BasicPlusPlugin::onFlowCreate(FlowRecord& flowRecord, const Packet& p
 	return FlowAction::RequestTrimmedData;
 }
 
-FlowAction BasicPlusPlugin::onFlowUpdate(FlowRecord& flowRecord, 
-	const Packet& packet, const PacketOfFlowData& data)
+FlowAction BasicPlusPlugin::onFlowUpdate(FlowRecord& flowRecord, const Packet& packet)
 {
-	m_exportData.ipTtl[Direction::Forward] 
-		= std::min(m_exportData.ipTtl[Direction::Forward], packet.ipTtl);
+	m_exportData.ipTtl[packet.direction] 
+		= std::min(m_exportData.ipTtl[packet.direction], packet.ipTtl);
+
+	if (!packet.tcpData.has_value()) {
+		return FlowAction::RequestTrimmedData;
+	}
 	
-	if (data.packetDirection == Direction::Reverse) {
-		m_exportData.ipTtl[Direction::Reverse] = packet.ipTtl;
-		m_fieldHandlers[BasicPlusFields::IP_TTL_REV].setAsAvailable(flowRecord);
+	m_exportData.tcpOption[packet.direction] |= packet.tcpData->options;
 
-		m_exportData.ipFlag[Direction::Reverse] = packet.ipFlags;
-		m_fieldHandlers[BasicPlusFields::IP_FLG_REV].setAsAvailable(flowRecord);
-		
-		m_exportData.tcpWindow[Direction::Reverse] = packet.tcpWindow;
-		m_fieldHandlers[BasicPlusFields::TCP_WIN_REV].setAsAvailable(flowRecord);
-		
-		m_exportData.tcpOption[Direction::Reverse] = packet.tcpOptions;
-		m_fieldHandlers[BasicPlusFields::TCP_OPT_REV].setAsAvailable(flowRecord);
-
-		m_exportData.tcpMss[Direction::Reverse] = packet.tcpMss;
-		m_fieldHandlers[BasicPlusFields::TCP_MSS_REV].setAsAvailable(flowRecord);
-
-		m_exportData.processingState.destinationFilled = true;
+	if (packet.direction == Direction::Forward) {
+		return FlowAction::RequestTrimmedData;
 	}
 
-	m_exportData.tcpOption[data.packetDirection] |= packet.tcpOptions;
+	m_exportData.ipTtl[Direction::Reverse] = packet.ipTtl;
+	m_fieldHandlers[BasicPlusFields::IP_TTL_REV].setAsAvailable(flowRecord);
+
+	m_exportData.ipFlag[Direction::Reverse] = packet.ipFlags;
+	m_fieldHandlers[BasicPlusFields::IP_FLG_REV].setAsAvailable(flowRecord);
+
+	m_exportData.tcpWindow[Direction::Reverse] = packet.tcpData->window;
+	m_fieldHandlers[BasicPlusFields::TCP_WIN_REV].setAsAvailable(flowRecord);
+
+	m_exportData.tcpOption[Direction::Reverse] = packet.tcpData->options;
+	m_fieldHandlers[BasicPlusFields::TCP_OPT_REV].setAsAvailable(flowRecord);
+
+	m_exportData.tcpMss[Direction::Reverse] = packet.tcpData->mss;
+	m_fieldHandlers[BasicPlusFields::TCP_MSS_REV].setAsAvailable(flowRecord);
+
+	m_exportData.processingState.destinationFilled = true;
 
 	return FlowAction::RequestTrimmedData;
 }
-
-void BasicPlusPlugin::onFlowExport() {}
 
 ProcessPlugin* BasicPlusPlugin::clone(std::byte* constructAtAddress) const
 {
