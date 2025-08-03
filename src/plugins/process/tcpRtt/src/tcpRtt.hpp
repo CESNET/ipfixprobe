@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <limits>
 #include <memory>
 #include <sstream>
@@ -24,6 +25,8 @@
 #include "fields.h"
 #endif
 
+using namespace std::chrono_literals;
+
 namespace ipxp {
 
 #define TCPRTT_UNIREC_TEMPLATE "TCPRTT_TIME"
@@ -36,8 +39,8 @@ UR_FIELDS(uint64 TCPRTT_TIME)
  */
 constexpr static inline uint64_t timeval_to_msec(timeval timeval) noexcept
 {
-	constexpr size_t MSEC_IN_SEC = 1'000;
-	constexpr size_t USEC_IN_MSEC = 1'000;
+	constexpr std::size_t MSEC_IN_SEC = std::chrono::milliseconds(1s).count();
+	constexpr std::size_t USEC_IN_MSEC = std::chrono::microseconds(1ms).count();
 	return timeval.tv_sec * MSEC_IN_SEC + timeval.tv_usec / USEC_IN_MSEC;
 }
 
