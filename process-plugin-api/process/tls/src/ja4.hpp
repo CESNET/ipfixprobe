@@ -84,7 +84,8 @@ std::string_view getALPNLabel(std::span<std::string_view> alpns)
 }
 
 
-static std::string concatenate_vector_to_hex_string(const std::vector<uint16_t>& vector)
+constexpr static 
+std::string concatenate_vector_to_hex_string(const std::vector<uint16_t>& vector)
 {
 	if (vector.empty()) {
 		return "";
