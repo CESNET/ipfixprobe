@@ -24,7 +24,9 @@
 #include <ipfixprobe/outputPlugin.hpp>
 #include <ipfixprobe/processPlugin.hpp>
 #include <ipfixprobe/utils.hpp>
+#ifdef WITH_LZ4
 #include <lz4.h>
+#endif
 
 #define COUNT_IPFIX_TEMPLATES(T) +1
 
@@ -185,6 +187,7 @@ public:
 				return true;
 			},
 			OptionFlags::NoArgument);
+#ifdef WITH_LZ4
 		register_option(
 			"c",
 			"lz4-compression",
@@ -196,6 +199,7 @@ public:
 				return true;
 			},
 			OptionFlags::NoArgument);
+#endif
 		register_option(
 			"s",
 			"lz4-buffer-size",
@@ -539,9 +543,10 @@ private:
 	// last compressed data position
 	size_t lastReadIndex;
 	size_t lastReadSize;
-
+#ifdef WITH_LZ4
 	// compression stream used by lz4
 	LZ4_stream_t* lz4Stream;
+#endif
 };
 
 class IPFIXExporter : public OutputPlugin {

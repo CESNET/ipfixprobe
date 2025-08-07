@@ -100,6 +100,12 @@ struct Packet : public Record {
 	uint16_t buffer_size; /**< Size of buffer */
 
 	bool source_pkt; /**< Direction of packet from flow point of view */
+	uint32_t pkt_cnt; /**< Number of packets on a flow - input plugin 'sock' */
+	uint32_t drop_cnt; /**< Number of dropped packets on a flow - input plugin 'sock' */
+	uint64_t byte_cnt; /**< Bytes received on a flow - input plugin 'sock' */
+	uint32_t source_interface; /**< source interface for the flow  - input plugin 'sock' */
+	uint8_t end_reason; /**< Flow end reason - input plugin 'sock' */
+	struct timeval end_ts; /**< Flow end time - input plugin 'sock' */
 
 	/**
 	 * \brief Constructor.
@@ -142,6 +148,12 @@ struct Packet : public Record {
 		, buffer(nullptr)
 		, buffer_size(0)
 		, source_pkt(true)
+		, pkt_cnt(0)
+		, drop_cnt(0)
+		, byte_cnt(0)
+		, source_interface(0)
+		, end_reason (0)
+		, end_ts({0, 0})
 	{
 	}
 };
