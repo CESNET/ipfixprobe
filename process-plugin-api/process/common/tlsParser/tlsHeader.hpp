@@ -2,18 +2,20 @@
 
 #include <cstdint>
 
-namespace ipxp::tls
+namespace ipxp
 {
 
-struct Header {
-    uint8_t type;
+struct TLSHeader {
+    enum class Type : uint8_t {
+        HANDSHAKE = 22
+    };
+
+    Type type;
 	Version version;
 	uint16_t length;
 	/* Record data... */
 
-    enum class Type : uint8_t {
-        HANDSHAKE = 22
-    };
+    
 
 } __attribute__((packed));
 

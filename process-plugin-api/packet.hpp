@@ -29,6 +29,7 @@ struct Packet {
 
     std::span<const std::byte> payload;   
     std::optional<uint32_t> mplsTopLabel;
+    std::optional<uint16_t> vlanId;
 
 };
 

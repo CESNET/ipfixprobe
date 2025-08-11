@@ -38,9 +38,6 @@ public:
     }
 
 protected:
-    constexpr void setFailed() noexcept {
-        m_state = ParsingState::FAILURE;
-    }
 
     constexpr void setSuccess() noexcept {
         m_state = ParsingState::SUCCESS;

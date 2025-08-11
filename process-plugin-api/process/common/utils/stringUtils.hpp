@@ -35,5 +35,4 @@ void concatenateRangeTo(
     return overflowed;
 }
 
-
 } // namespace ipxp

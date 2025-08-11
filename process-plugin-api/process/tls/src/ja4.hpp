@@ -6,16 +6,13 @@
 #include <tlsParser/tlsParser.hpp>
 #include <utils/stringUtils.hpp>
 
-#include "md5.hpp"
+#include "sha256.hpp"
+#include "tlsExport.hpp"
 
 namespace ipxp
 {
 
-constexpr static
-auto addComma(auto&& inputRange) noexcept
-{
-    return std::views::concat(inputRange, std::views::single(","));
-}
+constexpr std::size_t TRUNC_SIZE = 12;
 
 constexpr static 
 std::string_view toLabel(const uint16_t version) noexcept
@@ -83,70 +80,75 @@ std::string_view getALPNLabel(std::span<std::string_view> alpns)
 	return std::string_view(buffer.data(), buffer.size());
 }
 
+constexpr static inline auto rangeToHexString 
+    = std::views::transform([](const auto&& value) {
+        static std::array<char, 6> buffer;
+        auto end = std::format_to(buffer.begin(), "{:04x},", value);
+        return std::string_view(buffer.begin(), end);
+    });
 
 constexpr static 
-std::string concatenate_vector_to_hex_string(const std::vector<uint16_t>& vector)
+std::string_view getTruncatedHashHex(std::string_view input)
 {
-	if (vector.empty()) {
-		return "";
-	}
-	auto res = std::accumulate(
-		vector.begin(),
-		vector.end(),
-		std::string {},
-		[](const std::string& acc, uint16_t value) {
-			std::array<char, 6> buffer = {};
-			std::snprintf(buffer.data(), buffer.size(), "%04x,", value);
-			return acc + buffer.data();
-		});
-	res.pop_back();
-	return res;
+    static boost::static_string<TRUNC_SIZE> buffer;
+
+    constexpr std::size_t sha256HashSize = 32;
+	std::array<uint8_t, sha256HashSize> hash{};
+	sha256::hash_it(
+        reinterpret_cast<const uint8_t*>(
+            input.data()), input.length(), hash.data());
+
+    std::ranges::copy(hash | 
+        std::views::take(buffer.size() / 2) | 
+        std::views::transform([](const uint8_t byte) {
+            return fmt::format("{:02x}", byte);
+    }), std::back_inserter(buffer));
+    return std::string_view(buffer.data(), buffer.size());
 }
 
 constexpr static 
-std::string get_truncated_cipher_hash(std::span<const uint16_t> cipherSuites)
+std::string_view getTruncatedCipherHash(std::span<const uint16_t> cipherSuites)
 {
-    static std::array<char, 12> buffer;
-	std::string cipher_string;
-	std::vector<uint16_t> sortedCipherSuites(cipherSuites.begin(), cipherSuites.end());
+	if (cipherSuites.empty()) {
+        static const std::array<char, TRUNC_SIZE> emptyCiphers{0};
+		return std::string_view(emptyCiphers.data(), emptyCiphers.size());
+	}
+
+    std::vector<uint16_t> sortedCipherSuites(
+        cipherSuites.begin(), cipherSuites.end());
 	std::ranges::sort(sortedCipherSuites);
-
-	if (cipher_suits.empty()) {
-		cipher_string.assign(12, '0');
-		return cipher_string;
-	}
-	cipher_string = concatenate_vector_to_hex_string(cipher_suits);
-	return get_truncated_hash_hex(cipher_string);
+    std::string cipherHexString(sortedCipherSuites | rangeToHexString);
+	return getTruncatedHashHex(cipherHexString);
 }
 
-static std::string get_truncated_extensions_hash(const TLSParser& parser)
+constexpr static 
+std::string_view getTruncatedExtensionsHash(
+    std::span<const uint16_t> extensionTypes,
+    std::span<const uint16_t> signatureAlgorithms)
 {
-	std::vector<uint16_t> extensions;
-	std::transform(
-		parser.get_extensions().begin(),
-		parser.get_extensions().end(),
-		std::back_inserter(extensions),
-		[](const TLSExtension& extension) { return extension.type; });
-	extensions.erase(
-		std::remove_if(
-			extensions.begin(),
-			extensions.end(),
-			[](uint16_t extension_type) {
-				return extension_type == TLS_EXT_ALPN || extension_type == TLS_EXT_SERVER_NAME
-					|| TLSParser::is_grease_value(extension_type);
-			}),
-		extensions.end());
-	std::sort(extensions.begin(), extensions.end());
+	boost::container::static_vector<uint16_t, 100> sortedExtensions(
+        extensionTypes | 
+        std::views::filter([](const uint16_t type) {
+            return type != ExtensionType::ALPN && 
+                type != ExtensionType::SERVER_NAMES && 
+                !TLSParser::isGreaseValue(type);
+        }) | std::views::take(sortedExtensions.capacity())) ;
+	std::ranges::sort(sortedExtensions);
 
-	auto extensions_string = concatenate_vector_to_hex_string(extensions);
-	std::vector<uint16_t> signature_algorithms = parser.get_signature_algorithms();
-	if (!signature_algorithms.empty()) {
-		signature_algorithms.erase(signature_algorithms.begin());
-	}
-	auto signature_algorithms_string = concatenate_vector_to_hex_string(signature_algorithms);
+    constexpr std::size_t MAX_STRING_LENGTH
+        = 2 * sortedExtensions.capacity() * sizeof(uint16_t) + 1; 
+    boost::static_string<MAX_STRING_LENGTH> 
+    finalString(
+        sortedExtensions | 
+        rangeToHexString |
+        std::views::concat(std::views::single("_")) |
+        std::views::concat(signatureAlgorithms | 
+            std::views::drop(1) |
+            rangeToHexString) |
+        std::views::take(finalString.capacity())
+        );
 
-	auto extensions_and_algorithms_string = extensions_string + '_' + signature_algorithms_string;
-	return get_truncated_hash_hex(extensions_and_algorithms_string);
+	return getTruncatedHashHex(finalString);
 }
 
 class JA4 {
@@ -156,40 +158,38 @@ public:
         const HandshakeHeader& handshake,
         std::span<std::string_view> serverNames,
         std::span<std::string_view> alpns,
-        std::span<const uint16_t> supportedGroups,
-        std::span<const uint8_t> pointFormats
-    )
+        std::span<const uint16_t> cipherSuites,
+        std::span<const uint16_t> extensionTypes,
+        std::span<const uint16_t> signatureAlgorithms
+    ) noexcept
     {
-    // TODO USE VALUES FROM DISSECTOR
-	constexpr uint8_t UDP_ID = 17;
-	const char protocol = l4Protocol == UDP_ID ? 'q' : 't';
+        // TODO USE VALUES FROM DISSECTOR
+        constexpr uint8_t UDP_ID = 17;
+        value.push_back(l4Protocol == UDP_ID ? 'q' : 't');
 
-	std::string_view versionLabel 
-        = getVersionLabel(supportedVersions, handshake);
+        value.push_back(getVersionLabel(supportedVersions, handshake));
 
-	const char sniLabel = serverNames.empty() ? 'i' : 'd';
+        value.push_back(serverNames.empty() ? 'i' : 'd');
 
-	const uint8_t ciphers_count = std::min(parser.get_cipher_suits().size(), 99UL);
+        value.push_back(std::min(cipherSuites.size(), 99UL));
 
-	const uint8_t extension_count = std::min(parser.get_extensions().size(), 99UL);
+        value.push_back(std::min(extensionTypes.size(), 99UL));
 
-	const auto alpnLabel = getALPNLabel(alpns);
+        value.push_back(getALPNLabel(alpns));
 
-	const auto truncated_cipher_hash = get_truncated_cipher_hash(parser);
+        value.push_back(getTruncatedCipherHash(cipherSuites));
 
-	const auto truncated_extensions_hash = get_truncated_extensions_hash(parser);
-
-	return std::string {} + protocol + version_label + sni_label + std::to_string(ciphers_count)
-		+ std::to_string(extension_count) + alpn_label + '_' + truncated_cipher_hash + '_'
-		+ truncated_extensions_hash;
+        value.push_back(
+            getTruncatedExtensionsHash(extensionTypes, signatureAlgorithms));
     }
 
-    std::string_view getHash() const noexcept {
-        return std::string_view(hash.data(), hash.size());
+    std::string_view getView() const noexcept
+    {
+        return std::string_view(value.data(), value.size());
     }
 
 private:
-    std::array<char, 16> hash
+    boost::static_string<TLSExport::JA4_SIZE> value;
 };
     
 } // namespace ipxp

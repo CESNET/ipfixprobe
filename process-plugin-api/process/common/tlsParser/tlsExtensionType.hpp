@@ -2,10 +2,10 @@
 
 #include <cstdint>
 
-namespace ipxp::tls
+namespace ipxp
 {
     
-enum class ExtensionType : uint16_t
+enum class TLSExtensionType : uint16_t
 {
     SERVER_NAME = 0,
     SUPPORTED_GROUPS = 10, // AKA supported_groups, ECLIPTIC_CURVES

@@ -3,8 +3,9 @@
 #include <span>
 #include <views>
 #include <optional>
-#include <common/rangeReader/rangeReader.hpp>
-#include <common/rangeReader/generator.hpp>
+#include "../rangeReader/rangeReader.hpp"
+#include "../rangeReader/generator.hpp"
+#include "../../utils/toHostByteOrder.hpp"
 
 namespace ipxp
 {
@@ -25,13 +26,12 @@ struct PrefixedLengthStringReaderFactory {
             }
 
             if (extension.size() < sizeof(LengthType)) {
-                self->setFailed();
                 return std::nullopt;
             }
 
-            const LengthType length = ntohs(*reinterpret_cast<const uint16_t*>(extension.data()));
+            const LengthType length 
+                = toHostByteOrder(*reinterpret_cast<const LengthType*>(extension.data()));
             if (extension.size() < length + sizeof(length)) {
-                self->setFailed();
                 return std::nullopt;
             }
 

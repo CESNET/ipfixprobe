@@ -2,18 +2,12 @@
 
 #include <cstdint>
 
-namespace ipxp
+namespace ipxp 
 {
 
-
-union TLSVersion {
-	uint16_t version;
-
-	struct {
-		uint8_t major;
-		uint8_t minor;
-	} bytes;
-	
+struct TLSVersion {
+	uint8_t major;
+	uint8_t minor;
 } __attribute__((packed));
 
 static_assert(sizeof(TLSVersion) == 2, "Invalid TLSVersion size");

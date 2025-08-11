@@ -16,25 +16,20 @@ struct QUICExport {
 	constexpr static std::size_t MAX_CONNECTION_ID_LENGTH = 20;
 
 	boost::static_string<BUFFER_SIZE> sni;
-	boost::static_string<BUFFER_SIZE> user_agent;
-	uint32_t quic_version;
-	uint32_t quic_client_version;
-	uint64_t quic_token_length;
+	boost::static_string<BUFFER_SIZE> userAgent;
+	uint32_t quicVersion;
+	uint32_t quicClientVersion;
+	uint64_t quicTokenLength;
 	// We use a char as a buffer.
-	uint8_t occid_length;
-	uint8_t oscid_length;
-	uint8_t scid_length;
+	uint8_t occidLength;
+	uint8_t oscidLength;
+	uint8_t scidLength;
 	//uint8_t initial_dcid_length;
-	uint8_t dir_scid_length;
-	uint8_t dir_dcid_length;
-	uint8_t dir_scid_length2;
-	uint8_t dir_dcid_length2;
-	uint8_t retry_scid_length;
-	char occid[MAX_CONNECTION_ID_LENGTH] = {0};
-	char oscid[MAX_CONNECTION_ID_LENGTH] = {0};
-	char scid[MAX_CONNECTION_ID_LENGTH] = {0};
+	boost::static_string<MAX_CONNECTION_ID_LENGTH> occid;
+	boost::static_string<MAX_CONNECTION_ID_LENGTH> oscid;
+	boost::static_string<MAX_CONNECTION_ID_LENGTH> scid;
 	boost::static_string<MAX_CONNECTION_ID_LENGTH> initialDestConnectionId;
-	char retry_scid[MAX_CONNECTION_ID_LENGTH] = {0};
+	boost::static_string<MAX_CONNECTION_ID_LENGTH> retryScid;
 	// Intermediate storage when direction is not clear
 	char dir_scid[MAX_CONNECTION_ID_LENGTH] = {0};
 	char dir_dcid[MAX_CONNECTION_ID_LENGTH] = {0};

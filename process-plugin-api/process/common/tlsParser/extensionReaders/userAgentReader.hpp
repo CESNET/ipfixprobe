@@ -29,7 +29,6 @@ struct UserAgentReaderFactory {
             const std::optional<VariableLengthInt> id
                 = readQUICVariableLengthInt(userAgentExtension);
             if (!id.has_value()) {
-                self->setFailed();
                 return std::nullopt;
             }
 
@@ -37,12 +36,10 @@ struct UserAgentReaderFactory {
             const std::optional<VariableLengthInt> userAgentLength
                 = readQUICVariableLengthInt(userAgentExtension.subspan(lengthOffset));
             if (!userAgentLength.has_value()) {
-                self->setFailed();
                 return std::nullopt;
             }
             if (id->length + userAgentLength->length + userAgentLength 
                     > userAgentExtension.size()) {
-                self->setFailed();
                 return std::nullopt;
             }
 

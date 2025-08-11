@@ -27,14 +27,12 @@ struct ExtensionReaderFactory {
                 return std::nullopt;
             }
             if (payload.size() < sizeof(uint16_t)) {
-                self->setFailed();
                 return std::nullopt;
             }
 
             const uint16_t length 
                 = ntohs(*reinterpret_cast<const uint16_t*>(extension.data()));
             if (length > extension.size() || length < sizeof(uint16_t)) {
-                self->setFailed();
                 return std::nullopt;
             }
 

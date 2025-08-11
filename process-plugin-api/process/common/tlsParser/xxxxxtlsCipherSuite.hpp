@@ -10,4 +10,4 @@ struct CipherSuite
     uint16_t typeId;
 };
 
-} // namespace ipxp
+} // namespace ipxp::tls

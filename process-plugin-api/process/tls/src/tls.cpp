@@ -13,18 +13,18 @@
  */
 #include "tls.hpp"
 
-#include "md5.hpp"
-#include "sha256.hpp"
-
 #include <algorithm>
 #include <cctype>
 #include <functional>
 #include <iostream>
 #include <numeric>
 
-#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
-#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
-#include <stdio.h>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
+#include <pluginFactory.hpp>
+#include <fieldSchema.hpp>
+#include <fieldManager.hpp>
+#include <utils.hpp>
 
 namespace ipxp {
 
@@ -35,256 +35,91 @@ static const PluginManifest tlsPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			OptionsParser parser("tls", "Parse TLS traffic");
-			parser.usage(std::cout);
+			/*OptionsParser parser("tls", "Parse TLS traffic");
+			parser.usage(std::cout);*/
 		},
 };
 
-// Print debug message if debugging is allowed.
-#ifdef DEBUG_TLS
-#define DEBUG_MSG(format, ...) fprintf(stderr, format, ##__VA_ARGS__)
-#else
-#define DEBUG_MSG(format, ...)
-#endif
+const inline std::vector<FieldPair<TLSFields>> fields = {
+	{TLSFields::TLS_SNI, "TLS_SNI"},
+	{TLSFields::TLS_JA3, "TLS_JA3"},
+	{TLSFields::TLS_JA4, "TLS_JA4"},
+	{TLSFields::TLS_ALPN, "TLS_ALPN"},
+	{TLSFields::TLS_VERSION, "TLS_VERSION"},
+	{TLSFields::TLS_EXT_TYPE, "TLS_EXT_TYPE"},
+	{TLSFields::TLS_EXT_LEN, "TLS_EXT_LEN"},
+};
 
-// Process code if debugging is allowed.
-#ifdef DEBUG_TLS
-#define DEBUG_CODE(code) code
-#else
-#define DEBUG_CODE(code)
-#endif
 
-TLSPlugin::TLSPlugin(const std::string& params, int pluginID)
-	: ProcessPlugin(pluginID)
+static FieldSchema createTLSSchema()
 {
-	init(params.c_str());
-}
+	FieldSchema schema("tls");
 
-OptionsParser* TLSPlugin::get_parser() const
-{
-	return new OptionsParser("tls", "Parse SNI from TLS traffic");
-}
+	// TODO EXPORT STRINGS
 
-std::string TLSPlugin::get_name() const
-{
-	return "tls";
-}
-
-RecordExtTLS* TLSPlugin::get_ext() const
-{
-	return new RecordExtTLS(m_pluginID);
-}
-
-TLSPlugin::~TLSPlugin()
-{
-	close();
-}
-
-void TLSPlugin::init(const char* params)
-{
-	(void) params;
-}
-
-void TLSPlugin::close()
-{
-	if (ext_ptr != nullptr) {
-		delete ext_ptr;
-		ext_ptr = nullptr;
-	}
-}
-
-ProcessPlugin* TLSPlugin::copy()
-{
-	return new TLSPlugin(*this);
-}
-
-int TLSPlugin::post_create(Flow& rec, const Packet& pkt)
-{
-	add_tls_record(rec, pkt);
-	return 0;
-}
-
-int TLSPlugin::pre_update(Flow& rec, Packet& pkt)
-{
-	auto* ext = static_cast<RecordExtTLS*>(rec.get_extension(m_pluginID));
-
-	if (ext != nullptr) {
-		if (!ext->server_hello_parsed) {
-			// Add ALPN from server packet
-			parse_tls(pkt.payload, pkt.payload_len, ext, rec.ip_proto);
-		}
-		return 0;
-	}
-	add_tls_record(rec, pkt);
-
-	return 0;
-}
-
-
-static std::string concatenate_vector_to_hex_string(const std::vector<uint16_t>& vector)
-{
-	if (vector.empty()) {
-		return "";
-	}
-	auto res = std::accumulate(
-		vector.begin(),
-		vector.end(),
-		std::string {},
-		[](const std::string& acc, uint16_t value) {
-			std::array<char, 6> buffer = {};
-			std::snprintf(buffer.data(), buffer.size(), "%04x,", value);
-			return acc + buffer.data();
+	schema.addVectorField<uint8_t>(
+		"TLS_JA3",
+		FieldDirection::DirectionalIndifferent,
+		[](const void* thisPtr) -> std::span<const uint8_t> {
+			return getSpan(reinterpret_cast<const TLSExport*>(thisPtr)
+				->ja3);
 		});
-	res.pop_back();
-	return res;
+
+	schema.addScalarField<uint16_t>(
+		"TLS_VERSION",
+		FieldDirection::DirectionalIndifferent,
+		offsetof(TLSExport, version));
+
+	schema.addVectorField<int16_t>(
+		"TLS_EXT_TYPE",
+		FieldDirection::DirectionalIndifferent,
+		[](const void* thisPtr) -> std::span<const int16_t> {
+			return getSpan(reinterpret_cast<const TLSExport*>(thisPtr)
+				->extensionTypes);
+		});
+
+	schema.addVectorField<int16_t>(
+		"TLS_EXT_LEN",
+		FieldDirection::DirectionalIndifferent,
+		[](const void* thisPtr) -> std::span<const int16_t> {
+			return getSpan(reinterpret_cast<const TLSExport*>(thisPtr)
+				->extensionLengths);
+		});
+
+	return schema;
 }
 
-
-static const char* convert_version_to_label(uint16_t version)
+TLSPlugin::TLSPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
 {
-	switch (version) {
-	case 0x0304:
-		return "13";
-	case 0x0303:
-		return "12";
-	case 0x0302:
-		return "11";
-	case 0x0301:
-		return "10";
-	case 0x0300:
-		return "s3";
-	case 0x0002:
-		return "s2";
-	case 0xfeff:
-		return "d1";
-	case 0xfefd:
-		return "d2";
-	case 0xfefc:
-		return "d3";
-	default:
-		return "00";
+	const FieldSchema schema = createTLSSchema();
+	const FieldSchemaHandler schemaHandler = manager.registerSchema(schema);
+
+	for (const auto& [field, name] : fields) {
+		m_fieldHandlers[field] = schemaHandler.getFieldHandler(name);
 	}
 }
 
-
-
-static char convert_alpn_byte_to_label(char alpn_byte, bool high_nibble)
+FlowAction TLSPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, const Packet& packet)
 {
-	if (std::isalnum(alpn_byte)) {
-		return alpn_byte;
-	} else {
-		uint8_t nibble = high_nibble ? alpn_byte >> 4 : alpn_byte & 0x0F;
-		return nibble < 0xA ? (char) ('0' + nibble) : (char) ('A' + nibble - 0xA);
+	parseTLS(packet);
+
+	return FlowAction::RequestFullData;
+}
+
+FlowAction TLSPlugin::onFlowUpdate(FlowRecord& flowRecord, 
+	const Packet& packet)
+{
+	if (!m_serverHelloParsed) {
+		parseTLS(packet);
 	}
-}
 
-static const char* get_version_label(const TLSParser& parser)
-{
-	uint16_t version;
-	if (parser.get_supported_versions().empty()) {
-		version = parser.get_handshake()->version.version;
-	} else {
-		const auto* versions = (const int16_t*) parser.get_supported_versions().data();
-		version = *std::max_element(versions, versions + parser.get_supported_versions().size());
+	if (m_serverHelloParsed && m_clientHelloParsed) {
+		makeAllFieldsAvailable(flowRecord);
+		return FlowAction::RequestNoData;
 	}
-	return convert_version_to_label(version);
+
+	return FlowAction::RequestFullData;
 }
-
-static std::string get_truncated_hash_hex(const std::string& str)
-{
-	std::array<char, 32> hash {};
-	sha256::hash_it((const uint8_t*) str.c_str(), str.length(), (uint8_t*) hash.data());
-	std::ostringstream oss;
-	for (auto i = 0U; i < 6; ++i) {
-		oss << std::hex << std::setw(2) << std::setfill('0') << ((uint16_t) hash[i] & 0xFF);
-	}
-	return oss.str();
-}
-
-static std::string get_truncated_cipher_hash(const TLSParser& parser)
-{
-	std::string cipher_string;
-	std::vector<uint16_t> cipher_suits = parser.get_cipher_suits();
-	std::sort(cipher_suits.begin(), cipher_suits.end());
-
-	if (cipher_suits.empty()) {
-		cipher_string.assign(12, '0');
-		return cipher_string;
-	}
-	cipher_string = concatenate_vector_to_hex_string(cipher_suits);
-	return get_truncated_hash_hex(cipher_string);
-}
-
-static std::string get_truncated_extensions_hash(const TLSParser& parser)
-{
-	std::vector<uint16_t> extensions;
-	std::transform(
-		parser.get_extensions().begin(),
-		parser.get_extensions().end(),
-		std::back_inserter(extensions),
-		[](const TLSExtension& extension) { return extension.type; });
-	extensions.erase(
-		std::remove_if(
-			extensions.begin(),
-			extensions.end(),
-			[](uint16_t extension_type) {
-				return extension_type == TLS_EXT_ALPN || extension_type == TLS_EXT_SERVER_NAME
-					|| TLSParser::is_grease_value(extension_type);
-			}),
-		extensions.end());
-	std::sort(extensions.begin(), extensions.end());
-
-	auto extensions_string = concatenate_vector_to_hex_string(extensions);
-	std::vector<uint16_t> signature_algorithms = parser.get_signature_algorithms();
-	if (!signature_algorithms.empty()) {
-		signature_algorithms.erase(signature_algorithms.begin());
-	}
-	auto signature_algorithms_string = concatenate_vector_to_hex_string(signature_algorithms);
-
-	auto extensions_and_algorithms_string = extensions_string + '_' + signature_algorithms_string;
-	return get_truncated_hash_hex(extensions_and_algorithms_string);
-}
-
-static std::string get_alpn_label(const TLSParser& parser)
-{
-	std::string alpn_label;
-	if (parser.get_alpns().empty() || parser.get_alpns()[0].empty()) {
-		alpn_label = "00";
-	} else {
-		const auto& alpn_string = parser.get_alpns()[0];
-		alpn_label += convert_alpn_byte_to_label(alpn_string[0], true);
-		alpn_label += convert_alpn_byte_to_label(alpn_string[alpn_string.length() - 1], false);
-	}
-	return alpn_label;
-}
-
-static std::string get_ja4_string(const TLSParser& parser, uint8_t ip_proto)
-{
-	constexpr const uint8_t UDP_ID = 17;
-	const char protocol = ip_proto == UDP_ID ? 'q' : 't';
-
-	char version_label[3];
-	*(uint16_t*) version_label = *(uint16_t*) get_version_label(parser);
-	version_label[2] = 0;
-
-	const char sni_label = parser.get_server_names().empty() ? 'i' : 'd';
-
-	const uint8_t ciphers_count = std::min(parser.get_cipher_suits().size(), 99UL);
-
-	const uint8_t extension_count = std::min(parser.get_extensions().size(), 99UL);
-
-	const auto alpn_label = get_alpn_label(parser);
-
-	const auto truncated_cipher_hash = get_truncated_cipher_hash(parser);
-
-	const auto truncated_extensions_hash = get_truncated_extensions_hash(parser);
-
-	return std::string {} + protocol + version_label + sni_label + std::to_string(ciphers_count)
-		+ std::to_string(extension_count) + alpn_label + '_' + truncated_cipher_hash + '_'
-		+ truncated_extensions_hash;
-}
-
-
 
 constexpr 
 bool TLSParser::parseClientHelloExtensions(TLSParser& parser) noexcept
@@ -383,81 +218,84 @@ void TLSPlugin::saveJA3() noexcept
 }
 
 constexpr
-void TLSPlugin::saveJA4(const uint8_t l4Protocol) noexcept
+bool TLSPlugin::saveJA4(const uint8_t l4Protocol) noexcept
 {
-	JA4 ja4(parser.get_handshake()->version.version,
-		toSpan(parser.get_cipher_suits()),
-		toSpan(m_exportData.extensionTypes),
-		toSpan(m_exportData.extensionLengths),
-		toSpan(m_supportedGroups),
-		toSpan(m_pointFormats)
-	);
-
-	std::ranges::copy(ja3.getHash(), m_exportData.ja3.begin());
-}
-
-
-bool TLSPlugin::parse_tls(
-	const uint8_t* data,
-	uint16_t payload_len,
-	RecordExtTLS* rec,
-	uint8_t ip_proto)
-{
-	TLSParser parser;
-	if (!parser.parse_tls(data, payload_len)) {
+	if (!m_alpns.has_value() || !m_signatureAlgorithms.has_value()) {
 		return false;
 	}
 
-	if (parser.is_client_hello()) {
+	JA4 ja4(parser.get_handshake(),
+		toSpan(parser.getServerNames()),
+		toSpan(*m_alpns),
+		toSpan(parser.getCipherSuites()),
+		toSpan(m_exportData.extensionTypes),
+		toSpan(*m_signatureAlgorithms)
+	);
+
+	std::ranges::copy(ja4.getView(), m_exportData.ja4.begin());
+}
+
+constexpr
+bool TLSPlugin::parseTLS(
+	std::span<const std::byte> payload, const uint8_t l4Protocol) noexcept
+{
+	TLSParser parser;
+	if (!parser.parseHello(payload)) {
+		return false;
+	}
+
+	if (parser.isClienthello()) {
 		if (m_clientHelloParsed) {
 			return true;
 		}
+
 		if (!parseClientHelloExtensions(parser)) {
 			return false;
 		}
 
-		rec->version = parser.get_handshake()->version.version;
-		//parser.save_server_names(rec->sni, sizeof(rec->sni));
+		m_exportData.version = *reinterpret_cast<const uint16_t*>(
+			parser.getHandshake()->version);
 		saveJA3();
-		auto ja4 = get_ja4_string(parser, ip_proto);
-		std::memcpy(rec->ja4, ja4.c_str(), ja4.length());
+		saveJA4();
+
+		m_clientHelloParsed = true;
+
 		return true;
-	} else if (parser.is_server_hello()) {
-		if (!parse_server_hello_extensions(parser)) {
+	}
+
+	if (parser.isServerHello()) {
+		if (!parseServerHelloExtensions(parser)) {
 			return false;
 		}
-		rec->server_hello_parsed = true;
-		parser.save_alpns(rec->alpn, sizeof(rec->alpn));
-		rec->version = parser.get_supported_versions().empty() ? rec->version
-															   : parser.get_supported_versions()[0];
+
+		if (!m_supportedVersions.has_value()) {
+			return false;
+		}
+
+		if (!m_supportedVersions->empty()) {
+			m_exportData.version = m_supportedVersions->front();
+		}
+	
+		m_serverHelloParsed = true;
 	}
+
 	return false;
 }
 
-void TLSPlugin::add_tls_record(Flow& rec, const Packet& pkt)
+ProcessPlugin* TLSPlugin::clone(std::byte* constructAtAddress) const
 {
-	if (ext_ptr == nullptr) {
-		ext_ptr = new RecordExtTLS(m_pluginID);
-	}
-
-	if (parse_tls(pkt.payload, pkt.payload_len, ext_ptr, rec.ip_proto)) {
-		DEBUG_CODE(for (int i = 0; i < 16; i++) { DEBUG_MSG("%02x", ext_ptr->ja3[i]); })
-		DEBUG_MSG("\n");
-		DEBUG_MSG("%s\n", ext_ptr->sni);
-		DEBUG_MSG("%s\n", ext_ptr->alpn);
-		rec.add_extension(ext_ptr);
-		ext_ptr = nullptr;
-	}
+	return std::construct_at(reinterpret_cast<TLSPlugin*>(constructAtAddress), *this);
 }
 
-void TLSPlugin::finish(bool print_stats)
-{
-	if (print_stats) {
-		std::cout << "TLS plugin stats:" << std::endl;
-		std::cout << "   Parsed SNI: " << parsed_sni << std::endl;
-	}
+std::string TLSPlugin::getName() const { 
+	return tlsPluginManifest.name; 
 }
 
-static const PluginRegistrar<TLSPlugin, ProcessPluginFactory> tlsRegistrar(tlsPluginManifest);
+const void* TLSPlugin::getExportData() const noexcept {
+	return &m_exportData;
+}	
+
+static const PluginRegistrar<TLSPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> 
+	tlsRegistrar(tlsPluginManifest);
 
 } // namespace ipxp

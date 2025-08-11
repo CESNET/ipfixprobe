@@ -4,21 +4,19 @@
 
 #include "tlsVersion.hpp"
 
-namespace ipxp::tls
+namespace ipxp
 {
 
-struct HandshakeHeader {
-	constexpr static uint16_t TYPE = 22;
-
-	uint8_t type;
-	uint8_t length1; // length field is 3 bytes long...
-	uint16_t length2;
-	Version version;
-
+struct TLSHandshake {
 	enum class Type : uint8_t {
         CLIENT_HELLO = 1,
 		SERVER_HELLO = 2
     };
+
+	Type type;
+	uint8_t length1; // length field is 3 bytes long...
+	uint16_t length2;
+	Version version;
 
 	/* Handshake data... */
 } __attribute__((packed));

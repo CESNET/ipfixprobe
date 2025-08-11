@@ -46,189 +46,9 @@ namespace ipxp {
 
 class TLSParser {
 public:
-	constexpr static std::size_t MAX_TLS_EXTENSIONS = 30;
-	/**
-	 * @brief Parses given payload as a normal TLS packet which is not part of the QUIC protocol.
-	 * @param packet Pointer to the payload.
-	 * @param length Length of the payload.
-	 * @return True if parsed succesfully, false otherwise.
-	 */
-	bool parse_tls(const uint8_t* packet, uint32_t length);
-
-	/**
-	 * @brief Parses given payload as a TLS part of QUIC protocol which doesn't have TLS header.
-	 * @param packet Pointer to the payload.
-	 * @param length Length of the payload.
-	 * @return True if parsed succesfully, false otherwise.
-	 */
-	bool parse_quic_tls(const uint8_t* packet, uint32_t length);
-
-	/**
-	 * @brief Provide custom extensions parser of TLS Client or Server Hello packet.
-	 * @param callable Callable that will be called for each extension, takes type of extension,
-	 * pointer to its begin and its length.
-	 * @return True if extensions section has valid data, false otherwise.
-	 */
-	bool parse_extensions(
-		const std::function<void(uint16_t, const uint8_t*, uint16_t)>& callable) noexcept;
-
-	/**
-	 * @brief Parses TLS SNI extension.
-	 * @param extension_data Pointer to the extension's begin.
-	 * @param extension_length Extension's length.
-	 */
-	void parse_server_names(const uint8_t* extension_data, uint16_t extension_length);
-
-	/**
-	 * @brief Parses TLS QUIC transport parameters extension.
-	 * @param extension_data Pointer to the extension's begin.
-	 * @param extension_length Extension's length.
-	 */
-	void
-	parse_quic_user_agent(const uint8_t* extension_payload, uint16_t extension_length) noexcept;
-
-	/**
-	 * @brief Checks if given TLS packet is Client Hello.
-	 * @return True if it is, false otherwise.
-	 */
-	bool is_client_hello() const noexcept;
-
-	/**
-	 * @brief Checks if given TLS packet is Server Hello.
-	 * @return True if it is, false otherwise.
-	 */
-	bool is_server_hello() const noexcept;
-
-	/**
-	 * @brief Getter for TLS packet handshake section.
-	 * @return Handshake section if present, nullopt otherwise.
-	 */
-	const std::optional<TLSHandshake>& get_handshake() const noexcept;
-
-	/**
-	 * @brief Getter for parsed extension.
-	 * @return Parsed extension.
-	 */
-	const std::vector<TLSExtension>& get_extensions() const noexcept;
-
-	/**
-	 * @brief Adds given extension to parsed extensions.
-	 * @param extension_type Given extension type.
-	 * @param extension_length Given extension length.
-	 */
-	void add_extension(uint16_t extension_type, uint16_t extension_length) noexcept;
-
-	/**
-	 * @brief Getter for parsed cipher suits.
-	 * @return Parsed cipher suits types.
-	 */
-	const std::vector<uint16_t>& get_cipher_suits() const noexcept;
-
-	/**
-	 * @brief Getter for parsed elliptic curves.
-	 * @return Parsed elliptic curves ids.
-	 */
-	const std::vector<uint16_t>& get_elliptic_curves() const noexcept;
-
-	/**
-	 * @brief Getter for parsed elliptic curves point formats.
-	 * @return Parsed elliptic curves point formats types.
-	 */
-	const std::vector<uint16_t>& get_elliptic_curve_point_formats() const noexcept;
-
-	/**
-	 * @brief Getter for parsed application layer protocol negotiations.
-	 * @return Pointers to parsed protocol names and its lengths.
-	 */
-	const std::vector<std::string_view>& get_alpns() const noexcept;
-
-	/**
-	 * @brief Getter for parsed supported versions.
-	 * @return Parsed supported versions.
-	 */
-	const std::vector<uint16_t>& get_supported_versions() const noexcept;
-
-	/**
-	 * @brief Getter for parsed server names from SNI extension.
-	 * @return Pointers to SNI names and its lengths.
-	 */
-	const std::vector<std::string_view>& get_server_names() const noexcept;
-
-	/**
-	 * @brief Getter for parsed signature algorithms.
-	 * @return Parsed signature algorithms types.
-	 */
-	const std::vector<uint16_t>& get_signature_algorithms() const noexcept;
-
-	/**
-	 * @brief Save parsed alpns to given buffer restricted with buffer length.
-	 * @param destination Destination buffer.
-	 * @param size Destination buffer size.
-	 */
-	void save_alpns(char* destination, uint32_t size) const noexcept;
-
-	/**
-	 * @brief Save parsed server names from SNI extension restricted with buffer length.
-	 * @param destination Destination buffer.
-	 * @param size Destination buffer size.
-	 */
-	void save_server_names(char* destination, uint32_t size) const noexcept;
-
-	/**
-	 * @brief Save parsed QUIC user agent from QUIC transport parameters extension restricted with
-	 * buffer length.
-	 * @param destination Destination buffer.
-	 * @param size Destination buffer size.
-	 */
-	void save_quic_user_agent(char* destination, uint32_t size) const noexcept;
-
-	/**
-	 * @brief Checks if given value is GREASE.
-	 * @param value Value to check.
-	 * @return True if value is GREASE, false otherwise
-	 */
-	static bool isGreaseValue(uint16_t value);
-
-	/**
-	 * @brief Parse TLS application layer protocol negotiation extension.
-	 * @param extension_data Pointer to the extension's begin.
-	 * @param extension_length Extension's length.
-	 */
-	void parse_alpn(const uint8_t* extension_data, uint16_t extension_length);
-
-	/**
-	 * @brief Parse TLS elliptic curves extension.
-	 * @param extension_payload Pointer to the extension's begin.
-	 * @param extension_length Extension's length.
-	 */
-	void
-	parse_elliptic_curves(const uint8_t* extension_payload, uint16_t extension_length) noexcept;
-
-	/**
-	 * @brief Parse elliptic curve point formats extension.
-	 * @param extension_payload Pointer to the extension's begin.
-	 * @param extension_length Extension's length.
-	 */
-	void parse_elliptic_curve_point_formats(
-		const uint8_t* extension_payload,
-		uint16_t extension_length) noexcept;
-
-	/**
-	 * @brief Parse TLS supported versions extension.
-	 * @param extension_data Pointer to the extension's begin.
-	 * @param extension_length Extension's length.
-	 */
-	void
-	parse_supported_versions(const uint8_t* extension_data, uint16_t extension_length) noexcept;
-
-	/**
-	 * @brief Parse TLS signature algorithms extension.
-	 * @param extension_data Pointer to the extension's begin.
-	 * @param extension_length Extension's length.
-	 * @return True if parsed succesfully, false otherwise.
-	 */
-	void
-	parse_signature_algorithms(const uint8_t* extension_data, uint16_t extension_length) noexcept;
+	constexpr std::size_t MAX_CIPHER_SUITES = 30;
+	using CipherSuites 
+		= boost::container::static_vector<uint16_t, TLSParser::MAX_CIPHER_SUITES>;
 
 	constexpr std::size_t MAX_ELLIPTIC_CURVE_POINT_FORMATS = 20;
 	using EllipticCurvePointFormats 
@@ -258,41 +78,60 @@ public:
 	using SupportedGroups
 		= boost::container::static_vector<uint16_t, TLSParser::MAX_SUPPORTED_GROUPS>;
 
+	constexpr static bool isGreaseValue(const uint16_t value) noexcept;
+
+	constexpr bool parseHello(std::span<const std::byte> payload) noexcept;
+
+	constexpr bool parseHelloFromQUIC(std::span<const std::byte> payload) noexcept;
+
+	constexpr bool parseExtensions(
+		const std::function<bool(const Extension&)>& callable) noexcept;
+
+	constexpr static
+	std::optional<ServerNames>
+	parseServerNames(std::span<const std::byte> extension) noexcept;
+
+	constexpr static
+	std::optional<TLSParser::UserAgents>
+	parseUserAgent(std::span<const std::byte> extension) noexcept;
+
+	constexpr static
+	std::optional<TLSParser::SupportedGroups>
+	parseSupportedGroups(std::span<const std::byte> extension) noexcept;
+
+	constexpr static
+	std::optional<EllipticCurvePointFormats>
+	parseEllipticCurvePointFormats(std::span<const std::byte> extension) noexcept;
+
+	constexpr static
+	std::optional<TLSParser::ALPNs>
+	TLSParser::parseALPN(std::span<const std::byte> extension) noexcept;
+
+	constexpr static
+	std::optional<TLSParser::SignatureAlgorithms>
+	parseSignatureAlgorithms(std::span<const std::byte> extension) noexcept;
+
+	constexpr static
+	std::optional<TLSParser::SupportedVersions>
+	parseSupportedVersions(
+		std::span<const std::byte> extension, const HandshakeHeader& handshake) noexcept;
+
+	constexpr bool isClientHello() const noexcept;
+
+	constexpr bool isServerHello() const noexcept;
+
+	constexpr const HandshakeHeader& getHandshake() noexcept;
+
+	constexpr const CipherSuites& getCipherSuites() const noexcept;
+
 private:
-
-	bool parse(const uint8_t* packet, uint32_t length, bool is_quic);
-	bool parse_tls_handshake() noexcept;
-	bool parse_tls_header(bool is_quic) noexcept;
-	bool parse_session_id() noexcept;
-	bool parse_cipher_suites() noexcept;
-	bool parse_compression_methods() noexcept;
-	bool has_valid_extension_length() const noexcept;
-	void clear_parsed_data() noexcept;
-
-	/*const uint8_t* m_packet_data {nullptr};
-	uint32_t m_packet_length {0};
-
-	uint32_t m_header_section_size {0};
-	static constexpr uint32_t TLS_RANDOM_BYTES_LENGTH = 32;
-	uint32_t m_session_id_section_length {0};
-	uint32_t m_cipher_suites_section_length {0};
-	uint32_t m_compression_methods_section_length {0};*/
-
+	constexpr bool parse(
+		std::span<const std::byte> payload, const bool isQUIC) noexcept;
 
 	std::optional<TLSHandshakeHeader> m_handshake;
-	std::vector<uint16_t> m_cipherSuites;
+	std::optional<CipherSuites> m_cipherSuites;
 
 	std::optional<std::span<const std::byte>> m_extensions;
 
-	//std::vector<TLSExtensionHeader> m_extensions;
-	std::vector<uint16_t> m_signature_algorithms;
-	std::vector<uint16_t> m_elliptic_curves;
-	std::vector<uint16_t> m_elliptic_curve_point_formats;
-	std::vector<std::string_view> m_alpns;
-	std::vector<uint16_t> m_supported_versions;
-	std::vector<std::string_view> m_server_names;
-	std::vector<std::string_view> m_quic_user_agents;
-
-	uint16_t m_objects_parsed {0};
 };
 } // namespace ipxp

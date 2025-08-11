@@ -22,24 +22,26 @@
 #include "tlsCipherSuite.hpp"
 #include "tlsHeader.hpp"
 #include "tlsHandshakeHeader.hpp"
-#include "tlsSNIReader.hpp"
 #include "extensionReaders/extensionReader.hpp"
 
 
 namespace ipxp {
 
-constexpr static
-bool isGreaseValue(const uint16_t val) noexcept
+constexpr bool isGreaseValue(const uint16_t value) noexcept
 {
-	return val != 0 && !(val & ~(0xFAFA)) && ((0x00FF & val) == (val >> 8));
+	return value != 0 && 
+	!(value & ~(0xFAFA)) && 
+	((0x00FF & value) == (value >> 8));
 }
 
-bool TLSParser::parseHello(std::span<const std::byte> payload)
+constexpr
+bool TLSParser::parseHello(std::span<const std::byte> payload) noexcept
 {
 	return parse(payload, false);
 }
 
-bool TLSParser::parseHelloFromQUIC(std::span<const std::byte> payload)
+constexpr
+bool TLSParser::parseHelloFromQUIC(std::span<const std::byte> payload) noexcept
 {
 	return parse(payload, true);
 }
@@ -48,14 +50,14 @@ constexpr static
 std::optional<uint8_t> 
 getSessionIdSectionLength(std::span<const std::byte> payload) noexcept
 {
-	constexpr std::size_t MAX_SESSION_ID_LENGTH = 32;
+	constexpr std::size_t maxSessionIdLength = 32;
 	if (payload.empty()) {
 		return std::nullopt;
 	}
 
 	const uint8_t sessionIdLength = static_cast<uint8_t>(payload[0]);
 	if (payload.size() < sizeof(sessionIdLength) + sessionIdLength ||
-		sessionIdLength > MAX_SESSION_ID_LENGTH) {
+		sessionIdLength > maxSessionIdLength) {
 		return std::nullopt;
 	}
 
@@ -90,21 +92,20 @@ std::optional<std::size_t>
 parseHeader(std::span<const std::byte> payload, const bool isQUIC) noexcept
 {
 	if (isQUIC) {
-		m_header_section_size = 0;
 		return 0;
 	}
-	const auto* tls_header = reinterpret_cast<const TLSHeader*>(payload.data());
+	const auto* tlsHeader = reinterpret_cast<const TLSHeader*>(payload.data());
 
 	if (sizeof(TLSHeader) > payload.size()) {
 		return std::nullopt;
 	}
 
-	if (tls_header->type != Header::Type::HANDSHAKE) {
+	if (tlsHeader->type != Header::Type::HANDSHAKE) {
 		return std::nullopt;
 	}
 
-	if (tls_header->version.bytes.major != 3 || 
-		tls_header->version.bytes.minor > 3) {
+	if (tlsHeader->version.bytes.major != 3 || 
+		tlsHeader->version.bytes.minor > 3) {
 		return std::nullopt;
 	}
 
@@ -139,68 +140,15 @@ getExtensionsSection(std::span<const std::byte> payload) noexcept
 	return payload.subspan(sizeof(extensionsLength), extensionsLength);
 }
 
-
-bool TLSParser::parse(std::span<const std::byte> payload, const bool isQUIC)
-{
-	clear_parsed_data();
-
-	const std::optional<std::size_t> headerLength 
-		= isQUIC 
-		? std::make_optional(0) 
-		: parseHeader(payload);
-	if (!headerLength) {
-		return false;
-	}
-
-	const std::size_t handshakeOffset = *headerLength;
-	m_handshake = parseHandshake(payload.subspan(handshakeOffset));
-	if (!m_handshake) {
-		return false;
-	}
-
-	constexpr std::size_t randomBytesLength = 32;
-	const std::size_t sessionIdLengthOffset = handshakeOffset + randomBytesLength;
-	const std::optional<uint8_t> sessionIdSectionLength
-		= getSessionIdSectionLength(payload.subspan(sessionIdLengthOffset));
-	if (!sessionIdSectionLength) {
-		return false;
-	}
-
-	const std::size_t cipherSuitesOffset 
-		= sessionIdLengthOffset + *sessionIdSectionLength;
-	if (m_handshake.type == TLSHandshakeHeader::Type::CLIENT_HELLO) {
-		m_cipherSuites = parseCipherSuites(payload.subspan(cipherSuitesOffset), &m_handshake);
-		if (!m_cipherSuites.has_value()) {
-			return false;
-		}
-	}
-
-	const std::size_t compressionMethodsOffset = cipherSuitesOffset 
-		+ sizeof(uint16_t) + (m_cipherSuites.has_value() 
-		? m_cipherSuites->size() * sizeof(uint16_t) : 0);
-	const std::optional<std::size_t> compressionMethodsLength
-		= parseCompressionMethods(payload.subspan(compressionMethodsOffset), *handshake);
-	if (!compressionMethodsLength.has_value()) {
-		return false;
-	}
-
-	m_extensions = getExtensionsSection(
-		payload.subspan(compressionMethodsOffset + *compressionMethodsLength));
-	if (!m_extensions.has_value()) {
-		return false;
-	}
-
-	return true;
-}
-
-
-bool handshakeHasSupportedVersion(const TLSHandshake& handshake)
+constexpr static
+bool handshakeHasSupportedVersion(const TLSHandshake& handshake) noexcept
 {
 	return handshake.version.major == 3 && handshake.version.minor >= 1
 		&& handshake.version.minor <= 3;
 }
 
-bool handshakeHasSupportedType(const TLSHandshake& handshake)
+constexpr static
+bool handshakeHasSupportedType(const TLSHandshake& handshake) noexcept
 {
 	return handshake.type == TLSHandshakeHeader::Type::CLIENT_HELLO
 		|| handshake.type == TLSHandshakeHeader::Type::SERVER_HELLO;
@@ -226,23 +174,19 @@ parseHandshake(std::span<const std::byte> payload) noexcept
 	return *handshake;
 }
 
+
 constexpr static
-std::optional<boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS>>
-parseCipherSuites(std::span<const std::byte> payload,
+std::optional<boost::container::static_vector<uint16_t, MAX_CIPHER_SUITES>>
+parseClientCipherSuites(std::span<const std::byte> payload,
 	const TLSHandshake& handshake) noexcept
 {
 	auto res = std::make_optional<boost::container::static_vector<
-		uint16_t, MAX_TLS_EXTENSIONS>>();
+		uint16_t, MAX_CIPHER_SUITES>>();
 		
 	if (payload.size() < sizeof(uint16_t)) {
 		return std::nullopt;
 	}
 
-	if (handshake.type == TLSHandshakeHeader::Type::SERVER_HELLO) {
-		return boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS>{};
-	}
-
-	// Else parse Client Hello
 	const uint16_t clientCipherSuitesLength
 		= ntohs(*reinterpret_cast<const uint16_t*>(payload.data()));
 	if (sizeof(clientCipherSuitesLength) + clientCipherSuitesLength > payload.size()) {
@@ -257,6 +201,58 @@ parseCipherSuites(std::span<const std::byte> payload,
 		std::back_inserter(*res));
 
 	return res;
+}
+
+constexpr bool TLSParser::parse(
+	std::span<const std::byte> payload, const bool isQUIC) noexcept
+{
+	const std::optional<std::size_t> headerLength 
+		= isQUIC 
+		? std::make_optional(0) 
+		: parseHeader(payload);
+	if (!headerLength) {
+		return false;
+	}
+
+	const std::size_t handshakeOffset = *headerLength;
+	m_handshake = parseHandshake(payload.subspan(handshakeOffset));
+	if (!m_handshake) {
+		return false;
+	}
+
+	constexpr std::size_t randomBytesLength = 32;
+	const std::size_t sessionIdLengthOffset = handshakeOffset + randomBytesLength;
+	const std::optional<uint8_t> sessionIdSectionLength
+		= getSessionIdSectionLength(payload.subspan(sessionIdLengthOffset));
+	if (!sessionIdSectionLength) {
+		return false;
+	}
+
+	const std::size_t cipherSuitesOffset 
+		= sessionIdLengthOffset + *sessionIdSectionLength;
+	if (m_handshake.type == TLSHandshakeHeader::Type::CLIENT_HELLO) {
+		m_cipherSuites = parseClientCipherSuites(payload.subspan(cipherSuitesOffset), &m_handshake);
+		if (!m_cipherSuites.has_value()) {
+			return false;
+		}
+	}
+
+	const std::size_t compressionMethodsOffset = cipherSuitesOffset 
+		+ sizeof(uint16_t) + (m_cipherSuites.has_value() 
+		? m_cipherSuites->size() * sizeof(uint16_t) : 0);
+	const std::optional<std::size_t> compressionMethodsLength
+		= getCompressionMethodsLength(payload.subspan(compressionMethodsOffset), *handshake);
+	if (!compressionMethodsLength.has_value()) {
+		return false;
+	}
+
+	m_extensions = getExtensionsSection(
+		payload.subspan(compressionMethodsOffset + *compressionMethodsLength));
+	if (!m_extensions.has_value()) {
+		return false;
+	}
+
+	return true;
 }
 
 constexpr
@@ -283,7 +279,6 @@ TLSParser::parseServerNames(std::span<const std::byte> extension) noexcept
 	if (!reader.parsedSuccessfully()) {
 		return std::nullopt;
 	}
-		// m_objects_parsed++;
 
 	return res;
 }
@@ -386,6 +381,7 @@ TLSParser::parseALPN(std::span<const std::byte> extension) noexcept
 	return res;
 }
 
+constexpr
 std::optional<TLSParser::SignatureAlgorithms>
 TLSParser::parseSignatureAlgorithms(std::span<const std::byte> extension) noexcept
 {
@@ -401,11 +397,12 @@ TLSParser::parseSignatureAlgorithms(std::span<const std::byte> extension) noexce
 
 constexpr
 std::optional<TLSParser::SupportedVersions>
-TLSParser::parseSupportedVersions(std::span<const std::byte> extension) noexcept
+TLSParser::parseSupportedVersions(
+	std::span<const std::byte> extension, const HandshakeHeader& handshake) noexcept
 {
 	auto res = std::make_optional<SupportedVersions>();
 
-	if (m_handshake->type == TLSHandshakeHeader::Type::ServerHello) {
+	if (handshake.type == TLSHandshakeHeader::Type::ServerHello) {
 		if (sizeof(uint16_t) > extension.size()) {
 			return std::nullopt;
 		}
@@ -414,13 +411,15 @@ TLSParser::parseSupportedVersions(std::span<const std::byte> extension) noexcept
 	}
 
 	// Else parse client hello
-	if (extensions.empty()) {
+	if (extension.empty()) {
 		return std::nullopt;
 	}
+
 	const uint8_t versionsLength = *reinterpret_cast<const uint8_t*>(extension.data());
 	if (sizeof(uint8_t) + versionsLength > extension.size()) {
 		return std::nullopt;
 	}
+
 	std::ranges::copy(toSpan<const uint16_t>(
 		extension.data() + sizeof(versionsLength), versionsLength / 2) | 
 		std::views::transform(std::not_fn(isGreaseValue)),
@@ -429,113 +428,28 @@ TLSParser::parseSupportedVersions(std::span<const std::byte> extension) noexcept
 	return res;
 }
 
-const std::optional<TLSHandshake>& TLSParser::get_handshake() const noexcept
+constexpr
+const HandshakeHeader& TLSParser::getHandshake() const noexcept
 {
-	return m_handshake;
+	return *m_handshake;
 }
 
-bool TLSParser::is_client_hello() const noexcept
+constexpr
+bool TLSParser::isClientHello() const noexcept
 {
-	return m_handshake->type == TLS_HANDSHAKE_CLIENT_HELLO;
+	return m_handshake->type == HandshakeHeader::Type::CLIENT_HELLO;
 }
 
-bool TLSParser::is_server_hello() const noexcept
+constexpr
+bool TLSParser::isServerHello() const noexcept
 {
-	return m_handshake->type == TLS_HANDSHAKE_SERVER_HELLO;
+	return m_handshake->type == HandshakeHeader::Type::SERVER_HELLO;
 }
 
-const std::vector<TLSExtension>& TLSParser::get_extensions() const noexcept
+constexpr
+const CipherSuites& TLSParser::getCipherSuites() const noexcept
 {
-	return m_extensions;
-}
-
-const std::vector<uint16_t>& TLSParser::get_cipher_suits() const noexcept
-{
-	return m_cipher_suits;
-}
-
-const std::vector<uint16_t>& TLSParser::get_elliptic_curves() const noexcept
-{
-	return m_elliptic_curves;
-}
-
-const std::vector<uint16_t>& TLSParser::get_elliptic_curve_point_formats() const noexcept
-{
-	return m_elliptic_curve_point_formats;
-}
-
-const std::vector<std::string_view>& TLSParser::get_alpns() const noexcept
-{
-	return m_alpns;
-}
-
-const std::vector<std::string_view>& TLSParser::get_server_names() const noexcept
-{
-	return m_server_names;
-}
-
-const std::vector<uint16_t>& TLSParser::get_supported_versions() const noexcept
-{
-	return m_supported_versions;
-}
-
-const std::vector<uint16_t>& TLSParser::get_signature_algorithms() const noexcept
-{
-	return m_signature_algorithms;
-}
-
-static void save_to_buffer(
-	char* destination,
-	const std::vector<std::string_view>& source,
-	uint32_t size,
-	char delimiter) noexcept
-{
-	std::for_each(
-		source.begin(),
-		source.end(),
-		[destination, write_pos = 0UL, size, delimiter](const std::string_view& alpn) mutable {
-			if (alpn.length() + 2U > size - write_pos) {
-				destination[write_pos] = 0;
-				return;
-			}
-			const size_t bytes_to_write = std::min(size - write_pos - 2U, alpn.length() + 2UL);
-			memcpy(destination + write_pos, alpn.data(), bytes_to_write);
-			write_pos += alpn.length();
-			destination[write_pos++] = delimiter;
-		});
-}
-
-void TLSParser::save_server_names(char* destination, uint32_t size) const noexcept
-{
-	save_to_buffer(destination, m_server_names, size, 0);
-}
-
-void TLSParser::save_alpns(char* destination, uint32_t size) const noexcept
-{
-	save_to_buffer(destination, m_alpns, size, 0);
-}
-
-void TLSParser::save_quic_user_agent(char* destination, uint32_t size) const noexcept
-{
-	save_to_buffer(destination, m_quic_user_agents, size, 0);
-}
-
-
-void TLSParser::clear_parsed_data() noexcept
-{
-	m_extensions.clear();
-	m_cipher_suits.clear();
-	m_signature_algorithms.clear();
-	m_elliptic_curves.clear();
-	m_elliptic_curve_point_formats.clear();
-	m_alpns.clear();
-	m_supported_versions.clear();
-	m_server_names.clear();
-}
-
-void TLSParser::add_extension(uint16_t extension_type, uint16_t extension_length) noexcept
-{
-	m_extensions.emplace_back(TLSExtension {extension_type, extension_length});
+	return *m_cipherSuites;
 }
 
 } // namespace ipxp

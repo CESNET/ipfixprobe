@@ -7,6 +7,7 @@
 #include <utils/stringUtils.hpp>
 
 #include "md5.hpp"
+#include "tlsExport.hpp"
 
 namespace ipxp
 {
@@ -65,7 +66,7 @@ public:
         std::span<const uint8_t> pointFormats
     )
     {
-        constexpr std::size_t bufferSize = 256;
+        constexpr std::size_t bufferSize = 512;
         boost::static_string<bufferSize> result;
 
         auto versionRange = addComma(
@@ -76,7 +77,7 @@ public:
 
         auto extensionsTypesRange = addComma(
             extensionsTypes | 
-            std::not_fn(TLSParser::isGreaseValue()) | 
+            std::not_fn(TLSParser::isGreaseValue) | 
             integerToCharPtrView);
 
         auto supportedGroupsRange = addComma(
@@ -84,23 +85,13 @@ public:
 
         std::ranges::copy({versionRange, cipherSuitesRange, 
             extensionsTypesRange, supportedGroupsRange, 
-            pointFormats | integerToCharPtrView} | std::views::join, 
+            pointFormats | integerToCharPtrView} | 
+            std::views::join |
+            std::views::take(result.capacity()), 
             std::back_inserter(result));
 
 	    md5_get_bin(std::string_view(
             result.data(), result.size()), hash.data());
-
-        /*std::array<char, 20> tmp;
-        auto [versionEnd, _] = std::to_chars(tmp.begin(), tmp.end(), version);
-        versionEnd = 0;
-        buffer += tmp.data();
-        buffer += ',';
-        std::string ja3_string = std::to_string(version) + ',';
-        ja3_string += concatenate_vector_to_string(parser.get_cipher_suits()) + ',';
-        ja3_string += concatenate_extensions_vector_to_string(parser.get_extensions()) + ',';
-        ja3_string += concatenate_vector_to_string(parser.get_elliptic_curves()) + ',';
-        ja3_string += concatenate_vector_to_string(parser.get_elliptic_curve_point_formats());
-        return ja3_string;*/
     }
 
     std::string_view getHash() const noexcept {
@@ -108,7 +99,7 @@ public:
     }
 
 private:
-    std::array<char, 16> hash
+    std::array<char, JA3_SIZE> hash
 };
     
 } // namespace ipxp
