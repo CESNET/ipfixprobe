@@ -20,6 +20,8 @@
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
+#include <dnsParser/dnsParser.hpp>
+
 
 namespace ipxp {
 
@@ -108,7 +110,56 @@ bool DNSPlugin::parseDNS(
 	std::span<const std::byte> payload, const bool isDNSOverTCP, FlowRecord& flowRecord) noexcept
 {
 	DNSParser parser;
-	const bool parsed = parser.parse(payload, isDNSOverTCP);
+
+	constexpr auto queryParser = [this](const DNSQuestion& query) {
+		m_exportData.firstQuestionName = query.name.toString();
+		m_fieldHandlers[DNSFields::DNS_NAME].setAsAvailable(flowRecord);
+
+		m_exportData.firstQuestionType = query.type;
+		m_fieldHandlers[DNSFields::DNS_QTYPE].setAsAvailable(flowRecord);
+		
+		m_exportData.firstQuestionClass = query.class;
+		m_fieldHandlers[DNSFields::DNS_CLASS].setAsAvailable(flowRecord);
+
+		return true;
+	};
+
+	constexpr auto answerParser = [this](const DNSRecord& answer) {
+		m_exportData.firstResponseTimeToLive = parser.firstResponse.timeToLive;
+		m_fieldHandlers[DNSFields::DNS_RR_TTL].setAsAvailable(flowRecord);
+		
+		m_exportData.firstResponseAsString 
+			= parser.firstResponse.toString(parser.dnsBegin);
+		m_fieldHandlers[DNSFields::DNS_RDATA].setAsAvailable(flowRecord);
+
+		m_exportData.firstResponseAsStringLength 
+			= m_exportData.firstResponseAsString.size();
+		m_fieldHandlers[DNSFields::DNS_RLENGTH].setAsAvailable(flowRecord);
+
+		return true;
+	};
+
+	constexpr auto authorityParser = [](const DNSRecord&){
+		return true;
+	};
+
+	constexpr auto additionalParser = [this](const DNSRecord& record) {
+		if (record.type != DNSRecordType::OPT) {
+			return false;
+		}
+	
+		m_exportData.firstOTPPayloadSize = record.class;
+		m_fieldHandlers[DNSFields::DNS_PSIZE].setAsAvailable(flowRecord);
+
+		m_exportData.dnssecOkBit = record.dnssecOkBit;
+		m_fieldHandlers[DNSFields::DNS_DO].setAsAvailable(flowRecord);
+	
+		return true;
+	};
+
+	const bool parsed = parser.parse(
+		payload, isDNSOverTCP, queryParser, answerParser,
+		authorityParser, additionalParser);
 	if (!parsed) {
 		return false;
 	}
@@ -121,35 +172,6 @@ bool DNSPlugin::parseDNS(
 	
 	m_exportData.responseCode = parser.responseCode;
 	m_fieldHandlers[DNSFields::DNS_RCODE].setAsAvailable(flowRecord);
-
-	if (parser.firstQuestion.has_value()) {
-		m_exportData.firstQuestionName = parser.firstQuestion.name.toString();
-		m_fieldHandlers[DNSFields::DNS_NAME].setAsAvailable(flowRecord);
-
-		m_exportData.firstQuestionType = parser.firstQuestion.type;
-		m_fieldHandlers[DNSFields::DNS_QTYPE].setAsAvailable(flowRecord);
-		
-		m_exportData.firstQuestionClass = parser.firstQuestion.class;
-		m_fieldHandlers[DNSFields::DNS_CLASS].setAsAvailable(flowRecord);
-	}
-	if (parser.firstResponse.has_value()) {
-		m_exportData.firstResponseTimeToLive = parser.firstResponse.timeToLive;
-		m_fieldHandlers[DNSFields::DNS_RR_TTL].setAsAvailable(flowRecord);
-		
-		m_exportData.firstResponseAsString 
-			= parser.firstResponse.toString(parser.dnsBegin);
-		m_fieldHandlers[DNSFields::DNS_RDATA].setAsAvailable(flowRecord);
-
-		firstResponseAsStringLength = m_exportData.firstResponseAsString.size()
-		m_fieldHandlers[DNSFields::DNS_RLENGTH].setAsAvailable(flowRecord);
-	}
-	if (parser.firstOPTRecord.has_value()) {
-		m_exportData.firstOTPPayloadSize = parser.firstOPTRecord.class;
-		m_fieldHandlers[DNSFields::DNS_PSIZE].setAsAvailable(flowRecord);
-		
-		m_exportData.dnssecOkBit = parser.firstOPTRecord.dnssecOkBit;
-		m_fieldHandlers[DNSFields::DNS_DO].setAsAvailable(flowRecord);
-	}
 
 	return true;
 

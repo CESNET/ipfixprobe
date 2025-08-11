@@ -1,15 +1,32 @@
 #pragma once
 
 #include <string_view>
-#include "../../dns/src/dnsRecord.hpp"
+#include <vector>
+
+#include <dnsParser/dnsRecord.hpp>
 
 namespace ipxp
 {
     
-struct DNSSDRecord : DNSRecord {
-    std::string_view requestName;
+struct DNSSDRecord {
+    DNSName requestName;
 
-    std::string toString() const noexcept;
+    uint16_t srvPort;
+    DNSName srvTarget;
+    DNSName hardwareInfo;
+    std::vector<DNSName> txtContent;
+
+    std::string toString() const noexcept
+    {
+        const std::string& txtContentStr = fmt::join(txtContent |
+            std::transform([](const DNSName& name) {
+                return name.toString();
+            }), ":");
+        return std::format(
+            "{};{};{};{};{};", requestName.toString(), 
+            srvPort, srvTarget.toString(), 
+            hardwareInfo.toString(), txtContent);
+    }
 };
 
 

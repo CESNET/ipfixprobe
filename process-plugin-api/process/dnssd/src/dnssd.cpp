@@ -10,7 +10,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "packetStats.hpp"
+#include "dnssd.hpp"
 
 #include <iostream>
 
@@ -20,65 +20,39 @@
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
+#include <dnsParser/dnsParser.hpp>
 
 namespace ipxp {
 
-
-static const PluginManifest packetStatsPluginManifest = {
-	.name = "pstats",
-	.description = "Pstats process plugin for computing packet bursts stats.",
+static const PluginManifest dnssdPluginManifest = {
+	.name = "dnssd",
+	.description = "Dnssd process plugin for parsing dnssd traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*PSTATSOptParser parser;
+			/*DNSSDOptParser parser;
 			parser.usage(std::cout);*/
 		},
 };
 
-const inline std::vector<FieldPair<PacketStatsFields>> fields = {
-	{PacketStatsFields::PPI_PKT_LENGTHS, "PPI_PKT_LENGTHS"},
-	{PacketStatsFields::PPI_PKT_TIMES, "PPI_PKT_TIMES"},
-	{PacketStatsFields::PPI_PKT_FLAGS, "PPI_PKT_FLAGS"},
-	{PacketStatsFields::PPI_PKT_DIRECTIONS, "PPI_PKT_DIRECTIONS"},
+const inline std::vector<FieldPair<DNSDFields>> fields = {
+	{DNSDFields::DNSSD_QUERIES, "DNSSD_QUERIES"},
+	{DNSDFields::DNSSD_RESPONSES, "DNSSD_RESPONSES"},
 };
 
-
-static FieldSchema createPacketStatsSchema()
+static FieldSchema createDNSSDSchema()
 {
-	FieldSchema schema("pstats");
+	FieldSchema schema("dnssd");
 
-	schema.addVectorField<uint16_t>(
-		"PPI_PKT_LENGTHS",
-		FieldDirection::DirectionalIndifferent,
-		[](const void* thisPtr) -> std::span<const uint16_t> {
-			return getSpan(reinterpret_cast<const PacketStatsExport*>(thisPtr)
-				->lengths);
-		});
+	// TODO
 
-	schema.addVectorField<uint8_t>(
-		"PPI_PKT_FLAGS",
-		FieldDirection::DirectionalIndifferent,
-		[](const void* thisPtr) -> std::span<const uint8_t> {
-			return getSpan<const uint8_t>(reinterpret_cast<const PacketStatsExport*>(thisPtr)
-				->tcpFlags);
-		});
-	
-	schema.addVectorField<int8_t>(
-		"PPI_PKT_DIRECTIONS",
-		FieldDirection::DirectionalIndifferent,
-		[](const void* thisPtr) -> std::span<const int8_t> {
-			return getSpan(reinterpret_cast<const PacketStatsExport*>(thisPtr)
-				->directions);
-		});
-
-	// TODO EXPORT TIMEVAL
 	return schema;
 }
 
-PacketStatsPlugin::PacketStatsPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+DNSSDPlugin::DNSSDPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
 {
-	const FieldSchema schema = createPacketStatsSchema();
+	const FieldSchema schema = createDNSSDSchema();
 	const FieldSchemaHandler schemaHandler = manager.registerSchema(schema);
 
 	for (const auto& [field, name] : fields) {
@@ -86,125 +60,130 @@ PacketStatsPlugin::PacketStatsPlugin([[maybe_unused]]const std::string& params, 
 	}
 }
 
-FlowAction PacketStatsPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, const Packet& packet)
+FlowAction DNSSDPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, const Packet& packet)
 {
-	updatePacketsData(packet);
-
-	return FlowAction::RequestTrimmedData;
-}
-
-FlowAction PacketStatsPlugin::onFlowUpdate([[maybe_unused]]FlowRecord& flowRecord, 
-	const Packet& packet)
-{
-	updatePacketsData(packet);
-
-	return FlowAction::RequestTrimmedData;
-}
-
-void PacketStatsPlugin::onFlowExport(FlowRecord& flowRecord) {
-	const std::size_t packetsTotal 
-		= flowRecord.dataForward.packets + flowRecord.dataReverse.packets;
-	
-	constexpr static std::size_t MIN_FLOW_LENGTH = 1;
-	if (packetsTotal <= MIN_FLOW_LENGTH) {
-		return;
+	constexpr uint16_t DNSSD_PORT = 5353;
+	if (packet.flowKey.srcPort != DNSSD_PORT && 
+		packet.flowKey.dstPort != DNSSD_PORT) {
+		return FlowAction::RequestNoData;
 	}
 
-	m_fieldHandlers[PacketStatsFields::PPI_PKT_LENGTHS].setAsAvailable(flowRecord);
-	m_fieldHandlers[PacketStatsFields::PPI_PKT_TIMES].setAsAvailable(flowRecord);
-	m_fieldHandlers[PacketStatsFields::PPI_PKT_FLAGS].setAsAvailable(flowRecord);
-	m_fieldHandlers[PacketStatsFields::PPI_PKT_DIRECTIONS].setAsAvailable(flowRecord);
+	// TODO USE VALUES FROM DISSECTOR
+	constexpr std::size_t TCP = 6;
+	const bool isDNSoverTCP = (packet.flowKey.protocol == TCP);
+	if (!parseDNSSD(packet.payload(), isDNSoverTCP, flowRecord)) {
+		return FlowAction::RequestNoData;
+	}
+
+	return FlowAction::RequestFullData;
 }
 
-constexpr static
-bool isSequenceOverflowed(const uint32_t currentValue, const uint32_t prevValue)
-{
-	constexpr int64_t MAX_DIFF = static_cast<int64_t>(
-		static_cast<double>(std::numeric_limits<uint32_t>::max()) / 100);
-
-	return static_cast<int64_t>(currentValue)
-		- static_cast<int64_t>(prevValue) < -MAX_DIFF;
-}
-
-bool PacketStatsPlugin::isDuplicate(const Packet& packet) noexcept
+FlowAction DNSSDPlugin::onFlowUpdate([[maybe_unused]]FlowRecord& flowRecord, 
+	const Packet& packet)
 {
 	// TODO USE VALUES FROM DISSECTOR
 	constexpr std::size_t TCP = 6;
-	if (packet.flowKey.l4Protocol != TCP) {
+	const bool isDNSoverTCP = (packet.flowKey.protocol == TCP);
+	if (!parseDNSSD(packet.payload(), isDNSoverTCP, flowRecord)) {
+		return FlowAction::RequestNoData;
+	}
+
+	return FlowAction::RequestFullData;
+}
+
+constexpr
+void DNSSDPlugin::parseDNSSD(
+	std::span<const std::byte> payload, 
+	const bool isDNSoverTCP,
+	FlowRecord& flowRecord) noexcept
+{
+	DNSParser parser;
+
+	constexpr auto queryParser = [this](const DNSQuestion& query) {
+		m_exportData.findOrInsert(query.name);
+		return false;
+	};
+
+	constexpr auto answerParser = [this](const DNSRecord& answer) {
+
+		if (answer.type == DNSRecordType::SRV) {
+			DNSSDRecord& record = m_exportData.findOrInsert(answer.name);
+			const auto& srv 
+				= std::get<const DNSSRVRecord&>(answer.payload.getUnderlyingType());
+			record.srvPort = srv.port;
+			record.srvTarget = srv.target;
+		}
+
+		if (answer.type == DNSRecordType::TXT) {
+			DNSSDRecord& record = m_exportData.findOrInsert(answer.name);
+			const auto& txt
+				= std::get<const DNSTXTRecord&>(answer.payload.getUnderlyingType());
+			record.txtContent.push_back(txt.content);
+		}
+
+		if (answer.type == DNSRecordType::HINFO) {
+			DNSSDRecord& record = m_exportData.findOrInsert(answer.name);
+			const auto& hinfo
+				= std::get<const DNSHINFORecord&>(answer.payload.getUnderlyingType());
+			record.hardwareInfo = hinfo.content;
+		}
+
+		return false;
+	};
+
+	const bool parsed = parser.parse(
+		payload, isDNSOverTCP, queryParser, answerParser,
+		answerParser, answerParser);
+	if (!parsed) {
 		return false;
 	}
 
-	// Current seq <= previous ack?
-	const bool suspiciousSequence 
-		= packet.tcpData->sequence <= m_lastSequence[packet.direction]
-			&& !isSequenceOverflowed(packet.tcpData->sequence, m_lastSequence[packet.direction]);
-	
-	// Current ack <= previous ack?
-	const bool suspiciousAcknowledgment 
-		= packet.tcpData->acknowledgment <= m_lastAcknowledgment[packet.direction]
-			&& !isSequenceOverflowed(packet.tcpData->acknowledgment, m_lastAcknowledgment[packet.direction]);
-
-	if (suspiciousSequence && suspiciousAcknowledgment 
-		&& packet.payload.size() == m_lastLength[packet.direction]
-		&& packet.tcpData->flags == m_lastFlags[packet.direction] 
-		&& m_exportData.lengths.size() != 0) {
-		return true;
-	}
-
-	return false;
+	return true;
 }
 
-void PacketStatsPlugin::updatePacketsData(const Packet& packet) noexcept
+void DNSSDPlugin::onFlowExport(FlowRecord& flowRecord) 
 {
-	if (!packet.tcpData.has_value()) {
+	if (m_exportData.requests.empty()) {
 		return;
 	}
 
-	if (m_skipDuplicates && isDuplicate(packet)) {
-		return;
-	}
+	std::ranges::for_each(m_exportData.requests, 
+		[](const DNSSDRecord& response) {
+			const std::string& name = response.name.toString();
+			if (name.size() < 
+				m_exportData.queries.capacity() - m_exportData.queries.size()) {
+				m_exportData.queries.push_back(name);
+				m_exportData.queries.push_back(';');
+			}
+		});
 
-	m_lastSequence[packet.direction] = packet.tcpData->sequence;
-	m_lastAcknowledgment[packet.direction] = packet.tcpData->acknowledgment;
-	m_lastLength[packet.direction] = packet.realLength;
-	m_lastFlags[packet.direction] = packet.tcpData->flags;
-
-	if (packet.realLength == 0 && !m_countEmptyPackets) {
-		return;
-	}
-
-	if (m_exportData.lengths.size() == m_exportData.lengths.capacity()) {
-		return;
-	}
+	std::ranges::for_each(m_exportData.requests, 
+		[](const DNSSDRecord& response) {
+			const std::string& value = response.toString() + ';';
+			std::ranges::copy(value | 
+				std::views::take(
+					m_exportData.responses.capacity() - 
+					m_exportData.responses.size()),
+				std::back_inserter(m_exportData.responses));
+		});
 	
-	m_exportData.lengths.push_back(static_cast<uint16_t>(packet.realLength));
-
-	m_exportData.tcpFlags.push_back(packet.tcpData->flags);
-	
-	m_exportData.timestamps.push_back(packet.timestamp);
-	
-	/*
-	 * direction =  1 iff client -> server
-	 * direction = -1 iff server -> client
-	 */
-	const int8_t direction = packet.direction ? 1 : -1;
-	m_exportData.directions.push_back(direction);
+	// TODO makeAllAvailable()
 }
 
-ProcessPlugin* PacketStatsPlugin::clone(std::byte* constructAtAddress) const
+ProcessPlugin* DNSSDPlugin::clone(std::byte* constructAtAddress) const
 {
-	return std::construct_at(reinterpret_cast<PacketStatsPlugin*>(constructAtAddress), *this);
+	return std::construct_at(reinterpret_cast<DNSSDPlugin*>(constructAtAddress), *this);
 }
 
-std::string PacketStatsPlugin::getName() const { 
-	return packetStatsPluginManifest.name; 
+std::string DNSSDPlugin::getName() const { 
+	return dnssdPluginManifest.name; 
 }
 
-const void* PacketStatsPlugin::getExportData() const noexcept {
+const void* DNSSDPlugin::getExportData() const noexcept {
 	return &m_exportData;
 }	
 
-static const PluginRegistrar<PacketStatsPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
-	packetStatsRegistrar(packetStatsPluginManifest);
+static const PluginRegistrar<DNSSDPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+	dnssdRegistrar(dnssdPluginManifest);
 
 } // namespace ipxp

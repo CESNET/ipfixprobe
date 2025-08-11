@@ -17,14 +17,14 @@
 #include <processPlugin.hpp>
 #include <fieldManager.hpp>
 
-#include "packetStatsExport.hpp"
-#include "packetStatsFields.hpp"
+#include "dnssdExport.hpp"
+#include "dnssdFields.hpp"
 
 namespace ipxp {
 
-class PacketStatsPlugin : public ProcessPlugin {
+class DNSSDPlugin : public ProcessPlugin {
 public:
-	PacketStatsPlugin(const std::string& params, FieldManager& manager);
+	DNSSDPlugin(const std::string& params, FieldManager& manager);
 
 	FlowAction onFlowCreate(FlowRecord& flowRecord, const Packet& packet) override;
 
@@ -38,25 +38,15 @@ public:
 
 	std::string getName() const override;
 
-	~PacketStatsPlugin() override = default;
+	~DNSSDPlugin() override = default;
 
-	PacketStatsPlugin(const PacketStatsPlugin& other) = default;
-	PacketStatsPlugin(PacketStatsPlugin&& other) = delete;
+	DNSSDPlugin(const DNSSDPlugin& other) = default;
+	DNSSDPlugin(DNSSDPlugin&& other) = delete;
 
 private:
-	void updatePacketsData(const Packet& packet) noexcept;
-	bool isDuplicate(const Packet& packet) noexcept;
+	DNSSDExport m_exportData;
+	FieldHandlers<DNSSDFields> m_fieldHandlers;
 
-	PacketStatsExport m_exportData;
-	FieldHandlers<PacketStatsFields> m_fieldHandlers;
-
-	DirectionalField<uint32_t> m_lastSequence;
-	DirectionalField<uint32_t> m_lastAcknowledgment;
-	DirectionalField<std::size_t> m_lastLength;
-	DirectionalField<TcpFlags> m_lastFlags;
-
-	const bool m_skipDuplicates{true};
-	const bool m_countEmptyPackets{false};
 
 };
 

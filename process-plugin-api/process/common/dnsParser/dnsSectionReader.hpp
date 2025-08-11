@@ -17,45 +17,47 @@ class DNSSectionReader;
 struct DNSSectionReaderFactory {
     DNSSectionReader* self;
     std::size_t itemCount;
-    const std::byte* dnsBegin;
+    std::span<const std::byte> fullDNSPayload;
 
     auto operator()(std::span<const std::byte> section) const {
-        return Generator::generate([section, self = self, itemCount, dnsBegin]() mutable 
+        return Generator::generate([section, self = self, itemCount, fullDNSPayload]() mutable
         -> std::optional<DNSRecord>& {
             static auto res = std::make_optional<DNSRecord>();
-
             if (itemCount == 0) {
                 self->setSuccess();
                 return std::nullopt;
             }
             itemCount--;
 
-            std::optional<DNSName> name = DNSName::createFrom(section, dnsBegin);
+            std::optional<DNSName> name = DNSName::createFrom(
+                section, fullDNSPayload);
             if (!name.has_value()) {
                 return std::nullopt;
             }
             if (name->length() + 3 * sizeof(uint16_t) + sizeof(uint32_t) > section.size()) {
                 return std::nullopt;
             }
-            res->name = std::move(name);
+            res->name = std::move(*name);
 
-            res->type = ntohs(*reinterpret_cast<const uint16_t*>(section.data() + name->length()));
+            res->type = ntohs(*reinterpret_cast<const uint16_t*>(
+                section.data() + name->length()));
             
             res->recordClass = ntohs(
                 *reinterpret_cast<const uint16_t*>(section.data() + name->length() + sizeof(type)));
-            
+
             res->timeToLive = ntohl(*reinterpret_cast<const uint32_t*>(
                 section.data() + name->length() + 2 * sizeof(uint16_t)));
 
-            const uint16_t rawDataLength = ntohs(*reinterpret_cast<const uint16_t*>(
+            res->rawDataLength = ntohs(*reinterpret_cast<const uint16_t*>(
                 section.data() + name->length() + 2 * sizeof(uint16_t) + sizeof(ttl)));
             if (name->length() + 3 * sizeof(uint16_t) + sizeof(uint32_t) + rawDataLength
                 > section.size()) {
                 return std::nullopt;
             }
 
-            res->data = section.subspan(
+            std::span<const std::byte> rawData = section.subspan(
                 name->length() + 3 * sizeof(uint16_t) + sizeof(uint32_t), rawDataLength);
+            res->dnsPayload(rawData, fullDNSPayload, type);
 
             section = section.subspan(
                 name->length() + 3 * sizeof(uint16_t) + sizeof(uint32_t) + rawDataLength);
@@ -71,8 +73,9 @@ struct DNSSectionReaderFactory {
 
 class DNSSectionReader : public RangeReader<DNSSectionReaderFactory> {
 public:
-    DNSSectionReader(std::span<const std::byte> section, const std::size_t itemCount, const std::byte* dnsBegin)
-        : RangeReader(section, DNSSectionReaderFactory{this, itemCount, dnsBegin}) {}
+    DNSSectionReader(std::span<const std::byte> section, 
+        std::span<const std::byte> fullDNSPayload, const std::size_t itemCount)
+        : RangeReader(section, DNSSectionReaderFactory{this, itemCount, fullDNSPayload.data()}) {}
 };
 
 } // namespace ipxp

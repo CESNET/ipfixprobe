@@ -35,11 +35,43 @@ bool parseDnsOverTCPLength(std::span<const std::byte> payload) noexcept
 	return dnsDataLength;
 }
 
+constexpr static
+std::optional<std::size_t>
+parseSection(
+    std::span<const std::byte> payload, 
+    std::span<const std::byte> fullDNSPayload, 
+    const uint16_t recordCount,
+    std::function<bool(const DNSRecord& record)>& recordCallback) noexcept
+{
+    const std::byte* lastRecordPayloadEnd = payload.data();
+    DNSSectionReader reader(payload, fullDNSPayload, recordCount);
+    
+    std::ranges::for_each(reader, 
+        [&recordCallback, &lastRecordPayloadEnd, needToCallCallback = true]
+        (const DNSRecord& record) mutable {
+            lastRecordPayloadEnd = record.data.getSpan().end();
+            if (needToCallCallback) {
+                needToCallCallback = !recordCallback(record);
+            }
+    });
+
+	/*if (!parsedSection->records.empty()) {
+		m_firstAnswer = parsedSection->records[0];
+	}*/
+
+	return lastRecordPayloadEnd - payload.data();
+}
+
 constexpr
 bool DnsParser::parse(
-    std::span<const std::byte> payload, const bool isDnsOverTCP) noexcept
+    std::span<const std::byte> payload, 
+    const bool isDnsOverTCP,
+    std::function<bool(const DNSQuestion& query)>& queryCallback,
+    std::function<bool(const DNSRecord& answer)>& answerCallback,
+    std::function<bool(const DNSRecord& authorityRecord)>& authorityCallback,
+    std::function<bool(const DNSRecord& additionalRecord)>& additionalCallback
+) noexcept
 {
-    const std::byte* dnsBegin = payload.data();
 	if (isDnsOverTCP) {
         const std::optional<uint16_t> dnsDataLength 
             = parseDnsOverTCPLength(payload);
@@ -48,23 +80,25 @@ bool DnsParser::parse(
 			return false;
 		}
         payload = payload.subspan(sizeof(uint16_t), *dnsDataLength);
-        dnsBegin = payload.data();
+        
 	}
 
+    fullDNSPayload = payload;
+    
     const std::optional<DNSHeader> header = parseHeader(payload);
 	if (!header.has_value()) {
 		return false;
 	}
-    m_answersCount = ntohs(header->answerRecordCount);
-    m_id = header->id;
-    m_responseCode = header->flags.responseCode;
+    answersCount = ntohs(header->answerRecordCount);
+    id = header->id;
+    responseCode = header->flags.responseCode;
 
-    const std::span<const std::byte> originalDNSPayload = payload;
     constexpr std::size_t questionSectionOffset = sizeof(DNSHeader);
     const std::optional<std::size_t> questionSectionSize = parseQuestionSection(
-        originalDNSPayload,
-        originalDNSPayload.subspan(questionSectionOffset),
-        ntohs(header->questionRecordCount));
+        payload.subspan(questionSectionOffset),
+        fullDNSPayload,
+        ntohs(header->questionRecordCount),
+        queryCallback);
 	if (!questionSectionSize.has_value()) {
 		return false;
 	}
@@ -72,7 +106,11 @@ bool DnsParser::parse(
     const std::size_t answerSectionOffset 
         = questionSectionOffset + *questionSectionSize;
     const std::optional<std::size_t> answerSectionSize 
-        = parseAnswerSection(payload.subspan(answerSectionOffset), dnsBegin, *header);
+        = parseSection(
+            payload.subspan(answerSectionOffset), 
+            fullDNSPayload, 
+            ntohs(header->answerRecordCount),
+            answerCallback);
 	if (!answerSectionSize.has_value()) {
 		return false;
 	}
@@ -80,7 +118,11 @@ bool DnsParser::parse(
     const std::size_t authoritySectionOffset 
         = questionSectionOffset + *parseQuestionSection;
     const std::optional<std::size_t> authoritySectionSize 
-        = parseAuthorityResourceRecordsSection(payload.subspan(authoritySectionOffset), dnsBegin, *header);
+        = parseSection(
+            payload.subspan(authoritySectionOffset), 
+            fullDNSPayload, 
+            ntohs(header->authorityRecordCount),
+            authorityCallback);
 	if (!authoritySectionSize.has_value()) {
 		return false;
 	}
@@ -88,7 +130,11 @@ bool DnsParser::parse(
     const std::size_t additionalSectionOffset 
         = authoritySectionOffset + *authoritySectionSize;
     const std::optional<std::size_t> additionalSectionSize 
-        = parseAdditionalResourceRecordsSection(payload.subspan(additionalSectionOffset), dnsBegin, *header);
+        = parseSection(
+            payload.subspan(additionalSectionOffset), 
+            fullDNSPayload, 
+            ntohs(header->additionalRecordCount),
+            additionalCallback);
 	if (!additionalSectionSize.has_value()) {
 		return false;
 	}
@@ -108,13 +154,17 @@ std::optional<DNSHeader> parseHeader(std::span<const std::byte> payload) noexcep
 constexpr
 std::optional<std::size_t> DnsParser::parseQuestionSection(
     std::span<const std::byte> payload,
-    const std::byte* dnsBegin, 
-    const uint16_t questionCount) noexcept
+    std::span<const std::byte> fullDNSPayload, 
+    const uint16_t questionCount,
+    std::function<bool(const DNSQuestion& query)>& queryCallback) noexcept
 {
-	for (size_t questionIndex = 0; questionIndex < questionCount;
-		 questionIndex++) {
+    const std::byte* queriesBegin = payload.data();
+    bool needToCallCallback = true;
 
-		const std::optional<DNSName> name = DNSName::createFrom(payload, dnsBegin);
+	for (size_t questionIndex = 0; questionIndex < questionCount; questionIndex++) {
+
+		const std::optional<DNSName> name 
+            = DNSName::createFrom(payload, fullDNSPayload);
 		if (!name.has_value()) {
 			return std::nullopt;
 		}
@@ -129,17 +179,23 @@ std::optional<std::size_t> DnsParser::parseQuestionSection(
 
         payload = payload.subspan(name->length() + 2 * sizeof(uint16_t));
 
-        if (questionIndex == 0) {
-			m_parsedFirstQuestion = {ParsedQuestion {
-				.name = *name,
-				.type = queryType,
-				.recordClass = queryClass}};
-		}
-	}
+        if (needToCallCallback) {
+            needToCallCallback = !queryCallback(DNSQuery{
+                .name = *name,
+                .type = queryType,
+                .class = queryClass
+            });
+        }
+        /*if (questionIndex == 0) {
+            m_parsedFirstQuestion = {ParsedQuestion {
+                .name = *name,
+                .type = queryType,
+            .recordClass = queryClass}};
+        }*/
 
-	return static_cast<std::size_t>(questionBegin - m_dnsData.data());
+	return static_cast<std::size_t>(payload.data() - queriesBegin);
 }
-
+/*
 constexpr
 std::optional<std::size_t>
 DnsParser::parseAnswerSection(
@@ -208,7 +264,7 @@ DnsParser::parseAdditionalResourceRecordsSection(
     }
 
 	return parsedSection->records.back().data.end() - payload.data().begin();
-}
+}*/
 
-} // namespace ipxp2
+} // namespace ipxp
 

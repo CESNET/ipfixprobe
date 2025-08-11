@@ -34,7 +34,11 @@ public:
 	 * @return True of parsed successfully, false otherwise
 	 */
 	constexpr bool parse(
-    std::span<const std::byte> payload, const bool isDnsOverTCP) noexcept;
+    std::span<const std::byte> payload, const bool isDnsOverTCP,
+    std::function<bool(const DNSQuestion& query)>& queryCallback,
+    std::function<bool(const DNSRecord& answer)>& answerCallback,
+    std::function<bool(const DNSRecord& authorityRecord)>& authorityCallback,
+    std::function<bool(const DNSRecord& additionalRecord)>& additionalCallback) noexcept;
 
     uint16_t answersCount;
     uint16_t id;
@@ -42,7 +46,7 @@ public:
     std::optional<DNSQuestion> firstQuestion;
 	std::optional<DNSRecord> firstAnswer;
 	std::optional<OPTRecord> firstOPTRecord;
-    const std::byte* dnsBegin;
+    std::span<const std::byte> fullDNSPayload;
     
 
 private:

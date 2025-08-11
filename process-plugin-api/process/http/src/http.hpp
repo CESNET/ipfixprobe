@@ -17,14 +17,14 @@
 #include <processPlugin.hpp>
 #include <fieldManager.hpp>
 
-#include "passivednsExport.hpp"
-#include "passivednsFields.hpp"
+#include "httpExport.hpp"
+#include "httpFields.hpp"
 
 namespace ipxp {
 
-class PassiveDNSPlugin : public ProcessPlugin {
+class HTTPPlugin : public ProcessPlugin {
 public:
-	PassiveDNSPlugin(const std::string& params, FieldManager& manager);
+	HTTPPlugin(const std::string& params, FieldManager& manager);
 
 	FlowAction onFlowCreate(FlowRecord& flowRecord, const Packet& packet) override;
 
@@ -38,14 +38,20 @@ public:
 
 	std::string getName() const override;
 
-	~PassiveDNSPlugin() override = default;
+	~HTTPPlugin() override = default;
 
-	PassiveDNSPlugin(const PassiveDNSPlugin& other) = default;
-	PassiveDNSPlugin(PassiveDNSPlugin&& other) = delete;
+	HTTPPlugin(const HTTPPlugin& other) = default;
+	HTTPPlugin(HTTPPlugin&& other) = delete;
 
 private:
-	PassiveDNSExport m_exportData;
-	FieldHandlers<PassiveDNSFields> m_fieldHandlers;
+	constexpr FlowAction parseHTTP(
+	std::span<const std::byte> payload, FlowRecord& flowRecord) noexcept;
+	
+	bool m_requestParsed{false};
+	bool m_responseParsed{false};
+
+	HTTPExport m_exportData;
+	FieldHandlers<HTTPFields> m_fieldHandlers;
 };
 
 } // namespace ipxp

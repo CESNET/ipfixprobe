@@ -7,6 +7,7 @@
 
 #include "dnsName.hpp"
 #include "dnsQueryType.hpp"
+#include "dnsRecordPayload.hpp"
 
 namespace ipxp
 {
@@ -19,9 +20,7 @@ struct DNSRecord {
     DNSQueryType type;
     uint16_t recordClass;
     uint32_t timeToLive;
-    std::span<const std::byte> data;
-
-    std::string toString() const noexcept;
+    DNSRecordPayload payload;
 };
 
 } // namespace ipxp

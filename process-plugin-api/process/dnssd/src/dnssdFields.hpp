@@ -5,11 +5,9 @@
 namespace ipxp
 {
 
-enum class PacketStatsFields : std::size_t {
-	PPI_PKT_LENGTHS = 0,
-	PPI_PKT_TIMES,
-	PPI_PKT_FLAGS,
-	PPI_PKT_DIRECTIONS,
+enum class DNSSDFields : std::size_t {
+	DNSSD_QUERIES = 0,
+	DNSSD_RESPONSES,
 	FIELDS_SIZE,
 };    
     

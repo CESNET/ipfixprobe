@@ -19,19 +19,19 @@ union IPAddress {
 	constexpr IPAddress() noexcept 
 	{ 
 		std::memset(&u8, 0, sizeof(IPAddress)); 
-	};
+	}
 
 	constexpr IPAddress(const uint32_t ipv4) noexcept
 	{
 		u32[0] = ipv4;
 		u32[1] = 0;
 		u32[2] = u32[3] = std::numeric_limits<uint32_t>::max();
-	};
+	}
 
 	constexpr IPAddress(const std::array<uint8_t, 16>& ipv6) noexcept
 	{
 		u8 = ipv6;
-	};
+	}
 
 	constexpr bool isIPv4() const noexcept
 	{

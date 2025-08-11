@@ -1,0 +1,21 @@
+#pragma once
+
+#include <cstddef>
+
+namespace ipxp
+{
+
+enum class HTTPFields : std::size_t {
+	HTTP_REQUEST_METHOD = 0,
+	HTTP_REQUEST_HOST,
+	HTTP_REQUEST_URL,
+	HTTP_REQUEST_AGENT,
+	HTTP_REQUEST_REFERER,
+	HTTP_RESPONSE_STATUS_CODE,
+	HTTP_RESPONSE_CONTENT_TYPE,
+	HTTP_RESPONSE_SERVER,
+	HTTP_RESPONSE_SET_COOKIE_NAMES,
+	FIELDS_SIZE,
+};    
+    
+} // namespace ipxp
