@@ -73,54 +73,67 @@ FlowAction HTTPPlugin::parseHTTP(
 	if (parser.requestParsed && m_requestParsed) {
 		return FlowAction::FlushWithReinsert;
 	}
+	m_requestParsed |= parser.requestParsed;
+
 	if (parser.responseParsed && m_responseParsed) {
 		return FlowAction::FlushWithReinsert;
 	}
+	m_responseParsed |= parser.responseParsed;
 
 	if (parser.method.has_value()) {
 		std::ranges::copy(*parser.method |
 			std::views::take(m_exportData.method.capacity()),
 		std::back_inserter(m_exportData.method));
+		m_fieldHandlers[HTTPFields::HTTP_REQUEST_METHOD].setAsAvailable(flowRecord);
 	}
 	if (parser.uri.has_value()) {
 		std::ranges::copy(*parser.uri |
 			std::views::take(m_exportData.uri.capacity()),
 		std::back_inserter(m_exportData.uri));
+		m_fieldHandlers[HTTPFields::HTTP_REQUEST_URI].setAsAvailable(flowRecord);
 	}
 	if (parser.host.has_value()) {
 		std::ranges::copy(*parser.host |
 			std::views::take(m_exportData.host.capacity()),
 		std::back_inserter(m_exportData.host));
+		m_fieldHandlers[HTTPFields::HTTP_REQUEST_HOST].setAsAvailable(flowRecord);
 	}
 	if (parser.userAgent.has_value()) {
 		std::ranges::copy(*parser.userAgent |
 			std::views::take(m_exportData.userAgent.capacity()),
 		std::back_inserter(m_exportData.userAgent));
+		m_fieldHandlers[HTTPFields::HTTP_REQUEST_AGENT].setAsAvailable(flowRecord);
 	}
 	if (parser.referer.has_value()) {
 		std::ranges::copy(*parser.referer |
 			std::views::take(m_exportData.referer.capacity()),
 		std::back_inserter(m_exportData.referer));
+		m_fieldHandlers[HTTPFields::HTTP_REQUEST_REFERER].setAsAvailable(flowRecord);
 	}
 	if (parser.statusCode.has_value()) {
 		m_exportData.statusCode = *parser.statusCode;
+		m_fieldHandlers[HTTPFields::HTTP_RESPONSE_STATUS_CODE].setAsAvailable(flowRecord);
 	}
 	if (parser.contentType.has_value()) {
 		std::ranges::copy(*parser.contentType |
 			std::views::take(m_exportData.contentType.capacity()),
 		std::back_inserter(m_exportData.contentType));
+		m_fieldHandlers[HTTPFields::HTTP_RESPONSE_CONTENT_TYPE].setAsAvailable(flowRecord);
 	}
 	if (parser.server.has_value()) {
 		std::ranges::copy(*parser.server |
 			std::views::take(m_exportData.server.capacity()),
 		std::back_inserter(m_exportData.server));
+		m_fieldHandlers[HTTPFields::HTTP_RESPONSE_SERVER].setAsAvailable(flowRecord);
 	}
 	if (parser.cookies.has_value()) {
 		std::ranges::copy(*parser.cookies |
 			std::views::take(m_exportData.cookies.capacity()),
 		std::back_inserter(m_exportData.cookies));
+		m_fieldHandlers[HTTPFields::HTTP_RESPONSE_SET_COOKIE_NAMES].setAsAvailable(flowRecord);
 	}
 
+	
 	if (m_requestParsed && m_responseParsed) {
 		return FlowAction::RequestNoData;
 	}

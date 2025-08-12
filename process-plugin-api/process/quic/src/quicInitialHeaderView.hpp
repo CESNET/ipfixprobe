@@ -40,13 +40,13 @@ public:
         const std::byte headerForm,
         std::span<const std::byte> salt,
         std::span<const std::byte> destConnectionId) noexcept;
-private:
+
     constexpr static std::size_t MAX_TLS_EXTENSIONS = 30;
 
     std::optional<QUICInitialSecrets> m_initialSecrets;
     ReassembledFrame m_reassembledFrame;
     uint16_t m_serverPort;
-    bool m_clientHelloParsed{false};
+    bool clientHelloParsed{false};
     bool m_saveWholeTLSExtension{false};
     TLSExtensionBuffer m_tlsExtensionBuffer;
     TLSHandshake m_tlsHandshake;

@@ -101,7 +101,7 @@ std::optional<IPAddress> getIPFromPTR(const std::string& ptrName) noexcept
 		ipAsString.erase(ipAsString.size() - ip4Postfix.size());
 		struct in_addr addr;
 		inet_pton(AF_INET, ipAsString.c_str(), &addr);
-		return addr.s_addr;
+		return ntohl(addr.s_addr);
 	}
 
 	std::string_view ip6Postfix = ".ip6.arpa";

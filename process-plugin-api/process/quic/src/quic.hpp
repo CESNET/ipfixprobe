@@ -17,8 +17,8 @@
 #include <processPlugin.hpp>
 #include <fieldManager.hpp>
 
-#include "burstStatsExport.hpp"
-#include "burstStatsFields.hpp"
+#include "quicExport.hpp"
+#include "quicFields.hpp"
 
 namespace ipxp {
 
@@ -47,9 +47,16 @@ public:
 	QUICPlugin(QUICPlugin&& other) = delete;
 
 private:
-	BurstStatsExport m_exportData;
-	FieldHandlers<BurstStatsFields> m_fieldHandlers;
-	
+	QUICExport m_exportData;
+	FieldHandlers<QUICFields> m_fieldHandlers;
+
+	struct TemporaryConnectionIdBuffer {
+		boost::static_string<QUICExport::MAX_CONNECTION_ID_LENGTH> sourceConnectionId;
+		boost::static_string<QUICExport::MAX_CONNECTION_ID_LENGTH> destinationConnectionId;
+	};
+
+	DirectionalField<std::optional<TemporaryConnectionIdBuffer>> m_tempConnectionIdBuffer;
+	boost::static_string<QUICExport::MAX_CONNECTION_ID_LENGTH> m_initialConnectionId;
 };
 
 } // namespace ipxp

@@ -16,18 +16,18 @@ public:
     constexpr static std::size_t QUIC_MIN_PACKET_LENGTH = 8;
 
     enum class PacketType {
-        INITIAL,
+        INITIAL = 0,
         ZERO_RTT,
         HANDSHAKE,
         RETRY,
-        VERSION_NEGOTIATION
+        VERSION_NEGOTIATION = 7
     };
 
     std::byte headerForm;
     QUICVersionId versionId;
-    uint8_t destConnectionIdLength;
+    //uint8_t destConnectionIdLength;
     std::span<const uint8_t> destConnectionId;
-    uint8_t srcConnectionIdLength;
+    //uint8_t srcConnectionIdLength;
     std::span<const uint8_t> srcConnectionId;
 
     constexpr static

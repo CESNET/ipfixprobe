@@ -73,7 +73,136 @@ int QUICPlugin::process_quic(
 	const Packet& pkt,
 	bool new_quic_flow)
 {
-	QUICParser process_quic;
+	QUICParser quicParser;
+
+	quicParser.parse(payload, initialDestConnectionId);
+
+	if (quicParser.headerView.has_value() &&
+		quicParser.packetTypesCumulative.bits.zeroRTT) {
+		m_exportData.version = quicParser.headerView->versionId;
+	}
+
+	if (!m_exportData.packetTypes.full()) {
+		m_exportData.packetTypes.push_back(
+			static_cast<uint8_t>(quicParser.packetTypesCumulative.raw));
+	}
+
+	// TODO get direction ?
+
+	m_exportData.zeroRTTPacket = std::min<uint16_t>(
+		m_exportData.zeroRTTPacket + quicParser.zeroRTTPackets,
+		std::numeric_limits<uint8_t>::max()
+	);
+
+	if (quicParser.initialHeaderView.has_value()) {
+		m_exportData.clientHelloParsed 
+			= quicParser.initialHeaderView->clientHelloParsed;
+	}
+
+	switch (quicParser.packetType) {
+	case QUICParser::PACKET_TYPE::INITIAL:
+		if (!quicParser.initialHeaderView.has_value()) {
+			break; //??
+		}
+		process_quic.quic_get_parsed_initial(parsed_initial);
+		m_initialDestinationConnectionId.clear();
+		std::ranges::copy(quicParser.initialHeaderView->destinationConnectionId |
+			std::views::take(m_initialDestinationConnectionId.capacity()),
+		std::back_inserter(m_initialDestinationConnectionId));
+		// Store DCID from first observed Initial packet. This is used in the crypto operations.
+		// Check length works because the first Initial must have a non-zero DCID.
+		if (quic_data->initial_dcid_length == 0) {
+			process_quic.quic_get_dcid_len(quic_data->initial_dcid_length);
+			process_quic.quic_get_dcid(quic_data->initial_dcid);
+			// Once established it can only be changed by a retry packet.
+		}
+		if (quicParser.initialHeaderView.has_value() &&
+			quicParser.initialHeaderView->clientHelloParsed) {
+				
+			if (m_exportData.sourceConnectionId.empty() && 
+				quicParser.packetDirection.has_value() &&
+				m_tempConnectionIdBuffer[*quicParser.packetDirection].has_value()) {
+				std::ranges::copy(
+					m_tempConnectionIdBuffer[*quicParser.packetDirection].destinationConnectionId |
+					std::views::take(m_exportData.sourceConnectionId.capacity()),
+					std::back_inserter(m_exportData.sourceConnectionId)
+				);
+			}
+			set_stored_cid_fields(quic_data, new_quic_flow);
+			set_client_hello_fields(&process_quic, rec, quic_data, pkt, new_quic_flow);
+			quic_data->client_hello_seen = true;
+
+			if (!quic_data->tls_ext_type_set) {
+				process_quic.quic_get_tls_ext_type(quic_data->tls_ext_type);
+				process_quic.quic_get_tls_ext_type_len(quic_data->tls_ext_type_len);
+				quic_data->tls_ext_type_set = true;
+			}
+
+			if (!quic_data->tls_ext_len_set) {
+				process_quic.quic_get_tls_extension_lengths(quic_data->tls_ext_len);
+				process_quic.quic_get_tls_extension_lengths_len(quic_data->tls_ext_len_len);
+				quic_data->tls_ext_len_set = true;
+			}
+
+			if (!quic_data->tls_ext_set) {
+				process_quic.quic_get_tls_ext(quic_data->tls_ext);
+				process_quic.quic_get_tls_ext_len(quic_data->tls_ext_length);
+				quic_data->tls_ext_set = true;
+			}
+			break;
+		}
+
+		// Update accounting for information from CH, SH.
+		toServer = get_direction_to_server_and_set_port(
+			&process_quic,
+			quic_data,
+			process_quic.quic_get_server_port(),
+			pkt,
+			new_quic_flow);
+		// fallthrough to set cids
+		[[fallthrough]];
+	case QUICParser::PACKET_TYPE::HANDSHAKE:
+		// -1 sets stores intermediately.
+		set_cid_fields(quic_data, rec, &process_quic, toServer, new_quic_flow, pkt);
+		break;
+	case QUICParser::PACKET_TYPE::RETRY:
+		quic_data->cnt_retry_packets += 1;
+		/*
+			* A client MUST accept and process at most one Retry packet for each connection
+			* attempt. After the client has received and processed an Initial or Retry packet from
+			* the server, it MUST discard any subsequent Retry packets that it receives.
+			*/
+		if (quic_data->cnt_retry_packets == 1) {
+			// Additionally set token len
+			process_quic.quic_get_scid(quic_data->retry_scid);
+			process_quic.quic_get_scid_len(quic_data->retry_scid_length);
+			// Update DCID for decryption
+			process_quic.quic_get_dcid_len(quic_data->initial_dcid_length);
+			process_quic.quic_get_scid(quic_data->initial_dcid);
+
+			process_quic.quic_get_token_length(quic_data->quic_token_length);
+		}
+
+		if (!quic_data->occid_set) {
+			process_quic.quic_get_dcid(quic_data->occid);
+			process_quic.quic_get_dcid_len(quic_data->occid_length);
+			quic_data->occid_set = true;
+		}
+
+		break;
+	case QUICParser::PACKET_TYPE::ZERO_RTT:
+		// Connection IDs are identical to Client Initial CH. The DCID might be OSCID at first
+		// and change to SCID later. We ignore the DCID.
+		if (!quic_data->occid_set) {
+			process_quic.quic_get_scid(quic_data->occid);
+			process_quic.quic_get_scid_len(quic_data->occid_length);
+			quic_data->occid_set = true;
+		}
+		break;
+	}
+
+	return QUIC_DETECTED;
+
 
 	// Test for QUIC LH packet in UDP payload
 	if (process_quic.quic_check_quic_long_header_packet(

@@ -173,7 +173,8 @@ createInitialSecrets(std::span<const std::byte> destConnectionId,
         };
 
     const ExpandedLabel expandedLabel 
-        = expandLabel<QUICInitialHeaderView::SHA2_256_LENGTH>("tls13 ", "client in");
+        = expandLabel<QUICInitialHeaderView::SHA2_256_LENGTH>(
+            "tls13 ", "client in");
 
         ///context initialization
 	if (!EVP_PKEY_derive_init(publicKeyContext.get()) ||
@@ -712,36 +713,7 @@ bool parseTLS(const ReassembledFrame& reassembledFrame)
 	return quic_parse_tls_extensions();
 }
 
-constexpr static
-std::optional<uint16_t> getServerPort(
-    const uint16_t srcPort, 
-    const uint16_t dstPort,
-    const TLSHandshake& tlsHandshake,
-    const PacketType packetType) noexcept
-{
-	switch (packetType) {
-	case PacketType::INITIAL:
-        switch (tlsHandshake.type)
-        {
-        case TLS_HANDSHAKE_CLIENT_HELLO:
-            return dstPort;
-        case TLS_HANDSHAKE_SERVER_HELLO:
-            return srcPort;
-        default:
-		    // e.g. ACKs do not reveal direction
-            return std::nullopt;
-        }
-	case PacketType::VERSION_NEGOTIATION: [[fallthrough]]
-	case PacketType::RETRY:
-		return srcPort;
-	case PacketType::ZERO_RTT:
-		return dstPort;
-	case PacketType::HANDSHAKE:
-		// Does not reveal the direction
-		break;
-	}
-	return std::nullopt;
-}
+
 
 
 constexpr static
@@ -779,16 +751,10 @@ bool parse(std::span<const std::byte> destConnectionId,
 	}
 
 	// 1 if CH or SH parsed
-	parsed_initial = 1;
-    const TLSHandshake& tlsHandshake;
-	// According to RFC 9000 the server port will not change.
-    const std::optional<uint16_t> serverPort = getServerPort(pkt, packetType);
-	if (!serverPort.has_value()) {
-		// Error, extracting server port failed
-		return false;
-	}
+	//parsed_initial = 1;
 
-	m_clientHelloParsed = tlsHandshake.type == TLS_HANDSHAKE_CLIENT_HELLO;
+
+	clientHelloParsed = tlsHandshake.type == TLSHandshake::Type::CLIENT_HELLO;
 
 	return true;
 }
@@ -821,7 +787,7 @@ std::optional<QUICInitialHeaderView> QUICInitialHeaderView::createFrom(
     std::span<const std::byte> sample 
         = encryptedPacketNumber + encryptedPacketNumberLength;
 
-	parseTLS(destConnectionId, salt, packetType, sample, headerForm, encryptedPacketNumber);
+	parse(destConnectionId, salt, packetType, sample, headerForm, encryptedPacketNumber);
 }
 
 } // namespace ipxp

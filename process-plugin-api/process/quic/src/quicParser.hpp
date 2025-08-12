@@ -70,7 +70,12 @@ public:
 	constexpr static std::size_t QUIC_MIN_PACKET_LENGTH = 8;
 	constexpr static std::size_t MAX_PAYLOAD_BUFFER_SIZE = 1500;
 
-	
+	std::optional<QUICInitialHeaderView> initialHeaderView;
+	std::optional<uint16_t> serverPort;
+	QUICTypesCumulative packetTypesCumulative{};
+	QUICDirection packetDirection;
+	uint32_t version;
+
 	enum HKDF_LENGTHS {
 		quic_key_hkdf_v1
 		= sizeof("tls13 quic key") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t),
