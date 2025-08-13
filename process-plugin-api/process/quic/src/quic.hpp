@@ -19,6 +19,7 @@
 
 #include "quicExport.hpp"
 #include "quicFields.hpp"
+#include "quicTemporalStorage.hpp"
 
 namespace ipxp {
 
@@ -50,12 +51,9 @@ private:
 	QUICExport m_exportData;
 	FieldHandlers<QUICFields> m_fieldHandlers;
 
-	struct TemporaryConnectionIdBuffer {
-		boost::static_string<QUICExport::MAX_CONNECTION_ID_LENGTH> sourceConnectionId;
-		boost::static_string<QUICExport::MAX_CONNECTION_ID_LENGTH> destinationConnectionId;
-	};
+	QUICTemporalStorage m_temporalCIDStorage;
+	bool m_firstRetryPacketReceived = false;
 
-	DirectionalField<std::optional<TemporaryConnectionIdBuffer>> m_tempConnectionIdBuffer;
 	boost::static_string<QUICExport::MAX_CONNECTION_ID_LENGTH> m_initialConnectionId;
 };
 

@@ -73,8 +73,10 @@ public:
 	std::optional<QUICInitialHeaderView> initialHeaderView;
 	std::optional<uint16_t> serverPort;
 	QUICTypesCumulative packetTypesCumulative{};
-	QUICDirection packetDirection;
+	std::optional<QUICDirection> quicDirection;
+	QUICHeaderView::PacketType packetType;
 	uint32_t version;
+	uint8_t zeroRTTPackets;
 
 	enum HKDF_LENGTHS {
 		quic_key_hkdf_v1
@@ -187,7 +189,6 @@ public:
 	TLSParser tls_parser;
 
 	std::byte m_packets;
-	uint8_t m_zeroRTTPackets;
 
 
 public:

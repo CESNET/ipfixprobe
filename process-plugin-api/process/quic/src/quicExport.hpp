@@ -17,23 +17,25 @@ struct QUICExport {
 	constexpr static std::size_t MAX_CONNECTION_ID_LENGTH = 20;
 	constexpr static std::size_t MAX_PACKETS = 30;
 	constexpr static std::size_t MAX_TLS_EXTENSIONS = 30;
+	constexpr static std::size_t MAX_BUFFER_SIZE = 1500;
 
 	boost::static_string<BUFFER_SIZE> sni;
 	boost::static_string<BUFFER_SIZE> userAgent;
 	uint32_t quicVersion;
 	uint32_t quicClientVersion;
 	uint64_t quicTokenLength;
-	boost::static_string<MAX_CONNECTION_ID_LENGTH> occid;
-	boost::static_string<MAX_CONNECTION_ID_LENGTH> oscid;
-	boost::static_string<MAX_CONNECTION_ID_LENGTH> scid;
+	boost::static_string<MAX_CONNECTION_ID_LENGTH> originalClientId;
+	boost::static_string<MAX_CONNECTION_ID_LENGTH> originalServerId;
+	boost::static_string<MAX_CONNECTION_ID_LENGTH> serverId;
 	boost::static_string<MAX_CONNECTION_ID_LENGTH> retryScid;
-	uint8_t quicMultiplexed;
+	uint8_t multiplexedCount;
 	uint8_t quicZeroRTTCount;
 	uint8_t clientHelloParsed;
 	uint16_t serverPort;
 	boost::container::static_vector<uint8_t, MAX_PACKETS> packetTypes;
 	boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> tlsExtensionTypes;
 	boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> tlsExtensionLengths;
+	boost::container::static_vector<std::byte, MAX_BUFFER_SIZE> extensionsPayload;
 
 
 
@@ -62,7 +64,6 @@ struct QUICExport {
 	uint8_t tls_ext_len_len;
 	bool tls_ext_len_set;
 
-	char tls_ext[CURRENT_BUFFER_SIZE];
 	uint16_t tls_ext_length;
 	bool tls_ext_set;
 

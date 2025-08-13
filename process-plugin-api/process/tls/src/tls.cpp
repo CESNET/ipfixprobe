@@ -124,7 +124,7 @@ FlowAction TLSPlugin::onFlowUpdate(FlowRecord& flowRecord,
 constexpr 
 bool TLSParser::parseClientHelloExtensions(TLSParser& parser) noexcept
 {
-	return parser.parse_extensions([&parser](const Extension& extension) {
+	return parser.parseExtensions([&parser](const Extension& extension) {
 		switch (extension.type)
 		{
 		case TLSExtensionType::SERVER_NAME:

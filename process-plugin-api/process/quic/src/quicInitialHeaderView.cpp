@@ -651,73 +651,52 @@ reassembleCryptoFrames(std::span<const std::byte> decryptedPayload) noexcept
 	return reassembledFrame;
 }
 
-
-
-
-bool QUICParser::quic_parse_tls_extensions()
+bool QUICParser::parseTLSExtensions(TLSParser& parser)
 {
-	const bool extensions_parsed = tls_parser.parse_extensions(
-        [this](uint16_t extension_type,
-               const uint8_t* extension_payload,
-               uint16_t extension_length) {
-		if (extension_type == TLS_EXT_SERVER_NAME && extension_length != 0) {
-			tls_parser.parseServerNames(extension_payload, extension_length);
-		} else if (
-			(extension_type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1
-			 || extension_type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS
-			 || extension_type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2)
-			&& extension_length != 0) {
-			tls_parser.parseUserAgent(extension_payload, extension_length);
+	const bool extensionsParsed = parser.parseExtensions(
+        [&](const Extension& extension) {
+		if (extension.type == TLSExtensionType::SERVER_NAME && 
+            !extension.payload.empty()) {
+            sni = parser.parseServerNames(extension.payload);
+		}
+        if (extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V1 ||
+			extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS ||
+			extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V2) {
+            userAgent = parser.parseUserAgent(extension.payload);
 		}
 
-        if (m_tlsExtensionBuffer.size() + extension_length < m_tlsExtensionBuffer.capacity()
-                && (m_saveWholeTLSExtension
-                || extension_type == TLS_EXT_ALPN
-                || extension_type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1
-                || extension_type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS
-                || extension_type == TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V2)) {
-            m_tlsExtensionBuffer.insert(m_tlsExtensionBuffer.end(), 
-                extension_payload, extension_payload + extension_length);
+        if (m_saveWholeTLSExtension
+            || extension_type == TLSExtensionType::ALPN
+            || extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V1
+            || extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS
+            || extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V2) {
+            std::ranges::copy(extension.payload |
+                std::views::take(m_tlsExtensionBuffer.capacity()),
+                std::back_inserter(m_tlsExtensionBuffer));
         }
-		
-		tls_parser.add_extension(extension_type, extension_length);
+
+        if (!m_exportData.extensionTypes.full()) {
+			m_exportData.extensionTypes.push_back(extension.type);
+			m_exportData.extensionLengths.push_back(extension.payload.size());
+		}
 	});
-	if (!extensions_parsed) {
-		return false;
-	}
-	tls_parser.save_server_names(sni, BUFF_SIZE);
-	tls_parser.save_quic_user_agent(user_agent, BUFF_SIZE);
 
-	const size_t copy_count
-		= std::min<size_t>(tls_parser.get_extensions().size(), MAX_TLS_EXTENSIONS);
-	std::transform(
-		tls_parser.get_extensions().begin(),
-		tls_parser.get_extensions().begin() + static_cast<ssize_t>(copy_count),
-		std::back_inserter(m_extensionTypes),
-		[](const TLSExtension& typeLength) { return typeLength.type; });
-	std::transform(
-		tls_parser.get_extensions().begin(),
-		tls_parser.get_extensions().begin() + static_cast<ssize_t>(copy_count),
-		std::back_inserter(m_extensionLengths),
-		[](const TLSExtension& typeLength) { return typeLength.length; });
-	return true;
+	return extensionsParsed;
 }
 
 constexpr static
-bool parseTLS(const ReassembledFrame& reassembledFrame)
+bool QUICInitialHeaderView::parseTLS(const ReassembledFrame& reassembledFrame)
 {
-	if (!tls_parser.parse_quic_tls(
-            reassembledFrame.data(), reassembledFrame.size())) {
+    TLSParser parser;
+	if (!parser.parseHelloFromQUIC(toSpan(reassembledFrame))) {
 		return false;
 	}
-	return quic_parse_tls_extensions();
+    tlsHandshake = parser.handshake;
+	return parseTLSExtensions(parser);
 }
 
-
-
-
 constexpr static
-bool parse(std::span<const std::byte> destConnectionId, 
+bool QUICInitialHeaderView::parse(std::span<const std::byte> destConnectionId, 
     std::span<const std::byte> salt,
     const PacketType packetType,
     std::span<const std::byte> sample,
@@ -749,11 +728,7 @@ bool parse(std::span<const std::byte> destConnectionId,
 		// SNI and User Agent Extraction failed
 		return false;
 	}
-
-	// 1 if CH or SH parsed
-	//parsed_initial = 1;
-
-
+    
 	clientHelloParsed = tlsHandshake.type == TLSHandshake::Type::CLIENT_HELLO;
 
 	return true;
@@ -767,8 +742,7 @@ std::optional<QUICInitialHeaderView> QUICInitialHeaderView::createFrom(
     std::span<const std::byte> salt,
     std::span<const std::byte> destConnectionId) noexcept
 {
-    const std::optional<VariableLengthInt> tokenLength 
-		= readQUICVariableLengthInt(payload);
+    tokenLength = readQUICVariableLengthInt(payload);
 	if (!tokenLength.has_value()) {
 		return false;
 	}

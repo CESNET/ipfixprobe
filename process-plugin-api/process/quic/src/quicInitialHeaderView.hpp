@@ -50,8 +50,12 @@ public:
     bool m_saveWholeTLSExtension{false};
     TLSExtensionBuffer m_tlsExtensionBuffer;
     TLSHandshake m_tlsHandshake;
-    boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> m_extensionTypes;
-    boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> m_extensionLengths;
+    std::optional<uint64_t> tokenLength;
+    std::optional<...> sni;
+    std::optional<...> userAgent;
+    boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> extensionTypes;
+    boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> extensionLengths;
+    std::vector<const std::byte> extensionsPayload;
 };
 
 } // namespace ipxp
