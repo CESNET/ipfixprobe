@@ -68,15 +68,15 @@ typedef struct Initial_Secrets {
 class QUICParser {
 public:
 	constexpr static std::size_t QUIC_MIN_PACKET_LENGTH = 8;
-	constexpr static std::size_t MAX_PAYLOAD_BUFFER_SIZE = 1500;
 
 	std::optional<QUICInitialHeaderView> initialHeaderView;
 	std::optional<uint16_t> serverPort;
 	QUICTypesCumulative packetTypesCumulative{};
 	std::optional<QUICDirection> quicDirection;
-	QUICHeaderView::PacketType packetType;
+	QUICHeaderView::PacketType mostSignificantPacketType;
 	uint32_t version;
 	uint8_t zeroRTTPackets;
+	std::vector<std::byte> extensionsPayload;
 
 	enum HKDF_LENGTHS {
 		quic_key_hkdf_v1

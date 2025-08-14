@@ -5,6 +5,7 @@
 #include <optional>
 
 #include "quicInitialSecrets.hpp"
+#include "quicExport.hpp"
 
 namespace ipxp
 {
@@ -21,7 +22,7 @@ public:
         = boost::container::static_vector<std::byte, MAX_BUFFER_SIZE>;
 
     using TLSExtensionBuffer 
-        = boost::container::static_vector<std::byte, MAX_BUFFER_SIZE>;
+        = boost::container::static_vector<std::byte, QUICExport::MAX_TLS_PAYLOAD_TO_SAVE>;
 
     enum class FrameType : uint8_t{
 		CRYPTO = 0x06,
@@ -55,7 +56,7 @@ public:
     std::optional<...> userAgent;
     boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> extensionTypes;
     boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> extensionLengths;
-    std::vector<const std::byte> extensionsPayload;
+    std::vector<std::byte> extensionsPayload;
 };
 
 } // namespace ipxp

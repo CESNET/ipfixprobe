@@ -10,7 +10,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "burstStats.hpp"
+#include "quic.hpp"
 
 #include <iostream>
 
@@ -34,8 +34,24 @@ static const PluginManifest quicPluginManifest = {
 		},
 };
 
-const inline std::vector<FieldPair<BurstStatsFields>> fields = {
-	{BurstStatsFields::SBI_BRST_PACKETS, "SBI_BRST_PACKETS"},
+const inline std::vector<FieldPair<QUICFields>> fields = {
+	{QUICFields::QUIC_SNI, "QUIC_SNI"},
+	{QUICFields::QUIC_USER_AGENT, "QUIC_USER_AGENT"},
+	{QUICFields::QUIC_VERSION, "QUIC_VERSION"},
+	{QUICFields::QUIC_CLIENT_VERSION, "QUIC_CLIENT_VERSION"},
+	{QUICFields::QUIC_TOKEN_LENGTH, "QUIC_TOKEN_LENGTH"},
+	{QUICFields::QUIC_OCCID, "QUIC_OCCID"},
+	{QUICFields::QUIC_OSCID, "QUIC_OSCID"},
+	{QUICFields::QUIC_SCID, "QUIC_SCID"},
+	{QUICFields::QUIC_RETRY_SCID, "QUIC_RETRY_SCID"},
+	{QUICFields::QUIC_MULTIPLEXED, "QUIC_MULTIPLEXED"},
+	{QUICFields::QUIC_ZERO_RTT, "QUIC_ZERO_RTT"},
+	{QUICFields::QUIC_SERVER_PORT, "QUIC_SERVER_PORT"},
+	{QUICFields::QUIC_PACKETS, "QUIC_PACKETS"},
+	{QUICFields::QUIC_CH_PARSED, "QUIC_CH_PARSED"},
+	{QUICFields::QUIC_TLS_EXT_TYPE, "QUIC_TLS_EXT_TYPE"},
+	{QUICFields::QUIC_TLS_EXT_LEN, "QUIC_TLS_EXT_LEN"},
+	{QUICFields::QUIC_TLS_EXT, "QUIC_TLS_EXT"},
 };
 
 
@@ -43,16 +59,7 @@ static FieldSchema createQUICSchema()
 {
 	FieldSchema schema("quic");
 
-	schema.addVectorField<uint32_t>(
-		"SBI_BRST_PACKETS",
-		FieldDirection::Forward,
-		[](const void* thisPtr) -> std::span<const uint32_t> {
-			return reinterpret_cast<const BurstStatsExport*>(thisPtr)
-				->getPackets(Direction::Forward);
-		});
-
-	schema.addBiflowPair("SBI_BRST_TIME_START", "DBI_BRST_TIME_START");
-	schema.addBiflowPair("SBI_BRST_TIME_STOP", "DBI_BRST_TIME_STOP");
+	// TODO ADD EXPORT FIELDS
 
 	return schema;
 }
@@ -67,6 +74,24 @@ QUICPlugin::QUICPlugin([[maybe_unused]]const std::string& params, FieldManager& 
 	}
 }
 
+constexpr static
+void copyFromIfNotEmptyTo(
+	const auto& source,
+	auto& destination) noexcept
+{
+	if (source.empty()) {
+		return;
+	}
+
+	if (!destination.empty()) {
+		return;
+	}
+
+	std::ranges::copy(source | 
+		std::views::take(destination.capacity()),
+		std::back_inserter(destination));
+}
+
 constexpr
 void QUICPlugin::tryToSetOCCIDandSCID(
 	const QUICDirection quicDirection,
@@ -79,34 +104,15 @@ void QUICPlugin::tryToSetOCCIDandSCID(
 	currentIds[QUICDirection::SERVER_TO_CLIENT] = sourceConnectionId;
 
 	ConnectionId serverId = m_temporalCIDStorage.getServerCID(quicDirection);
-	if (!serverId.empty() && m_exportData.serverConnectionId.empty()) {
-		m_exportData.serverConnectionId = serverId;
-	} 
-	if (!currentIds[quicDirection].empty() && 
-		m_exportData.serverConnectionId.empty()) {
-		m_exportData.serverConnectionId = currentIds[quicDirection];
-	}
-
-	ConnectionId originalClientId = m_temporalCIDStorage.getClientCID(quicDirection);
-	if (!originalClientId.empty() && m_exportData.clientConnectionId.empty()) {
-		m_exportData.clientConnectionId = originalClientId;
-	}
-	if (!currentIds[!quicDirection].empty() && 
-			m_exportData.clientConnectionId.empty()) {
-		m_exportData.clientConnectionId = currentIds[!quicDirection];
-	}
-}
-
-constexpr
-void QUICPlugin::saveConnectionIdsToTemporalBuffer(
-	const Direction direction,
-	std::span<const uint8_t> sourceConnectionId,
-	std::span<const uint8_t> destinationConnectionId
-) noexcept
-{
+	copyFromIfNotEmptyTo(serverId, m_exportData.serverConnectionId);
+	copyFromIfNotEmptyTo(
+		currentIds[quicDirection], m_exportData.serverConnectionId);
 	
+	ConnectionId originalClientId = m_temporalCIDStorage.getClientCID(quicDirection);
+	copyFromIfNotEmptyTo(originalClientId, m_exportData.clientConnectionId);
+	copyFromIfNotEmptyTo(
+		currentIds[!quicDirection], m_exportData.clientConnectionId);
 }
-
 
 constexpr
 void QUICPlugin::processInitial(
@@ -116,17 +122,9 @@ void QUICPlugin::processInitial(
 	std::optional<QUICDirection> quicDirection) noexcept
 {
 	m_initialConnectionId = initialHeaderView.destinationConnectionId;
-	if (!quicDirection.has_value()) {
-		// Server is still not revealed, so we store those values to emplace them
-		// when directions are known
-		m_temporalCIDStorage.storeConnectionIds(
-			flowDirection, 
-			headerView.sourceConnectionId, 
-			headerView.destinationConnectionId);
+	if (!setConnectionIds(...)) {
 		return;
 	}
-
-	tryToSetOCCIDandSCID(...);
 
 	if (initialHeaderView.tlsHandshake.type != TLSHeader::Type::CLIENT_HELLO) {
 		return;
@@ -149,116 +147,118 @@ void QUICPlugin::processInitial(
 			std::ranges::equal(m_exportData.sourceCID, destinationConnectionId)) &&
 		std::ranges::equal(m_exportData.sni, initialHeaderView.sni);
 	if (hasMultiplexing) {
-		multiplexedCount = std::min<uint16_t>(
-			multiplexedCount + 1, std::numeric_limits<uint8_t>::max());
+		m_exportData.multiplexedCount = std::min<uint16_t>(
+			m_exportData.multiplexedCount + 1, std::numeric_limits<uint8_t>::max());
 		return;
 	}
 
 	m_exportData.userAgent = initialHeaderView.userAgent;
-	if (m_exportData.serverCID.empty()) {
-		m_exportData.serverCID = destinationConnectionId;
-	}
-	if (m_exportData.clientCID.empty()) {
-		m_exportData.clientCID = sourceConnectionId;
-	}
-	if (m_exportData.quicVersion == 0 ) {
-		m_exportData.quicVersion = headerView.version;
-	}
+	//if (m_exportData.quicVersion == 0 ) {
+	m_exportData.quicVersion = headerView.versionId;
+	//}
 
-	if (m_exportData.tlsExtensionTypes.empty()) {
-		std::ranges::copy(initialHeaderView |
-			std::views::transform([](const TLSExtension& extension) {
-				return extension.type;
-			}) |
-			std::views::take(m_exportData.tlsExtensionTypes.capacity()),
-			std::back_inserter(m_exportData.tlsExtensionTypes));
-	}
+	copyFromIfNotEmptyTo(destinationConnectionId, m_exportData.serverCID);
+	copyFromIfNotEmptyTo(sourceConnectionId, m_exportData.clientCID);
 
-	if (m_exportData.tlsExtensionLengths.empty()) {
-		std::ranges::copy(initialHeaderView |
-			std::views::transform([](const TLSExtension& extension) {
-				return extension.length;
-			}) |
-			std::views::take(m_exportData.tlsExtensionLengths.capacity()),
-			std::back_inserter(m_exportData.tlsExtensionLengths));
-	}
-
-	if (m_exportData.extensionsPayload.empty()) {
-		std::ranges::copy(initialHeaderView.extensionsPayload |
-			std::views::take(QUICExport::MAX_BUFFER_SIZE),
-			std::back_inserter(m_exportData.extensionsPayload));
-	}
+	copyFromIfNotEmptyTo(
+		initialHeaderView.extensionTypes, m_exportData.tlsExtensionTypes);
+	copyFromIfNotEmptyTo(
+		initialHeaderView.extensionLengths, m_exportData.tlsExtensionLengths);
 	
-
-
+	m_exportData.extensionsPayload = std::move(initialHeaderView.extensionsPayload);
 }
 
 constexpr
 void QUICPlugin::parseRetry() noexcept
 {
 	m_retryPacketCount++;
+	if (m_retryPacketCount != 1) {
+		return;
+	}
 	/*
 	* A client MUST accept and process at most one Retry packet for each connection
 	* attempt. After the client has received and processed an Initial or Retry packet from
 	* the server, it MUST discard any subsequent Retry packets that it receives.
 	*/
-	if (m_retryPacketCount == 1) {
-		// Additionally set token len
-		m_exportData.retryCID = sourceConnectionId;
-		m_initialCID = destinationConnectionId;
-		m_exportData.tokenLength = 16; // ?????????
-	}
+	// Additionally set token len
+	m_exportData.retryCID = sourceConnectionId;
+	m_initialCID = destinationConnectionId;
+	m_exportData.tokenLength = 16; // ?????????
 
-	if (m_exportData.clientCID.empty()) {
-		m_exportData.clientCID = destinationConnectionId;
-	}
+	copyFromIfNotEmptyTo(destinationConnectionId, m_exportData.clientCID);
 }
 
+constexpr static
+PacketType getMostSignificantPacketType(
+	const QUICTypesCumulative packetTypesCumulative) noexcept
+{
+	if (packetTypesCumulative.bits.versionNegotiation) {
+		return QUICHeaderView::PacketType::VERSION_NEGOTIATION;
+	}
+	if (packetTypesCumulative.bits.initial) {
+		return QUICHeaderView::PacketType::INITIAL;
+	}
+	if (packetTypesCumulative.bits.retry) {
+		return QUICHeaderView::PacketType::RETRY;
+	}
+	if (packetTypesCumulative.bits.zeroRTT) {
+		return QUICHeaderView::PacketType::ZERO_RTT;
+	}
+	if (packetTypesCumulative.bits.handshake) {
+		return QUICHeaderView::PacketType::HANDSHAKE;
+	}
 
-int QUICPlugin::process_quic(
-	RecordExtQUIC* quic_data,
-	Flow& rec,
-	const Packet& pkt,
-	bool new_quic_flow)
+	return 0;
+}
+
+constexpr
+bool QUICPlugin::setConnectionIds(
+	const QUICDirection quicDirection,
+	const Direction flowDirection,
+	std::span<const uint8_t> sourceConnectionId,
+	std::span<const uint8_t> destinationConnectionId
+) noexcept
+{
+	if (!quicDirection.has_value()) {
+		m_temporalCIDStorage.storeConnectionIds(
+			flowDirection, 
+			sourceConnectionId, 
+			destinationConnectionId);
+		return false;
+	}
+	tryToSetOCCIDandSCID(...);
+	return true;
+}
+
+FlowAction QUICPlugin::parseQUIC()
 {
 	QUICParser quicParser;
 
-	if (!quicParser.parse(payload, initialDestConnectionId)) {
-		/// ??????????????????????
-		m_exportData.packets.push_back(packetTypeCumulativeWithQUICBitSet);
-		return QUIC_NOT_DETECTED;
-	}
-
-	if (quicParser.headerView.has_value() &&
-		quicParser.packetTypesCumulative.bits.zeroRTT) {
-		m_exportData.version = quicParser.headerView->versionId;
-	}
-
-	if (!m_exportData.packetTypes.full()) {
-		m_exportData.packetTypes.push_back(
+	const bool quicParsed = quicParser.parse(payload, initialDestConnectionId);
+	
+	// Regardless the result push the type cumulative
+	if (!m_exportData.packets.full()) {
+		m_exportData.packets.push_back(
 			static_cast<uint8_t>(quicParser.packetTypesCumulative.raw));
 	}
-
-	// TODO get direction ?
-
-	if (version == QUICVersionId::version_negotiation) {
-		set_cid_fields(quic_data, rec, &process_quic, toServer, new_quic_flow, pkt);
-		return FlowAction::Flush;
+	
+	if (!quicParsed) {
+		return FlowAction::RequestNoData;
 	}
 
 	if (quicParser.packetTypesCumulative.bits.zeroRTT) {
+		m_exportData.version = quicParser.headerView->versionId;
 		m_exportData.zeroRTTPacket = std::min<uint16_t>(
 			m_exportData.zeroRTTPacket + quicParser.zeroRTTPackets,
 			std::numeric_limits<uint8_t>::max()
 		);
 	}
 
-	
-
 	if (quicParser.initialHeaderView.has_value()) {
 		m_exportData.clientHelloParsed 
 			= quicParser.initialHeaderView->clientHelloParsed;
 	}
+	
 
 	if (!m_temporalCIDStorage.directionIsRevealed() && 
 		quicParser.quicDirection.has_value()) {
@@ -266,20 +266,18 @@ int QUICPlugin::process_quic(
 			*quicParser.quicDirection, packet.direction);
 	}
 
-	switch (quicParser.packetType) {
+	switch (getMostSignificantPacketType(
+		quicParser.packetTypesCumulative)) {
+	case QUICParser::PACKET_TYPE::VERSION_NEGOTIATION: {
+		setConnectionIds(...);
+		return FlowAction::Flush;
+	}
 	case QUICParser::PACKET_TYPE::INITIAL: {
 		processInitial(...);
 		break;
 	}
 	case QUICParser::PACKET_TYPE::HANDSHAKE:{ 
-		if (!quicDirection.has_value()) {
-			m_temporalCIDStorage.storeConnectionIds(
-				flowDirection, 
-				headerView.sourceConnectionId, 
-				headerView.destinationConnectionId);
-			break;
-		}
-		tryToSetOCCIDandSCID(...);
+		setConnectionIds(...);
 		break;
 	}
 	case QUICParser::PACKET_TYPE::RETRY: {
@@ -295,171 +293,7 @@ int QUICPlugin::process_quic(
 		break;
 	}
 
-	return QUIC_DETECTED;
-
-
-	// Test for QUIC LH packet in UDP payload
-	if (process_quic.quic_check_quic_long_header_packet(
-			pkt,
-			quic_data->initial_dcid,
-			quic_data->initial_dcid_length)) {
-		uint32_t version;
-		process_quic.quic_get_version(version);
-
-		// Get kinds of packet included in datagram
-		uint8_t packets = 0;
-		process_quic.quic_get_packets(packets);
-
-		// Store all QUIC packet types contained in each packet
-		set_packet_type(quic_data, rec, packets);
-
-		// A 0-RTT carries the same QUIC version as the Client Initial Hello.
-		// 0-RTT and compatible version negotiation is not defined.
-		// We ignore those cases because it might be defined in the future
-		if ((packets & QUICParser::PACKET_TYPE_FLAG::F_ZERO_RTT) == 0) {
-			quic_data->quic_version = version;
-		}
-
-		// Simple version, more advanced information is available after Initial parsing
-		int toServer = get_direction_to_server_and_set_port(
-			&process_quic,
-			quic_data,
-			process_quic.quic_get_server_port(),
-			pkt,
-			new_quic_flow);
-
-		if (packets & QUICParser::PACKET_TYPE_FLAG::F_ZERO_RTT) {
-			uint8_t zero_rtt_pkts = 0;
-			process_quic.quic_get_zero_rtt(zero_rtt_pkts);
-
-			if ((uint16_t) zero_rtt_pkts + (uint16_t) quic_data->quic_zero_rtt > 0xFF) {
-				quic_data->quic_zero_rtt = 0xFF;
-			} else {
-				quic_data->quic_zero_rtt += zero_rtt_pkts;
-			}
-		}
-		uint8_t parsed_initial = 0;
-
-		if (version == QUICParser::QUIC_VERSION::version_negotiation) {
-			set_cid_fields(quic_data, rec, &process_quic, toServer, new_quic_flow, pkt);
-			return FLOW_FLUSH;
-		}
-
-		// export if parsed CH
-		quic_data->parsed_ch |= process_quic.quic_get_parsed_ch();
-
-		switch (process_quic.quic_get_packet_type()) {
-		case QUICParser::PACKET_TYPE::INITIAL:
-			process_quic.quic_get_parsed_initial(parsed_initial);
-			// Store DCID from first observed Initial packet. This is used in the crypto operations.
-			// Check length works because the first Initial must have a non-zero DCID.
-			if (quic_data->initial_dcid_length == 0) {
-				process_quic.quic_get_dcid_len(quic_data->initial_dcid_length);
-				process_quic.quic_get_dcid(quic_data->initial_dcid);
-				// Once established it can only be changed by a retry packet.
-			}
-
-			if (parsed_initial && (process_quic.quic_get_tls_hs_type() == 1)) {
-				// Successful CH parsing
-				set_stored_cid_fields(quic_data, new_quic_flow);
-				set_client_hello_fields(&process_quic, rec, quic_data, pkt, new_quic_flow);
-				quic_data->client_hello_seen = true;
-
-				if (!quic_data->tls_ext_type_set) {
-					process_quic.quic_get_tls_ext_type(quic_data->tls_ext_type);
-					process_quic.quic_get_tls_ext_type_len(quic_data->tls_ext_type_len);
-					quic_data->tls_ext_type_set = true;
-				}
-
-				if (!quic_data->tls_ext_len_set) {
-					process_quic.quic_get_tls_extension_lengths(quic_data->tls_ext_len);
-					process_quic.quic_get_tls_extension_lengths_len(quic_data->tls_ext_len_len);
-					quic_data->tls_ext_len_set = true;
-				}
-
-				if (!quic_data->tls_ext_set) {
-					process_quic.quic_get_tls_ext(quic_data->tls_ext);
-					process_quic.quic_get_tls_ext_len(quic_data->tls_ext_length);
-					quic_data->tls_ext_set = true;
-				}
-				break;
-			}
-			// Update accounting for information from CH, SH.
-			toServer = get_direction_to_server_and_set_port(
-				&process_quic,
-				quic_data,
-				process_quic.quic_get_server_port(),
-				pkt,
-				new_quic_flow);
-			// fallthrough to set cids
-			[[fallthrough]];
-		case QUICParser::PACKET_TYPE::HANDSHAKE:
-			// -1 sets stores intermediately.
-			set_cid_fields(quic_data, rec, &process_quic, toServer, new_quic_flow, pkt);
-			break;
-		case QUICParser::PACKET_TYPE::RETRY:
-			quic_data->cnt_retry_packets += 1;
-			/*
-			 * A client MUST accept and process at most one Retry packet for each connection
-			 * attempt. After the client has received and processed an Initial or Retry packet from
-			 * the server, it MUST discard any subsequent Retry packets that it receives.
-			 */
-			if (quic_data->cnt_retry_packets == 1) {
-				// Additionally set token len
-				process_quic.quic_get_scid(quic_data->retry_scid);
-				process_quic.quic_get_scid_len(quic_data->retry_scid_length);
-				// Update DCID for decryption
-				process_quic.quic_get_dcid_len(quic_data->initial_dcid_length);
-				process_quic.quic_get_scid(quic_data->initial_dcid);
-
-				process_quic.quic_get_token_length(quic_data->quic_token_length);
-			}
-
-			if (!quic_data->occid_set) {
-				process_quic.quic_get_dcid(quic_data->occid);
-				process_quic.quic_get_dcid_len(quic_data->occid_length);
-				quic_data->occid_set = true;
-			}
-
-			break;
-		case QUICParser::PACKET_TYPE::ZERO_RTT:
-			// Connection IDs are identical to Client Initial CH. The DCID might be OSCID at first
-			// and change to SCID later. We ignore the DCID.
-			if (!quic_data->occid_set) {
-				process_quic.quic_get_scid(quic_data->occid);
-				process_quic.quic_get_scid_len(quic_data->occid_length);
-				quic_data->occid_set = true;
-			}
-			break;
-		}
-
-		return QUIC_DETECTED;
-	} else {
-		// Even if no QUIC detected store packets, which will only include the QUIC bit.
-		uint8_t packets = 0;
-		process_quic.quic_get_packets(packets);
-		set_packet_type(quic_data, rec, packets);
-	}
-	return QUIC_NOT_DETECTED;
-} // QUICPlugin::process_quic
-
-FlowAction QUICPlugin::parseQUIC(Flow& rec, const Packet& pkt) noexcept
-{
-
-	int ret = process_quic(q_ptr, rec, pkt, new_qptr);
-	// Test if QUIC extension is not set
-	if (new_qptr && ((ret == QUIC_DETECTED) || (ret == FLOW_FLUSH))) {
-		rec.add_extension(q_ptr);
-	}
-	if (new_qptr && (ret == QUIC_NOT_DETECTED)) {
-		// If still no record delete q_ptr
-		delete q_ptr;
-	}
-	// Correct if QUIC has already been detected
-	if (!new_qptr && (ret == QUIC_NOT_DETECTED)) {
-		return QUIC_DETECTED;
-	}
-	return ret;
+	return FlowAction::RequestFullData;
 }
 
 FlowAction QUICPlugin::onFlowCreate(FlowRecord& flowRecord, const Packet& packet)
@@ -473,7 +307,7 @@ FlowAction QUICPlugin::onFlowUpdate(FlowRecord& flowRecord, const Packet& packet
 }
 
 void QUICPlugin::onFlowExport(FlowRecord& flowRecord) {
-
+	// empty
 }
 
 ProcessPlugin* QUICPlugin::clone(std::byte* constructAtAddress) const

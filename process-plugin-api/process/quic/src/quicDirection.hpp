@@ -7,8 +7,8 @@
 namespace ipxp
 {
 enum class QUICDirection : uint8_t {
-    CLIENT_TO_SERVER = static_cast<uint8_t>(Direction::Forward),
-    SERVER_TO_CLIENT = static_cast<uint8_t>(Direction::Reverse),
+    CLIENT_TO_SERVER,
+    SERVER_TO_CLIENT,
 };
 
 } // namespace ipxp

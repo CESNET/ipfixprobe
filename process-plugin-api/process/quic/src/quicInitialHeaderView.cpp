@@ -167,10 +167,7 @@ createInitialSecrets(std::span<const std::byte> destConnectionId,
 
 	// HKDF-Extract
 	//std::unique_ptr<EVP_PKEY_CTX> publicKeyContext 
-	auto publicKeyContext 
-        = std::unique_ptr<EVP_PKEY_CTX, std::function<void(EVP_PKEY_CTX*)>>{
-            EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr), EVP_PKEY_CTX_free
-        };
+	auto publicKeyContext = createKeyContext();
 
     const ExpandedLabel expandedLabel 
         = expandLabel<QUICInitialHeaderView::SHA2_256_LENGTH>(
@@ -356,7 +353,7 @@ bool decryptInitialHeader(const QUICInitialSecrets& initialSecrets,
     return true;
 }
 
-constexpr static std::optional<std::array<std::byte, QUICInitialHeaderView::MAX_BUFFER_SIZE>>
+constexpr static std::optional<std::array<std::byte, ReassembledFrame::capacity()>>
 decryptPayload(std::span<const std::byte> encryptedPayload) noexcept
 {
     const std::array<std::byte, 16> authTag;
@@ -365,15 +362,14 @@ decryptPayload(std::span<const std::byte> encryptedPayload) noexcept
         return std::nullopt;
     }
 	/* Input is --> "header || ciphertext (buffer) || auth tag (16 bytes)" */
-    if (encryptedPayload.size() > QUICInitialHeaderView::MAX_BUFFER_SIZE) {
+    if (encryptedPayload.size() > ReassembledFrame::capacity()) {
 		return std::nullopt;
 	}
 
 	std::size_t decryptedLength;
 
-    auto decryptedPayload 
-        = std::make_optional<std::array<std::byte, 
-        QUICInitialHeaderView::MAX_BUFFER_SIZE>>();
+    auto decryptedPayload = std::make_optional<std::array<std::byte, 
+        ReassembledFrame::capacity()>>();
 
 	// https://datatracker.ietf.org/doc/html/draft-ietf-quic-tls-34#section-5.3
 	// "These cipher suites have a 16-byte authentication tag and produce an output 16 bytes larger
@@ -384,7 +380,6 @@ decryptPayload(std::span<const std::byte> encryptedPayload) noexcept
     std::copy(encryptedPayload.data() + encryptedPayload.size() - 16, 
         encryptedPayload.data() + encryptedPayload.size(), authTag.begin());
 
-    // creating context
     auto cipherContext = createCipherContext();
 
 	if (!cipherContext || 
@@ -620,6 +615,7 @@ reassembleCryptoFrames(std::span<const std::byte> decryptedPayload) noexcept
                 cryptoData->size(), reassembledFrame->capacity() - reassembledFrame->size());
             reassembledFrame->insert(
                 cryptoData->begin(), cryptoData->begin() + sizeToCopy);
+
             frameLength = cryptoData->data() - 
                 decryptedPayload.data() + cryptoData->size();
         case FrameType::ACK1:
@@ -651,6 +647,7 @@ reassembleCryptoFrames(std::span<const std::byte> decryptedPayload) noexcept
 	return reassembledFrame;
 }
 
+constexpr
 bool QUICParser::parseTLSExtensions(TLSParser& parser)
 {
 	const bool extensionsParsed = parser.parseExtensions(
@@ -671,8 +668,8 @@ bool QUICParser::parseTLSExtensions(TLSParser& parser)
             || extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS
             || extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V2) {
             std::ranges::copy(extension.payload |
-                std::views::take(m_tlsExtensionBuffer.capacity()),
-                std::back_inserter(m_tlsExtensionBuffer));
+                std::views::take(QUICExport::MAX_TLS_PAYLOAD_TO_SAVE),
+                std::back_inserter(extensionsPayload));
         }
 
         if (!m_exportData.extensionTypes.full()) {
@@ -684,18 +681,20 @@ bool QUICParser::parseTLSExtensions(TLSParser& parser)
 	return extensionsParsed;
 }
 
-constexpr static
+constexpr
 bool QUICInitialHeaderView::parseTLS(const ReassembledFrame& reassembledFrame)
 {
     TLSParser parser;
 	if (!parser.parseHelloFromQUIC(toSpan(reassembledFrame))) {
 		return false;
 	}
+
     tlsHandshake = parser.handshake;
+
 	return parseTLSExtensions(parser);
 }
 
-constexpr static
+constexpr
 bool QUICInitialHeaderView::parse(std::span<const std::byte> destConnectionId, 
     std::span<const std::byte> salt,
     const PacketType packetType,
@@ -728,7 +727,7 @@ bool QUICInitialHeaderView::parse(std::span<const std::byte> destConnectionId,
 		// SNI and User Agent Extraction failed
 		return false;
 	}
-    
+
 	clientHelloParsed = tlsHandshake.type == TLSHandshake::Type::CLIENT_HELLO;
 
 	return true;
