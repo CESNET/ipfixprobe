@@ -17,19 +17,21 @@ struct DNSAAAARecord {
     constexpr static std::optional<DNSAAAARecord> createFrom(
         std::span<const std::byte> payload) noexcept
     {
-        if (payload.size() < address.size()) {
+        auto res = std::make_optional<DNSAAAARecord>(payload.first<16>());
+        if (payload.size() < res->address.size()) {
             return std::nullopt;
         }
 
-        address = payload.first<16>();
+        res->address = payload.first<16>();
+        return res;
     }
 
     std::string toDNSString() const noexcept
     {
         std::ostringstream oss;
 
-        std::array<char, INET6_ADDRSTRLEN> address;
-        inet_ntop(AF_INET6, address.data(), address.data(), INET6_ADDRSTRLEN);
+        std::array<char, INET6_ADDRSTRLEN> addressStr;
+        inet_ntop(AF_INET6, address.data(), addressStr.data(), INET6_ADDRSTRLEN);
         oss << address.data();
 
         return oss.str();

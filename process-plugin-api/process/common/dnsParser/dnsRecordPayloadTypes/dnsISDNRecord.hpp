@@ -22,7 +22,6 @@ struct DNSISDNRecord {
     {
         auto res = std::make_optional<DNSISDNRecord>();
 
-        std::ostringstream oss;
         const std::optional<DNSName> isdnAddress 
             = DNSName::createFrom(payload, fullDNSPayload);
         if (!isdnAddress.has_value()) {

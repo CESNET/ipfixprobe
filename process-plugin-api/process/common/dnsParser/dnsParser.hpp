@@ -12,19 +12,21 @@
 #include <optional>
 #include <span>
 #include <string_view>
+#include <functional>
 
 #include <boost/container/static_vector.hpp>
 
 #include "dnsRecord.hpp"
 #include "dnsQuestion.hpp"
 #include "optRecord.hpp"
+#include "dnsQuestion.hpp"
 
-namespace ipxp2 {
+namespace ipxp {
 
 /**
  * @brief DNS parser class
  */
-class DnsParser {
+class DNSParser {
 
 public:
 	/**
@@ -35,10 +37,10 @@ public:
 	 */
 	constexpr bool parse(
     std::span<const std::byte> payload, const bool isDnsOverTCP,
-    std::function<bool(const DNSQuestion& query)>& queryCallback,
-    std::function<bool(const DNSRecord& answer)>& answerCallback,
-    std::function<bool(const DNSRecord& authorityRecord)>& authorityCallback,
-    std::function<bool(const DNSRecord& additionalRecord)>& additionalCallback) noexcept;
+    const std::function<bool(const DNSQuestion& query)>& queryCallback,
+    const std::function<bool(const DNSRecord& answer)>& answerCallback,
+    const std::function<bool(const DNSRecord& authorityRecord)>& authorityCallback,
+    const std::function<bool(const DNSRecord& additionalRecord)>& additionalCallback) noexcept;
 
     uint16_t answersCount;
     uint16_t id;
@@ -56,7 +58,7 @@ private:
     const std::byte* dnsBegin, 
     const uint16_t questionCount) noexcept;
 
-    constexpr std::optional<std::size_t> parseAnswerSection(
+    /*constexpr std::optional<std::size_t> parseAnswerSection(
     std::span<const std::byte> payload, 
     const std::byte* dnsBegin, 
     const DNSHeader& header) noexcept;
@@ -69,9 +71,9 @@ private:
     constexpr std::optional<std::size_t> parseAdditionalResourceRecordsSection(
     std::span<const std::byte> payload, 
     const std::byte* dnsBegin, 
-    const DNSHeader& header) noexcept;
+    const DNSHeader& header) noexcept;*/
 
 };
 
-} // namespace ipxp2
+} // namespace ipxp
 

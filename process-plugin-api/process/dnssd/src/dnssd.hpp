@@ -47,6 +47,11 @@ private:
 	DNSSDExport m_exportData;
 	FieldHandlers<DNSSDFields> m_fieldHandlers;
 
+	bool parseDNSSD(
+		std::span<const std::byte> payload, 
+		const bool isDNSoverTCP,
+		FlowRecord& flowRecord) noexcept;
+
 
 };
 

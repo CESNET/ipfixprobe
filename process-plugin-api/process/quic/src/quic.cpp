@@ -103,12 +103,13 @@ void QUICPlugin::tryToSetOCCIDandSCID(
 	currentIds[QUICDirection::CLIENT_TO_SERVER] = destinationConnectionId;
 	currentIds[QUICDirection::SERVER_TO_CLIENT] = sourceConnectionId;
 
-	ConnectionId serverId = m_temporalCIDStorage.getServerCID(quicDirection);
+	const ConnectionId& serverId 
+		= m_temporalCIDStorage.getSourceCID(quicDirection);
 	copyFromIfNotEmptyTo(serverId, m_exportData.serverConnectionId);
 	copyFromIfNotEmptyTo(
 		currentIds[quicDirection], m_exportData.serverConnectionId);
 	
-	ConnectionId originalClientId = m_temporalCIDStorage.getClientCID(quicDirection);
+	const ConnectionId& originalClientId = m_temporalCIDStorage.getClientCID(quicDirection);
 	copyFromIfNotEmptyTo(originalClientId, m_exportData.clientConnectionId);
 	copyFromIfNotEmptyTo(
 		currentIds[!quicDirection], m_exportData.clientConnectionId);
@@ -141,7 +142,6 @@ void QUICPlugin::processInitial(
 		return;
 	}
 
-	//process multiplexing
 	const bool hasMultiplexing =
 		(std::ranges::equal(m_exportData.serverCID, destinationConnectionId) ||
 			std::ranges::equal(m_exportData.sourceCID, destinationConnectionId)) &&
@@ -258,7 +258,7 @@ FlowAction QUICPlugin::parseQUIC()
 		m_exportData.clientHelloParsed 
 			= quicParser.initialHeaderView->clientHelloParsed;
 	}
-	
+
 
 	if (!m_temporalCIDStorage.directionIsRevealed() && 
 		quicParser.quicDirection.has_value()) {

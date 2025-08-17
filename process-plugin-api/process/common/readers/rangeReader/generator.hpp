@@ -1,6 +1,6 @@
 #pragma once
 
-#include <views>
+#include <ranges>
 
 namespace ipxp::Generator
 {

@@ -1,6 +1,18 @@
-#pragma once
-
 #include "dnsName.hpp"
+
+#include <numeric>
+#include <span>
+#include <string>
+#include <optional>
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <arpa/inet.h>
+#include <boost/container/static_vector.hpp>
+#include <boost/static_string.hpp>
+
+#include <utils/stringViewUtils.hpp>
+#include <utils/toHostByteOrder.hpp>
 
 namespace ipxp
 {
@@ -14,12 +26,13 @@ constexpr static bool isPointer(const std::byte byte) noexcept
 constexpr static uint16_t getPointerOffset(const std::byte* pointer) noexcept
 {
 	constexpr uint16_t pointerMask = 0x3FFF;
-	return ntohs(*reinterpret_cast<const uint16_t*>(pointer)) & pointerMask;
+	return toHostByteOrder(*reinterpret_cast<const uint16_t*>(pointer)) & pointerMask;
 }
 
 constexpr static std::size_t calculateElementsLength(auto&& container) noexcept
 {
-    return std::ranges::accumulate(container, std::size_t{0},
+    return std::accumulate(
+        container.begin(), container.end(), std::size_t{0},
         [](std::size_t sum, auto&& element) {
             return sum + element.size();
         });
@@ -27,17 +40,17 @@ constexpr static std::size_t calculateElementsLength(auto&& container) noexcept
 
 constexpr
 std::optional<DNSName> DNSName::createFrom(
-    std::span<const std::byte> payload, const std::byte* dnsBegin) noexcept
+    std::span<const std::byte> payload, 
+    std::span<const std::byte> fullDNSpayload) noexcept
 {
     auto dnsName = std::make_optional<DNSName>();
-    uint16_t labelCount = 0;
     while (!payload.empty()) {
         if (isPointer(*payload.data())) {
             if (payload.size() < sizeof(uint16_t)) {
                 return std::nullopt;
             }
             const uint16_t pointerOffset = getPointerOffset(payload.data());
-            if (pointerOffset >= payload.size()) {
+            if (pointerOffset >= fullDNSpayload.size()) {
                 return std::nullopt;
             }
 
@@ -46,9 +59,7 @@ std::optional<DNSName> DNSName::createFrom(
             dnsName->m_length = calculateElementsLength(
                 dnsName->m_labels) + lengthBytesCount + sizeof(pointerOffset);
 
-            payload = std::span<const std::byte>(
-                dnsBegin + pointerOffset, payload.end());
-
+            payload = fullDNSpayload.subspan(pointerOffset);
             continue;
         }
 
@@ -57,21 +68,30 @@ std::optional<DNSName> DNSName::createFrom(
             return std::nullopt;
         }
         if (labelLength == 0) {
-            break;
+            return dnsName;
         }
 
-        if (!dnsName->m_labels.full()) {
-            dnsName->m_labels.push_back(toStringView(
-                payload.subspan(sizeof(uint8_t), labelLength)));
+        if (dnsName->m_labels.size() == dnsName->m_labels.capacity()) {
+            return std::nullopt;
         }
+
+        dnsName->m_labels.push_back(toStringView(
+                payload.subspan(sizeof(uint8_t), labelLength)));
 
         payload = payload.subspan(labelLength + sizeof(uint8_t));
     }
 
-    return dnsName;
+    return std::nullopt;
 }
 
-constexpr std::string DNSName::toString(const char delimiter) const noexcept
+bool DNSName::operator==(const DNSName& other) const noexcept
+{
+    return std::equal(
+        m_labels.begin(), m_labels.end(),
+        other.m_labels.begin(), other.m_labels.end());
+}
+
+std::string DNSName::toString(const char delimiter) const noexcept
 {
     std::string res;
     std::ranges::for_each(m_labels, [&res, delimiter](std::string_view label) {

@@ -652,14 +652,31 @@ bool QUICParser::parseTLSExtensions(TLSParser& parser)
 {
 	const bool extensionsParsed = parser.parseExtensions(
         [&](const Extension& extension) {
+        m_initialHeaderEnd = extension.payload.end();
+
 		if (extension.type == TLSExtensionType::SERVER_NAME && 
             !extension.payload.empty()) {
-            sni = parser.parseServerNames(extension.payload);
+            const std::optional<ServerNames> parsedServerNames
+                = parser.parseServerNames(extension.payload);
+            if (parsedServerNames.has_value() && !parsedServerNames->empty()) {
+                serverName.clear();
+                std::ranges::copy(parsedServerNames[0] |
+                    std::views::take(serverName.capacity()),
+                std::back_inserter(serverName));
+            }
 		}
+
         if (extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V1 ||
 			extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS ||
 			extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V2) {
-            userAgent = parser.parseUserAgent(extension.payload);
+            std::optional<TLSParser::UserAgents> parsedUserAgents = 
+                parser.parseUserAgent(extension.payload);
+            if (parsedUserAgents.has_value() && !parsedUserAgents->empty()) {
+                userAgent.clear()
+                std::ranges::copy(parsedUserAgents[0] |
+                    std::views::take(userAgent.capacity()),
+                std::back_inserter(userAgent)); 
+            } 
 		}
 
         if (m_saveWholeTLSExtension
@@ -690,6 +707,8 @@ bool QUICInitialHeaderView::parseTLS(const ReassembledFrame& reassembledFrame)
 	}
 
     tlsHandshake = parser.handshake;
+
+    // TODO set m_initialHeaderEnd if extensions are empty
 
 	return parseTLSExtensions(parser);
 }
@@ -728,9 +747,15 @@ bool QUICInitialHeaderView::parse(std::span<const std::byte> destConnectionId,
 		return false;
 	}
 
-	clientHelloParsed = tlsHandshake.type == TLSHandshake::Type::CLIENT_HELLO;
+	//clientHelloParsed = tlsHandshake.type == TLSHandshake::Type::CLIENT_HELLO;
 
 	return true;
+}
+
+constexpr
+std::size_t getLength() const noexcept
+{
+    return m_size;
 }
 
 constexpr
@@ -752,6 +777,11 @@ std::optional<QUICInitialHeaderView> QUICInitialHeaderView::createFrom(
 		restPayloadLength->value > MAX_PAYLOAD_BUFFER_SIZE) {
 		return false;
 	}
+    m_size = restPayloadLength->value + restPayloadLength->length
+        + tokenLength->value + tokenLength->length;
+    if (m_size > payload.size()) {
+        return false;
+    } 
 
     const std::byte* encryptedPacketNumber = payload.data() + tokenLength->length
     + tokenLength->value + restPayloadLength->length;
@@ -762,5 +792,7 @@ std::optional<QUICInitialHeaderView> QUICInitialHeaderView::createFrom(
 
 	parse(destConnectionId, salt, packetType, sample, headerForm, encryptedPacketNumber);
 }
+
+
 
 } // namespace ipxp

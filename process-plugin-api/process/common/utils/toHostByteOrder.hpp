@@ -9,6 +9,7 @@ namespace ipxp
 {
 
 template <typename T>
+constexpr
 T toHostByteOrder(T value) {
     static_assert(std::is_integral_v<T>, "T must be an integral type");
     static_assert(sizeof(T) <= 8, "Unsupported integer size");
@@ -17,23 +18,9 @@ T toHostByteOrder(T value) {
         return value;
     }
 
-    if constexpr (sizeof(T) == 1) {
-        return value;
-    }
-    
-    if constexpr (sizeof(T) == 2) {
-        return static_cast<T>(ntohs(static_cast<uint16_t>(value)));
-    }
-
-    if constexpr (sizeof(T) == 4) {
-        return static_cast<T>(ntohl(static_cast<uint32_t>(value)));
-    } 
-    
-    if constexpr (sizeof(T) == 8) {
-        uint64_t high = ntohl(static_cast<uint32_t>(value >> 32));
-        uint64_t low  = ntohl(static_cast<uint32_t>(value & 0xFFFFFFFFULL));
-        return static_cast<T>((low << 32) | high);
-    } 
+    auto bytes = std::bit_cast<std::array<std::byte, sizeof(T)>>(value);
+    std::reverse(bytes.begin(), bytes.end());
+    return std::bit_cast<T>(bytes);
 }
 
     

@@ -44,9 +44,6 @@ public:
 	DNSPlugin(DNSPlugin&& other) = delete;
 
 private:
-	constexpr bool DNSPlugin::parseDNS(
-	std::span<const std::byte> payload, const bool isDNSOverTCP, FlowRecord& flowRecord) noexcept;
-
 	DNSExport m_exportData;
 	FieldHandlers<DNSFields> m_fieldHandlers;
 

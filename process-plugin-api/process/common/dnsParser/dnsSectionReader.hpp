@@ -13,7 +13,6 @@ namespace ipxp
 
 class DNSSectionReader;
 
-
 struct DNSSectionReaderFactory {
     DNSSectionReader* self;
     std::size_t itemCount;

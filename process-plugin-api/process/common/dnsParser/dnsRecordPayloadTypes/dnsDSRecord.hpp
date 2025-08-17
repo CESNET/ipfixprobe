@@ -18,8 +18,7 @@ struct DNSDSRecord {
     uint8_t digestType;
 
     constexpr static std::optional<DNSDSRecord> createFrom(
-        std::span<const std::byte> payload,
-        std::span<const std::byte> fullDNSPayload) noexcept
+        std::span<const std::byte> payload) noexcept
     {
         auto res = std::make_optional<DNSDSRecord>();
 

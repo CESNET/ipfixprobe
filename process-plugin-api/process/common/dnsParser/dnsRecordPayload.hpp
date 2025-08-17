@@ -3,35 +3,37 @@
 #include <variant>
 
 #include "dnsQueryType.hpp"
-#include "../dnsRecordPayloadTypes/dnsARecord.hpp"
-#include "../dnsRecordPayloadTypes/dnsAAAARecord.hpp"
-#include "../dnsRecordPayloadTypes/dnsDSRecord.hpp"
-#include "../dnsRecordPayloadTypes/dnsHINFORecord.hpp"
-#include "../dnsRecordPayloadTypes/dnsSDNRecord.hpp"
-#include "../dnsRecordPayloadTypes/dnsKEYRecord.hpp"
-#include "../dnsRecordPayloadTypes/dnsMINFORecord.hpp"
-#include "../dnsRecordPayloadTypes/dnsMXRecord.hpp"
-#include "../dnsRecordPayloadTypes/dnsPTRRecord.hpp"
-#include "../dnsRecordPayloadTypes/dnsRRSIGRecord.hpp"
-#include "../dnsRecordPayloadTypes/dnsSOARecord.hpp"
-#include "../dnsRecordPayloadTypes/dnsTXTRecord.hpp"
+#include "dnsRecordPayloadTypes/dnsARecord.hpp"
+#include "dnsRecordPayloadTypes/dnsAAAARecord.hpp"
+#include "dnsRecordPayloadTypes/dnsDSRecord.hpp"
+#include "dnsRecordPayloadTypes/dnsHINFORecord.hpp"
+#include "dnsRecordPayloadTypes/dnsISDNRecord.hpp"
+#include "dnsRecordPayloadTypes/dnsKEYRecord.hpp"
+#include "dnsRecordPayloadTypes/dnsMINFORecord.hpp"
+#include "dnsRecordPayloadTypes/dnsMXRecord.hpp"
+#include "dnsRecordPayloadTypes/dnsPTRRecord.hpp"
+#include "dnsRecordPayloadTypes/dnsRRSIGRecord.hpp"
+#include "dnsRecordPayloadTypes/dnsSOARecord.hpp"
+#include "dnsRecordPayloadTypes/dnsSRVRecord.hpp"
+#include "dnsRecordPayloadTypes/dnsTXTRecord.hpp"
 
 namespace ipxp
 {
 
 using DNSRecordPayloadType = std::variant<
-    dnsARecord,
-    dnsAAAARecord,
-    dnsDSRecord,
-    dnsHINFORecord,
-    dnsSDNRecord,
-    dnsKEYRecord,
-    dnsMINFORecord,
-    dnsMXRecord,
-    dnsPTRRecord,
-    dnsRRSIGRecord,
-    dnsSOARecord,
-    dnsTXTRecord
+    DNSARecord,
+    DNSAAAARecord,
+    DNSDSRecord,
+    DNSHINFORecord,
+    DNSISDNRecord,
+    DNSKEYRecord,
+    DNSMINFORecord,
+    DNSMXRecord,
+    DNSPTRRecord,
+    DNSRRSIGRecord,
+    DNSSOARecord,
+    DNSSRVRecord,
+    DNSTXTRecord
 >;
     
 class DNSRecordPayload
@@ -50,39 +52,39 @@ public:
     {
         switch (m_type) {
         case DNSQueryType::A:
-            return dnsARecord::createFrom(m_data);
+            return DNSARecord::createFrom(m_data);
         case DNSQueryType::AAAA:
-            return dnsAAAARecord::createFrom(m_data);
+            return DNSAAAARecord::createFrom(m_data);
         case DNSQueryType::NS: [[fallthrough]];
         case DNSQueryType::CNAME: [[fallthrough]];
         case DNSQueryType::PTR:
-            return dnsPTRRecord::createFrom(m_data, m_fullDNSPayload);
+            return DNSPTRRecord::createFrom(m_data, m_fullDNSPayload);
         case DNSQueryType::SOA:
-            return dnsSOARecord::createFrom(m_data, m_fullDNSPayload);
+            return DNSSOARecord::createFrom(m_data, m_fullDNSPayload);
         case DNSQueryType::MX:
-            return dnsMXRecord::createFrom(m_data, m_fullDNSPayload);
+            return DNSMXRecord::createFrom(m_data, m_fullDNSPayload);
         case DNSQueryType::TXT:
-            return dnsTXTRecord::createFrom(m_data, m_fullDNSPayload);
+            return DNSTXTRecord::createFrom(m_data, m_fullDNSPayload);
         case DNSQueryType::ISDN:
-            return dnsISDNRecord::createFrom(m_data, m_fullDNSPayload);
+            return DNSISDNRecord::createFrom(m_data, m_fullDNSPayload);
         case DNSQueryType::HINFO:
-            return dnsHINFORecord::createFrom(m_data, m_fullDNSPayload);
+            return DNSHINFORecord::createFrom(m_data, m_fullDNSPayload);
         case DNSQueryType::MINFO:
-            return dnsMINFORecord::createFrom(m_data, m_fullDNSPayload);
+            return DNSMINFORecord::createFrom(m_data, m_fullDNSPayload);
         case DNSQueryType::SRV:
-            return dnsSRVRecord::createFrom(m_data, m_fullDNSPayload);
+            return DNSSRVRecord::createFrom(m_data, m_fullDNSPayload);
         case DNSQueryType::RRSIG:
-            return dnsRRSIGRecord::createFrom(m_data);
+            return DNSRRSIGRecord::createFrom(m_data);
         case DNSQueryType::DNSKEY:
-            return dnsKEYRecord::createFrom(m_data);
+            return DNSKEYRecord::createFrom(m_data);
         case DNSQueryType::DS:
-            return dnsDSRecord::createFrom(m_data);
+            return DNSDSRecord::createFrom(m_data);
         default:
             return std::nullopt;
         }
     }
 
-    constexpr std::span<const std::byte> getPayload() const noexcept
+    constexpr std::span<const std::byte> getSpan() const noexcept
     {
         return m_data;
     }

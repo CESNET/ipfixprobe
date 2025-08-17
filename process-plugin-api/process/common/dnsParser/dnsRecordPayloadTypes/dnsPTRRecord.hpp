@@ -6,7 +6,8 @@
 #include <sstream>
 #include <cstdint>
 #include <array>
-#include "dnsName.hpp"
+
+#include "../dnsName.hpp"
 
 namespace ipxp
 {

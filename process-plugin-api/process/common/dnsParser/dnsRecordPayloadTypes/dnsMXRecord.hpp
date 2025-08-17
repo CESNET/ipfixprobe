@@ -22,7 +22,6 @@ struct DNSMXRecord {
     {
         auto res = std::make_optional<DNSMXRecord>();
 
-        std::ostringstream oss;
         if (payload.size() < sizeof(uint16_t)) {
             return std::nullopt;
         }

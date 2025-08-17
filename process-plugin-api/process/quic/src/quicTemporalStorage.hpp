@@ -9,8 +9,7 @@ namespace ipxp
     
 class QUICTemporalStorage {
     struct TemporaryConnectionIdBuffer {
-		boost::static_string<QUICExport::MAX_CONNECTION_ID_LENGTH> sourceConnectionId;
-		boost::static_string<QUICExport::MAX_CONNECTION_ID_LENGTH> destinationConnectionId;
+        DirectionalField<ConnectionId> ids;
 	};
 
     constexpr bool directionIsRevealed() const noexcept
@@ -36,27 +35,43 @@ class QUICTemporalStorage {
     }
 
     constexpr
-    std::optional<TemporaryConnectionIdBuffer>& getServerData() 
+    void storeConnectionIds(
+        const PacketDirection flowDirection, 
+		std::span<const uint8_t> sourceConnectionId, 
+		std::span<const uint8_t> destinationConnectionId) noexcept
     {
-        if (!m_serverRevealed) {
-            throw std::runtime_error("QUIC direction is not revealed");
-        }
-        return m_buffer[m_serverIsDestination ? Direction::Forward : Direction::Reverse];
+        m_buffer[flowDirection].ids[Direction::Forward] 
+            = ConnectionId(
+                sourceConnectionId.begin(), sourceConnectionId.end());
+        m_buffer[flowDirection].ids[Direction::Reverse] 
+            = ConnectionId(
+                destinationConnectionId.begin(), destinationConnectionId.end());
     }
 
     constexpr
-    std::optional<TemporaryConnectionIdBuffer>& getClientData() 
+    ConnectionId& getSourceCID() noexcept
     {
-        if (!m_serverRevealed) {
-            throw std::runtime_error("QUIC direction is not revealed");
-        }
-        return m_buffer[m_serverIsDestination ? Direction::Reverse : Direction::Forward];
+        return m_buffer[
+            m_serverIsDestination ? 
+            Direction::Forward : 
+            Direction::Reverse].ids[
+                static_cast<Direction>(!m_serverIsDestination)];
+    }
+
+    constexpr
+    ConnectionId& getClientCID() noexcept
+    {
+        return m_buffer[
+            m_serverIsDestination ? 
+            Direction::Forward : 
+            Direction::Reverse].ids[
+                static_cast<Direction>(m_serverIsDestination)];
     }
 
 private:
     bool m_serverRevealed{false};
     bool m_serverIsDestination{false};
-	DirectionalField<std::optional<TemporaryConnectionIdBuffer>> m_buffer;
+	DirectionalField<TemporaryConnectionIdBuffer> m_buffer;
 };
 
 

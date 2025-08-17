@@ -17,10 +17,10 @@
 
 #include "dnsSection.hpp"
 
-namespace ipxp2 {
+namespace ipxp {
 
 constexpr static
-bool parseDnsOverTCPLength(std::span<const std::byte> payload) noexcept
+std::optional<std::size_t> parseDNSOverTCPLength(std::span<const std::byte> payload) noexcept
 {
 	if (payload.size() < sizeof(uint16_t)) {
 		return std::nullopt;
@@ -63,7 +63,7 @@ parseSection(
 }
 
 constexpr
-bool DnsParser::parse(
+bool DNSParser::parse(
     std::span<const std::byte> payload, 
     const bool isDnsOverTCP,
     std::function<bool(const DNSQuestion& query)>& queryCallback,
@@ -74,7 +74,7 @@ bool DnsParser::parse(
 {
 	if (isDnsOverTCP) {
         const std::optional<uint16_t> dnsDataLength 
-            = parseDnsOverTCPLength(payload);
+            = parseDNSOverTCPLength(payload);
         if (!dnsDataLength.has_value() || 
             sizeof(uint16_t) + *dnsDataLength > payload.size()) {
 			return false;
@@ -152,7 +152,7 @@ std::optional<DNSHeader> parseHeader(std::span<const std::byte> payload) noexcep
 }
 
 constexpr
-std::optional<std::size_t> DnsParser::parseQuestionSection(
+std::optional<std::size_t> DNSParser::parseQuestionSection(
     std::span<const std::byte> payload,
     std::span<const std::byte> fullDNSPayload, 
     const uint16_t questionCount,
@@ -186,6 +186,7 @@ std::optional<std::size_t> DnsParser::parseQuestionSection(
                 .class = queryClass
             });
         }
+    }
         /*if (questionIndex == 0) {
             m_parsedFirstQuestion = {ParsedQuestion {
                 .name = *name,

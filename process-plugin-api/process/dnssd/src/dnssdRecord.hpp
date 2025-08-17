@@ -2,8 +2,10 @@
 
 #include <string_view>
 #include <vector>
+#include <format>
 
 #include <dnsParser/dnsRecord.hpp>
+#include <dnsParser/dnsName.hpp>
 
 namespace ipxp
 {
@@ -13,19 +15,23 @@ struct DNSSDRecord {
 
     uint16_t srvPort;
     DNSName srvTarget;
-    DNSName hardwareInfo;
+    DNSName cpu;
+    DNSName operatingSystem;
     std::vector<DNSName> txtContent;
 
     std::string toString() const noexcept
     {
-        const std::string& txtContentStr = fmt::join(txtContent |
+        // TODO FIX
+        const std::string& txtContentStr = "";
+        /*fmt::join(txtContent |
             std::transform([](const DNSName& name) {
                 return name.toString();
-            }), ":");
+            }), ":");*/
         return std::format(
-            "{};{};{};{};{};", requestName.toString(), 
+            "{};{};{};{};{};{};", requestName.toString(), 
             srvPort, srvTarget.toString(), 
-            hardwareInfo.toString(), txtContent);
+            cpu.toString(), operatingSystem.toString(),
+            txtContentStr);
     }
 };
 

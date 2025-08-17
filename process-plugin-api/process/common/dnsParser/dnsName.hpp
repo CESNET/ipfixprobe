@@ -19,14 +19,15 @@ public:
 
     constexpr static
     std::optional<DNSName> createFrom(
-        std::span<const std::byte> payload, const std::byte* dnsBegin) noexcept;
+        std::span<const std::byte> payload, 
+        std::span<const std::byte> fullDNSpayload) noexcept;
 
     /**
      * @brief Converts DNS name to string
      * @param delimiter Delimiter to use between labels
      * @return Concatenated labels with delimiter
      */
-    constexpr std::string toString(const char delimiter = '.') const noexcept;
+    std::string toString(const char delimiter = '.') const noexcept;
 
     /**
      * @brief Get length of the DNS name
@@ -34,6 +35,8 @@ public:
      * i.e after that count of bytes there is DNS question type field
      */
     constexpr std::size_t length() const noexcept;
+
+    bool operator==(const DNSName& other) const noexcept;
 
 private:
 	constexpr static uint16_t MAX_LABEL_COUNT = 15;

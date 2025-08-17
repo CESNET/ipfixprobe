@@ -13,7 +13,7 @@ namespace ipxp
 {
 
 struct DNSTXTRecord {
-    DNSName txt;
+    DNSName content;
 
     constexpr static std::optional<DNSTXTRecord> createFrom(
         std::span<const std::byte> payload,
@@ -26,14 +26,14 @@ struct DNSTXTRecord {
         if (!txt.has_value() || txt->length() == 0) {
             return std::nullopt;
         }
-        res->txt = *txt;
+        res->content = *txt;
 
         return res;
     }
 
     std::string toDNSString() const noexcept
     {
-        std::string res = txt->toString();
+        std::string res = content.toString();
         const std::size_t firstPoint = res.find('.');
         if (firstPoint != std::string::npos) {
             res[firstPoint] = ' ';

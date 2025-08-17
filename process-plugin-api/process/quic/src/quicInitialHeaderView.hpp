@@ -46,17 +46,21 @@ public:
 
     std::optional<QUICInitialSecrets> m_initialSecrets;
     ReassembledFrame m_reassembledFrame;
-    uint16_t m_serverPort;
-    bool clientHelloParsed{false};
+    //uint16_t m_serverPort;
+    //bool clientHelloParsed{false};
     bool m_saveWholeTLSExtension{false};
+
     TLSExtensionBuffer m_tlsExtensionBuffer;
     TLSHandshake m_tlsHandshake;
     std::optional<uint64_t> tokenLength;
-    std::optional<...> sni;
-    std::optional<...> userAgent;
+    std::optional<QUICExport::ServerName> serverName;
+    std::optional<QUICExport::UserAgent> userAgent;
     boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> extensionTypes;
     boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> extensionLengths;
     std::vector<std::byte> extensionsPayload;
+
+private:
+    std::size_t m_size{0};
 };
 
 } // namespace ipxp

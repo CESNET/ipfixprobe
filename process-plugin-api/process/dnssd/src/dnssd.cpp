@@ -21,6 +21,7 @@
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <dnsParser/dnsParser.hpp>
+#include <dnsParser/dnsQueryType.hpp>
 
 namespace ipxp {
 
@@ -36,9 +37,9 @@ static const PluginManifest dnssdPluginManifest = {
 		},
 };
 
-const inline std::vector<FieldPair<DNSDFields>> fields = {
-	{DNSDFields::DNSSD_QUERIES, "DNSSD_QUERIES"},
-	{DNSDFields::DNSSD_RESPONSES, "DNSSD_RESPONSES"},
+const inline std::vector<FieldPair<DNSSDFields>> fields = {
+	{DNSSDFields::DNSSD_QUERIES, "DNSSD_QUERIES"},
+	{DNSSDFields::DNSSD_RESPONSES, "DNSSD_RESPONSES"},
 };
 
 static FieldSchema createDNSSDSchema()
@@ -70,8 +71,8 @@ FlowAction DNSSDPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, con
 
 	// TODO USE VALUES FROM DISSECTOR
 	constexpr std::size_t TCP = 6;
-	const bool isDNSoverTCP = (packet.flowKey.protocol == TCP);
-	if (!parseDNSSD(packet.payload(), isDNSoverTCP, flowRecord)) {
+	const bool isDNSoverTCP = (packet.flowKey.l4Protocol == TCP);
+	if (!parseDNSSD(packet.payload, isDNSoverTCP, flowRecord)) {
 		return FlowAction::RequestNoData;
 	}
 
@@ -83,49 +84,50 @@ FlowAction DNSSDPlugin::onFlowUpdate([[maybe_unused]]FlowRecord& flowRecord,
 {
 	// TODO USE VALUES FROM DISSECTOR
 	constexpr std::size_t TCP = 6;
-	const bool isDNSoverTCP = (packet.flowKey.protocol == TCP);
-	if (!parseDNSSD(packet.payload(), isDNSoverTCP, flowRecord)) {
+	const bool isDNSoverTCP = (packet.flowKey.l4Protocol == TCP);
+	if (!parseDNSSD(packet.payload, isDNSoverTCP, flowRecord)) {
 		return FlowAction::RequestNoData;
 	}
 
 	return FlowAction::RequestFullData;
 }
 
-constexpr
-void DNSSDPlugin::parseDNSSD(
+bool DNSSDPlugin::parseDNSSD(
 	std::span<const std::byte> payload, 
-	const bool isDNSoverTCP,
+	const bool isDNSOverTCP,
 	FlowRecord& flowRecord) noexcept
 {
 	DNSParser parser;
 
-	constexpr auto queryParser = [this](const DNSQuestion& query) {
+	std::function<bool(const DNSQuestion& query)>
+	queryParser = [&](const DNSQuestion& query) {
 		m_exportData.findOrInsert(query.name);
 		return false;
 	};
 
-	constexpr auto answerParser = [this](const DNSRecord& answer) {
+	auto answerParser = [&](const DNSRecord& answer) {
 
-		if (answer.type == DNSRecordType::SRV) {
+		if (answer.type == DNSQueryType::SRV) {
 			DNSSDRecord& record = m_exportData.findOrInsert(answer.name);
 			const auto& srv 
-				= std::get<const DNSSRVRecord&>(answer.payload.getUnderlyingType());
+				= std::get<DNSSRVRecord>(*answer.payload.getUnderlyingType());
 			record.srvPort = srv.port;
 			record.srvTarget = srv.target;
 		}
 
-		if (answer.type == DNSRecordType::TXT) {
+		if (answer.type == DNSQueryType::TXT) {
 			DNSSDRecord& record = m_exportData.findOrInsert(answer.name);
 			const auto& txt
-				= std::get<const DNSTXTRecord&>(answer.payload.getUnderlyingType());
+				= std::get<DNSTXTRecord>(*answer.payload.getUnderlyingType());
 			record.txtContent.push_back(txt.content);
 		}
 
-		if (answer.type == DNSRecordType::HINFO) {
+		if (answer.type == DNSQueryType::HINFO) {
 			DNSSDRecord& record = m_exportData.findOrInsert(answer.name);
 			const auto& hinfo
-				= std::get<const DNSHINFORecord&>(answer.payload.getUnderlyingType());
-			record.hardwareInfo = hinfo.content;
+				= std::get<DNSHINFORecord>(*answer.payload.getUnderlyingType());
+			record.cpu = hinfo.cpu;
+			record.operatingSystem = hinfo.operatingSystem;
 		}
 
 		return false;
@@ -148,17 +150,18 @@ void DNSSDPlugin::onFlowExport(FlowRecord& flowRecord)
 	}
 
 	std::ranges::for_each(m_exportData.requests, 
-		[](const DNSSDRecord& response) {
-			const std::string& name = response.name.toString();
+		[&](const DNSSDRecord& response) {
+			const std::string& name = response.requestName.toString();
 			if (name.size() < 
 				m_exportData.queries.capacity() - m_exportData.queries.size()) {
-				m_exportData.queries.push_back(name);
+				m_exportData.queries.insert(
+					m_exportData.queries.end(), name.begin(), name.end());
 				m_exportData.queries.push_back(';');
 			}
 		});
 
 	std::ranges::for_each(m_exportData.requests, 
-		[](const DNSSDRecord& response) {
+		[&](const DNSSDRecord& response) {
 			const std::string& value = response.toString() + ';';
 			std::ranges::copy(value | 
 				std::views::take(

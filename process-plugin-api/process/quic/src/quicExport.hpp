@@ -12,13 +12,19 @@
 namespace ipxp
 {
 
-constexpr static std::size_t MAX_CONNECTION_ID_LENGTH = 20;
-using ConnectionId = container::static_vector<uint8_t, MAX_CONNECTION_ID_LENGTH>;
-
 struct QUICExport {
+	constexpr static std::size_t MAX_CONNECTION_ID_LENGTH = 20;
+	using ConnectionId 
+		= container::static_vector<uint8_t, MAX_CONNECTION_ID_LENGTH>;
+
+
 	constexpr static std::size_t BUFFER_SIZE = 255;
+	using ServerName = boost::static_string<BUFFER_SIZE>; 
+	ServerName serverName;
+
+	using UserAgent = boost::static_string<BUFFER_SIZE>; 
 	boost::static_string<BUFFER_SIZE> sni;
-	boost::static_string<BUFFER_SIZE> userAgent;
+	UserAgent userAgent;
 	
 	constexpr static std::size_t MAX_PACKETS = 30;
 	boost::container::static_vector<uint8_t, MAX_PACKETS> packetTypes;
@@ -41,7 +47,7 @@ struct QUICExport {
 	ConnectionId originalClientId;
 	ConnectionId originalServerId;
 	ConnectionId sourceId;
-	ConnectionId retrySCID;
+	ConnectionId retrySourceId;
 
 
 

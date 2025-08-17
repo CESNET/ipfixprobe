@@ -72,7 +72,8 @@ DNSPlugin::DNSPlugin([[maybe_unused]]const std::string& params, FieldManager& ma
 	}
 }
 
-FlowAction DNSPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, const Packet& packet)
+FlowAction DNSPlugin::onFlowCreate(
+	FlowRecord& flowRecord, const Packet& packet)
 {
 	if (packet.flowKey.srcPort != 53 && packet.flowKey.dstPort != 53) {
 		return FlowAction::RequestNoData;
@@ -80,21 +81,21 @@ FlowAction DNSPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, const
 
 	// TODO USE VALUES FROM DISSECTOR
 	constexpr uint8_t TCP = 6;
-	const bool isDNSOverTCP = packet.l4Protocol == TCP;
-	if (parseDNS(packet.payload, isDNSOverTCP)) {
+	const bool isDNSOverTCP = packet.flowKey.l4Protocol == TCP;
+	if (parseDNS(packet.payload, isDNSOverTCP, flowRecord)) {
 		return FlowAction::Flush;
 	}
 
 	return FlowAction::RequestFullData;
 }
 
-FlowAction DNSPlugin::onFlowUpdate([[maybe_unused]]FlowRecord& flowRecord, 
+FlowAction DNSPlugin::onFlowUpdate(FlowRecord& flowRecord, 
 	const Packet& packet)
 {
 	// TODO USE VALUES FROM DISSECTOR
 	constexpr uint8_t TCP = 6;
-	const bool isDNSOverTCP = packet.l4Protocol == TCP;
-	if (parseDNS(packet.payload, isDNSOverTCP)) {
+	const bool isDNSOverTCP = packet.flowKey.l4Protocol == TCP;
+	if (parseDNS(packet.payload, isDNSOverTCP, flowRecord)) {
 		return FlowAction::Flush;
 	}
 
@@ -111,25 +112,27 @@ bool DNSPlugin::parseDNS(
 {
 	DNSParser parser;
 
-	constexpr auto queryParser = [this](const DNSQuestion& query) {
+	auto queryParser = [&](const DNSQuestion& query) {
 		m_exportData.firstQuestionName = query.name.toString();
 		m_fieldHandlers[DNSFields::DNS_NAME].setAsAvailable(flowRecord);
 
 		m_exportData.firstQuestionType = query.type;
 		m_fieldHandlers[DNSFields::DNS_QTYPE].setAsAvailable(flowRecord);
 		
-		m_exportData.firstQuestionClass = query.class;
+		m_exportData.firstQuestionClass = query.recordClass;
 		m_fieldHandlers[DNSFields::DNS_CLASS].setAsAvailable(flowRecord);
 
 		return true;
 	};
 
-	constexpr auto answerParser = [this](const DNSRecord& answer) {
-		m_exportData.firstResponseTimeToLive = parser.firstResponse.timeToLive;
+	auto answerParser = [&](const DNSRecord& answer) {
+		m_exportData.firstResponseTimeToLive = answer.timeToLive;
 		m_fieldHandlers[DNSFields::DNS_RR_TTL].setAsAvailable(flowRecord);
 		
 		m_exportData.firstResponseAsString 
-			= parser.firstResponse.toString(parser.dnsBegin);
+			= std::visit([](const auto& record) {
+				return record.toDNSString();
+			}, answer.payload.getUnderlyingType());
 		m_fieldHandlers[DNSFields::DNS_RDATA].setAsAvailable(flowRecord);
 
 		m_exportData.firstResponseAsStringLength 
@@ -143,15 +146,15 @@ bool DNSPlugin::parseDNS(
 		return true;
 	};
 
-	constexpr auto additionalParser = [this](const DNSRecord& record) {
-		if (record.type != DNSRecordType::OPT) {
+	auto additionalParser = [&](const DNSRecord& record) {
+		if (record.type != DNSQueryType::OPT) {
 			return false;
 		}
 	
-		m_exportData.firstOTPPayloadSize = record.class;
+		m_exportData.firstOTPPayloadSize = record.recordClass;
 		m_fieldHandlers[DNSFields::DNS_PSIZE].setAsAvailable(flowRecord);
 
-		m_exportData.dnssecOkBit = record.dnssecOkBit;
+		m_exportData.dnssecOkBit = (ntohl(record.timeToLive) & 0x8000) >> 15;
 		m_fieldHandlers[DNSFields::DNS_DO].setAsAvailable(flowRecord);
 	
 		return true;
@@ -167,14 +170,13 @@ bool DNSPlugin::parseDNS(
 	m_exportData.id = parser.id;
 	m_fieldHandlers[DNSFields::DNS_ID].setAsAvailable(flowRecord);
 
-	m_exportData.answersCount = parser.answersCount;
+	m_exportData.answerCount = parser.answersCount;
 	m_fieldHandlers[DNSFields::DNS_ANSWERS].setAsAvailable(flowRecord);
 	
 	m_exportData.responseCode = parser.responseCode;
 	m_fieldHandlers[DNSFields::DNS_RCODE].setAsAvailable(flowRecord);
 
 	return true;
-
 }
 
 ProcessPlugin* DNSPlugin::clone(std::byte* constructAtAddress) const
