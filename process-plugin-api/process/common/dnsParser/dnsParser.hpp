@@ -54,9 +54,10 @@ public:
 private:
 
 	constexpr std::optional<std::size_t> parseQuestionSection(
-    std::span<const std::byte> payload,
-    const std::byte* dnsBegin, 
-    const uint16_t questionCount) noexcept;
+        std::span<const std::byte> payload,
+        std::span<const std::byte> fullDNSPayload, 
+        const uint16_t questionCount,
+        const std::function<bool(const DNSQuestion& query)>& queryCallback) noexcept;
 
     /*constexpr std::optional<std::size_t> parseAnswerSection(
     std::span<const std::byte> payload, 

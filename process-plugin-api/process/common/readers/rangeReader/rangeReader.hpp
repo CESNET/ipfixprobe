@@ -1,37 +1,29 @@
 #pragma once
 
+#include "parsingState.hpp"
+
 namespace ipxp
 {
     
-template<typename Derived>
+template<typename CallbackType>
 class RangeReader {
-    enum class ParsingState {
-        SUCCESS,
-        FAILURE
-    };
-
 public:
-    RangeReader() noexcept
-        //: m_callback(callback->init())
+    RangeReader(CallbackType&& callback) noexcept
+        : m_callback(std::move(callback))
     {
-    }
-
-    auto getCallback() const noexcept 
-    {
-        return static_cast<const Derived*>(this)->m_callback;
     }
 
     constexpr auto begin() const noexcept 
     {
-        return getCallback().begin();
+        return m_callback.begin();
     }
 
     constexpr auto end() const noexcept 
     {
-        return getCallback().end();
+        return m_callback.end();
     }
 
-    /*constexpr auto begin() noexcept 
+    constexpr auto begin() noexcept 
     {
         return m_callback.begin();
     }
@@ -39,24 +31,17 @@ public:
     constexpr auto end() noexcept 
     {
         return m_callback.end();
-    }*/
+    }
 
     constexpr bool parsedSuccessfully() const noexcept 
     {
-        return m_state == ParsingState::SUCCESS;
+        return m_state.state == ParsingState::State::SUCCESS;
     }
 
 protected:
-    
-
-    constexpr void setSuccess() noexcept {
-        m_state = ParsingState::SUCCESS;
-    }
-
-    //decltype(std::declval<Derived>().init()) m_callback;
-
+    ParsingState m_state;
 private:
-    ParsingState m_state{ParsingState::FAILURE};
+    CallbackType m_callback;
 };
 
 

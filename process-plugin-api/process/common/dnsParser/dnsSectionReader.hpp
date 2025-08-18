@@ -11,33 +11,28 @@
 namespace ipxp
 {
 
-/*
-struct DNSSectionReaderFactory;
+class DNSSectionReader;
 
-class DNSSectionReader : public RangeReader<DNSSectionReaderFactory> {
-public:
-    DNSSectionReader(std::span<const std::byte> section, 
-        std::span<const std::byte> fullDNSPayload, const std::size_t itemCount)
-        : RangeReader(section, DNSSectionReaderFactory{this, itemCount, fullDNSPayload.data()}) {}
-};*/
-
-class DNSSectionReader : public RangeReader<DNSSectionReader> {
-public:
-    
-
-    auto init() noexcept
+struct DNSSectionReaderFactory
+{
+    static auto makeReader(
+        std::size_t itemCount, 
+        std::span<const std::byte> fullDNSPayload,
+        std::span<const std::byte> section,
+        ParsingState* parsingState
+    ) noexcept
     {
-        return Generator::generate([this]() mutable
-        -> const std::optional<DNSRecord>& {
-            static auto res = std::make_optional<DNSRecord>();
-            if (m_itemCount == 0) {
-                setSuccess();
+        return Generator::generate([section, itemCount, fullDNSPayload, parsingState]() mutable
+        -> std::optional<DNSRecord> {
+            auto res = std::make_optional<DNSRecord>();
+            if (itemCount == 0) {
+                parsingState->state = ParsingState::State::SUCCESS;
                 return std::nullopt;
             }
-            m_itemCount--;
+            itemCount--;
 
             std::optional<DNSName> name = DNSName::createFrom(
-                section, m_fullDNSPayload);
+                section, fullDNSPayload);
             if (!name.has_value()) {
                 return std::nullopt;
             }
@@ -66,7 +61,7 @@ public:
 
             std::span<const std::byte> rawData = section.subspan(
                 name->length() + 3 * sizeof(uint16_t) + sizeof(uint32_t), rawDataLength);
-            res->payload = DNSRecordPayload(rawData, m_fullDNSPayload, res->type);
+            res->payload = DNSRecordPayload(rawData, fullDNSPayload, res->type);
 
             section = section.subspan(
                 name->length() + 3 * sizeof(uint16_t) + sizeof(uint32_t) + rawDataLength);
@@ -79,6 +74,33 @@ public:
         });
     }
 
+};
+
+/*
+class DNSSectionReader : public RangeReader<DNSSectionReaderFactory> {
+public:
+    DNSSectionReader(std::span<const std::byte> section, 
+        std::span<const std::byte> fullDNSPayload, const std::size_t itemCount)
+        : RangeReader(section, DNSSectionReaderFactory{this, itemCount, fullDNSPayload.data()}) {}
+};*/
+
+class DNSSectionReader : 
+    public RangeReader<decltype(
+        DNSSectionReaderFactory::makeReader({}, {}, {}, {}))> {
+
+public:
+    DNSSectionReader(
+        const std::size_t itemCount, 
+        std::span<const std::byte> fullDNSPayload,
+        std::span<const std::byte> section)
+        : RangeReader(
+            DNSSectionReaderFactory::makeReader(
+                itemCount, fullDNSPayload, section, &m_state))
+    {
+    }
+    
+/*public:
+
     DNSSectionReader(
         const std::size_t itemCount, 
         std::span<const std::byte> fullDNSPayload,
@@ -87,11 +109,12 @@ public:
         , m_fullDNSPayload(fullDNSPayload)
         , section(section)
         , m_callback(init()) {}
+
 private:
     std::size_t m_itemCount{0};
     std::span<const std::byte> m_fullDNSPayload;
     std::span<const std::byte> section;
-    decltype(std::declval<DNSSectionReader>().init()) m_callback;
+    CallbackType m_callback;*/
 };
 
 

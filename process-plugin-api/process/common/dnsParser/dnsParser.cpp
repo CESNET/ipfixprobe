@@ -17,6 +17,7 @@
 
 #include "dnsSection.hpp"
 #include "dnsSectionReader.hpp"
+#include "dnsHeader.hpp"
 
 namespace ipxp {
 
@@ -42,15 +43,18 @@ parseSection(
     std::span<const std::byte> payload, 
     std::span<const std::byte> fullDNSPayload, 
     const uint16_t recordCount,
-    std::function<bool(const DNSRecord& record)>& recordCallback) noexcept
+    const std::function<bool(const DNSRecord& record)>& recordCallback) noexcept
 {
-    const std::byte* lastRecordPayloadEnd = payload.data();
-    DNSSectionReader reader(payload, fullDNSPayload, recordCount);
+    std::size_t sectionSize{0};
+    const auto sectionBegin = payload.begin();
+
+    DNSSectionReader reader(recordCount, payload, fullDNSPayload);
     
     std::ranges::for_each(reader, 
-        [&recordCallback, &lastRecordPayloadEnd, needToCallCallback = true]
+        [&, needToCallCallback = true]
         (const DNSRecord& record) mutable {
-            lastRecordPayloadEnd = record.data.getSpan().end();
+            sectionSize = static_cast<std::size_t>(
+                std::distance(sectionBegin, record.payload.getSpan().end()));
             if (needToCallCallback) {
                 needToCallCallback = !recordCallback(record);
             }
@@ -60,20 +64,27 @@ parseSection(
 		m_firstAnswer = parsedSection->records[0];
 	}*/
 
-	return lastRecordPayloadEnd - payload.data();
+	return sectionSize;
 }
 
-constexpr
-bool DNSParser::parse(
-    std::span<const std::byte> payload, 
-    const bool isDnsOverTCP,
-    std::function<bool(const DNSQuestion& query)>& queryCallback,
-    std::function<bool(const DNSRecord& answer)>& answerCallback,
-    std::function<bool(const DNSRecord& authorityRecord)>& authorityCallback,
-    std::function<bool(const DNSRecord& additionalRecord)>& additionalCallback
+constexpr static
+std::optional<DNSHeader> parseHeader(std::span<const std::byte> payload) noexcept
+{
+	if (payload.size() < sizeof(DNSHeader)) {
+		return std::nullopt;
+	}
+	return *reinterpret_cast<const DNSHeader*>(payload.data());
+}
+
+constexpr bool DNSParser::parse(
+    std::span<const std::byte> payload, const bool isDNSOverTCP,
+    const std::function<bool(const DNSQuestion& query)>& queryCallback,
+    const std::function<bool(const DNSRecord& answer)>& answerCallback,
+    const std::function<bool(const DNSRecord& authorityRecord)>& authorityCallback,
+    const std::function<bool(const DNSRecord& additionalRecord)>& additionalCallback
 ) noexcept
 {
-	if (isDnsOverTCP) {
+	if (isDNSOverTCP) {
         const std::optional<uint16_t> dnsDataLength 
             = parseDNSOverTCPLength(payload);
         if (!dnsDataLength.has_value() || 
@@ -117,7 +128,7 @@ bool DNSParser::parse(
 	}
 
     const std::size_t authoritySectionOffset 
-        = questionSectionOffset + *parseQuestionSection;
+        = questionSectionOffset + *questionSectionSize;
     const std::optional<std::size_t> authoritySectionSize 
         = parseSection(
             payload.subspan(authoritySectionOffset), 
@@ -143,21 +154,12 @@ bool DNSParser::parse(
 	return true;
 }
 
-constexpr static
-std::optional<DNSHeader> parseHeader(std::span<const std::byte> payload) noexcept
-{
-	if (payload.size() < sizeof(DNSHeader)) {
-		return std::nullopt;
-	}
-	return *reinterpret_cast<const DNSHeader*>(payload.data());
-}
-
 constexpr
 std::optional<std::size_t> DNSParser::parseQuestionSection(
     std::span<const std::byte> payload,
     std::span<const std::byte> fullDNSPayload, 
     const uint16_t questionCount,
-    std::function<bool(const DNSQuestion& query)>& queryCallback) noexcept
+    const std::function<bool(const DNSQuestion& query)>& queryCallback) noexcept
 {
     const std::byte* queriesBegin = payload.data();
     bool needToCallCallback = true;
@@ -181,10 +183,11 @@ std::optional<std::size_t> DNSParser::parseQuestionSection(
         payload = payload.subspan(name->length() + 2 * sizeof(uint16_t));
 
         if (needToCallCallback) {
-            needToCallCallback = !queryCallback(DNSQuery{
-                .name = *name,
-                .type = queryType,
-                .class = queryClass
+            needToCallCallback = !queryCallback(
+                DNSQuestion{
+                    .name = *name,
+                    .type = static_cast<DNSQueryType>(queryType),
+                    .recordClass = queryClass
             });
         }
     }
