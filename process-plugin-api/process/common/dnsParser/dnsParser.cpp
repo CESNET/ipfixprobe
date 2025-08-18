@@ -16,6 +16,7 @@
 #include <arpa/inet.h>
 
 #include "dnsSection.hpp"
+#include "dnsSectionReader.hpp"
 
 namespace ipxp {
 
@@ -35,7 +36,7 @@ std::optional<std::size_t> parseDNSOverTCPLength(std::span<const std::byte> payl
 	return dnsDataLength;
 }
 
-constexpr static
+static
 std::optional<std::size_t>
 parseSection(
     std::span<const std::byte> payload, 

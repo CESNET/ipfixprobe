@@ -3,7 +3,7 @@
 namespace ipxp
 {
     
-template<typename parsingCallbackFactory>
+template<typename Derived>
 class RangeReader {
     enum class ParsingState {
         SUCCESS,
@@ -11,41 +11,52 @@ class RangeReader {
     };
 
 public:
-    RangeReader(std::span<const std::byte> data, 
-        parsingCallbackFactory& callbackFactory) noexcept
-        : m_callback(callbackFactory(data))
+    RangeReader() noexcept
+        //: m_callback(callback->init())
     {
     }
 
-    constexpr auto begin() const noexcept {
-        return m_reader.begin();
+    auto getCallback() const noexcept 
+    {
+        return static_cast<const Derived*>(this)->m_callback;
     }
 
-    constexpr auto end() const noexcept {
-        return m_reader.end();
+    constexpr auto begin() const noexcept 
+    {
+        return getCallback().begin();
     }
 
-    constexpr auto begin() noexcept {
-        return m_reader.begin();
+    constexpr auto end() const noexcept 
+    {
+        return getCallback().end();
     }
 
-    constexpr auto end() noexcept {
-        return m_reader.end();
+    /*constexpr auto begin() noexcept 
+    {
+        return m_callback.begin();
     }
 
-    constexpr bool parsedSuccessfully() const noexcept {
+    constexpr auto end() noexcept 
+    {
+        return m_callback.end();
+    }*/
+
+    constexpr bool parsedSuccessfully() const noexcept 
+    {
         return m_state == ParsingState::SUCCESS;
     }
 
 protected:
+    
 
     constexpr void setSuccess() noexcept {
         m_state = ParsingState::SUCCESS;
     }
 
+    //decltype(std::declval<Derived>().init()) m_callback;
+
 private:
     ParsingState m_state{ParsingState::FAILURE};
-    decltype(makeReader(std::span<const std::byte>{})) m_reader;
 };
 
 
