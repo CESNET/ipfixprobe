@@ -16,7 +16,7 @@ struct TLSHandshake {
 	Type type;
 	uint8_t length1; // length field is 3 bytes long...
 	uint16_t length2;
-	Version version;
+	TLSVersion version;
 
 	/* Handshake data... */
 } __attribute__((packed));

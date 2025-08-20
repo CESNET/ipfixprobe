@@ -1,26 +1,24 @@
 
 #include <span>
-#include <views>
+#include <ranges>
 #include <optional>
-#include <rangeReader/rangeReader.hpp>
-#include <rangeReader/generator.hpp>
+#include <readers/rangeReader/rangeReader.hpp>
+#include <readers/rangeReader/generator.hpp>
 
-#include "../tlsExtensionType.hpp"
+#include "../tlsExtension.hpp"
 
 namespace ipxp
 {
 
-struct Extension {
-    ExtensionType type;
-    std::span<const std::byte> payload;
-};
+
 
 class ExtensionReader;
 
 struct ExtensionReaderFactory {
-    ExtensionReader* self;
 
-    auto operator()(std::span<const std::byte> payload) const {
+    static auto operator()(
+        std::span<const std::byte> payload
+    ) noexcept {
         return Generator::generate([payload, self = self](int) mutable -> std::optional<Extension> {
             if (payload.empty()) {
                 self->setSuccess();

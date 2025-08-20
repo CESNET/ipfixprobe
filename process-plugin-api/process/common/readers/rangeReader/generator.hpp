@@ -2,10 +2,15 @@
 
 #include <ranges>
 
-namespace ipxp::Generator
+namespace ipxp
 {
 
 // no std::ranges::generate in c++20(from c++23)
+
+template<typename GeneratorCallback>
+class Generator {
+public:
+
 constexpr static
 auto generate(auto generator) noexcept
 {
@@ -14,5 +19,7 @@ auto generate(auto generator) noexcept
                return gen();
            });
 }
+
+};
 
 } // namespace ipxp

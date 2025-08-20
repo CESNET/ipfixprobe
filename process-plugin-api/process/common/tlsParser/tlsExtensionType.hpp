@@ -16,6 +16,6 @@ enum class TLSExtensionType : uint16_t
     QUIC_TRANSPORT_PARAMETERS = 0xffa5,
     QUIC_TRANSPORT_PARAMETERS_V1 = 0x39,
     QUIC_TRANSPORT_PARAMETERS_V2 = 0x26
-}
+};
 
-} // namespace ipxp::tls
+} // namespace ipxp

@@ -11,7 +11,7 @@ struct TLSHeader {
     };
 
     Type type;
-	Version version;
+	TLSVersion version;
 	uint16_t length;
 	/* Record data... */
 

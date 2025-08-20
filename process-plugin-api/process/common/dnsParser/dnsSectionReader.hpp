@@ -5,6 +5,7 @@
 #include <optional>
 #include <readers/rangeReader/rangeReader.hpp>
 #include <readers/rangeReader/generator.hpp>
+#include <readers/rangeReader/functionTraits.hpp>
 
 #include "dnsRecord.hpp"
 
@@ -19,14 +20,14 @@ struct DNSSectionReaderFactory
         std::size_t itemCount, 
         std::span<const std::byte> fullDNSPayload,
         std::span<const std::byte> section,
-        ParsingState* parsingState
+        ParsingState& parsingState
     ) noexcept
     {
         return Generator::generate([section, itemCount, fullDNSPayload, parsingState]() mutable
         -> std::optional<DNSRecord> {
             auto res = std::make_optional<DNSRecord>();
             if (itemCount == 0) {
-                parsingState->state = ParsingState::State::SUCCESS;
+                parsingState.state = ParsingState::State::SUCCESS;
                 return std::nullopt;
             }
             itemCount--;
@@ -84,9 +85,11 @@ public:
         : RangeReader(section, DNSSectionReaderFactory{this, itemCount, fullDNSPayload.data()}) {}
 };*/
 
+using Ret = FunctionTraits<decltype(
+        &DNSSectionReaderFactory::makeReader)>::ReturnType;
+
 class DNSSectionReader : 
-    public RangeReader<decltype(
-        DNSSectionReaderFactory::makeReader({}, {}, {}, {}))> {
+    public RangeReader<Ret> {
 
 public:
     DNSSectionReader(
@@ -95,7 +98,7 @@ public:
         std::span<const std::byte> section)
         : RangeReader(
             DNSSectionReaderFactory::makeReader(
-                itemCount, fullDNSPayload, section, &m_state))
+                itemCount, fullDNSPayload, section, m_state))
     {
     }
     
