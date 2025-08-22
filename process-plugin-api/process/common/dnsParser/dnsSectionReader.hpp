@@ -3,6 +3,8 @@
 #include <span>
 #include <ranges>
 #include <optional>
+#include <tuple>
+
 #include <readers/rangeReader/rangeReader.hpp>
 #include <readers/rangeReader/generator.hpp>
 #include <readers/rangeReader/functionTraits.hpp>
@@ -85,8 +87,12 @@ public:
         : RangeReader(section, DNSSectionReaderFactory{this, itemCount, fullDNSPayload.data()}) {}
 };*/
 
-using Ret = FunctionTraits<decltype(
-        &DNSSectionReaderFactory::makeReader)>::ReturnType;
+using Args = FunctionTraits<decltype(
+            &DNSSectionReaderFactory::makeReader
+        )>::ArgumentTypes;
+
+using Ret = 
+    ReturnType<DNSSectionReaderFactory::makeReader, Args>::Type;
 
 class DNSSectionReader : 
     public RangeReader<Ret> {

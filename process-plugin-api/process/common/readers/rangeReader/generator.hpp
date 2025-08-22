@@ -7,7 +7,6 @@ namespace ipxp
 
 // no std::ranges::generate in c++20(from c++23)
 
-template<typename GeneratorCallback>
 class Generator {
 public:
 
