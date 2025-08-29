@@ -76,7 +76,7 @@ ProcessPlugin* VLANPlugin::clone(std::byte* constructAtAddress) const
 }
 
 std::string VLANPlugin::getName() const { 
-	return packetStatsPluginManifest.name; 
+	return vlanPluginManifest.name; 
 }
 
 const void* VLANPlugin::getExportData() const noexcept {

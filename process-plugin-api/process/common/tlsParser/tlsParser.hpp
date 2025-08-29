@@ -121,7 +121,7 @@ public:
 	std::optional<TLSParser::SignatureAlgorithms>
 	parseSignatureAlgorithms(std::span<const std::byte> extension) noexcept;
 
-	constexpr
+	constexpr static
 	std::optional<TLSParser::SupportedVersions>
 	parseSupportedVersions(
 		std::span<const std::byte> extension, const TLSHandshake& handshake) noexcept;
@@ -130,9 +130,9 @@ public:
 
 	constexpr bool isServerHello() const noexcept;
 
-	constexpr const TLSHandshake& getHandshake() const noexcept;
+	//constexpr const TLSHandshake& getHandshake() const noexcept;
 
-	constexpr const CipherSuites& getCipherSuites() const noexcept;
+//	constexpr const CipherSuites& getCipherSuites() const noexcept;
 
 	constexpr bool parse(
 		std::span<const std::byte> payload, const bool isQUIC) noexcept;

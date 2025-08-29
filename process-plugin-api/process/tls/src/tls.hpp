@@ -53,8 +53,8 @@ public:
 private:
 	constexpr bool parseTLS(
 	std::span<const std::byte> payload, const uint8_t l4Protocol) noexcept;
-	constexpr void saveJA3() noexcept;
-	constexpr void saveJA4() noexcept;
+	void saveJA3(const TLSParser& parser) noexcept;
+	void saveJA4(const TLSParser& parser, const uint8_t l4Protocol) noexcept;
 	bool parseClientHelloExtensions(TLSParser& parser) noexcept;
 	bool parseServerHelloExtensions(TLSParser& parser) noexcept;
 
@@ -66,6 +66,7 @@ private:
 	std::optional<TLSParser::SupportedVersions> m_supportedVersions;
 	std::optional<TLSParser::SupportedGroups> m_supportedGroups;
 	std::optional<TLSParser::SignatureAlgorithms> m_signatureAlgorithms;
+	std::optional<TLSParser::ServerNames> m_serverNames;
 	bool m_clientHelloParsed{false};
 	bool m_serverHelloParsed{false};
 

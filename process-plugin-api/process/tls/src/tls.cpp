@@ -18,6 +18,7 @@
 #include <functional>
 #include <iostream>
 #include <numeric>
+#include <bit>
 
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
@@ -26,6 +27,7 @@
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <utils/stringUtils.hpp>
+#include <utils/spanUtils.hpp>
 
 #include "ja3.hpp"
 #include "ja4.hpp"
@@ -102,12 +104,11 @@ bool TLSPlugin::parseClientHelloExtensions(TLSParser& parser) noexcept
 		switch (extension.type)
 		{
 		case TLSExtensionType::SERVER_NAME: {
-			const std::optional<TLSParser::ServerNames> serverNames 
-				= parser.parseServerNames(extension.payload);
-			if (!serverNames.has_value()) {
+			m_serverNames = parser.parseServerNames(extension.payload);
+			if (!m_serverNames.has_value()) {
 				return false;
 			}
-			concatenateRangeTo(*serverNames, m_exportData.serverNames, 0);
+			concatenateRangeTo(*m_serverNames, m_exportData.serverNames, 0);
 			break;
 		}
 		case TLSExtensionType::SUPPORTED_GROUPS: { 
@@ -184,33 +185,42 @@ bool TLSPlugin::parseServerHelloExtensions(TLSParser& parser) noexcept
 	});
 }
 
-constexpr
-void TLSPlugin::saveJA3() noexcept
+void TLSPlugin::saveJA3(const TLSParser& parser) noexcept
 {
-	JA3 ja3(parser.get_handshake()->version.version,
-		toSpan(parser.get_cipher_suits()),
-		toSpan(m_exportData.extensionTypes),
-		toSpan(m_exportData.extensionLengths),
-		toSpan(m_supportedGroups),
-		toSpan(m_pointFormats)
+	if (!parser.cipherSuites.has_value()
+		|| !m_supportedGroups.has_value()
+		|| !m_pointFormats.has_value()) {
+		return;
+	}
+
+	JA3 ja3(std::bit_cast<uint16_t>(parser.handshake->version),
+		toSpan<const uint16_t>(*parser.cipherSuites),
+		toSpan<const uint16_t>(m_exportData.extensionTypes),
+		toSpan<const uint16_t>(*m_supportedGroups),
+		toSpan<const uint8_t>(*m_pointFormats)
 	);
 
 	std::ranges::copy(ja3.getHash(), m_exportData.ja3.begin());
 }
 
-constexpr
-bool TLSPlugin::saveJA4(const uint8_t l4Protocol) noexcept
+void TLSPlugin::saveJA4(const TLSParser& parser, const uint8_t l4Protocol) noexcept
 {
-	if (!m_alpns.has_value() || !m_signatureAlgorithms.has_value()) {
-		return false;
+	if (!m_alpns.has_value() 
+		|| !m_signatureAlgorithms.has_value()
+		|| !parser.cipherSuites.has_value()
+		|| !m_serverNames.has_value()
+		|| !m_supportedVersions.has_value()) {
+		return;
 	}
 
-	JA4 ja4(parser.get_handshake(),
-		toSpan(parser.getServerNames()),
-		toSpan(*m_alpns),
-		toSpan(parser.getCipherSuites()),
-		toSpan(m_exportData.extensionTypes),
-		toSpan(*m_signatureAlgorithms)
+	JA4 ja4(l4Protocol,
+		*parser.handshake,
+		toSpan<const std::string_view>(*m_serverNames),
+		toSpan<const std::string_view>(*m_alpns),
+		toSpan<const uint16_t>(*parser.cipherSuites),
+		toSpan<const uint16_t>(m_exportData.extensionTypes),
+		toSpan<const uint16_t>(*m_signatureAlgorithms),
+		toSpan<const uint16_t>(*m_supportedVersions)
 	);
 
 	std::ranges::copy(ja4.getView(), m_exportData.ja4.begin());
@@ -225,7 +235,7 @@ bool TLSPlugin::parseTLS(
 		return false;
 	}
 
-	if (parser.isClienthello()) {
+	if (parser.isClientHello()) {
 		if (m_clientHelloParsed) {
 			return true;
 		}
@@ -234,10 +244,9 @@ bool TLSPlugin::parseTLS(
 			return false;
 		}
 
-		m_exportData.version = *reinterpret_cast<const uint16_t*>(
-			parser.getHandshake()->version);
-		saveJA3();
-		saveJA4();
+		m_exportData.version = std::bit_cast<uint16_t>(parser.handshake->version);
+		saveJA3(parser);
+		saveJA4(parser, l4Protocol);
 
 		m_clientHelloParsed = true;
 

@@ -10,8 +10,7 @@ auto integerToCharPtrView = std::views::transform(
     [](const auto& value) mutable {
         static std::array<char, 100> buffer;
         auto [end, _] = std::to_chars(buffer.data(), buffer.end(), value);
-        *end = 0;
-        return buffer.data();
+        return std::string_view(buffer.data(), end);
     });
 
 constexpr static inline

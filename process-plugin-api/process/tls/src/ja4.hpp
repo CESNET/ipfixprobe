@@ -7,6 +7,7 @@
 
 #include <tlsParser/tlsParser.hpp>
 #include <utils/stringUtils.hpp>
+#include <utils/stringViewUtils.hpp>
 
 #include "sha256.hpp"
 #include "tlsExport.hpp"
@@ -67,7 +68,7 @@ char alpnByteToLabel(char byte, bool isHighNibble)
 }
 
 static 
-std::string_view getALPNLabel(std::span<std::string_view> alpns)
+std::string_view getALPNLabel(std::span<const std::string_view> alpns)
 {
 	std::string alpn_label;
 	if (alpns.empty() || alpns[0].empty()) {
@@ -151,33 +152,34 @@ std::string_view getTruncatedExtensionsHash(
     constexpr std::size_t MAX_STRING_LENGTH
         = 2 * MAX_EXTENSIONS * sizeof(uint16_t) + 1; 
     boost::static_string<MAX_STRING_LENGTH> finalString;
-    concatenateRangeTo(finalString, sortedExtensions | 
-        rangeToHexString, '-', '_');
+    concatenateRangeTo(sortedExtensions | 
+        rangeToHexString, finalString, '-', '_');
     concatenateRangeTo(signatureAlgorithms | 
             std::views::drop(1) |
-            rangeToHexString,
-            '-');
+            rangeToHexString, finalString, '-');
 
-	return getTruncatedHashHex(finalString);
+	return getTruncatedHashHex(toStringView(finalString));
 }
 
 class JA4 {
 public:
     constexpr
     JA4(const uint8_t l4Protocol,
-        const HandshakeHeader& handshake,
-        std::span<std::string_view> serverNames,
-        std::span<std::string_view> alpns,
+        const TLSHandshake& handshake,
+        std::span<const std::string_view> serverNames,
+        std::span<const std::string_view> alpns,
         std::span<const uint16_t> cipherSuites,
         std::span<const uint16_t> extensionTypes,
-        std::span<const uint16_t> signatureAlgorithms
+        std::span<const uint16_t> signatureAlgorithms,
+        std::span<const uint16_t> supportedVersions
     ) noexcept
     {
         // TODO USE VALUES FROM DISSECTOR
         constexpr uint8_t UDP_ID = 17;
         value.push_back(l4Protocol == UDP_ID ? 'q' : 't');
 
-        value.push_back(getVersionLabel(supportedVersions, handshake));
+        std::string_view versionLabel = getVersionLabel(supportedVersions, handshake);
+        value.append(versionLabel.begin(), versionLabel.end());
 
         value.push_back(serverNames.empty() ? 'i' : 'd');
 
@@ -185,12 +187,14 @@ public:
 
         value.push_back(std::min(extensionTypes.size(), 99UL));
 
-        value.push_back(getALPNLabel(alpns));
+        std::string_view alpnLabel = getALPNLabel(alpns);
+        value.append(alpnLabel.begin(), alpnLabel.end());
 
-        value.push_back(getTruncatedCipherHash(cipherSuites));
+        std::string_view cipherHash = getTruncatedCipherHash(cipherSuites);
+        value.append(cipherHash.begin(), cipherHash.end());
 
-        value.push_back(
-            getTruncatedExtensionsHash(extensionTypes, signatureAlgorithms));
+        std::string_view extensionsHash = getTruncatedExtensionsHash(extensionTypes, signatureAlgorithms);
+        value.append(extensionsHash.begin(), extensionsHash.end());
     }
 
     std::string_view getView() const noexcept

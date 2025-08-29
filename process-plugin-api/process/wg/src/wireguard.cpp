@@ -20,6 +20,7 @@
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
+#include <arpa/inet.h>
 
 #include "wireguardPacketType.hpp"
 #include "wireguardPacketSize.hpp"
@@ -49,7 +50,7 @@ static FieldSchema createWireguardSchema()
 {
 	FieldSchema schema("wg");
 
-	schema.addScalarField<uint8_t>(
+	/*schema.addScalarField<uint8_t>(
 		"WG_CONF_LEVEL",
 		FieldDirection::DirectionalIndifferent,
 		offsetof(WireguardExport, confidence));
@@ -62,7 +63,7 @@ static FieldSchema createWireguardSchema()
 	schema.addScalarField<uint32_t>(
 		"WG_DST_PEER",
 		FieldDirection::DirectionalIndifferent,
-		offsetof(WireguardExport, peer[Direction::Reverse]));
+		offsetof(WireguardExport, peer[Direction::Reverse]));*/
 
 	return schema;
 }
@@ -80,7 +81,7 @@ WireguardPlugin::WireguardPlugin([[maybe_unused]]const std::string& params, Fiel
 FlowAction WireguardPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, const Packet& packet)
 {
 	constexpr uint8_t UDP = 17;
-	if (packet.flowKey.l4protocol != UDP) {
+	if (packet.flowKey.l4Protocol != UDP) {
 	return FlowAction::RequestNoData;
 	}
 
@@ -105,13 +106,13 @@ std::size_t getPacketSize(const WireguardPacketType type) noexcept
 {
 	switch (type) {
 	case WireguardPacketType::HANDSHAKE_INIT:
-		return WireguardPacketSize::HANDSHAKE_INIT_SIZE;
+		return static_cast<std::size_t>(WireguardPacketSize::HANDSHAKE_INIT_SIZE);
 	case WireguardPacketType::HANDSHAKE_RESPONSE:
-		return WireguardPacketSize::HANDSHAKE_RESPONSE_SIZE;
-	case WireguardPacketType::COOKIE_REPLY:
-		return WireguardPacketSize::COOKIE_REPLY_SIZE;
+		return static_cast<std::size_t>(WireguardPacketSize::HANDSHAKE_RESPONSE_SIZE);
+	case WireguardPacketType::COOCKIE_REPLY:
+		return static_cast<std::size_t>(WireguardPacketSize::COOCKIE_REPLY_SIZE);
 	case WireguardPacketType::TRANSPORT_DATA:
-		return WireguardPacketSize::TRANSPORT_DATA_SIZE;
+		return static_cast<std::size_t>(WireguardPacketSize::MIN_TRANSPORT_DATA_SIZE);
 	}
 
 	__builtin_unreachable();
@@ -120,7 +121,7 @@ std::size_t getPacketSize(const WireguardPacketType type) noexcept
 constexpr static
 bool checkReservedBytes(std::span<const std::byte> payload) noexcept
 {
-	return payload[1] == 0x0 && payload[2] == 0x0 && payload[3] == 0x0;
+	return payload[1] == std::byte{0x0} && payload[2] == std::byte{0x0} && payload[3] == std::byte{0x0};
 }
 
 constexpr static
@@ -130,10 +131,10 @@ bool checkPacketSize(
 	switch (type) {
 	case WireguardPacketType::HANDSHAKE_INIT: [[fallthrough]];
 	case WireguardPacketType::HANDSHAKE_RESPONSE: [[fallthrough]];
-	case WireguardPacketType::COOKIE_REPLY:
+	case WireguardPacketType::COOCKIE_REPLY:
 		return size == getPacketSize(type);
 	case WireguardPacketType::TRANSPORT_DATA:
-		return size >= WireguardPacketSize::MIN_TRANSPORT_DATA_SIZE;
+		return size >= static_cast<std::size_t>(WireguardPacketSize::MIN_TRANSPORT_DATA_SIZE);
 	}
 
 	__builtin_unreachable();
@@ -159,35 +160,32 @@ FlowAction WireguardPlugin::parseWireguard(
 				*reinterpret_cast<const uint32_t*>(payload.data() + senderIndexOffset));
 
 	switch (type) {
-	case WireguardPacketType::HANDSHAKE_INIT:
+	case WireguardPacketType::HANDSHAKE_INIT: {
 		// compare the current dst_peer and see if it matches the original source.
 		// If not, the flow flush may be needed to create a new flow.
 
 		const std::optional<uint32_t> savedPeer 
-			= m_exportData.peer[destination]; 
+			= m_exportData.peer[direction]; 
 
 		if (savedPeer.has_value() && 
 			senderIndex != *savedPeer) {
-			return FlowAction::FlushWithReinsert;
+			return FlowAction::FlushAndReinsert;
 		}
 
-		m_exportData.peer[destination] = senderIndex;
+		m_exportData.peer[direction] = senderIndex;
 
 		break;
-
-	case WireguardPacketType::HANDSHAKE_RESPONSE:
+	}
+	case WireguardPacketType::HANDSHAKE_RESPONSE: {
 		m_exportData.peer[direction] = senderIndex;
 
 		constexpr std::size_t dstPeerOffset = 8;
-		m_exportData.peer[!direction] 
-			= ntohl(reinterpret_cast<const uint32_t*>(data + dstPeerOffset));
+		m_exportData.peer[static_cast<Direction>(!direction)] 
+			= ntohl(*reinterpret_cast<const uint32_t*>(payload.data() + dstPeerOffset));
 
 		break;
-
-	case WireguardPacketType::COOCKIE_REPLY:
-		m_exportData.peer[direction] = senderIndex;
-		break;
-
+	}
+	case WireguardPacketType::COOCKIE_REPLY: [[fallthrough]];
 	case WireguardPacketType::TRANSPORT_DATA:
 		m_exportData.peer[direction] = senderIndex;
 		break;
@@ -198,17 +196,16 @@ FlowAction WireguardPlugin::parseWireguard(
 	//   Can happen when transaction ID is >= 1 and <= 4, the query is non-recursive
 	//   and other flags are zeros, too.
 	//   2B transaction ID, 2B flags, 2B questions count, 2B answers count
-	constexpr std::array<std::byte, 4> dnsQueryMask(
-		std::as_bytes({0x00, 0x01, 0x00, 0x00}));
+	constexpr std::array<std::byte, 4> dnsQueryMask{std::byte{0x00}, std::byte{0x01}, std::byte{0x00}, std::byte{0x00}};
 	const bool matchesMask 
-		= std::ranges::equal(dnsQueryMask, data + senderIndexOffset);
+		= std::ranges::equal(dnsQueryMask, payload.subspan(senderIndexOffset));
 	if (matchesMask) {
 		m_exportData.confidence = 1;
-		return FlowAction::RequiresNoData;
+		return FlowAction::RequestNoData;
 	}
 	m_exportData.confidence = 100;
-	
-	return FlowAction::RequiresTrimmedData;
+
+	return FlowAction::RequestTrimmedData;
 }
 
 ProcessPlugin* WireguardPlugin::clone(std::byte* constructAtAddress) const
