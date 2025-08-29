@@ -72,9 +72,9 @@ int NdpReader::init_interface(const std::string& interface)
 		numa_set_bind_policy(PREFERRED_NODE_POLICY);
 		numa_set_preferred(node_id);
 	} else {
-		error_msg = "warning - NUMA node detection failed\n";
-		return 1;
+		std::cerr << "warning - cannot set NUMA preferred node. Skipping..." << std::endl;
 	}
+
 	if (ndp_queue_start(rx_handle)) { // start capturing data from NDP queue
 		error_msg = std::string() + "error starting NDP queue on NFB device";
 		return 1;
