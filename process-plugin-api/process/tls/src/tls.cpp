@@ -25,6 +25,10 @@
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
+#include <utils/stringUtils.hpp>
+
+#include "ja3.hpp"
+#include "ja4.hpp"
 
 namespace ipxp {
 
@@ -57,35 +61,6 @@ static FieldSchema createTLSSchema()
 
 	// TODO EXPORT STRINGS
 
-	schema.addVectorField<uint8_t>(
-		"TLS_JA3",
-		FieldDirection::DirectionalIndifferent,
-		[](const void* thisPtr) -> std::span<const uint8_t> {
-			return getSpan(reinterpret_cast<const TLSExport*>(thisPtr)
-				->ja3);
-		});
-
-	schema.addScalarField<uint16_t>(
-		"TLS_VERSION",
-		FieldDirection::DirectionalIndifferent,
-		offsetof(TLSExport, version));
-
-	schema.addVectorField<int16_t>(
-		"TLS_EXT_TYPE",
-		FieldDirection::DirectionalIndifferent,
-		[](const void* thisPtr) -> std::span<const int16_t> {
-			return getSpan(reinterpret_cast<const TLSExport*>(thisPtr)
-				->extensionTypes);
-		});
-
-	schema.addVectorField<int16_t>(
-		"TLS_EXT_LEN",
-		FieldDirection::DirectionalIndifferent,
-		[](const void* thisPtr) -> std::span<const int16_t> {
-			return getSpan(reinterpret_cast<const TLSExport*>(thisPtr)
-				->extensionLengths);
-		});
-
 	return schema;
 }
 
@@ -101,7 +76,7 @@ TLSPlugin::TLSPlugin([[maybe_unused]]const std::string& params, FieldManager& ma
 
 FlowAction TLSPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, const Packet& packet)
 {
-	parseTLS(packet);
+	parseTLS(packet.payload, packet.flowKey.l4Protocol);
 
 	return FlowAction::RequestFullData;
 }
@@ -110,69 +85,74 @@ FlowAction TLSPlugin::onFlowUpdate(FlowRecord& flowRecord,
 	const Packet& packet)
 {
 	if (!m_serverHelloParsed) {
-		parseTLS(packet);
+		parseTLS(packet.payload, packet.flowKey.l4Protocol);
 	}
 
 	if (m_serverHelloParsed && m_clientHelloParsed) {
-		makeAllFieldsAvailable(flowRecord);
+		//makeAllFieldsAvailable(flowRecord);
 		return FlowAction::RequestNoData;
 	}
 
 	return FlowAction::RequestFullData;
 }
 
-constexpr 
-bool TLSParser::parseClientHelloExtensions(TLSParser& parser) noexcept
+bool TLSPlugin::parseClientHelloExtensions(TLSParser& parser) noexcept
 {
-	return parser.parseExtensions([&parser](const Extension& extension) {
+	return parser.parseExtensions([&](const TLSExtension& extension) {
 		switch (extension.type)
 		{
-		case TLSExtensionType::SERVER_NAME:
+		case TLSExtensionType::SERVER_NAME: {
 			const std::optional<TLSParser::ServerNames> serverNames 
 				= parser.parseServerNames(extension.payload);
 			if (!serverNames.has_value()) {
 				return false;
 			}
-			concatenateFromTo(*serverNames, m_exportData.serverNames, 0);
+			concatenateRangeTo(*serverNames, m_exportData.serverNames, 0);
 			break;
-		case TLSExtensionType::SUPPORTED_GROUPS:
+		}
+		case TLSExtensionType::SUPPORTED_GROUPS: { 
 			m_supportedGroups = parser.parseSupportedGroups(extension.payload);
 			if (!m_supportedGroups.has_value()) {
 				return false;
 			}
 			break;
-		case TLSExtensionType::ELLIPTIC_CURVE_POINT_FORMATS:
+		}
+		case TLSExtensionType::ELLIPTIC_CURVE_POINT_FORMATS: {
 			m_pointFormats = parser.parseEllipticCurvePointFormats(extension.payload);
 			if (!m_pointFormats.has_value()) {
 				return false;
 			}
 			break;
-		case TLSExtensionType::ALPN:
+		}
+		case TLSExtensionType::ALPN: {
 			m_alpns = parser.parseALPN(extension.payload);
 			if (!m_alpns.has_value()) {
 				return false;
 			}
 			break;
-		case TLSExtensionType::SIGNATURE_ALGORITHMS:
+		}
+		case TLSExtensionType::SIGNATURE_ALGORITHMS: {
 			m_signatureAlgorithms 
 				= parser.parseSignatureAlgorithms(extension.payload);
 			if (!m_signatureAlgorithms.has_value()) {
 				return false;
 			}
 			break;
-		case TLSExtensionType::SUPPORTED_VERSION:
+		}
+		case TLSExtensionType::SUPPORTED_VERSION: {
 			m_supportedVersions 
-				= parser.parseSupportedVersions(extension.payload);
+				= parser.parseSupportedVersions(extension.payload, *parser.handshake);
 			if (!m_supportedVersions.has_value()) {
 				return false;
 			}
 			break;
+		}
 		default:
 			break;
 		}
 
-		if (!m_exportData.extensionTypes.full()) {
-			m_exportData.extensionTypes.push_back(extension.type);
+		if (m_exportData.extensionTypes.size() != m_exportData.extensionTypes.capacity()) {
+			m_exportData.extensionTypes.push_back(static_cast<uint16_t>(extension.type));
 			m_exportData.extensionLengths.push_back(extension.payload.size());
 		}
 
@@ -180,25 +160,26 @@ bool TLSParser::parseClientHelloExtensions(TLSParser& parser) noexcept
 	});
 }
 
-constexpr
-bool TLSParser::parseServerHelloExtensions(TLSParser& parser) noexcept
+bool TLSPlugin::parseServerHelloExtensions(TLSParser& parser) noexcept
 {
-	return parser.parseExtensions([&parser](const Extension& extension) {
+	return parser.parseExtensions([&](const TLSExtension& extension) {
 		if (extension.type == TLSExtensionType::ALPN) {
-			const std::optional<ALPNs> alpns 
+			const std::optional<TLSParser::ALPNs> alpns 
 				= parser.parseALPN(extension.payload);
 			if (!alpns.has_value()) {
 				return false;
 			}
-			concatenateFromTo(*alpns, m_exportData.serverALPNs, 0);
+			concatenateRangeTo(*alpns, m_exportData.serverALPNs, 0);
 		}
+		
 		if (extension.type == TLSExtensionType::SUPPORTED_VERSION) {
 			m_supportedVersions 
-				= parser.parseSupportedVersions(extension.payload);
+				= parser.parseSupportedVersions(extension.payload, *parser.handshake);
 			if (!m_supportedVersions.has_value()) {
 				return false;
 			}
 		}
+
 		return true;
 	});
 }

@@ -23,6 +23,7 @@
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <utils/spanUtils.hpp>
+#include <dnsParser/dnsParser.hpp>
 
 namespace ipxp {
 
@@ -69,7 +70,7 @@ FlowAction PassiveDNSPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord
 {
 	constexpr std::size_t DNS_PORT = 53;
 	if (packet.flowKey.srcPort == DNS_PORT) {
-		parseDNS(packet.payload, flowRecord);
+		parseDNS(packet.payload, flowRecord, packet.flowKey.l4Protocol);
 		return FlowAction::Flush;
 	}
 
@@ -81,7 +82,7 @@ FlowAction PassiveDNSPlugin::onFlowUpdate([[maybe_unused]]FlowRecord& flowRecord
 {
 	constexpr std::size_t DNS_PORT = 53;
 	if (packet.flowKey.srcPort == DNS_PORT) {
-		parseDNS(packet.payload, flowRecord);
+		parseDNS(packet.payload, flowRecord, packet.flowKey.l4Protocol);
 		return FlowAction::Flush;
 	}
 
@@ -89,9 +90,10 @@ FlowAction PassiveDNSPlugin::onFlowUpdate([[maybe_unused]]FlowRecord& flowRecord
 }
 
 constexpr static
-std::optional<IPAddress> getIPFromPTR(const std::string& ptrName) noexcept
+std::optional<IPAddress> getIPFromPTR(std::string ipAsString) noexcept
 {
-	std::string ipAsString(ptrName | std::to_lower);
+	std::ranges::transform(ipAsString, ipAsString.begin(),
+		[](unsigned char c){ return std::tolower(c); });
 	if (!ipAsString.empty() && ipAsString.back() == '.') {
 		ipAsString.pop_back();
 	}
@@ -109,30 +111,30 @@ std::optional<IPAddress> getIPFromPTR(const std::string& ptrName) noexcept
 		ipAsString.erase(ipAsString.size() - ip6Postfix.size());
 		// bytes are in reversed order
 		std::reverse(ipAsString.begin(), ipAsString.end());
-		std::array<uint64_t, 2> ip;
-		const auto [_, errorCode] 
+		IPAddress ip;
+		//std::array<uint64_t, 2> ip;
+		const auto [ptr1, errorCode1] 
 			= std::from_chars(
 				ipAsString.data(), 
-				ipAsString.data() + ipAsString.size()/2, ip[0], 16);
-		if (errorCode == std::errc()) {
+				ipAsString.data() + ipAsString.size()/2, ip.u64[0], 16);
+		if (errorCode1 == std::errc()) {
 			return std::nullopt;
 		}
 
-		std::tie(_, errorCode) 
+		const auto [ptr2, errorCode2] 
 			= std::from_chars(
 				ipAsString.data() + ipAsString.size()/2, 
-				ipAsString.data() + ipAsString.size(), ip[1], 16);
-		if (errorCode == std::errc()) {
+				ipAsString.data() + ipAsString.size(), ip.u64[1], 16);
+		if (errorCode2 == std::errc()) {
 			return std::nullopt;
 		}
 
-		return toSpan<const std::byte>(ip);
+		return ip;
 	}
 
 	return std::nullopt;
 }
 
-constexpr
 void PassiveDNSPlugin::parseDNS(
 	std::span<const std::byte> payload, 
 	FlowRecord& flowRecord, 
@@ -142,13 +144,15 @@ void PassiveDNSPlugin::parseDNS(
 		return false;
 	};
 
-	constexpr auto answerParser = [&](const DNSRecord& record){
-		if (record.type == DNSRecordType::A ||
-			record.type == DNSRecordType::AAAA ||
-			record.type == DNSRecordType::PTR) {
+	auto answerParser = [&](const DNSRecord& record){
+		if (record.type == DNSQueryType::A ||
+			record.type == DNSQueryType::AAAA ||
+			record.type == DNSQueryType::PTR) {
 
-			m_exportData.name 
-				= record.name.toString().resize(m_exportData.name.capacity());
+			m_exportData.name.clear();
+			std::ranges::copy(record.name.toString() |
+				std::views::take(m_exportData.name.capacity()),
+				std::back_inserter(m_exportData.name));
 			m_fieldHandlers[PassiveDNSFields::DNS_NAME].setAsAvailable(flowRecord);
 			
 			m_exportData.timeToLive = record.timeToLive;
@@ -158,21 +162,21 @@ void PassiveDNSPlugin::parseDNS(
 			m_fieldHandlers[PassiveDNSFields::DNS_ATYPE].setAsAvailable(flowRecord);
 		}
 
-		if (record.type == DNSRecordType::A) {
+		if (record.type == DNSQueryType::A) {
 			const auto& aRecord 
-				= std::get<const DNSARecord&>(answer.payload.getUnderlyingType());
-			m_exportData.ip = aRecord.ip;
+				= std::get<DNSARecord>(*record.payload.getUnderlyingType());
+			m_exportData.ip = aRecord.address;
 			m_fieldHandlers[PassiveDNSFields::DNS_IP].setAsAvailable(flowRecord);
 		}
 
-		if (record.type == DNSRecordType::AAAA) {
+		if (record.type == DNSQueryType::AAAA) {
 			const auto& aaaaRecord 
-				= std::get<const DNSAAAARecord&>(answer.payload.getUnderlyingType());
-			m_exportData.ip = aaaaRecord.ip;
+				= std::get<DNSAAAARecord>(*record.payload.getUnderlyingType());
+			m_exportData.ip = aaaaRecord.address;
 			m_fieldHandlers[PassiveDNSFields::DNS_IP].setAsAvailable(flowRecord);
 		}
 
-		if (record.type == DNSRecordType::PTR) {
+		if (record.type == DNSQueryType::PTR) {
 			const std::optional<IPAddress> ip = getIPFromPTR(
 				record.name.toString());
 			if (!ip.has_value()) {

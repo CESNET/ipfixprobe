@@ -44,6 +44,11 @@ public:
 	RTSPPlugin(RTSPPlugin&& other) = delete;
 
 private:
+	constexpr bool parseRequest(std::string_view payload) noexcept;
+	constexpr bool parseResponse(std::string_view payload) noexcept;
+	constexpr FlowAction updateExportData(
+		std::span<const std::byte> payload) noexcept;
+
 	bool m_requestParsed{false};
 	bool m_responseParsed{false};
 

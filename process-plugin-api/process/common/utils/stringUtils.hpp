@@ -1,11 +1,12 @@
 #pragma once
 
-#include <views>
+#include <ranges>
 
 namespace ipxp
 {
 
-constexpr static inline auto integerToCharPtrView = std::views::transform(
+constexpr static inline 
+auto integerToCharPtrView = std::views::transform(
     [](const auto& value) mutable {
         static std::array<char, 100> buffer;
         auto [end, _] = std::to_chars(buffer.data(), buffer.end(), value);
@@ -13,26 +14,45 @@ constexpr static inline auto integerToCharPtrView = std::views::transform(
         return buffer.data();
     });
 
-constexpr static
-void concatenateRangeTo(
-    auto&& inputRange, auto&& outputContainer, const char delimiter) noexcept
+constexpr static inline
+bool pushBackWithDelimiter(
+    auto&& value, auto&& outputContainer, const char delimiter) noexcept
 {
-    bool overflowed = false;
-	std::ranges::for_each(inputRange, [&outputContainer, &overflowed](const auto& value) {
-		if (outputContainer.size() + value.size() + sizeof(delimiter) 
-			> outputContainer.capacity()) {
-			overflowed = true;
-			return;
-		}
-		outputContainer.push_back(value);
-		outputContainer.push_back(delimiter);
-	});
+    if (outputContainer.size() + value.size() + sizeof(delimiter) 
+        > outputContainer.capacity()) {
+        return true;
+    }
 
-    if (!outputContainer.empty()) {
+    outputContainer.append(value.begin(), value.end());
+    outputContainer.push_back(delimiter);
+
+    return false;
+}
+
+constexpr static inline
+void concatenateRangeTo(
+    auto&& inputRange, 
+    auto&& outputContainer, 
+    const char delimiter,
+    const std::optional<char> terminator = std::nullopt) noexcept
+{
+	const bool overflowed = std::ranges::any_of(inputRange,
+        [&](const auto& value) {
+            return pushBackWithDelimiter(
+                value, outputContainer, delimiter);
+        });
+
+    if (overflowed) {
+        return;
+    }
+
+    if (terminator.has_value()) {
+        outputContainer.back() = *terminator;
+    } else {
         outputContainer.pop_back();
     }
 
-    return overflowed;
+    
 }
 
 } // namespace ipxp

@@ -55,15 +55,17 @@ private:
 	std::span<const std::byte> payload, const uint8_t l4Protocol) noexcept;
 	constexpr void saveJA3() noexcept;
 	constexpr void saveJA4() noexcept;
+	bool parseClientHelloExtensions(TLSParser& parser) noexcept;
+	bool parseServerHelloExtensions(TLSParser& parser) noexcept;
 
 	FieldHandlers<TLSFields> m_fieldHandlers;
 	TLSExport m_exportData;
 
-	std::optional<EllipticCurvePointFormats> m_pointFormats;
-	std::optional<ALPNs> m_alpns;
-	std::optional<SupportedVersions> m_supportedVersions;
-	std::optional<SupportedGroups> m_supportedGroups;
-	std::optional<SignatureAlgorithms> m_signatureAlgorithms;
+	std::optional<TLSParser::EllipticCurvePointFormats> m_pointFormats;
+	std::optional<TLSParser::ALPNs> m_alpns;
+	std::optional<TLSParser::SupportedVersions> m_supportedVersions;
+	std::optional<TLSParser::SupportedGroups> m_supportedGroups;
+	std::optional<TLSParser::SignatureAlgorithms> m_signatureAlgorithms;
 	bool m_clientHelloParsed{false};
 	bool m_serverHelloParsed{false};
 

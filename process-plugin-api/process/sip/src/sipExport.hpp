@@ -15,7 +15,7 @@ struct SIPExport {
 	boost::static_string<MAX_SIZE> calledParty; /* Called party (ie. to) uri */
 	boost::static_string<MAX_SIZE> via; /* Via field of SIP packet */
 	boost::static_string<MAX_SIZE> userAgent; /* User-Agent field of SIP packet */
-	boost::static_string<MAX_SIZE> cseq; /* CSeq field of SIP packet */
+	boost::static_string<MAX_SIZE> commandSequence; /* CSeq field of SIP packet */
 	boost::static_string<MAX_SIZE> requestURI; /* Request-URI of SIP request */
 };  
 

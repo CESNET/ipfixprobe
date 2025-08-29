@@ -21,8 +21,9 @@
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
-#include <stringViewUtils.hpp>
-#include <headerFieldsReader/headerFieldReader.hpp>
+#include <utils/stringUtils.hpp>
+#include <utils/stringViewUtils.hpp>
+#include <readers/headerFieldReader/headerFieldReader.hpp>
 
 #include "sipMessageType.hpp"
 
@@ -60,7 +61,8 @@ static FieldSchema createSIPSchema()
 	return schema;
 }
 
-SIPPlugin::SIPPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+SIPPlugin::SIPPlugin(
+	[[maybe_unused]]const std::string& params, FieldManager& manager)
 {
 	const FieldSchema schema = createSIPSchema();
 	const FieldSchemaHandler schemaHandler = manager.registerSchema(schema);
@@ -94,7 +96,7 @@ bool fastCheckTypePresence(const uint32_t type) noexcept
 }
 
 constexpr static
-std::optional<SIPMessageType> SIPPlugin::getMessageType(std::span<const std::byte> payload) noexcept
+std::optional<SIPMessageType> getMessageType(std::string_view payload) noexcept
 {
 	constexpr std::size_t MIN_SIP_LENGTH = 64;
 	if (payload.size() < MIN_SIP_LENGTH) {
@@ -103,7 +105,7 @@ std::optional<SIPMessageType> SIPPlugin::getMessageType(std::span<const std::byt
 
 	/* Get first four bytes of the packet and compare them against the patterns: */
 	const uint32_t messageType = ntohl(
-		*reinterpret_cast<uint32_t*>(payload.data()));
+		*reinterpret_cast<const uint32_t*>(payload.data()));
 	if (!fastCheckTypePresence(messageType)) {
 		return std::nullopt;
 	}
@@ -121,32 +123,49 @@ std::optional<SIPMessageType> SIPPlugin::getMessageType(std::span<const std::byt
 		{"SUBSCRIBE", SIPMessageType::SUBSCRIBE},
 		{"PUBLISH", SIPMessageType::PUBLISH}
 	});
-	auto method = std::ranges::find_if(sipMethods, [](const auto& method) {
-		return method.first == toStringView(payload.subspan(0, method.first.length()));
+	auto method = std::ranges::find_if(sipMethods, [&](const auto& method) {
+		return payload.starts_with(method.first);
 	});
+
+	if (method == sipMethods.end()) {
+		return std::nullopt;
+	}
 
 	/* Notify message is a bit tricky because also Microsoft's SSDP protocol
 	* uses HTTP-like structure and NOTIFY message - we must identify false
 	* positives here: */
 	constexpr std::string_view ssdpNotifyBegin = "NOTIFY * HTTP/1.1";
-	if (*method == "NOTIFY" && toStringView(
-		payload.subspan(0, ssdpNotifyBegin.length())) == ssdpNotifyBegin) {
+	if (method->first == "NOTIFY" && payload.starts_with(ssdpNotifyBegin)) {
 		return std::nullopt;
 	}
 
-	constexpr auto sipTypesMapping = std::to_array<
+	return method->second;
+}
+
+constexpr static
+std::string_view getURI(std::string_view fieldValue) noexcept
+{
+	const std::size_t uriBegin = fieldValue.find(':');
+	if (uriBegin == std::string_view::npos) {
+		return {};
+	}
+
+	fieldValue = fieldValue.substr(0, fieldValue.find('>'));
+	fieldValue = fieldValue.substr(0, fieldValue.find(';'));
+
+	return fieldValue.substr(uriBegin + 1);
 }
 
 constexpr
-bool SIPPlugin::parseSIPData(std::span<const std::byte> payload)
+bool SIPPlugin::parseSIPData(std::string_view payload) noexcept
 {
-	auto headerEnd = std::ranges::find(payload, std::byte{'\n'});
-	if (headerEnd == payload.end()) {
+	const std::size_t headerEnd = payload.find('\n');
+	if (headerEnd == std::string_view::npos) {
 		return false;
 	}
 
 	const std::vector<std::string_view> tokens 
-		= splitToVector(toStringView(payload.subspan(headerEnd - payload.begin())), ' ');
+		= splitToVector(payload.substr(headerEnd), ' ');
 
 	if (m_exportData.messageType <= 10) {
 		/* Note: First SIP request line has syntax: 
@@ -161,63 +180,58 @@ bool SIPPlugin::parseSIPData(std::span<const std::byte> payload)
 			std::back_inserter(m_exportData.requestURI));
 	} 
 
-	if (m_exportData.messageType == SIPMessageType::STATUS) {
+	if (static_cast<SIPMessageType>(m_exportData.messageType) == SIPMessageType::REPLY) {
 		if (tokens.size() < 2) {
 			return false;
 		}
 
-		const auto [_, errorCode] = std::from_chars(
-			tokens[1].begin(), tokens[1].end(), m_exportData.statusCode);
-		if (errorCode == std::errc()) {
+		if (std::from_chars(
+			tokens[1].begin(), 
+			tokens[1].end(), 
+			m_exportData.statusCode).ec == std::errc()) {
 			return false;
 		}
 	}
 
-	auto headerFieldsBegin = std::next(headerEnd);
-	if (headerFieldsBegin == payload.end()) {
-		return false;
-	}
-
-	HeaderFieldReader headerFieldReader(payload);
-	for (const auto& [key, value] : headerFieldReader) {
+	HeaderFieldReader headerFieldReader;
+	for (const auto& [key, value] : headerFieldReader.getRange(payload.substr(headerEnd + 1))) {
 		if (key == "FROM" || key == "F") {
-			std::ranges::copy(getURIs(value) | 
+			m_exportData.callingParty.clear();
+			std::ranges::copy(getURI(value) | 
 				std::views::take(m_exportData.callingParty.capacity()),
 				std::back_inserter(m_exportData.callingParty));
 		}
 
 		if (key == "TO" || key == "T") {
-			std::ranges::copy(getURIs(value) | 
+			m_exportData.calledParty.clear();
+			std::ranges::copy(getURI(value) | 
 				std::views::take(m_exportData.calledParty.capacity()),
 				std::back_inserter(m_exportData.calledParty));
 		}
 
 		if (key == "VIA" || key == "V") {
-			std::ranges::copy(getURIs(value) | 
-				std::views::take(
-					m_exportData.via.capacity() - m_exportData.via.size()),
-				std::back_inserter(m_exportData.via));
-			if (!m_exportData.via.full()) {
-				m_exportData.via.push_back(';');
-			}
+			pushBackWithDelimiter(getURI(value), m_exportData.via, ';');
 		}
 
 		if (key == "CALL-ID" || key == "I") {
+			m_exportData.callId.clear();
 			std::ranges::copy(value | 
 				std::views::take(m_exportData.callId.capacity()),
 				std::back_inserter(m_exportData.callId));
 		}
 
 		if (key == "USER-AGENT") {
+			m_exportData.userAgent.clear();
 			std::ranges::copy(value | 
 				std::views::take(m_exportData.userAgent.capacity()),
 				std::back_inserter(m_exportData.userAgent));
 		}
 
 		if (key == "CSeq") {
+			m_exportData.commandSequence.clear();
 			std::ranges::copy(value | 
-				std::views::take(m_exportData.cseq.capacity()),
-				std::back_inserter(m_exportData.cseq));
+				std::views::take(m_exportData.commandSequence.capacity()),
+				std::back_inserter(m_exportData.commandSequence));
 		}
 	}
 
@@ -227,14 +241,14 @@ bool SIPPlugin::parseSIPData(std::span<const std::byte> payload)
 FlowAction SIPPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, const Packet& packet)
 {
 	const std::optional<SIPMessageType> messageType 
-		= getMessageType(packet.payload);
+		= getMessageType(toStringView(packet.payload));
 	if (!messageType.has_value()) {
 		return FlowAction::RequestNoData;
 	}
 
-	m_exportData.messageType = *messageType;
+	m_exportData.messageType = static_cast<uint16_t>(*messageType);
 
-	if (!parseSIPData(packet.payload)) {
+	if (!parseSIPData(toStringView(packet.payload))) {
 		return FlowAction::RequestNoData;
 	}
 
@@ -244,8 +258,8 @@ FlowAction SIPPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, const
 FlowAction SIPPlugin::onFlowUpdate([[maybe_unused]]FlowRecord& flowRecord, 
 	const Packet& packet)
 {
-	if (getMessageType(packet.payload).has_value()) {
-		return FlowAction::FlushWithReinsert;
+	if (getMessageType(toStringView(packet.payload)).has_value()) {
+		return FlowAction::FlushAndReinsert;
 	}
 
 	return FlowAction::RequestNoData;

@@ -1,11 +1,9 @@
 #pragma once
 
 #include <span>
-#include <views>
 #include <optional>
-#include <rangeReader/rangeReader.hpp>
-#include <rangeReader/generator.hpp>
-
+#include <readers/rangeReader/rangeReader.hpp>
+#include <readers/rangeReader/generator.hpp>
 
 namespace ipxp
 {
@@ -15,39 +13,33 @@ struct Extension {
     std::string_view value;
 };
 
-class RTSPExtensionReader;
-
-struct RTSPExtensionReaderFactory {
-    RTSPExtensionReader* self;
-
-    auto operator()(std::span<const std::byte> payload) const {
-        return Generator::generate([payload, self = self]() mutable -> std::optional<Extension> {
-            auto extensionEnd = std::ranges::find(payload, std::byte{'\n'});
-            if (extensionEnd == payload.end()) {
+class RTSPExtensionReader : public RangeReader {
+public:
+    auto getRange(std::string_view payload) noexcept
+    {
+        return Generator::generate([this, payload]() mutable -> std::optional<Extension> {
+            const std::size_t extensionEnd = payload.find('\n');
+            if (extensionEnd == std::string_view::npos) {
                 return std::nullopt;
             }
 
-            if (std::distance(payload.begin(), extensionEnd) < 2) {
-                self->setSuccess();
+            if (extensionEnd < 2) {
+                setSuccess();
                 return std::nullopt;
             }
 
-            auto delimiterIt 
-                = std::ranges::find(payload, std::byte{':'});
-            if (std::distance(delimiterIt, payload.end()) < 2) {
+            const std::size_t delimiterPos = payload.find(':');
+            if (delimiterPos == std::string_view::npos
+                || payload.size() - delimiterPos < 2) {
                 return std::nullopt;
-            }
+            } 
 
-            std::string_view key 
-                = {reinterpret_cast<const char*>(
-                    payload.data()), delimiterIt - payload.data()};
+            std::string_view key = payload.substr(0, delimiterPos);
 
             std::string_view value
-                = {reinterpret_cast<const char*>(
-                    delimiterIt + 2), extensionEnd - delimiterIt - 2};
-            
-            payload 
-                = payload.subspan(extensionEnd - payload.data());
+                = payload.substr(delimiterPos + 2, extensionEnd - delimiterPos - 2);
+
+            payload = payload.substr(extensionEnd +1);
 
             return Extension{key, value};
         }) | std::views::take_while([](const std::optional<Extension>& v) {
@@ -58,10 +50,11 @@ struct RTSPExtensionReaderFactory {
     }
 };
 
+/*
 class RTSPExtensionReader : public RangeReader<RTSPExtensionReaderFactory> {
 public:
     RTSPExtensionReader(std::span<const std::byte> payload)
         : RangeReader(payload, RTSPExtensionReaderFactory{this}) {}
-};
+};*/
 
 } // namespace ipxp

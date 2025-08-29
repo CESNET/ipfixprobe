@@ -16,7 +16,7 @@ enum class SIPMessageType : uint16_t {
     NOTIFY = 8,
     INFO = 9,
     SUBSCRIBE = 10,
-    STATUS = 99,
+    REPLY = 99,
     TRYING = 100,
     DIAL_ESTABL = 101,
     RINGING = 180,

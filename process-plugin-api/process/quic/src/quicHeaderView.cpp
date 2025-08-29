@@ -2,7 +2,9 @@
 
 #include <arpa/inet.h>
 
-#include <common/utils/spanUtils.hpp>
+#include <utils/spanUtils.hpp>
+
+#include "quicExport.hpp"
 
 namespace ipxp
 {
@@ -29,7 +31,7 @@ bool hasLongHeaderBitSet(const std::byte firstPayloadByte) noexcept
 constexpr static
 bool isSupportedVersion(const QUICVersion& version) noexcept
 {
-	return version.versionId != 0 && version.versionId < 255;
+	return version.draft != 0 && version.draft < 255;
 }
 
 constexpr static
@@ -63,59 +65,62 @@ bool checkHeaderForm(const std::byte headerForm) noexcept
 }
     
 constexpr std::optional<QUICHeaderView> 
-QUICHeaderView::createFrom(std::span<const std::byte> data, const uint8_t l4Protocol) noexcept
+QUICHeaderView::createFrom(
+	std::span<const std::byte> payload, 
+	const uint8_t l4Protocol) noexcept
 {
-    if (data.size() < MIN_HEADER_SIZE) {
+    if (payload.size() < MIN_HEADER_SIZE) {
         return std::nullopt;
     }
 
-    auto headerView = std::make_optional<QUICHeaderView>();
+	std::optional<QUICHeaderView> headerView = QUICHeaderView();
 
-    headerView->headerForm = data[0];
+    headerView->headerForm = payload[0];
     if (!checkHeaderForm(headerView->headerForm)) {
         return std::nullopt;
     }
 
     constexpr std::size_t versionOffset = sizeof(headerForm);
-    const QUICVersion version(static_cast<uint32_t>(ntohl(
-        *reinterpret_cast<const uint32_t*>(&data[versionOffset]))));
-    headerView->versionId = version.versionId;
+    headerView->version = QUICVersion(ntohl(
+        *reinterpret_cast<const uint32_t*>(&payload[versionOffset])));
 
-    if (!hasLongHeader(l4Protocol, version, data.size())) {
+    if (!hasLongHeader(l4Protocol, *headerView->version, payload.size())) {
 		return std::nullopt;
 	}
 
     constexpr std::size_t destConnectionIdLengthOffset 
-        = versionOffset + sizeof(headerView->versionId);
-    headerView->destConnectionIdLength = data[destConnectionIdLengthOffset];
+        = versionOffset + sizeof(uint32_t);
+    const uint8_t destConnectionIdLength 
+		= static_cast<uint8_t>(payload[destConnectionIdLengthOffset]);
 
-    constexpr std::size_t destConnectionIdOffset 
-        = destConnectionIdLengthOffset + sizeof(headerView->destConnectionIdLength);
-    if (destConnectionIdOffset + headerView->destConnectionIdLength >= data.size()) {
+    constexpr std::size_t destConnectionIdOffset
+        = destConnectionIdLengthOffset + sizeof(destConnectionIdLength);
+    if (destConnectionIdOffset + destConnectionIdLength >= payload.size()) {
         return std::nullopt;
     }
-    headerView->destConnectionId = toSpan<const uint8_t>(
-        data.data() + destConnectionIdOffset, headerView->destConnectionIdLength);
-    if (headerView->destConnectionId.size() > QUICExport::MAX_CONNECTION_ID_LENGTH) {
+    headerView->destinationConnectionId = toSpan<const uint8_t>(
+        payload.data() + destConnectionIdOffset, destConnectionIdLength);
+    if (headerView->destinationConnectionId.size() > QUICExport::MAX_CONNECTION_ID_LENGTH) {
 		// Received DCID longer than supported
 		return std::nullopt;
 	}
     
     const std::size_t srcConnectionIdLengthOffset
-        = destConnectionIdOffset + headerView->destConnectionIdLength;
-    if (srcConnectionIdLengthOffset >= data.size()) {
+        = destConnectionIdOffset + destConnectionIdLength;
+    if (srcConnectionIdLengthOffset >= payload.size()) {
         return std::nullopt;
     }
-    headerView->srcConnectionIdLength = data[srcConnectionIdLengthOffset];
+    const uint8_t srcConnectionIdLength 
+		= static_cast<uint8_t>(payload[srcConnectionIdLengthOffset]);
 
     const std::size_t srcConnectionIdOffset
-        = srcConnectionIdLengthOffset + sizeof(headerView->srcConnectionIdLength);
-    if (srcConnectionIdOffset + headerView->srcConnectionIdLength >= data.size()) {
+        = srcConnectionIdLengthOffset + sizeof(srcConnectionIdLength);
+    if (srcConnectionIdOffset + srcConnectionIdLength >= payload.size()) {
         return std::nullopt;
     }
-    headerView->srcConnectionId = toSpan<const uint8_t>(
-        data.data() + srcConnectionIdOffset, headerView->srcConnectionIdLength);
-    if (headerView->srcConnectionId.size() > QUICExport::MAX_CONNECTION_ID_LENGTH) {
+    headerView->sourceConnectionId = toSpan<const uint8_t>(
+        payload.data() + srcConnectionIdOffset, srcConnectionIdLength);
+    if (headerView->sourceConnectionId.size() > QUICExport::MAX_CONNECTION_ID_LENGTH) {
 		// Received SCID longer than supported
 		return std::nullopt;
 	}
@@ -125,20 +130,22 @@ QUICHeaderView::createFrom(std::span<const std::byte> data, const uint8_t l4Prot
 
 constexpr std::size_t QUICHeaderView::getLength() const noexcept
 {
-    return MIN_HEADER_SIZE + destConnectionId.size() + srcConnectionId.size();
+    return MIN_HEADER_SIZE +
+		destinationConnectionId.size() + 
+		sourceConnectionId.size();
 }
 
 constexpr
 QUICHeaderView::PacketType 
 QUICHeaderView::getPacketType() const noexcept
 {
-	if (m_version.id == QUICVersionId::version_negotiation) {
+	if (version->id == QUICVersionId::version_negotiation) {
 		return PacketType::VERSION_NEGOTIATION;
 	}
 
 	const uint8_t packetType 
 	= (static_cast<uint8_t>(headerForm) & 0b00110000) >> 4;
-	if (m_version.generation != QUICGeneration::V2) {
+	if (version->generation != QUICGeneration::V2) {
 		switch (packetType) {
 		case 0b00: return PacketType::INITIAL;
 		case 0b01: return PacketType::ZERO_RTT;

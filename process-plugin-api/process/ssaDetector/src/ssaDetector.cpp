@@ -64,77 +64,6 @@ SSADetectorPlugin::SSADetectorPlugin([[maybe_unused]]const std::string& params, 
 	}
 }
 
-void RecordExtSSADetector::pkt_table::reset()
-{
-	for (int i = 0; i < PKT_TABLE_SIZE; ++i) {
-		table_[i].reset();
-	}
-}
-
-bool RecordExtSSADetector::pkt_table::check_range_for_presence(
-	uint16_t len,
-	uint8_t down_by,
-	dir_t dir,
-	const timeval& ts_to_compare)
-{
-	int8_t idx = get_idx_from_len(len);
-	for (int8_t i = std::max(idx - down_by, 0); i <= idx; ++i) {
-		if (entry_is_present(i, dir, ts_to_compare)) {
-			return true;
-		}
-	}
-	return false;
-}
-
-void RecordExtSSADetector::pkt_table::update_entry(uint16_t len, dir_t dir, timeval ts)
-{
-	int8_t idx = get_idx_from_len(len);
-	if (dir == 1) {
-		table_[idx].ts_dir1 = ts;
-	} else {
-		table_[idx].ts_dir2 = ts;
-	}
-}
-
-bool RecordExtSSADetector::pkt_table::time_in_window(const timeval& ts_now, const timeval& ts_old)
-{
-	long diff_secs = ts_now.tv_sec - ts_old.tv_sec;
-	long diff_micro_secs = ts_now.tv_usec - ts_old.tv_usec;
-
-	diff_micro_secs += diff_secs * 1000000;
-	if (diff_micro_secs > MAX_TIME_WINDOW) {
-		return false;
-	}
-	return true;
-}
-
-bool RecordExtSSADetector::pkt_table::entry_is_present(
-	int8_t idx,
-	dir_t dir,
-	const timeval& ts_to_compare)
-{
-	timeval& ts = table_[idx].get_time(dir);
-	if (time_in_window(ts_to_compare, ts)) {
-		return true;
-	}
-	return false;
-}
-
-int8_t RecordExtSSADetector::pkt_table::get_idx_from_len(uint16_t len)
-{
-	return std::max(int(len) - MIN_PKT_SIZE, 0);
-}
-
-
-inline bool SSADetectorPlugin::transition_from_syn_ack(
-	RecordExtSSADetector* record,
-	uint16_t len,
-	const timeval& ts,
-	uint8_t dir)
-{
-	return m_packetStorage.hasSynAck(len, SYN_ACK_LOOKUP_WINDOW, !dir, ts);
-}
-
 constexpr
 void SSADetectorPlugin::updatePacketsData(
 	const std::size_t length,
@@ -144,37 +73,24 @@ void SSADetectorPlugin::updatePacketsData(
 	if (!PacketStorage::isValid(length)) {
 		return;
 	}
-	/**
-	 * 0 - client -> server
-	 * 1 - server -> client
-	 */
-	uint8_t dir = pkt.source_pkt ? 0 : 1;
-	uint16_t len = pkt.payload_len;
-	timeval ts = pkt.ts;
-
-	constexpr std::size_t MIN_PACKET_SIZE = 60;
-	constexpr std::size_t MAX_PACKET_SIZE = 150;
-	if (len < MIN_PACKET_SIZE || len > MAX_PACKET_SIZE) {
-		return;
-	}
 
 	constexpr std::size_t MaxSynToSynAckSizeDiff = 12;
-	const bool foundTCPHandshake = m_synPackets.hasSimilarPacketsRecently(
-		length, MaxSynToSynAckSizeDiff, timestamp, !direction);
+	const bool foundTCPHandshake = m_synAckPackets.hasSimilarPacketsRecently(
+		length, MaxSynToSynAckSizeDiff, timestamp, static_cast<Direction>(!direction));
 
 	if (foundTCPHandshake) {
-		record->reset();
-		if (record->syn_pkts_idx < SYN_RECORDS_NUM) {
-			record->syn_pkts[record->syn_pkts_idx] = len;
-			record->syn_pkts_idx += 1;
+		m_synPackets.clear();
+		m_synAckPackets.clear();
+		m_suspects++;
+		if (m_suspectLengths.size() != m_suspectLengths.capacity()) {
+			m_suspectLengths.push_back(length);
 		}
-		record->suspects += 1;
 		return;
 	}
 
-	constexpr std::size_t MaxSynAckToSynSizeDiff = 12;
+	constexpr std::size_t MaxSynAckToSynSizeDiff = 10;
 	const bool correspondingSynFound = m_synPackets.hasSimilarPacketsRecently(
-		length, MaxSynAckToSynSizeDiff, timestamp, !direction);
+		length, MaxSynAckToSynSizeDiff, timestamp, static_cast<Direction>(!direction));
 	if (correspondingSynFound) {
 		m_synAckPackets.insert(length, timestamp, direction);
 	}
@@ -190,14 +106,63 @@ FlowAction SSADetectorPlugin::onFlowUpdate([[maybe_unused]]FlowRecord& flowRecor
 		return FlowAction::RequestTrimmedData;
 	}
 
-	updatePacketsData(packet.size(), packet.timeStamp, packet.direction);
+	updatePacketsData(packet.payload.size(), packet.timestamp, packet.direction);
 
 	return FlowAction::RequestTrimmedData;
 }
 
+constexpr static
+double calculateUniqueRatio(auto&& container) noexcept
+{
+	std::sort(container.begin(), container.end());
+	auto last = std::unique(container.begin(), container.end());
+	return static_cast<double>(
+		std::distance(container.begin(), last)) / container.size();
+}
+
 void SSADetectorPlugin::onFlowExport(FlowRecord& flowRecord) 
 {
-	// TODO makeAllAvailable();
+	// do not export for small packets flows
+	constexpr double HIGH_NUM_SUSPECTS_MAX_RATIO = 0.2;
+
+	const std::size_t packetsTotal 
+		= flowRecord.dataForward.packets + flowRecord.dataReverse.packets;
+	constexpr std::size_t MIN_PACKETS = 30;
+	if (packetsTotal <= MIN_PACKETS) {
+		return;
+	}
+
+	constexpr std::size_t MIN_SUSPECTS_COUNT = 3;
+	if (m_suspects < MIN_SUSPECTS_COUNT) {
+		return;
+	}
+
+	constexpr std::size_t MIN_SUSPECTS_RATIO = 2500;
+	if (double(packetsTotal) / double(m_suspects) > MIN_SUSPECTS_RATIO) {
+		return;
+	}
+
+	const double uniqueRatio = calculateUniqueRatio(m_suspectLengths);
+	constexpr std::size_t LOW_NUM_SUSPECTS_THRESHOLD = 15;
+	constexpr double LOW_NUM_SUSPECTS_MAX_RATIO = 0.6;
+	if (m_suspects < LOW_NUM_SUSPECTS_THRESHOLD 
+		&& uniqueRatio > LOW_NUM_SUSPECTS_MAX_RATIO) {
+		return;
+	}
+	
+	constexpr std::size_t MID_NUM_SUSPECTS_THRESHOLD = 40;
+	constexpr double MID_NUM_SUSPECTS_MAX_RATIO = 0.4;
+	if (m_suspects < MID_NUM_SUSPECTS_THRESHOLD 
+		&& uniqueRatio > MID_NUM_SUSPECTS_MAX_RATIO) {
+		return;
+	}
+
+	if (uniqueRatio > HIGH_NUM_SUSPECTS_MAX_RATIO) {
+		return;
+	}
+
+	m_exportData.confidence = 1;
+	m_fieldHandlers[SSADetectorFields::SSA_CONF_LEVEL].setAsAvailable(flowRecord);
 }
 
 ProcessPlugin* SSADetectorPlugin::clone(std::byte* constructAtAddress) const

@@ -46,13 +46,12 @@ public:
 private:
 
 	constexpr void parseSSDP(
-		std::span<const std::byte> payload, const uint8_t l4Protocol) noexcept;
+		std::string_view payload, const uint8_t l4Protocol) noexcept;
 		
-	constexpr void parseSSDPMSearch(
-		std::span<const std::byte> headerFields) noexcept;
+	void parseSSDPMSearch(std::string_view headerFields) noexcept;
 	
-	constexpr void parseSSDPNotify(
-		std::span<const std::byte> headerFields, const uint8_t l4Protocol) noexcept;
+	void parseSSDPNotify(
+		std::string_view headerFields, const uint8_t l4Protocol) noexcept;
 
 	SSDPExport m_exportData;
 	FieldHandlers<SSDPFields> m_fieldHandlers;

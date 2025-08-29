@@ -4,6 +4,8 @@
 #include <span>
 #include <cstddef>
 
+#include <utils/spanUtils.hpp>
+
 #include "quicVersion.hpp"
 
 namespace ipxp
@@ -11,7 +13,7 @@ namespace ipxp
     
 struct QUICSalt
 {
-    constexpr static
+    static
 	std::optional<std::span<const std::byte>> 
 	createFor(const QUICVersion& version) noexcept
 	{

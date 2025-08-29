@@ -8,6 +8,6 @@ template<typename T>
 struct DirectionalField {
 	T values[2]{};
 
-	T& operator[](Direction d) { return values[static_cast<std::size_t>(d)]; }
-	const T& operator[](Direction d) const { return values[static_cast<std::size_t>(d)]; }
+	constexpr T& operator[](Direction d) { return values[static_cast<std::size_t>(d)]; }
+	constexpr const T& operator[](Direction d) const { return values[static_cast<std::size_t>(d)]; }
 };

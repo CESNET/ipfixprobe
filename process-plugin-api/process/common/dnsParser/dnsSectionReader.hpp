@@ -14,22 +14,21 @@
 namespace ipxp
 {
 
-class DNSSectionReader;
-
-struct DNSSectionReaderFactory
+class DNSSectionReader : public RangeReader
 {
-    static auto makeReader(
+public:
+
+    auto getRange(
         std::size_t itemCount, 
         std::span<const std::byte> fullDNSPayload,
-        std::span<const std::byte> section,
-        ParsingState& parsingState
+        std::span<const std::byte> section
     ) noexcept
     {
-        return Generator::generate([section, itemCount, fullDNSPayload, parsingState]() mutable
+        return Generator::generate([this, section, itemCount, fullDNSPayload]() mutable
         -> std::optional<DNSRecord> {
             auto res = std::make_optional<DNSRecord>();
             if (itemCount == 0) {
-                parsingState.state = ParsingState::State::SUCCESS;
+                setSuccess();
                 return std::nullopt;
             }
             itemCount--;
@@ -76,7 +75,6 @@ struct DNSSectionReaderFactory
             return *v;
         });
     }
-
 };
 
 /*
@@ -87,27 +85,22 @@ public:
         : RangeReader(section, DNSSectionReaderFactory{this, itemCount, fullDNSPayload.data()}) {}
 };*/
 
-using Args = FunctionTraits<decltype(
-            &DNSSectionReaderFactory::makeReader
-        )>::ArgumentTypes;
-
-using Ret = 
-    ReturnType<DNSSectionReaderFactory::makeReader, Args>::Type;
-
-class DNSSectionReader : 
-    public RangeReader<Ret> {
+/*
+class DNSSectionReaderX : public RangeReader {
 
 public:
     DNSSectionReader(
         const std::size_t itemCount, 
         std::span<const std::byte> fullDNSPayload,
         std::span<const std::byte> section)
-        : RangeReader(
-            DNSSectionReaderFactory::makeReader(
-                itemCount, fullDNSPayload, section, m_state))
+        : m_callback(DNSSectionReaderFactory::makeReader(
+            itemCount, fullDNSPayload, section))
     {
     }
+
+    auto m_callback{DNSSectionReaderFactory::makeReader({}, {}, {})};
     
+};*/
 /*public:
 
     DNSSectionReader(
@@ -124,7 +117,6 @@ private:
     std::span<const std::byte> m_fullDNSPayload;
     std::span<const std::byte> section;
     CallbackType m_callback;*/
-};
 
 
 

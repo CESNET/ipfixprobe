@@ -4,13 +4,15 @@
 #include <optional>
 #include <arpa/inet.h>
 
-#include <common/utils/variableLengthType.hpp>
+#include <utils/variableLengthType.hpp>
+#include <utils/toHostByteOrder.hpp>
 
 namespace ipxp
 {
 
 using VariableLengthInt = VariableLengthType<uint64_t>;
 
+constexpr inline
 std::optional<VariableLengthInt> readQUICVariableLengthInt(std::span<const std::byte> data) noexcept
 {
 	auto res = std::make_optional<VariableLengthInt>();
@@ -47,7 +49,7 @@ std::optional<VariableLengthInt> readQUICVariableLengthInt(std::span<const std::
 		if (data.size() < sizeof(uint64_t)) {
 			return std::nullopt;
 		}
-		res->value = ntohll(*reinterpret_cast<const uint64_t*>(
+		res->value = toHostByteOrder(*reinterpret_cast<const uint64_t*>(
             data.data())) & 0x3FFFFFFFFFFFFFFF;
 		res->length = sizeof(uint64_t);
 		return res;

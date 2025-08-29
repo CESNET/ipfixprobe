@@ -19,8 +19,8 @@ DNSSection::parseSection(
     const std::size_t recordsCount) noexcept
 {
     auto res = std::make_optional<DNSSection>();
-    DNSSectionReader reader(recordsCount, section, fullDNSPayload);
-    std::ranges::copy(reader | 
+    DNSSectionReader reader;
+    std::ranges::copy(reader.getRange(recordsCount, section, fullDNSPayload) | 
         std::views::take(res->records.capacity()), 
         std::back_inserter(res->records));
     

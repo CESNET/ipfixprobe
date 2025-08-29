@@ -28,9 +28,10 @@ union IPAddress {
 		u32[2] = u32[3] = std::numeric_limits<uint32_t>::max();
 	}
 
-	constexpr IPAddress(const std::array<uint8_t, 16>& ipv6) noexcept
+	constexpr IPAddress(const std::span<const std::byte, 16>& ipv6) noexcept
 	{
-		u8 = ipv6;
+		std::copy(
+			ipv6.begin(), ipv6.end(), reinterpret_cast<std::byte*>(u8.data()));
 	}
 
 	constexpr bool isIPv4() const noexcept

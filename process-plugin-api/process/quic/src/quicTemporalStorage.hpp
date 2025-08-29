@@ -9,8 +9,9 @@ namespace ipxp
     
 class QUICTemporalStorage {
     struct TemporaryConnectionIdBuffer {
-        DirectionalField<ConnectionId> ids;
+        DirectionalField<QUICExport::ConnectionId> ids;
 	};
+public:
 
     constexpr bool directionIsRevealed() const noexcept
     {
@@ -36,20 +37,20 @@ class QUICTemporalStorage {
 
     constexpr
     void storeConnectionIds(
-        const PacketDirection flowDirection, 
+        const Direction flowDirection, 
 		std::span<const uint8_t> sourceConnectionId, 
 		std::span<const uint8_t> destinationConnectionId) noexcept
     {
         m_buffer[flowDirection].ids[Direction::Forward] 
-            = ConnectionId(
+            = QUICExport::ConnectionId(
                 sourceConnectionId.begin(), sourceConnectionId.end());
         m_buffer[flowDirection].ids[Direction::Reverse] 
-            = ConnectionId(
+            = QUICExport::ConnectionId(
                 destinationConnectionId.begin(), destinationConnectionId.end());
     }
 
     constexpr
-    ConnectionId& getSourceCID() noexcept
+    QUICExport::ConnectionId& getSourceCID() noexcept
     {
         return m_buffer[
             m_serverIsDestination ? 
@@ -59,7 +60,7 @@ class QUICTemporalStorage {
     }
 
     constexpr
-    ConnectionId& getClientCID() noexcept
+    QUICExport::ConnectionId& getClientCID() noexcept
     {
         return m_buffer[
             m_serverIsDestination ? 

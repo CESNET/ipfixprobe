@@ -4,8 +4,12 @@
 #include <span>
 #include <optional>
 
+#include <tlsParser/tlsHandshake.hpp>
+#include <tlsParser/tlsParser.hpp>
+
 #include "quicInitialSecrets.hpp"
 #include "quicExport.hpp"
+#include "quicHeaderView.hpp"
 
 namespace ipxp
 {
@@ -17,12 +21,16 @@ public:
     constexpr static std::size_t SHA2_256_LENGTH = 32;
 
     constexpr static std::size_t MAX_BUFFER_SIZE = 1500;
+    constexpr static std::size_t MAX_HEADER_SIZE = 5;
 
     using ReassembledFrame 
         = boost::container::static_vector<std::byte, MAX_BUFFER_SIZE>;
 
     using TLSExtensionBuffer 
         = boost::container::static_vector<std::byte, QUICExport::MAX_TLS_PAYLOAD_TO_SAVE>;
+
+    using DeobfuscatedHeader
+        = boost::container::static_vector<std::byte, 5>;
 
     enum class FrameType : uint8_t{
 		CRYPTO = 0x06,
@@ -37,21 +45,21 @@ public:
     constexpr static
     std::optional<QUICInitialHeaderView> createFrom(
         std::span<const std::byte> payload,
-        const PacketType packetType,
         const std::byte headerForm,
         std::span<const std::byte> salt,
-        std::span<const std::byte> destConnectionId) noexcept;
+        std::span<const uint8_t> destConnectionId,
+        const QUICVersion version) noexcept;
 
     constexpr static std::size_t MAX_TLS_EXTENSIONS = 30;
 
     std::optional<QUICInitialSecrets> m_initialSecrets;
     ReassembledFrame m_reassembledFrame;
     //uint16_t m_serverPort;
-    //bool clientHelloParsed{false};
+    bool clientHelloParsed{false};
     bool m_saveWholeTLSExtension{false};
 
-    TLSExtensionBuffer m_tlsExtensionBuffer;
-    TLSHandshake m_tlsHandshake;
+    TLSExtensionBuffer tlsExtensionBuffer;
+    TLSHandshake tlsHandshake;
     std::optional<uint64_t> tokenLength;
     std::optional<QUICExport::ServerName> serverName;
     std::optional<QUICExport::UserAgent> userAgent;
@@ -59,7 +67,29 @@ public:
     boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> extensionLengths;
     std::vector<std::byte> extensionsPayload;
 
+    std::span<const uint8_t> sourceConnectionId;
+    std::span<const uint8_t> destinationConnectionId;
+
+    constexpr std::size_t getLength() const noexcept;
+
 private:
+
+    bool parse(
+        std::span<const std::byte> payload,
+        std::span<const uint8_t> destConnectionId, 
+        std::span<const std::byte> salt,
+        std::span<const std::byte> sample,
+        const std::byte headerForm,
+        const QUICVersion version,
+        const std::byte* encryptedPacketNumber
+    ) noexcept;
+
+    constexpr bool parseTLS(
+        const ReassembledFrame& reassembledFrame
+    ) noexcept;
+
+    bool parseTLSExtensions(TLSParser& parser) noexcept;
+
     std::size_t m_size{0};
 };
 

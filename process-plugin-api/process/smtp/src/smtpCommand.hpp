@@ -5,7 +5,7 @@
 namespace ipxp
 {
     
-enum class SMTPCommand : uint16_t {
+enum SMTPCommand : uint16_t {
     EHLO = 0x0001,
     HELO = 0x0002,
     MAIL = 0x0004,

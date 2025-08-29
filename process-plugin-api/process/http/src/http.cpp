@@ -19,6 +19,8 @@
 #include <fieldManager.hpp>
 #include <utils.hpp>
 
+#include "httpParser.hpp"
+
 namespace ipxp {
 
 static const PluginManifest httpPluginManifest = {
@@ -71,12 +73,12 @@ FlowAction HTTPPlugin::parseHTTP(
 	parser.parse(payload);
 
 	if (parser.requestParsed && m_requestParsed) {
-		return FlowAction::FlushWithReinsert;
+		return FlowAction::FlushAndReinsert;
 	}
 	m_requestParsed |= parser.requestParsed;
 
 	if (parser.responseParsed && m_responseParsed) {
-		return FlowAction::FlushWithReinsert;
+		return FlowAction::FlushAndReinsert;
 	}
 	m_responseParsed |= parser.responseParsed;
 
@@ -90,7 +92,7 @@ FlowAction HTTPPlugin::parseHTTP(
 		std::ranges::copy(*parser.uri |
 			std::views::take(m_exportData.uri.capacity()),
 		std::back_inserter(m_exportData.uri));
-		m_fieldHandlers[HTTPFields::HTTP_REQUEST_URI].setAsAvailable(flowRecord);
+		m_fieldHandlers[HTTPFields::HTTP_REQUEST_URL].setAsAvailable(flowRecord);
 	}
 	if (parser.host.has_value()) {
 		std::ranges::copy(*parser.host |
@@ -127,9 +129,15 @@ FlowAction HTTPPlugin::parseHTTP(
 		m_fieldHandlers[HTTPFields::HTTP_RESPONSE_SERVER].setAsAvailable(flowRecord);
 	}
 	if (parser.cookies.has_value()) {
-		std::ranges::copy(*parser.cookies |
-			std::views::take(m_exportData.cookies.capacity()),
-		std::back_inserter(m_exportData.cookies));
+		std::ranges::for_each(*parser.cookies, [&](std::string_view cookie) {
+			std::ranges::copy(cookie |
+				std::views::take(
+					m_exportData.cookies.capacity() - m_exportData.cookies.size()),
+			std::back_inserter(m_exportData.cookies));
+			if (m_exportData.cookies.size() != m_exportData.cookies.capacity()) {
+				m_exportData.cookies.push_back(';');
+			}
+		});
 		m_fieldHandlers[HTTPFields::HTTP_RESPONSE_SET_COOKIE_NAMES].setAsAvailable(flowRecord);
 	}
 

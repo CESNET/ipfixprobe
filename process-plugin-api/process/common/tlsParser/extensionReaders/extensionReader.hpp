@@ -4,24 +4,23 @@
 #include <optional>
 #include <readers/rangeReader/rangeReader.hpp>
 #include <readers/rangeReader/generator.hpp>
+#include <arpa/inet.h>
 
 #include "../tlsExtension.hpp"
 
 namespace ipxp
 {
 
+class ExtensionReader : public RangeReader {
+public:
 
-
-class ExtensionReader;
-
-struct ExtensionReaderFactory {
-
-    static auto operator()(
+    auto getRange(
         std::span<const std::byte> payload
     ) noexcept {
-        return Generator::generate([payload, self = self](int) mutable -> std::optional<Extension> {
+        return Generator::generate([this, payload]() mutable 
+        -> std::optional<TLSExtension> {
             if (payload.empty()) {
-                self->setSuccess();
+                setSuccess();
                 return std::nullopt;
             }
             if (payload.size() < sizeof(uint16_t)) {
@@ -29,14 +28,14 @@ struct ExtensionReaderFactory {
             }
 
             const uint16_t length 
-                = ntohs(*reinterpret_cast<const uint16_t*>(extension.data()));
-            if (length > extension.size() || length < sizeof(uint16_t)) {
+                = ntohs(*reinterpret_cast<const uint16_t*>(payload.data()));
+            if (length > payload.size() || length < sizeof(uint16_t)) {
                 return std::nullopt;
             }
 
-            const auto type = static_cast<ExtensionType>(
+            const auto type = static_cast<TLSExtensionType>(
                 ntohs(*reinterpret_cast<const uint16_t*>(
-                    extension.data() + sizeof(length))));
+                    payload.data() + sizeof(length))));
 
             const auto extensionBegin 
                 = payload.data() + sizeof(type) + sizeof(length);
@@ -44,19 +43,19 @@ struct ExtensionReaderFactory {
             payload 
                 = payload.subspan(sizeof(type) + sizeof(length) + length);
 
-            return Extension{type, {extensionBegin, length}};
-        }) | std::views::take_while([](const std::optional<Extension>& v) {
+            return TLSExtension{type, {extensionBegin, length}};
+        }) | std::views::take_while([](const std::optional<TLSExtension>& v) {
             return v.has_value();
-        }) | std::views::transform([](const std::optional<Extension>& v) {
+        }) | std::views::transform([](const std::optional<TLSExtension>& v) {
             return *v;
         });
     }
 };
 
-class ExtensionReader : public RangeReader<ExtensionReaderFactory> {
+/*class ExtensionReader : public RangeReader<ExtensionReaderFactory> {
 public:
     ExtensionReader(std::span<const std::byte> payload)
         : RangeReader(payload, ExtensionReaderFactory{this}) {}
-};
+};*/
 
 } // namespace ipxp

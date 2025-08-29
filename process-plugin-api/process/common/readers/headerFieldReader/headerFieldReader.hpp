@@ -6,8 +6,8 @@
 #include <optional>
 #include <ranges>
 
-#include <rangeReader/rangeReader.hpp>
-#include <rangeReader/generator.hpp>
+#include <readers/rangeReader/rangeReader.hpp>
+#include <readers/rangeReader/generator.hpp>
 
 namespace ipxp
 {
@@ -17,39 +17,35 @@ struct HeaderField {
     std::string_view value;
 };
 
-class HeaderFieldReader;
+struct HeaderFieldReader : public RangeReader {
 
-struct HeaderFieldReaderFactory {
-    HeaderFieldReader* self;
-
-    auto operator()(std::span<const std::byte> payload) const {
-        return Generator::generate([payload, self = self]() mutable -> std::optional<HeaderField> {
-            auto extensionEnd = std::ranges::find(payload, std::byte{'\n'});
-            if (extensionEnd == payload.end()) {
+    auto getRange(std::string_view payload) noexcept 
+    {
+        return Generator::generate([this, payload]() mutable 
+        -> std::optional<HeaderField> {
+            const std::size_t extensionEnd = payload.find("\r\n");  
+            //auto extensionEnd = std::ranges::find(payload, std::byte{'\n'});
+            if (extensionEnd == std::string_view::npos) {
                 return std::nullopt;
             }
 
-            if (std::distance(payload.begin(), extensionEnd) < 2) {
-                self->setSuccess();
+            if (extensionEnd < 2) {
+                setSuccess();
                 return std::nullopt;
             }
 
-            auto delimiterIt 
-                = std::ranges::find(payload, std::byte{':'});
-            if (std::distance(delimiterIt, payload.end()) < 2) {
+            auto delimiterPos = payload.find(':');
+            if (delimiterPos < 2) {
                 return std::nullopt;
             }
 
-            std::string_view key 
-                = {reinterpret_cast<const char*>(
-                    payload.data()), delimiterIt - payload.data()};
+            std::string_view key = payload.substr(0, delimiterPos);
 
-            std::string_view value
-                = {reinterpret_cast<const char*>(
-                    delimiterIt + 2), extensionEnd - delimiterIt - 2};
-            
+            std::string_view value 
+                = payload.substr(delimiterPos + 2, extensionEnd - delimiterPos - 2);
+
             payload 
-                = payload.subspan(extensionEnd - payload.data());
+                = payload.substr(extensionEnd);
 
             return HeaderField{key, value};
         }) | std::views::take_while([](const std::optional<HeaderField>& v) {
@@ -60,11 +56,13 @@ struct HeaderFieldReaderFactory {
     }
 };
 
+/*
+
 class HeaderFieldReader : public RangeReader<HeaderFieldReaderFactory> {
 public:
     HeaderFieldReader(std::span<const std::byte> payload)
         : RangeReader(payload, HeaderFieldReaderFactory{this}) {}
-};
+};*/
 
 
 } // namespace ipxp

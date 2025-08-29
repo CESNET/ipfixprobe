@@ -21,7 +21,10 @@
 #include <fieldManager.hpp>
 #include <utils.hpp>
 
+#include <utils/stringViewUtils.hpp>
+
 #include "smtpStatusCode.hpp"
+#include "smtpCommand.hpp"
 
 namespace ipxp {
 
@@ -70,105 +73,112 @@ SMTPPlugin::SMTPPlugin([[maybe_unused]]const std::string& params, FieldManager& 
 }
 
 constexpr
-bool SMTPPlugin::parseResponse(std::span<const std::byte> payload) noexcept
+bool SMTPPlugin::parseResponse(std::string_view payload) noexcept
 {
 	if (payload.size() < 5 || !(payload[3] == ' ' || payload[3] == '-')) {
 		return false;
 	}
 
-	std::string_view statusPayload = toStringView(payload.data(), 3);
+	std::string_view statusPayload = payload.substr(0, 3);
 
-	if (!std::ranges::all_of(statusPayload, isdigit)) {
+	if (!std::ranges::all_of(statusPayload, 
+		[](const unsigned char c){
+			 return std::isdigit(c); 
+			})) {
 		return false;
 	}
 
 	uint16_t statusCode{0};
-	auto [_, errorCode] = std::from_chars(
-		statusPayload.data(), statusPayload.data() + statusPayload.size(), statusCode);
-	if (errorCode == std::errc()) {
+	if (std::from_chars(
+		statusPayload.data(), 
+		statusPayload.data() + statusPayload.size(), 
+		statusCode).ec == std::errc()) {
 		return false;
 	}
 
 	switch (statusCode) {
 	case 211:
-		m_exportData.mailCodeFlags |= STATUS_CODE_211;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_211;
 		break;
 	case 214:
-		m_exportData.mailCodeFlags |= STATUS_CODE_214;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_214;
 		break;
 	case 220:
-		m_exportData.mailCodeFlags |= STATUS_CODE_220;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_220;
 		break;
 	case 221:
-		m_exportData.mailCodeFlags |= STATUS_CODE_221;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_221;
 		break;
 	case 250:
-		m_exportData.mailCodeFlags |= STATUS_CODE_250;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_250;
 		break;
 	case 251:
-		m_exportData.mailCodeFlags |= STATUS_CODE_251;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_251;
 		break;
 	case 252:
-		m_exportData.mailCodeFlags |= STATUS_CODE_252;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_252;
 		break;
 	case 354:
-		m_exportData.mailCodeFlags |= STATUS_CODE_354;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_354;
 		break;
 	case 421:
-		m_exportData.mailCodeFlags |= STATUS_CODE_421;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_421;
 		break;
 	case 450:
-		m_exportData.mailCodeFlags |= STATUS_CODE_450;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_450;
 		break;
 	case 451:
-		m_exportData.mailCodeFlags |= STATUS_CODE_451;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_451;
 		break;
 	case 452:
-		m_exportData.mailCodeFlags |= STATUS_CODE_452;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_452;
 		break;
 	case 455:
-		m_exportData.mailCodeFlags |= STATUS_CODE_455;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_455;
 		break;
 	case 500:
-		m_exportData.mailCodeFlags |= STATUS_CODE_500;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_500;
 		break;
 	case 501:
-		m_exportData.mailCodeFlags |= STATUS_CODE_501;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_501;
 		break;
 	case 502:
-		m_exportData.mailCodeFlags |= STATUS_CODE_502;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_502;
 		break;
 	case 503:
-		m_exportData.mailCodeFlags |= STATUS_CODE_503;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_503;
 		break;
 	case 504:
-		m_exportData.mailCodeFlags |= STATUS_CODE_504;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_504;
 		break;
 	case 550:
-		m_exportData.mailCodeFlags |= STATUS_CODE_550;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_550;
 		break;
 	case 551:
-		m_exportData.mailCodeFlags |= STATUS_CODE_551;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_551;
 		break;
 	case 552:
-		m_exportData.mailCodeFlags |= STATUS_CODE_552;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_552;
 		break;
 	case 553:
-		m_exportData.mailCodeFlags |= STATUS_CODE_553;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_553;
 		break;
 	case 554:
-		m_exportData.mailCodeFlags |= STATUS_CODE_554;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_554;
 		break;
 	case 555:
-		m_exportData.mailCodeFlags |= STATUS_CODE_555;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_555;
 		break;
 	default:
-		m_exportData.mailCodeFlags |= STATUS_CODE_UNKNOWN;
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_UNKNOWN;
 		break;
 	}
 
-	if (std::ranges::equal(toStringView(payload) | toupper, "SPAM")) {
-		m_exportData.mailCodeFlags |= STATUS_CODE_SPAM;
+	if (std::ranges::equal(payload | 
+		std::views::transform([](const unsigned char c){
+			 return std::toupper(c); 
+			}), "SPAM")) {
+		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_SPAM;
 	}
 
 	switch (statusPayload[0]) {
@@ -194,32 +204,33 @@ bool SMTPPlugin::parseResponse(std::span<const std::byte> payload) noexcept
 constexpr static
 bool isSMTPKeyword(std::string_view keyword) noexcept
 {
-	return std::ranges::all_of(keyword, is_upper);
+	return std::ranges::all_of(keyword, 
+		[](const unsigned char c){
+			return std::isupper(c); 
+		});
 }
 
 constexpr
-bool SMTPPlugin::parseCommand(std::span<const std::byte> payload) noexcept
+bool SMTPPlugin::parseCommand(std::string_view payload) noexcept
 {
-	if (payload.size() == 0) {
+	if (payload.empty()) {
 		return false;
 	}
 
 	if (m_isDataTransfer) {
-		if (payload.size() != 3 || 
-			!std::ranges::equal(payload, std::to_bytes(".\r\n"))) {
+		if (payload != ".\r\n") {
 			return false;
 		}
 		m_isDataTransfer = false;
 		return true;
 	}
 
-	begin = data;
-	auto headerEnd = std::ranges::find(payload, std::byte{'\r'});
-	if (headerEnd == payload.end()) {
+	const std::size_t headerEnd = payload.find('\r');
+	if (headerEnd == std::string_view::npos) {
 		return false;
 	}
 	const std::vector<std::string_view> tokens 
-		= splitToVector(toStringView(payload.data(), headerEnd - payload.begin()));
+		= splitToVector(payload.substr(0, headerEnd));
 	if (tokens.empty()) {
 		return false;
 	}
@@ -264,14 +275,13 @@ bool SMTPPlugin::parseCommand(std::span<const std::byte> payload) noexcept
 			return false;
 		}
 		
-		std::ranges::copy(tokens[1] | 
-			std::views::drop(semicolonPos + 1) |
+		std::ranges::copy(tokens[1].substr(semicolonPos + 1) | 
 			std::views::take(m_exportData.firstSender.capacity()),
 			std::back_inserter(m_exportData.firstSender));
 	}
 
 	if (tokens[0] == "DATA") {
-		m_dataTransfer = true;
+		m_isDataTransfer = true;
 	}
 
 	constexpr auto commandsMapping 
@@ -295,7 +305,7 @@ bool SMTPPlugin::parseCommand(std::span<const std::byte> payload) noexcept
 		});
 
 	if (commandIt != commandsMapping.end()) {
-		m_exportD/ata.commandFlags |= commandIt->second;
+		m_exportData.commandFlags |= commandIt->second;
 	} else if (!isSMTPKeyword(tokens[0])) {
 		m_exportData.commandFlags |= SMTPCommand::UNKNOWN;
 	}
@@ -308,11 +318,11 @@ FlowAction SMTPPlugin::updateSMTPData(
 	std::span<const std::byte> payload, const uint16_t srcPort, const uint16_t dstPort) noexcept
 {
 	constexpr uint16_t SMTP_PORT = 25;
-	if (dstPort == SMTP_PORT && !parseCommand(payload)) {
+	if (dstPort == SMTP_PORT && !parseCommand(toStringView(payload))) {
 		return FlowAction::RequestNoData;
 	}
 
-	if (srcPort == SMTP_PORT && !parseResponse(payload)) {
+	if (srcPort == SMTP_PORT && !parseResponse(toStringView(payload))) {
 		return FlowAction::RequestNoData;
 	}
 

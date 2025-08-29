@@ -21,14 +21,16 @@
 #include <limits>
 
 #include "quicVersion.hpp"
-#include "quicPacketType.hpp"
+//#include "quicPacketType.hpp"
 #include "quicHeaderView.hpp"
+#include "quicVariableInt.hpp"
+#include "quicSalt.hpp"
 
 namespace ipxp {
 
-constexpr static
+constexpr 
 std::optional<std::size_t>
-parseRetry(std::span<const std::byte> payload) noexcept
+QUICParser::parseRetry(std::span<const std::byte> payload) noexcept
 {
 	/*const std::optional<VariableLengthInt> token
 		= readQUICVariableLengthInt(payload);
@@ -41,7 +43,7 @@ parseRetry(std::span<const std::byte> payload) noexcept
 		return std::nullopt;
 	}
 
-	packetDirection = QUICDirection::SERVER_TO_CLIENT;
+	quicDirection = QUICDirection::SERVER_TO_CLIENT;
 	packetTypesCumulative.bits.retry = true;
 
 	return IntegrityTagSize;
@@ -57,12 +59,12 @@ std::optional<std::size_t> QUICParser::parseZeroRTT(
 		return std::nullopt;
 	}
 
-	if (m_zeroRTTPackets != std::numeric_limits<uint8_t>::max()) {
-		m_zeroRTTPackets++;
+	if (zeroRTTPackets != std::numeric_limits<uint8_t>::max()) {
+		zeroRTTPackets++;
 	}
 
 	packetTypesCumulative.bits.zeroRTT = true;
-	packetDirection = QUICDirection::CLIENT_TO_SERVER;
+	quicDirection = QUICDirection::CLIENT_TO_SERVER;
 
 	return restPayloadLength->value + restPayloadLength->length;
 }
@@ -77,7 +79,7 @@ std::optional<std::size_t> QUICParser::parseHandshake(
 		return std::nullopt;
 	}
 
-	if (restPayloadLength->value > MAX_PAYLOAD_BUFFER_SIZE) {
+	if (restPayloadLength->value > QUICExport::MAX_TLS_PAYLOAD_TO_SAVE) {
 		return false;
 	}
 
@@ -92,11 +94,24 @@ std::optional<std::size_t> QUICParser::parseInitial(
 	std::span<const uint8_t> currentDCID,
 	std::span<const uint8_t> initialDCID,
 	const std::byte headerForm,
-	std::span<const std::byte> salt) noexcept
+	std::span<const std::byte> salt,
+	const QUICVersion version) noexcept
 {
-	initialHeaderView = QUICInitialHeaderView::createFrom(currentDCID);
+	initialHeaderView = QUICInitialHeaderView::createFrom(
+		payload,
+		headerForm,
+		salt,
+		currentDCID,
+		version
+	);
 	if (!initialHeaderView.has_value()) {
-		initialHeaderView = QUICInitialHeaderView::createFrom(initialDCID);
+		initialHeaderView = QUICInitialHeaderView::createFrom(
+			payload,
+			headerForm,
+			salt,
+			initialDCID,
+			version
+		);
 		if (!initialHeaderView.has_value()) {
 			return std::nullopt;
 		}
@@ -104,20 +119,21 @@ std::optional<std::size_t> QUICParser::parseInitial(
 
 	packetTypesCumulative.bits.initial = true;
 
-	if (initialHeaderView->tlsHandshake->type == TLSHandshake::Type::SERVER_HELLO) {
-		packetDirection = QUICDirection::SERVER_TO_CLIENT;
+	if (initialHeaderView->tlsHandshake.type == TLSHandshake::Type::SERVER_HELLO) {
+		quicDirection = QUICDirection::SERVER_TO_CLIENT;
 	}
-	if (initialHeaderView->tlsHandshake->type == TLSHandshake::Type::CLIENT_HELLO) {
-		packetDirection = QUICDirection::CLIENT_TO_SERVER;
+	if (initialHeaderView->tlsHandshake.type == TLSHandshake::Type::CLIENT_HELLO) {
+		quicDirection = QUICDirection::CLIENT_TO_SERVER;
 	}
 
 	return initialHeaderView->getLength();
 }
 
-
-
 bool QUICParser::parse(
-	std::span<const std::byte> payload) noexcept
+	std::span<const std::byte> payload,
+	const QUICExport::ConnectionId& initialConnectionId,
+	const uint8_t l4Protocol
+) noexcept
 {
 	// Handle coalesced packets
 	// 7 because (1B QUIC LH, 4B Version, 1 B SCID LEN, 1B DCID LEN)
@@ -128,24 +144,40 @@ bool QUICParser::parse(
 
 		// TODO CHECK IF SUBSPAN NOT STARTS AFTER SPAN END
 		const std::optional<QUICHeaderView> headerView
-			= QUICHeaderView::createFrom(payload.subspan(offset));
+			= QUICHeaderView::createFrom(
+				payload,
+				l4Protocol
+			);
 		if (!headerView.has_value()) {
 			break;
 		}
 		payload = payload.subspan(headerView->getLength());
 
-		const QUICPacketType packetType = headerView->getPacketType();
+		const QUICHeaderView::PacketType packetType 
+			= headerView->getPacketType();
 		switch (packetType) {
 		case QUICHeaderView::PacketType::ZERO_RTT: {
-			secondaryHeaderSize = parseZeroRTT(...);
+			secondaryHeaderSize = parseZeroRTT(payload);
 			break;
 		}
 		case QUICHeaderView::PacketType::HANDSHAKE: {
-			secondaryHeaderSize = parseHandshake(...);
+			secondaryHeaderSize = parseHandshake(payload);
 			break;
 		}
 		case QUICHeaderView::PacketType::INITIAL: {
-			secondaryHeaderSize = parseInitial(...);
+			const std::optional<std::span<const std::byte>> salt 
+				= QUICSalt::createFor(*headerView->version);
+			if (!salt.has_value()) {
+				return false;
+			}
+			secondaryHeaderSize = parseInitial(
+				payload,
+				headerView->destinationConnectionId,
+				toSpan<const uint8_t>(initialConnectionId),
+				headerView->headerForm,
+				*salt,
+				*headerView->version
+			);
 			break;
 		}
 		case QUICHeaderView::PacketType::RETRY: {
@@ -153,13 +185,13 @@ bool QUICParser::parse(
 			return true;
 		}
 		case QUICHeaderView::PacketType::VERSION_NEGOTIATION: {
-			packetDirection = QUICDirection::SERVER_TO_CLIENT;
+			quicDirection = QUICDirection::SERVER_TO_CLIENT;
 			packetTypesCumulative.bits.versionNegotiation = true;
 			break;
 		}
 		}
 
-		if (!headerSize.has_value()) {
+		if (!secondaryHeaderSize.has_value()) {
 			return false;
 		}
 

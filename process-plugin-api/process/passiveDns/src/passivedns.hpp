@@ -44,6 +44,11 @@ public:
 	PassiveDNSPlugin(PassiveDNSPlugin&& other) = delete;
 
 private:
+	void parseDNS(
+		std::span<const std::byte> payload,
+		FlowRecord& flowRecord,
+		const uint8_t l4Protocol) noexcept;
+
 	PassiveDNSExport m_exportData;
 	FieldHandlers<PassiveDNSFields> m_fieldHandlers;
 };

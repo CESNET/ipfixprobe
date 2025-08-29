@@ -16,13 +16,13 @@ struct HTTPExport {
 	boost::static_string<MAX_URI_LENGTH> uri;
 
 	constexpr static std::size_t MAX_USER_AGENT_LENGTH = 128;
-	boost::static_string<MAX_USER_AGENT_LENGTH> user_agent;
+	boost::static_string<MAX_USER_AGENT_LENGTH> userAgent;
 
 	constexpr static std::size_t MAX_REFERER_LENGTH = 128;
 	boost::static_string<MAX_REFERER_LENGTH> referer;
 
 	constexpr static std::size_t MAX_CONTENT_TYPE_LENGTH = 32;
-	boost::static_string<MAX_CONTENT_TYPE_LENGTH> content_type;
+	boost::static_string<MAX_CONTENT_TYPE_LENGTH> contentType;
 
 	constexpr static std::size_t MAX_SERVER_LENGTH = 32;
 	boost::static_string<MAX_SERVER_LENGTH> server;
@@ -30,7 +30,7 @@ struct HTTPExport {
 	constexpr static std::size_t MAX_COOKIES_LENGTH = 512;
 	boost::static_string<MAX_COOKIES_LENGTH> cookies;
 
-	uint16_t code;
+	uint16_t statusCode;
 };
 
 } // namespace ipxp

@@ -40,8 +40,9 @@ auto split(std::string_view view, const char delimiter) noexcept
     });
 }
 
-constexpr static inline
-std::vector<std::string_view> splitToVector(std::string_view view, const char delimiter) noexcept
+static inline
+std::vector<std::string_view> splitToVector(
+    std::string_view view, const char delimiter = ' ') noexcept
 {
     std::vector<std::string_view> res;
 

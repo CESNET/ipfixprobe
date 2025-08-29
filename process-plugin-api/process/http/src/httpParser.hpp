@@ -15,7 +15,7 @@
 
 #include <boost/container/static_vector.hpp>
 
-namespace ipxp2 {
+namespace ipxp {
 
 /**
  * @brief HTTP parser class
@@ -45,10 +45,10 @@ public:
 	std::optional<boost::container::static_vector<std::string_view, MAX_COOKIE_COUNT>> cookies;
 
 private:
-	constexpr bool parseRequestHeaders(std::string_view payload) noexcept;
+	bool parseRequestHeaders(std::string_view payload) noexcept;
 	constexpr bool parseRequest(std::string_view payload) noexcept;
-    constexpr bool parseResponseHeaders(std::string_view payload) noexcept;
+    bool parseResponseHeaders(std::string_view payload) noexcept;
     constexpr bool parseResponse(std::string_view payload) noexcept;
 };
 
-} // namespace ipxp2
+} // namespace ipxp

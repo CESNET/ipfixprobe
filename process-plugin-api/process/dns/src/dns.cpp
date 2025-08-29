@@ -26,14 +26,14 @@
 namespace ipxp {
 
 
-static const PluginManifest packetStatsPluginManifest = {
-	.name = "pstats",
-	.description = "Pstats process plugin for computing packet bursts stats.",
+static const PluginManifest dnsPluginManifest = {
+	.name = "dns",
+	.description = "Dns process plugin for parsing dns traffic.",
 	.pluginVersion = "1.0.0",
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*PSTATSOptParser parser;
+			/*OptionsParser parser("dns", "Parse DNS traffic");
 			parser.usage(std::cout);*/
 		},
 };
@@ -128,11 +128,15 @@ bool DNSPlugin::parseDNS(
 	auto answerParser = [&](const DNSRecord& answer) {
 		m_exportData.firstResponseTimeToLive = answer.timeToLive;
 		m_fieldHandlers[DNSFields::DNS_RR_TTL].setAsAvailable(flowRecord);
-		
-		m_exportData.firstResponseAsString 
-			= std::visit([](const auto& record) {
-				return record.toDNSString();
-			}, answer.payload.getUnderlyingType());
+		const std::optional<DNSRecordPayloadType> firstResponse 
+			= answer.payload.getUnderlyingType(); 
+		m_exportData.firstResponseAsString = "";
+		if (firstResponse.has_value()) {
+			m_exportData.firstResponseAsString = std::visit(
+				[](const auto& record) {
+					return record.toDNSString();
+				}, *firstResponse);
+		}
 		m_fieldHandlers[DNSFields::DNS_RDATA].setAsAvailable(flowRecord);
 
 		m_exportData.firstResponseAsStringLength 

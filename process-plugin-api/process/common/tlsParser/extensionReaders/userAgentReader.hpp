@@ -1,11 +1,11 @@
 
 #include <span>
-#include <views>
+#include <ranges>
 #include <optional>
-#include <common/rangeReader/rangeReader.hpp>
-#include <common/rangeReader/generator.hpp>
+#include <readers/rangeReader/rangeReader.hpp>
+#include <readers/rangeReader/generator.hpp>
 
-#include "../../quic/quicVariableInt.hpp"
+#include "../../../quic/src/quicVariableInt.hpp"
 
 namespace ipxp
 {
@@ -15,15 +15,14 @@ struct UserAgent {
     std::string_view value;
 };
 
-class TLSUserAgentReader;
+struct UserAgentReader : public RangeReader {
 
-struct UserAgentReaderFactory {
-    TLSUserAgentReader* self;
-
-    auto operator()(std::span<const std::byte> userAgentExtension) const {
-        return Generator::generate([userAgentExtension, self = self](int) mutable -> std::optional<UserAgent> {
+    auto getRange(std::span<const std::byte> userAgentExtension) noexcept
+    {
+        return Generator::generate([this, userAgentExtension]() mutable 
+        -> std::optional<UserAgent> {
             if (userAgentExtension.empty()) {
-                self->setSuccess();
+                setSuccess();
                 return std::nullopt;
             }
             const std::optional<VariableLengthInt> id
@@ -38,7 +37,7 @@ struct UserAgentReaderFactory {
             if (!userAgentLength.has_value()) {
                 return std::nullopt;
             }
-            if (id->length + userAgentLength->length + userAgentLength 
+            if (id->length + userAgentLength->length + userAgentLength->value 
                     > userAgentExtension.size()) {
                 return std::nullopt;
             }
@@ -49,7 +48,7 @@ struct UserAgentReaderFactory {
 
             userAgentExtension = userAgentExtension.subspan(userAgentOffset + userAgentLength->length);
 
-            return {id->value, {userAgent, userAgentLength->value}};
+            return UserAgent{id->value, {userAgent, userAgentLength->value}};
         }) | std::views::take_while([](const std::optional<UserAgent>& v) {
             return v.has_value();
         }) | std::views::transform([](const std::optional<UserAgent>& v) {
@@ -58,10 +57,11 @@ struct UserAgentReaderFactory {
     }
 };
 
+/*
 class TLSUserAgentReader : public RangeReader<UserAgentReaderFactory> {
 public:
     TLSUserAgentReader(std::span<const std::byte> userAgentExtension)
         : RangeReader(userAgentExtension, UserAgentReaderFactory{this}) {}
-};
+};*/
 
 } // namespace ipxp

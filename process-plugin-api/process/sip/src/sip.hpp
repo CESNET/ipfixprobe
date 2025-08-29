@@ -44,8 +44,7 @@ public:
 	SIPPlugin(SIPPlugin&& other) = delete;
 
 private:
-	void updatePacketsData(const Packet& packet) noexcept;
-	bool isDuplicate(const Packet& packet) noexcept;
+	constexpr bool parseSIPData(std::string_view payload) noexcept;
 
 	SIPExport m_exportData;
 	FieldHandlers<SIPFields> m_fieldHandlers;

@@ -45,9 +45,9 @@ public:
 
 private:
 	constexpr
-	bool parseResponse(std::span<const std::byte> payload) noexcept;
+	bool parseResponse(std::string_view payload) noexcept;
 	constexpr
-	bool parseCommand(std::span<const std::byte> payload) noexcept;
+	bool parseCommand(std::string_view payload) noexcept;
 	constexpr
 	FlowAction updateSMTPData(
 	std::span<const std::byte> payload, const uint16_t srcPort, const uint16_t dstPort) noexcept;

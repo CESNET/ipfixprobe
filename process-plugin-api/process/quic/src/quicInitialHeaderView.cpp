@@ -6,8 +6,10 @@
 #include <boost/container/static_vector.hpp>
 #include <algorithm>
 #include <arpa/inet.h>
+#include <bit>
+#include <ranges>
 
-#include <common/utils/spanUtils.hpp>
+#include <utils/spanUtils.hpp>
 #include "quicVariableInt.hpp"
 
 #include "opensslContext.hpp"
@@ -46,9 +48,15 @@ ExpandedLabel expandLabel(
     res.push_back(std::byte{convertedDesiredLength >> 8});
     res.push_back(std::byte{convertedDesiredLength & 0xFF});
 
-    res.insert(res.end(), prefix.begin(), prefix.end());
+    res.insert(
+        res.end(), 
+        reinterpret_cast<const std::byte*>(prefix.data()), 
+        reinterpret_cast<const std::byte*>(prefix.data() + prefix.size()));
 
-    res.insert(res.end(), label.begin(), label.end());
+    res.insert(
+        res.end(), 
+        reinterpret_cast<const std::byte*>(label.data()), 
+        reinterpret_cast<const std::byte*>(label.data() + label.size()));
 
     // Context length is always zero
     res.push_back(std::byte{0});
@@ -79,21 +87,24 @@ deriveFromSecret(
         // info initialization failed
         !EVP_PKEY_CTX_add1_hkdf_info(
             keyContext.get(), 
-            expandedLabel.data(), 
+            reinterpret_cast<const uint8_t*>(expandedLabel.data()), 
             expandedLabel.size()) ||
         // key initialization failed
         !EVP_PKEY_CTX_set1_hkdf_key(
             keyContext.get(), 
-            secret.data(), 
-            HASH_SHA2_256_LENGTH) ||
+            reinterpret_cast<const uint8_t*>(secret.data()), 
+            QUICInitialHeaderView::SHA2_256_LENGTH) ||
         // HKDF-Expand derivation failed
-        !EVP_PKEY_derive(keyContext.get(), derived->data(), &derivedLength)) {
+        !EVP_PKEY_derive(
+            keyContext.get(), 
+            reinterpret_cast<uint8_t*>(derived->data()), 
+            &derivedLength)) {
 		return std::nullopt;
 	}
 	return derived;
 }
 
-constexpr static
+static
 std::optional<QUICInitialSecrets> 
 deriveSecrets(std::span<const std::byte> secret, 
     const bool isSecondGeneration) noexcept
@@ -109,11 +120,11 @@ deriveSecrets(std::span<const std::byte> secret,
 		
     // use HKDF-Expand to derive other secrets
     const ExpandedLabel expandedKey = 
-        expandLabel<AES_128_KEY_LENGTH>("tls13 ", keyLabel);
-    const std::optional<std::array<std::byte, AES_128_KEY_LENGTH>> keyDerived 
-        = deriveFromSecret<AES_128_KEY_LENGTH>(
+        expandLabel<QUICInitialSecrets::AES_128_KEY_LENGTH>("tls13 ", keyLabel);
+    const std::optional<std::array<std::byte, QUICInitialSecrets::AES_128_KEY_LENGTH>> keyDerived 
+        = deriveFromSecret<QUICInitialSecrets::AES_128_KEY_LENGTH>(
             secret,
-            expandedKey);
+            toSpan<const std::byte>(expandedKey));
     if (!keyDerived) {
         return std::nullopt;
     }
@@ -121,11 +132,11 @@ deriveSecrets(std::span<const std::byte> secret,
     res->key = *keyDerived;
 
     const ExpandedLabel expandedInitialVector = 
-        expandLabel<TLS13_AEAD_NONCE_LENGTH>("tls13 ", initialVectorLabel);
-    const std::optional<std::array<std::byte, TLS13_AEAD_NONCE_LENGTH>> 
-    initialVectorDerived = deriveFromSecret<TLS13_AEAD_NONCE_LENGTH>(
+        expandLabel<QUICInitialSecrets::TLS13_AEAD_NONCE_LENGTH>("tls13 ", initialVectorLabel);
+    const std::optional<std::array<std::byte, QUICInitialSecrets::TLS13_AEAD_NONCE_LENGTH>> 
+    initialVectorDerived = deriveFromSecret<QUICInitialSecrets::TLS13_AEAD_NONCE_LENGTH>(
             secret,
-            expandedInitialVector);
+            toSpan<const std::byte>(expandedInitialVector));
     if (!initialVectorDerived) {
         return std::nullopt;
     }
@@ -133,11 +144,13 @@ deriveSecrets(std::span<const std::byte> secret,
     res->initialVector = *initialVectorDerived;
 
     const ExpandedLabel expandedHeaderProtection = 
-        expandLabel<AES_128_KEY_LENGTH>("tls13 ", headerProtectionLabel);
-    const std::optional<std::array<std::byte, AES_128_KEY_LENGTH>> 
-    headerProtectionDerived = deriveFromSecret<AES_128_KEY_LENGTH>(
+        expandLabel<QUICInitialSecrets::AES_128_KEY_LENGTH>(
+            "tls13 ", headerProtectionLabel);
+    const std::optional<std::array<std::byte, QUICInitialSecrets::AES_128_KEY_LENGTH>> 
+    headerProtectionDerived 
+        = deriveFromSecret<QUICInitialSecrets::AES_128_KEY_LENGTH>(
             secret,
-            expandedHeaderProtection);
+            toSpan<const std::byte>(expandedHeaderProtection));
     if (!headerProtectionDerived) {
         return std::nullopt;
     }
@@ -148,9 +161,11 @@ deriveSecrets(std::span<const std::byte> secret,
 }
 
 
-constexpr std::optional<QUICInitialSecrets>
-createInitialSecrets(std::span<const std::byte> destConnectionId, 
-    std::span<const std::byte> salt) noexcept
+std::optional<QUICInitialSecrets>
+createInitialSecrets(
+    std::span<const uint8_t> destConnectionId, 
+    std::span<const std::byte> salt,
+    const bool isSecondGeneration) noexcept
 {
 	// Set DCID if not set by previous packet
 	/*if (initial_dcid_len == 0) {
@@ -158,11 +173,11 @@ createInitialSecrets(std::span<const std::byte> destConnectionId,
 		initial_dcid = (uint8_t*) dcid;
 	}*/
 
-	std::array<std::byte, HASH_SHA2_256_LENGTH> extractedSecret = {0};
-	std::size_t extractedSecretLength = HASH_SHA2_256_LENGTH;
+	std::array<std::byte, QUICInitialHeaderView::SHA2_256_LENGTH> extractedSecret;
+	std::size_t extractedSecretLength = QUICInitialHeaderView::SHA2_256_LENGTH;
 
-    std::array<std::byte, HASH_SHA2_256_LENGTH> expandedSecret = {0};
-	size_t expandedSecretLength = HASH_SHA2_256_LENGTH;
+    std::array<std::byte, QUICInitialHeaderView::SHA2_256_LENGTH> expandedSecret;
+	size_t expandedSecretLength = QUICInitialHeaderView::SHA2_256_LENGTH;
 
 
 	// HKDF-Extract
@@ -184,7 +199,7 @@ createInitialSecrets(std::span<const std::byte> destConnectionId,
         // salt initialization
         !EVP_PKEY_CTX_set1_hkdf_salt(
             publicKeyContext.get(), 
-            salt.data(), 
+            reinterpret_cast<const uint8_t*>(salt.data()), 
             salt.size()) ||
         // key initialization
         !EVP_PKEY_CTX_set1_hkdf_key(
@@ -193,8 +208,9 @@ createInitialSecrets(std::span<const std::byte> destConnectionId,
             destConnectionId.size()) ||
         // HKDF-Extract derivation
         !EVP_PKEY_derive(
-            publicKeyContext.get(), reinterpret_cast<uint8_t*>(
-                extractedSecret.data()), &secretLength) ||
+            publicKeyContext.get(), 
+            reinterpret_cast<uint8_t*>(extractedSecret.data()), 
+            &extractedSecretLength) ||
         // Expand context initialization
         !EVP_PKEY_derive_init(publicKeyContext.get()) ||
         // Expand mode initialization
@@ -206,27 +222,28 @@ createInitialSecrets(std::span<const std::byte> destConnectionId,
         // Expand info initialization
         !EVP_PKEY_CTX_add1_hkdf_info(
             publicKeyContext.get(), 
-            expandedLabel.data(), 
+            reinterpret_cast<const uint8_t*>(expandedLabel.data()), 
             expandedLabel.size()) ||
         // Expand key initialization
         !EVP_PKEY_CTX_set1_hkdf_key(
             publicKeyContext.get(), 
-            extractedSecret.data(), 
+            reinterpret_cast<const uint8_t*>(extractedSecret.data()), 
             extractedSecretLength) ||
         // HKDF-Expand derivation
         !EVP_PKEY_derive(
             publicKeyContext.get(), 
-            expandedSecret.data(), 
+            reinterpret_cast<uint8_t*>(expandedSecret.data()), 
             &expandedSecretLength)) {
 		return std::nullopt;
 	}
 
-    return deriveSecrets(toSpan(expandedSecret));
+    return deriveSecrets(
+        toSpan<const std::byte>(expandedSecret), isSecondGeneration);
 }
 
-constexpr static
+static
 std::optional<boost::container::static_vector<std::byte, QUICInitialHeaderView::SAMPLE_LENGTH>> 
-QUICParser::encryptSample(const QUICInitialSecrets& initialSecrets, 
+encryptSample(const QUICInitialSecrets& initialSecrets, 
     std::span<const std::byte> sample)
 {
     auto plaintext = std::make_optional<boost::container::static_vector<std::byte, 
@@ -241,7 +258,8 @@ QUICParser::encryptSample(const QUICInitialSecrets& initialSecrets,
             cipherContext.get(), 
             EVP_aes_128_ecb(), 
             nullptr, 
-            initialSecrets.headerProtection.data(), 
+            reinterpret_cast<const uint8_t*>(
+                initialSecrets.headerProtection.data()), 
             nullptr)) {
 		return std::nullopt;
 	}
@@ -249,36 +267,42 @@ QUICParser::encryptSample(const QUICInitialSecrets& initialSecrets,
 	// we need to disable padding so we can use EncryptFinal
 	EVP_CIPHER_CTX_set_padding(cipherContext.get(), 0);
 
-	std::size_t encryptedLength = 0;
+	int encryptedLength = 0;
         //decrypting header
 	if (!EVP_EncryptUpdate(
             cipherContext.get(), 
-            plaintext.data(), 
+            reinterpret_cast<uint8_t*>(plaintext->data()), 
             &encryptedLength, 
-            sample.data(), 
+            reinterpret_cast<const uint8_t*>(sample.data()), 
             sample.size()) ||
         // final header decryption
 		!EVP_EncryptFinal_ex(
             cipherContext.get(), 
-            plaintext.data() + encryptedLength, 
+            reinterpret_cast<uint8_t*>(plaintext->data() + encryptedLength), 
             &encryptedLength)) {
 		return std::nullopt;
 	}
 
-    plaintext.reserve(encryptedLength);
+    plaintext->reserve(encryptedLength);
 	return plaintext;
 }
 
-constexpr static
-bool decryptInitialHeader(const QUICInitialSecrets& initialSecrets, 
-    std::span<const std::byte> sample, const std::byte formHeader,
-    const std::byte* encryptedPacketNumber) noexcept
+static
+std::optional<QUICInitialHeaderView::DeobfuscatedHeader>
+decryptInitialHeader(
+    QUICInitialSecrets& initialSecrets, 
+    std::span<const std::byte> sample, 
+    const std::byte formHeader,
+    const std::byte* encryptedPacketNumber
+) noexcept
 {
 	//uint8_t plaintext[SAMPLE_LENGTH];
-	std::array<std::byte, 5> mask = {0};
-	std::array<std::byte, 4> full_pkn = {0};
+	std::array<std::byte, 5> mask;
+    auto deobfuscatedHeader = 
+        std::make_optional<QUICInitialHeaderView::DeobfuscatedHeader>();
+	//std::array<std::byte, 4> full_pkn;
 	//std::byte first_byte = 0;
-	uint32_t packet_number = 0;
+	//uint32_t packet_number = 0;
 
 	// https://www.rfc-editor.org/rfc/rfc9001.html#name-header-protection-applicati
 
@@ -299,15 +323,20 @@ bool decryptInitialHeader(const QUICInitialSecrets& initialSecrets,
 	std::optional<boost::container::static_vector<std::byte, QUICInitialHeaderView::SAMPLE_LENGTH>> 
     plaintext = encryptSample(initialSecrets, sample);
     if (!plaintext.has_value()) {
-		return false;
+		return std::nullopt;
 	}
 
-    std::copy(plaintext.data(), plaintext.data() + mask.size(), mask.begin());
+    std::copy(plaintext->data(), plaintext->data() + mask.size(), mask.begin());
 
 	const std::byte deobfuscatedFormHeader = formHeader ^ (mask[0] & std::byte{0x0f});
 	const uint8_t packetNumberLength 
     = (static_cast<uint8_t>(deobfuscatedFormHeader) & 0x03) + 1;
 
+    deobfuscatedHeader->push_back(deobfuscatedFormHeader);
+    std::ranges::copy_n(
+        encryptedPacketNumber, 
+        packetNumberLength, 
+        std::back_inserter(*deobfuscatedHeader));
 	// after de-obfuscating pkn, we know exactly pkn length so we can correctly adjust start of
 	// payload
 	/*payload = payload + pkn_len;
@@ -331,45 +360,50 @@ bool decryptInitialHeader(const QUICInitialSecrets& initialSecrets,
 
     std::array<std::byte, 4> packetNumberBytes;
 
-    std::transform(encryptedPacketNumber, encryptedPacketNumber + packetNumberLength, 
+    std::for_each_n(encryptedPacketNumber, packetNumberLength, 
         [&, index = 0](const std::byte obfuscatedByte) mutable {
             packetNumberBytes[index + 4 - packetNumberLength] 
                 = obfuscatedByte ^ mask[index + 1];
             index++;
         });
 
-    return ntohl(
-        *reinterpret_cast<const uint32_t*>(packetNumberBytes.data()));
+    const uint32_t packetNumber = ntohl(
+        std::bit_cast<uint32_t>(packetNumberBytes));
 
 	// adjust nonce for payload decryption
 	// https://www.rfc-editor.org/rfc/rfc9001.html#name-aead-usage
 	//  The exclusive OR of the padded packet number and the IV forms the AEAD nonce
 
-    const uint64_t* initialVectorEnd = initialSecrets.initialVector.data() 
-        + initialSecrets.initialVector.size() - sizeof(uint64_t);
+    uint64_t* initialVectorEnd = reinterpret_cast<uint64_t*>(
+        initialSecrets.initialVector.data() 
+        + initialSecrets.initialVector.size() - sizeof(uint64_t));
 
-	*initialVectorEnd = htobe64(be64toh(*initialVectorEnd) ^ packet_number);
+	*initialVectorEnd = htobe64(be64toh(*initialVectorEnd) ^ packetNumber);
 
-    return true;
+    return deobfuscatedHeader;
 }
 
-constexpr static std::optional<std::array<std::byte, ReassembledFrame::capacity()>>
-decryptPayload(std::span<const std::byte> encryptedPayload) noexcept
+static std::optional<std::array<std::byte, QUICInitialHeaderView::MAX_BUFFER_SIZE>>
+decryptPayload(
+    std::span<const std::byte> encryptedPayload,
+    QUICInitialSecrets& initialSecrets,
+    const QUICInitialHeaderView::DeobfuscatedHeader& deobfuscatedHeader
+) noexcept
 {
-    const std::array<std::byte, 16> authTag;
+    std::array<std::byte, 16> authTag{};
 
     if (encryptedPayload.size() <= authTag.size()) {
         return std::nullopt;
     }
 	/* Input is --> "header || ciphertext (buffer) || auth tag (16 bytes)" */
-    if (encryptedPayload.size() > ReassembledFrame::capacity()) {
+    if (encryptedPayload.size() > QUICInitialHeaderView::ReassembledFrame::capacity()) {
 		return std::nullopt;
 	}
 
-	std::size_t decryptedLength;
+	int decryptedLength;
 
-    auto decryptedPayload = std::make_optional<std::array<std::byte, 
-        ReassembledFrame::capacity()>>();
+    std::optional<std::array<std::byte, 
+        QUICInitialHeaderView::MAX_BUFFER_SIZE>> decryptedPayload;
 
 	// https://datatracker.ietf.org/doc/html/draft-ietf-quic-tls-34#section-5.3
 	// "These cipher suites have a 16-byte authentication tag and produce an output 16 bytes larger
@@ -392,29 +426,29 @@ decryptPayload(std::span<const std::byte> encryptedPayload) noexcept
         !EVP_CIPHER_CTX_ctrl(
             cipherContext.get(), 
             EVP_CTRL_AEAD_SET_IVLEN, 
-            TLS13_AEAD_NONCE_LENGTH, 
+            QUICInitialSecrets::TLS13_AEAD_NONCE_LENGTH, 
             nullptr) || 
         // setting KEY and NONCE
         !EVP_DecryptInit_ex(
             cipherContext.get(), 
             nullptr, 
             nullptr, 
-            initial_secrets.key, 
-            initial_secrets.iv) || 
+            reinterpret_cast<uint8_t*>(initialSecrets.key.data()), 
+            reinterpret_cast<uint8_t*>(initialSecrets.initialVector.data())) || 
         // initializing authenticated data
         !EVP_DecryptUpdate(
             cipherContext.get(), 
             nullptr, 
             &decryptedLength, 
-            header, 
-            header_len) || 
+            reinterpret_cast<const uint8_t*>(deobfuscatedHeader.data()), 
+            deobfuscatedHeader.size()) || 
         // decrypting payload
         !EVP_DecryptUpdate(
             cipherContext.get(), 
-            decryptedPayload.data(), 
+            reinterpret_cast<uint8_t*>(decryptedPayload->data()), 
             &decryptedLength, 
-            payload, 
-            payload_len) || 
+            reinterpret_cast<const uint8_t*>(encryptedPayload.data()), 
+            encryptedPayload.size()) || 
         // TAG check
         !EVP_CIPHER_CTX_ctrl(
             cipherContext.get(),
@@ -424,7 +458,8 @@ decryptPayload(std::span<const std::byte> encryptedPayload) noexcept
         // final payload decryption
         !EVP_DecryptFinal_ex(
             cipherContext.get(), 
-            decryptedPayload.data() + decryptedLength, 
+            reinterpret_cast<uint8_t*>(
+                decryptedPayload->data() + decryptedLength), 
             &decryptedLength)) {
 		return std::nullopt;
 	}
@@ -433,7 +468,7 @@ decryptPayload(std::span<const std::byte> encryptedPayload) noexcept
 }
 
 constexpr static
-std::span<const std::byte> 
+std::optional<std::span<const std::byte>>
 getCryptoData(std::span<const std::byte> payload) noexcept
 {
     const std::optional<VariableLengthInt> frameOffset
@@ -540,7 +575,7 @@ std::optional<std::size_t> skipAck2Frame(std::span<const std::byte> payload) noe
 }
 
 constexpr static
-std::optional<std::size_t> skipConnectionClose1(std::span<const std::byte> payload) noexcept
+std::optional<std::size_t> skipConnectionClose1Frame(std::span<const std::byte> payload) noexcept
 {
 	// https://www.rfc-editor.org/rfc/rfc9000.html#name-connection_close-frames
     const std::optional<VariableLengthInt> errorCode 
@@ -564,11 +599,13 @@ std::optional<std::size_t> skipConnectionClose1(std::span<const std::byte> paylo
 	}
 
 	return reasonPhraseLengthOffset 
-        + reasonPhraseLength->length + reasonPhraseLength.value;
+        + reasonPhraseLength->length + reasonPhraseLength->value;
 }
 
 constexpr static
-std::optional<std::size_t> skipConnectionClose2(std::span<const std::byte> payload) noexcept
+std::optional<std::size_t> skipConnectionClose2Frame(
+    std::span<const std::byte> payload
+) noexcept
 {
 	// https://www.rfc-editor.org/rfc/rfc9000.html#name-connection_close-frames
 	const std::optional<VariableLengthInt> errorCode 
@@ -577,7 +614,7 @@ std::optional<std::size_t> skipConnectionClose2(std::span<const std::byte> paylo
 		return std::nullopt;
 	}
 
-    const std::size_t reasonPhraseLengthOffset = errorCode->length + frameType->length;
+    const std::size_t reasonPhraseLengthOffset = errorCode->length;
     const std::optional<VariableLengthInt> reasonPhraseLength
         = readQUICVariableLengthInt(payload.subspan(reasonPhraseLengthOffset));
     if (!reasonPhraseLength.has_value()) {
@@ -585,26 +622,28 @@ std::optional<std::size_t> skipConnectionClose2(std::span<const std::byte> paylo
 	}
 
 	return reasonPhraseLengthOffset 
-        + reasonPhraseLength->length + reasonPhraseLength.value;
+        + reasonPhraseLength->length + reasonPhraseLength->value;
 }
 
 
 constexpr static
-std::optional<ReassembledFrame> 
+std::optional<QUICInitialHeaderView::ReassembledFrame> 
 reassembleCryptoFrames(std::span<const std::byte> decryptedPayload) noexcept
 {
-    auto reassembledFrame = std::make_optional<ReassembledFrame>();
+    auto reassembledFrame 
+        = std::make_optional<QUICInitialHeaderView::ReassembledFrame>();
 
 	while (!decryptedPayload.empty()) {
 		// https://www.rfc-editor.org/rfc/rfc9000.html#name-frames-and-frame-types
 		// only those frames can occure in initial packets
 		std::optional<std::size_t> frameLength;
-        const FrameType frameType = static_cast<FrameType>(decryptedPayload[0]);
-        decryptedPayload = decryptedPayload.subspan(sizeof(FrameType));
+        const QUICInitialHeaderView::FrameType frameType 
+            = static_cast<QUICInitialHeaderView::FrameType>(decryptedPayload[0]);
+        decryptedPayload = decryptedPayload.subspan(sizeof(QUICInitialHeaderView::FrameType));
         
         switch (frameType)
         {
-        case FrameType::CRYPTO:
+        case QUICInitialHeaderView::FrameType::CRYPTO: {
             std::optional<std::span<const std::byte>> cryptoData 
                 = getCryptoData(decryptedPayload);
             if (!cryptoData.has_value() || reassembledFrame->size() 
@@ -614,22 +653,30 @@ reassembleCryptoFrames(std::span<const std::byte> decryptedPayload) noexcept
             const std::size_t sizeToCopy = std::min(
                 cryptoData->size(), reassembledFrame->capacity() - reassembledFrame->size());
             reassembledFrame->insert(
-                cryptoData->begin(), cryptoData->begin() + sizeToCopy);
+                reassembledFrame->end(),
+                cryptoData->begin(), 
+                cryptoData->begin() + sizeToCopy);
 
             frameLength = cryptoData->data() - 
                 decryptedPayload.data() + cryptoData->size();
-        case FrameType::ACK1:
-            frameLength = skipAck1(decryptedPayload);
             break;
-        case FrameType::ACK2:
-            frameLength = skipAck2(decryptedPayload);
+        }
+        case QUICInitialHeaderView::FrameType::ACK1: {
+            frameLength = skipAck1Frame(decryptedPayload);
             break;
-        case FrameType::CONNECTION_CLOSE1:
-            frameLength = skipConnectionClose1(decryptedPayload);
+        }
+        case QUICInitialHeaderView::FrameType::ACK2: {
+            frameLength = skipAck2Frame(decryptedPayload);
             break;
-        case FrameType::CONNECTION_CLOSE2:
-            frameLength = skipConnectionClose2(decryptedPayload);
+        }
+        case QUICInitialHeaderView::FrameType::CONNECTION_CLOSE1: {
+            frameLength = skipConnectionClose1Frame(decryptedPayload);
             break;
+        }
+        case QUICInitialHeaderView::FrameType::CONNECTION_CLOSE2: {
+            frameLength = skipConnectionClose2Frame(decryptedPayload);
+            break;
+        }
         default:
             return std::nullopt;
         }
@@ -647,97 +694,107 @@ reassembleCryptoFrames(std::span<const std::byte> decryptedPayload) noexcept
 	return reassembledFrame;
 }
 
-constexpr
-bool QUICParser::parseTLSExtensions(TLSParser& parser)
+bool QUICInitialHeaderView::parseTLSExtensions(TLSParser& parser) noexcept
 {
 	const bool extensionsParsed = parser.parseExtensions(
-        [&](const Extension& extension) {
-        m_initialHeaderEnd = extension.payload.end();
+        [&](const TLSExtension& extension) {
 
 		if (extension.type == TLSExtensionType::SERVER_NAME && 
             !extension.payload.empty()) {
-            const std::optional<ServerNames> parsedServerNames
+            const std::optional<TLSParser::ServerNames> parsedServerNames
                 = parser.parseServerNames(extension.payload);
             if (parsedServerNames.has_value() && !parsedServerNames->empty()) {
-                serverName.clear();
-                std::ranges::copy(parsedServerNames[0] |
-                    std::views::take(serverName.capacity()),
-                std::back_inserter(serverName));
+                serverName = std::make_optional<QUICExport::ServerName>();
+                std::ranges::copy((*parsedServerNames)[0] |
+                    std::views::take(serverName->capacity()),
+                std::back_inserter(*serverName));
             }
 		}
 
-        if (extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V1 ||
-			extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS ||
-			extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V2) {
+        if (extension.type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V1 ||
+			extension.type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS ||
+			extension.type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V2) {
             std::optional<TLSParser::UserAgents> parsedUserAgents = 
                 parser.parseUserAgent(extension.payload);
             if (parsedUserAgents.has_value() && !parsedUserAgents->empty()) {
-                userAgent.clear()
-                std::ranges::copy(parsedUserAgents[0] |
-                    std::views::take(userAgent.capacity()),
-                std::back_inserter(userAgent)); 
-            } 
+                userAgent = std::make_optional<QUICExport::UserAgent>();
+                std::ranges::copy((*parsedUserAgents)[0] |
+                    std::views::take(userAgent->capacity()),
+                std::back_inserter(*userAgent));
+            }
 		}
 
         if (m_saveWholeTLSExtension
-            || extension_type == TLSExtensionType::ALPN
-            || extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V1
-            || extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS
-            || extension_type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V2) {
+            || extension.type == TLSExtensionType::ALPN
+            || extension.type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V1
+            || extension.type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS
+            || extension.type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V2) {
             std::ranges::copy(extension.payload |
                 std::views::take(QUICExport::MAX_TLS_PAYLOAD_TO_SAVE),
                 std::back_inserter(extensionsPayload));
         }
 
-        if (!m_exportData.extensionTypes.full()) {
-			m_exportData.extensionTypes.push_back(extension.type);
-			m_exportData.extensionLengths.push_back(extension.payload.size());
+        if (extensionTypes.size() != extensionTypes.capacity()) {
+			extensionTypes.push_back(static_cast<uint16_t>(extension.type));
+			extensionLengths.push_back(extension.payload.size());
 		}
+
+        return true;
 	});
 
 	return extensionsParsed;
 }
 
 constexpr
-bool QUICInitialHeaderView::parseTLS(const ReassembledFrame& reassembledFrame)
+bool QUICInitialHeaderView::parseTLS(
+    const ReassembledFrame& reassembledFrame
+) noexcept
 {
     TLSParser parser;
-	if (!parser.parseHelloFromQUIC(toSpan(reassembledFrame))) {
+	if (!parser.parseHelloFromQUIC(toSpan<const std::byte>(reassembledFrame))) {
 		return false;
 	}
 
-    tlsHandshake = parser.handshake;
-
-    // TODO set m_initialHeaderEnd if extensions are empty
+    tlsHandshake = *parser.handshake;
 
 	return parseTLSExtensions(parser);
 }
 
-constexpr
-bool QUICInitialHeaderView::parse(std::span<const std::byte> destConnectionId, 
+bool QUICInitialHeaderView::parse(
+    std::span<const std::byte> payload,
+    std::span<const uint8_t> destConnectionId, 
     std::span<const std::byte> salt,
-    const PacketType packetType,
     std::span<const std::byte> sample,
     const std::byte headerForm,
+    const QUICVersion version,
     const std::byte* encryptedPacketNumber) noexcept
 {
-    const std::optional<QUICInitialSecrets> initialSecrets 
-        = createInitialSecrets(destConnectionId, salt);
+    std::optional<QUICInitialSecrets> initialSecrets 
+        = createInitialSecrets(
+            destConnectionId, 
+            salt, 
+            version.generation == QUICGeneration::V2);
 	if (!initialSecrets.has_value()) {
 		// Error, creation of initial secrets failed (client side)
 		return false;
 	}
-	if (!decryptInitialHeader(*initialSecrets, sample, 
-            headerForm, encryptedPacketNumber)) {
-		DEBUG_MSG("Error, header decryption failed (client side)\n");
+
+    const std::optional<DeobfuscatedHeader> deobfuscatedHeader 
+        = decryptInitialHeader(*initialSecrets, sample, headerForm, encryptedPacketNumber);
+	if (!deobfuscatedHeader.has_value()) {
+		//DEBUG_MSG("Error, header decryption failed (client side)\n");
 		return false;
 	}
-	if (!decryptPayload()) {
-		DEBUG_MSG("Error, payload decryption failed (client side)\n");
+
+    const std::optional<std::array<std::byte, MAX_BUFFER_SIZE>> decryptedPayload 
+        = decryptPayload(payload.subspan(deobfuscatedHeader->size()), 
+            *initialSecrets, *deobfuscatedHeader);
+	if (!decryptedPayload.has_value()) {
+		//DEBUG_MSG("Error, payload decryption failed (client side)\n");
 		return false;
 	}
     std::optional<ReassembledFrame> reassembledFrame 
-        = reassembleCryptoFrames(decryptedPayload);
+        = reassembleCryptoFrames(*decryptedPayload);
 	if (!reassembledFrame.has_value()) {
 		// Error, reassembling of crypto frames failed
 		return false;
@@ -753,7 +810,7 @@ bool QUICInitialHeaderView::parse(std::span<const std::byte> destConnectionId,
 }
 
 constexpr
-std::size_t getLength() const noexcept
+std::size_t QUICInitialHeaderView::getLength() const noexcept
 {
     return m_size;
 }
@@ -761,36 +818,57 @@ std::size_t getLength() const noexcept
 constexpr
 std::optional<QUICInitialHeaderView> QUICInitialHeaderView::createFrom(
     std::span<const std::byte> payload,
-    const PacketType packetType,
     const std::byte headerForm,
     std::span<const std::byte> salt,
-    std::span<const std::byte> destConnectionId) noexcept
+    std::span<const uint8_t> destConnectionId,
+    const QUICVersion version
+) noexcept
 {
-    tokenLength = readQUICVariableLengthInt(payload);
+    auto res = std::make_optional<QUICInitialHeaderView>();
+
+    const std::optional<VariableLengthInt> tokenLength 
+        = readQUICVariableLengthInt(payload);
 	if (!tokenLength.has_value()) {
-		return false;
+		return std::nullopt;
 	}
+    res->tokenLength = tokenLength->value;
 
 	const std::optional<VariableLengthInt> restPayloadLength 
-		= readQUICVariableLengthInt(payload.subspan(tokenLength->length));
+		= readQUICVariableLengthInt(payload.subspan(
+            tokenLength->length + tokenLength->value));
 	if (!restPayloadLength.has_value() ||
-		restPayloadLength->value > MAX_PAYLOAD_BUFFER_SIZE) {
-		return false;
+		restPayloadLength->value > MAX_BUFFER_SIZE) {
+		return std::nullopt;
 	}
-    m_size = restPayloadLength->value + restPayloadLength->length
+    res->m_size = restPayloadLength->value + restPayloadLength->length
         + tokenLength->value + tokenLength->length;
-    if (m_size > payload.size()) {
-        return false;
-    } 
+    if (res->m_size > payload.size()) {
+        return std::nullopt;
+    }
 
-    const std::byte* encryptedPacketNumber = payload.data() + tokenLength->length
-    + tokenLength->value + restPayloadLength->length;
+    const std::byte* encryptedPacketNumber 
+        = payload.data() + tokenLength->length
+        + tokenLength->value + restPayloadLength->length;
 
-    const std::size_t encryptedPacketNumberLength = headerForm & std::byte{0b11};
-    std::span<const std::byte> sample 
-        = encryptedPacketNumber + encryptedPacketNumberLength;
+    constexpr std::size_t SAMPLE_LENGTH = 16;
+    const std::size_t encryptedPacketNumberLength 
+        = static_cast<std::size_t>(headerForm & std::byte{0b11});
+    auto sample = std::span<const std::byte>( 
+        encryptedPacketNumber + encryptedPacketNumberLength,
+        SAMPLE_LENGTH);
 
-	parse(destConnectionId, salt, packetType, sample, headerForm, encryptedPacketNumber);
+	if (!res->parse(
+        payload, 
+        destConnectionId, 
+        salt, 
+        sample, 
+        headerForm,
+        version,
+        encryptedPacketNumber)) {
+        return std::nullopt;
+    }
+
+    return res;
 }
 
 

@@ -26,11 +26,20 @@ auto getSpan(const Container& container) noexcept
         container.data()), container.size());
 }*/
 
+/*
 template<typename ElementType, std::size_t Size>
 constexpr static inline
-std::span<ElementType, Size> toSpan(const std::array<ElementType, Size>& arr)
+std::span<ElementType> toSpan(const std::array<ElementType, Size>& arr)
 {
-	return std::span<ElementType, Size>(arr);
+	return std::span<ElementType>(arr);
+}*/
+
+template<typename ElementType>
+constexpr static inline
+std::span<ElementType> toSpan(const auto& container) noexcept
+{
+    return std::span<ElementType>(
+        reinterpret_cast<ElementType*>(container.data()), container.size());
 }
 
 template<typename ElementType>

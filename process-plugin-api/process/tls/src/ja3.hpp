@@ -12,12 +12,7 @@
 namespace ipxp
 {
 
-constexpr static
-auto addComma(auto&& inputRange) noexcept
-{
-    return std::views::concat(inputRange, std::views::single(","));
-}
-
+/*
 constexpr static
 std::string concatenateJA3(auto&& inputRange, auto&& buffer) noexcept
 {
@@ -33,32 +28,10 @@ std::string concatenateJA3(auto&& inputRange, auto&& buffer) noexcept
 		vector.end(),
 		std::to_string(vector[0]),
 		[](const std::string& a, uint16_t b) { return a + "-" + std::to_string(b); });
-}
-
-
-constexpr static std::string
-concatenate_extensions_vector_to_string(const std::vector<TLSExtension>& extensions)
-{
-	if (extensions.empty()) {
-		return "";
-	}
-	auto res = std::accumulate(
-		extensions.begin(),
-		extensions.end(),
-		std::string {},
-		[](const std::string& a, const auto& extension) {
-			if (TLSParser::is_grease_value(extension.type)) {
-				return a;
-			}
-			return a + std::to_string(extension.type) + "-";
-		});
-	res.pop_back();
-	return res;
-}
+}*/
 
 class JA3 {
 public:
-    constexpr
     JA3(const uint16_t version,
         std::span<const uint16_t> cipherSuites,
         std::span<const uint16_t> extensionsTypes,
@@ -69,26 +42,27 @@ public:
         constexpr std::size_t bufferSize = 512;
         boost::static_string<bufferSize> result;
 
-        auto versionRange = addComma(
-            std::views::single(version) | integerToCharPtrView);
+        auto versionRange = std::views::single(version) | integerToCharPtrView;
+        pushBackWithDelimiter(std::to_string(version), result, ',');
 
-        auto cipherSuitesRange = addComma(
-            cipherSuites | integerToCharPtrView);
+        auto cipherSuitesRange 
+            = cipherSuites | integerToCharPtrView ;
+        concatenateRangeTo(cipherSuitesRange, result, '-', ',');
 
-        auto extensionsTypesRange = addComma(
+        auto extensionsTypesRange = 
             extensionsTypes | 
-            std::not_fn(TLSParser::isGreaseValue) | 
-            integerToCharPtrView);
+            std::views::filter(std::not_fn(TLSParser::isGreaseValue)) | 
+            integerToCharPtrView;
+        concatenateRangeTo(extensionsTypesRange, result, '-', ',');
 
-        auto supportedGroupsRange = addComma(
-            supportedGroups | integerToCharPtrView);
+        auto supportedGroupsRange = 
+            supportedGroups | 
+            std::views::filter(std::not_fn(TLSParser::isGreaseValue)) | 
+            integerToCharPtrView;
+        concatenateRangeTo(supportedGroupsRange, result, '-', ',');
 
-        std::ranges::copy({versionRange, cipherSuitesRange, 
-            extensionsTypesRange, supportedGroupsRange, 
-            pointFormats | integerToCharPtrView} | 
-            std::views::join |
-            std::views::take(result.capacity()), 
-            std::back_inserter(result));
+        auto pointFormatsRange = pointFormats | integerToCharPtrView;
+        concatenateRangeTo(pointFormatsRange, result, '-');
 
 	    md5_get_bin(std::string_view(
             result.data(), result.size()), hash.data());
@@ -99,7 +73,8 @@ public:
     }
 
 private:
-    std::array<char, JA3_SIZE> hash
+    constexpr static std::size_t JA3_SIZE = 16;
+    std::array<char, JA3_SIZE> hash;
 };
     
 } // namespace ipxp

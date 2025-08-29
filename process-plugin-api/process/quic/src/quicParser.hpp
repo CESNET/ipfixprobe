@@ -16,9 +16,13 @@
 
 #include <span>
 #include <optional>
-#include "../../common/tlsParser/tls_parser.hpp"
+#include <tlsParser/tlsParser.hpp>
 
-#define HASH_SHA2_256_LENGTH 32
+#include "quicInitialHeaderView.hpp"
+#include "quicTypesCumulative.hpp"
+#include "quicDirection.hpp"
+
+/*#define HASH_SHA2_256_LENGTH 32
 #define TLS13_AEAD_NONCE_LENGTH 12
 #define SAMPLE_LENGTH 16
 #define SALT_LENGTH 20
@@ -49,12 +53,12 @@
 //#define QUIC_MIN_PACKET_LENGTH 8
 #define MAX_CID_LEN 20
 //#define QUIC_BIT 0b01000000
-#define MAX_QUIC_TLS_EXT_LEN 30
+#define MAX_QUIC_TLS_EXT_LEN 30*/
 
 namespace ipxp {
 
 
-
+/*
 typedef struct __attribute__((packed)) quic_scidlen {
 	uint8_t scid_len;
 } quic_scidlen;
@@ -63,13 +67,14 @@ typedef struct Initial_Secrets {
 	uint8_t key[AES_128_KEY_LENGTH];
 	uint8_t iv[TLS13_AEAD_NONCE_LENGTH];
 	uint8_t hp[AES_128_KEY_LENGTH];
-} Initial_Secrets;
+} Initial_Secrets;*/
 
 class QUICParser {
 public:
 	constexpr static std::size_t QUIC_MIN_PACKET_LENGTH = 8;
 
 	std::optional<QUICInitialHeaderView> initialHeaderView;
+	std::optional<QUICHeaderView> headerView;
 	std::optional<uint16_t> serverPort;
 	QUICTypesCumulative packetTypesCumulative{};
 	std::optional<QUICDirection> quicDirection;
@@ -78,6 +83,32 @@ public:
 	uint8_t zeroRTTPackets;
 	std::vector<std::byte> extensionsPayload;
 
+	bool parse(
+		std::span<const std::byte> payload,
+		const QUICExport::ConnectionId& initialConnectionId,
+		const uint8_t l4Protocol
+	) noexcept;
+
+private:
+
+	constexpr std::optional<std::size_t> parseRetry(
+		std::span<const std::byte> payload) noexcept;
+
+	constexpr std::optional<std::size_t> parseZeroRTT(
+		std::span<const std::byte> payload) noexcept;
+
+	constexpr std::optional<std::size_t> parseHandshake(
+		std::span<const std::byte> payload) noexcept;
+
+	constexpr std::optional<std::size_t> parseInitial(
+		std::span<const std::byte> payload,
+		std::span<const uint8_t> currentDCID,
+		std::span<const uint8_t> initialDCID,
+		const std::byte headerForm,
+		std::span<const std::byte> salt,
+		const QUICVersion version
+	) noexcept;
+	/*
 	enum HKDF_LENGTHS {
 		quic_key_hkdf_v1
 		= sizeof("tls13 quic key") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t),
@@ -250,7 +281,7 @@ public:
 	void quic_parse_quic_bit(uint8_t packet0);
 	void quic_get_tls_extension_lengths(uint16_t* tls_extensions_len);
 	void quic_get_tls_extension_lengths_len(uint8_t& tls_extensions_length_len_toset);
-	void quic_get_tls_extensions(char* in);
+	void quic_get_tls_extensions(char* in);*/
 };
 
 } // namespace ipxp

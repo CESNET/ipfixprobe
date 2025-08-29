@@ -5,7 +5,7 @@
 namespace ipxp
 {
     
-enum class SMTPStatusCode : std::size_t {
+enum SMTPStatusCode : std::size_t {
     STATUS_CODE_211 = 0x00000001,
     STATUS_CODE_214 = 0x00000002,
     STATUS_CODE_220 = 0x00000004,

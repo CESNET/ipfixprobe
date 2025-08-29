@@ -2,6 +2,8 @@
 
 #include <boost/static_string.hpp>
 #include <charconv>
+#include <bit>
+#include <format>
 
 #include <tlsParser/tlsParser.hpp>
 #include <utils/stringUtils.hpp>
@@ -43,11 +45,11 @@ std::string_view toLabel(const uint16_t version) noexcept
 
 constexpr static 
 std::string_view getVersionLabel(
-    std::span<const uint16_t> supportedVersions, const HandshakeHeader& handshake) noexcept
+    std::span<const uint16_t> supportedVersions, const TLSHandshake& handshake) noexcept
 {
 	if (supportedVersions.empty()) {
 		return toLabel(
-            *reinterpret_cast<const uint16_t*>(&handshake.version.version));
+            std::bit_cast<uint16_t>(handshake.version));
 	}
 
     return toLabel(*std::ranges::max_element(supportedVersions));
@@ -64,7 +66,7 @@ char alpnByteToLabel(char byte, bool isHighNibble)
     return nibble < 0xA ? ('0' + nibble) : ('A' + nibble - 0xA);
 }
 
-constexpr static 
+static 
 std::string_view getALPNLabel(std::span<std::string_view> alpns)
 {
 	std::string alpn_label;
@@ -80,14 +82,15 @@ std::string_view getALPNLabel(std::span<std::string_view> alpns)
 	return std::string_view(buffer.data(), buffer.size());
 }
 
-constexpr static inline auto rangeToHexString 
-    = std::views::transform([](const auto&& value) {
+constexpr static inline 
+auto rangeToHexString = std::views::transform(
+    [](const auto& value) mutable {
         static std::array<char, 6> buffer;
         auto end = std::format_to(buffer.begin(), "{:04x},", value);
         return std::string_view(buffer.begin(), end);
     });
 
-constexpr static 
+static 
 std::string_view getTruncatedHashHex(std::string_view input)
 {
     static boost::static_string<TRUNC_SIZE> buffer;
@@ -101,12 +104,14 @@ std::string_view getTruncatedHashHex(std::string_view input)
     std::ranges::copy(hash | 
         std::views::take(buffer.size() / 2) | 
         std::views::transform([](const uint8_t byte) {
-            return fmt::format("{:02x}", byte);
-    }), std::back_inserter(buffer));
+            return std::format("{:02x}", byte);
+    }) |
+    std::views::join, 
+    std::back_inserter(buffer));
     return std::string_view(buffer.data(), buffer.size());
 }
 
-constexpr static 
+static 
 std::string_view getTruncatedCipherHash(std::span<const uint16_t> cipherSuites)
 {
 	if (cipherSuites.empty()) {
@@ -117,36 +122,41 @@ std::string_view getTruncatedCipherHash(std::span<const uint16_t> cipherSuites)
     std::vector<uint16_t> sortedCipherSuites(
         cipherSuites.begin(), cipherSuites.end());
 	std::ranges::sort(sortedCipherSuites);
-    std::string cipherHexString(sortedCipherSuites | rangeToHexString);
+
+    std::string cipherHexString;
+    std::ranges::copy(sortedCipherSuites | 
+        rangeToHexString |
+        std::views::join,
+        std::back_inserter(cipherHexString));
 	return getTruncatedHashHex(cipherHexString);
 }
 
-constexpr static 
+static 
 std::string_view getTruncatedExtensionsHash(
     std::span<const uint16_t> extensionTypes,
     std::span<const uint16_t> signatureAlgorithms)
 {
-	boost::container::static_vector<uint16_t, 100> sortedExtensions(
+    constexpr std::size_t MAX_EXTENSIONS = 100;
+	boost::container::static_vector<uint16_t, MAX_EXTENSIONS> sortedExtensions;
+    std::ranges::copy(
         extensionTypes | 
         std::views::filter([](const uint16_t type) {
-            return type != ExtensionType::ALPN && 
-                type != ExtensionType::SERVER_NAMES && 
+            return type != static_cast<uint16_t>(TLSExtensionType::ALPN) && 
+                type != static_cast<uint16_t>(TLSExtensionType::SERVER_NAME) && 
                 !TLSParser::isGreaseValue(type);
-        }) | std::views::take(sortedExtensions.capacity())) ;
+        }) | std::views::take(sortedExtensions.capacity()),
+        std::back_inserter(sortedExtensions));
 	std::ranges::sort(sortedExtensions);
 
     constexpr std::size_t MAX_STRING_LENGTH
-        = 2 * sortedExtensions.capacity() * sizeof(uint16_t) + 1; 
-    boost::static_string<MAX_STRING_LENGTH> 
-    finalString(
-        sortedExtensions | 
-        rangeToHexString |
-        std::views::concat(std::views::single("_")) |
-        std::views::concat(signatureAlgorithms | 
+        = 2 * MAX_EXTENSIONS * sizeof(uint16_t) + 1; 
+    boost::static_string<MAX_STRING_LENGTH> finalString;
+    concatenateRangeTo(finalString, sortedExtensions | 
+        rangeToHexString, '-', '_');
+    concatenateRangeTo(signatureAlgorithms | 
             std::views::drop(1) |
-            rangeToHexString) |
-        std::views::take(finalString.capacity())
-        );
+            rangeToHexString,
+            '-');
 
 	return getTruncatedHashHex(finalString);
 }

@@ -63,7 +63,7 @@ struct QUICVersion {
     QUICVersion(const uint32_t id) noexcept
     : draft(static_cast<uint8_t>(id))
     , id(static_cast<QUICVersionId>(id))
-    , generation({})
+    , generation()
     {
         
         // this is IETF implementation, older version used
@@ -103,6 +103,8 @@ struct QUICVersion {
             draft = 14;
             generation = QUICGeneration::V1;
             return;
+        default:
+            break;
         }
 
         // Last Byte zero
@@ -115,6 +117,8 @@ struct QUICVersion {
             draft = 35;
             generation = QUICGeneration::V1;
             return;
+        default:
+            break;
         }
 
         switch (static_cast<QUICVersionId>(id)) {

@@ -11,6 +11,8 @@
  * \date 2024
  */
 
+#pragma once
+
 #include <cstdint>
 #include <cstring>
 #include <optional>
@@ -92,14 +94,14 @@ public:
 
 	constexpr bool parseHelloFromQUIC(std::span<const std::byte> payload) noexcept;
 
-	constexpr bool parseExtensions(
+	bool parseExtensions(
 		const std::function<bool(const TLSExtension&)>& callable) noexcept;
 
 	constexpr static
 	std::optional<ServerNames>
 	parseServerNames(std::span<const std::byte> extension) noexcept;
 
-	constexpr static
+	static
 	std::optional<TLSParser::UserAgents>
 	parseUserAgent(std::span<const std::byte> extension) noexcept;
 
@@ -115,11 +117,11 @@ public:
 	std::optional<TLSParser::ALPNs>
 	parseALPN(std::span<const std::byte> extension) noexcept;
 
-	constexpr static
+	static
 	std::optional<TLSParser::SignatureAlgorithms>
 	parseSignatureAlgorithms(std::span<const std::byte> extension) noexcept;
 
-	constexpr static
+	constexpr
 	std::optional<TLSParser::SupportedVersions>
 	parseSupportedVersions(
 		std::span<const std::byte> extension, const TLSHandshake& handshake) noexcept;
@@ -128,7 +130,7 @@ public:
 
 	constexpr bool isServerHello() const noexcept;
 
-	constexpr const TLSHandshake& getHandshake() noexcept;
+	constexpr const TLSHandshake& getHandshake() const noexcept;
 
 	constexpr const CipherSuites& getCipherSuites() const noexcept;
 
@@ -136,7 +138,7 @@ public:
 		std::span<const std::byte> payload, const bool isQUIC) noexcept;
 
 	std::optional<TLSHandshake> handshake;
-	std::optional<CipherSuites> m_cipherSuites;
+	std::optional<CipherSuites> cipherSuites;
 
 	std::optional<std::span<const std::byte>> m_extensions;
 

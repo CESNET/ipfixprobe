@@ -48,9 +48,10 @@ parseSection(
     std::size_t sectionSize{0};
     const auto sectionBegin = payload.begin();
 
-    DNSSectionReader reader(recordCount, payload, fullDNSPayload);
+    DNSSectionReader reader;
     
-    std::ranges::for_each(reader, 
+    std::ranges::for_each(
+        reader.getRange(recordCount, payload, fullDNSPayload), 
         [&, needToCallCallback = true]
         (const DNSRecord& record) mutable {
             sectionSize = static_cast<std::size_t>(

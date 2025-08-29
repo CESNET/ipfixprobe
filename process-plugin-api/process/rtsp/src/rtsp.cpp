@@ -23,6 +23,8 @@
 
 #include "rtspExtensionReader.hpp"
 
+using namespace std::literals::string_view_literals;
+
 namespace ipxp {
 
 static const PluginManifest rtspPluginManifest = {
@@ -65,7 +67,7 @@ RTSPPlugin::RTSPPlugin([[maybe_unused]]const std::string& params, FieldManager& 
 }
 
 constexpr
-bool RTSPPlugin::parseRequest(std::span<const std::byte> payload) noexcept
+bool RTSPPlugin::parseRequest(std::string_view payload) noexcept
 {
 	/* Request line:
 	 *
@@ -77,38 +79,39 @@ bool RTSPPlugin::parseRequest(std::span<const std::byte> payload) noexcept
 	 */
 
 	/* Find begin of URI. */
-	auto uriBegin = std::ranges::find(payload, std::byte{' '});
-	if (uriBegin == payload.end()) {
+	const std::size_t uriBegin = payload.find(' ');
+	if (uriBegin == std::string_view::npos) {
 		return false;
 	}
 
 	/* Find end of URI. */
-	auto uriEnd = std::find(std::next(uriBegin), payload.end(), std::byte{' '});
-	if (uriEnd == payload.end()) {
+	const std::size_t uriEnd = payload.find(' ', uriBegin + 1);
+	if (uriEnd == std::string_view::npos) {
 		// request is fragmented
 		return false;
 	}
 
-	if (!std::equal(uriEnd, std::next(uriEnd, 4), std::as_bytes("RTSP"))) {
+	if (payload.substr(uriEnd, 4) != "RTSP") {
 		return false;
 	}
 
-	std::ranges::copy(std::ranges::subrange(payload.data(), uriBegin) |
-		std::views::take(m_exportData.method.capacity()),
-	std::back_inserter(m_exportData.method));
 
-	std::ranges::copy(std::ranges::subrange(std::next(uriBegin), uriEnd) |
-		std::views::take(m_exportData.uri.capacity()),
-	std::back_inserter(m_exportData.uri));
+	std::string_view method 
+		= payload.substr(0, uriBegin).substr(0, m_exportData.method.capacity());
+	m_exportData.method.assign(method.begin(), method.end());
 
-	auto requestLineEnd 
-		= std::find(std::next(uriEnd), payload.end(), std::byte{'\n'});
-	if (requestLineEnd == payload.end()) {
+	std::string_view uri = payload.substr(
+		uriBegin + 1, uriEnd - uriBegin - 1).substr(0, m_exportData.uri.capacity());
+	m_exportData.uri.assign(uri.begin(), uri.end());
+
+	const std::size_t requestLineEnd 
+		= payload.find('\n', uriEnd + 1);
+	if (requestLineEnd == std::string_view::npos) {
 		return false;
 	}
 
-	auto requestFieldBegin = std::next(requestLineEnd);
-	if (requestFieldBegin == payload.end()) {
+	const std::size_t requestFieldBegin = requestLineEnd + 1;
+	if (requestFieldBegin == std::string_view::npos) {
 		return false;
 	}
 
@@ -122,13 +125,15 @@ bool RTSPPlugin::parseRequest(std::span<const std::byte> payload) noexcept
 	 */
 
 	/* Process headers. */
-	RTSPExtensionReader reader(payload.subspan(requestFieldBegin - payload.data()));
-	std::ranges::for_each(reader | 
-		std::views::transform([](const Extension& extension) {
+	RTSPExtensionReader reader;
+	std::ranges::for_each(reader.getRange(payload.substr(requestFieldBegin)),
+		[this](const Extension& extension) {
 			if (extension.key == "User-Agent") {
-				m_exportData.userAgent.push_back(extension.value);
+				std::string_view userAgent = extension.value.substr(
+						0, m_exportData.userAgent.capacity() - m_exportData.userAgent.size());
+				m_exportData.userAgent.assign(userAgent.begin(), userAgent.end());
 			}
-		}));
+		});
 
 	m_requestParsed = true;
 
@@ -136,28 +141,25 @@ bool RTSPPlugin::parseRequest(std::span<const std::byte> payload) noexcept
 }
 
 constexpr static
-bool isRequest(std::span<const std::byte> payload) noexcept
+bool isRequest(std::string_view payload) noexcept
 {
 	constexpr auto rtspMethods = std::to_array<std::string_view>({
 		"GET ", "POST", "PUT ", "HEAD", "DELE", "TRAC", "OPTI", "CONN", "PATC",
 		"DESC", "SETU", "PLAY", "PAUS", "TEAR", "RECO", "ANNO"});
-	return payload.size() >= 4 && std::ranges::any_of(rtspMethods |
-		std::views::transform(std::string_view method) {
-			return std::ranges::equal(
-				std::as_bytes(method), payload.subspan(0, 4));
+	return payload.size() >= 4 && std::ranges::any_of(rtspMethods,
+		[&](std::string_view method) {
+			return payload.starts_with(method);
 		});
 }
 
 constexpr static
-bool isResponse(std::span<const std::byte> payload) noexcept
+bool isResponse(std::string_view payload) noexcept
 {
-	return payload.size() >= 4 && 
-		payload.subspan(0, 4) == std::as_bytes("RTSP");
+	return payload.starts_with("RTSP");
 }
 
 constexpr
-bool RTSPPlugin::parseResponse(
-	std::span<const std::byte> payload) noexcept
+bool RTSPPlugin::parseResponse(std::string_view payload) noexcept
 {
 	/* Response line:
 	 *
@@ -169,47 +171,48 @@ bool RTSPPlugin::parseResponse(
 	 */
 
 	/* Find begin of status code. */
-	auto versionEnd = std::ranges::find(payload, ' ');
-	if (versionEnd == payload.end()) {
+	const std::size_t versionEnd = payload.find(' ');
+	if (versionEnd == std::string_view::npos) {
 		return false;
 	}
 
-	auto statusBegin = std::next(versionEnd);
-	if (statusBegin == payload.end()) {
+	const std::size_t statusBegin = versionEnd + 1;
+	if (statusBegin == payload.size()) {
 		return false;
 	}
 
-	auto statusEnd = std::ranges::find(std::next(statusBegin), payload.end(), ' ');
-	if (statusEnd == payload.end()) {
+	const std::size_t statusEnd = payload.find(' ', statusBegin + 1);
+	if (statusEnd == std::string_view::npos) {
 		return false;
 	}
 
 	/* Copy and check RTSP response code. */
 	if (std::from_chars(
-			statusBegin, statusEnd, m_exportData.code).ec == std::errc()) {
+			payload.data() + statusBegin, 
+			payload.data() + statusEnd, 
+			m_exportData.code).ec == std::errc()) {
 		return false;
 	}
 
-	if (m_responseParsed) {
-		return FlowAction::FlushWithReinsert;
+	const std::size_t lineEnd = payload.find('\n', statusEnd + 1);
+	if (lineEnd == std::string_view::npos) {
+		return false;	
 	}
 
-	auto lineEnd = std::find(std::next(statusEnd), payload.end(), '\n');
-	if (lineEnd == payload.end()) {
-		return false;
-	}
-
-	RTSPExtensionReader reader(
-		payload.subspan(std::next(lineEnd) - payload.data()));
-	std::ranges::for_each(reader | 
-		std::views::transform([](const Extension& extension) {
+	RTSPExtensionReader reader;
+	std::ranges::for_each(reader.getRange(payload.substr(lineEnd + 1)),
+		[this](const Extension& extension) {
 			if (extension.key == "Content-Type") {
-				m_exportData.contentType.push_back(extension.value);
+				m_exportData.contentType.assign(
+					extension.value.begin(),
+					extension.value.end());
 			}
 			if (extension.key == "Server") {
-				m_exportData.server.push_back(extension.value);
+				m_exportData.server.assign(
+					extension.value.begin(),
+					extension.value.end());
 			}
-		}));
+		});
 
 	m_responseParsed = true;
 
@@ -220,20 +223,22 @@ constexpr
 FlowAction RTSPPlugin::updateExportData(
 	std::span<const std::byte> payload) noexcept
 {
-	if (isRequest(payload)) {
+	std::string_view payloadView = {
+		reinterpret_cast<const char*>(payload.data()), payload.size()};
+	if (isRequest(payloadView)) {
 		if (m_requestParsed) {
-			return FlowAction::FlushWithReinsert;
+			return FlowAction::FlushAndReinsert;
 		}
-		if (!parseRequest(payload)) {
+		if (!parseRequest(payloadView)) {
 			return FlowAction::RequestNoData;
 		}
 	}
 
-	if (isResponse(payload)) {
+	if (isResponse(payloadView)) {
 		if (m_responseParsed) {
-			return FlowAction::FlushWithReinsert;
+			return FlowAction::FlushAndReinsert;
 		}
-		if (!parseResponse(payload)) {
+		if (!parseResponse(payloadView)) {
 			return FlowAction::RequestNoData;
 		}
 	}

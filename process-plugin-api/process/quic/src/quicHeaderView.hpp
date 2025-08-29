@@ -24,25 +24,23 @@ public:
     };
 
     std::byte headerForm;
-    QUICVersionId versionId;
+    std::optional<QUICVersion> version;
     //uint8_t destConnectionIdLength;
-    std::span<const uint8_t> destConnectionId;
+    std::span<const uint8_t> destinationConnectionId;
     //uint8_t srcConnectionIdLength;
-    std::span<const uint8_t> srcConnectionId;
+    std::span<const uint8_t> sourceConnectionId;
 
-    constexpr static
-    std::optional<QUICHeaderView> createFrom(
-        std::span<const std::byte> data) noexcept;
+
+    constexpr static std::optional<QUICHeaderView> createFrom(
+        std::span<const std::byte> payload, 
+        const uint8_t l4Protocol
+    ) noexcept;
 
     constexpr std::size_t getLength() const noexcept;
 
     constexpr PacketType getPacketType() const noexcept;
 
 private:
-    QUICHeaderView() = default;
-
-    QUICVersion m_version;
-
 };
 
 

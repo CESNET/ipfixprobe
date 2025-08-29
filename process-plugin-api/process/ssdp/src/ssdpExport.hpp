@@ -14,7 +14,7 @@ struct SSDPExport {
 	boost::static_string<MAX_URN_LENGTH> notificationType;
 	boost::static_string<MAX_URN_LENGTH> searchTarget;
 	boost::static_string<MAX_SERVER_LENGTH> server;
-	boost::static_string<MAX_USER_AGENT_LENGTH> user_agent;
+	boost::static_string<MAX_USER_AGENT_LENGTH> userAgent;
 };  
 
 } // namespace ipxp

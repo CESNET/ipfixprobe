@@ -20,6 +20,8 @@
 #include "quicExport.hpp"
 #include "quicFields.hpp"
 #include "quicTemporalStorage.hpp"
+#include "quicHeaderView.hpp"
+#include "quicInitialHeaderView.hpp"
 
 namespace ipxp {
 
@@ -41,20 +43,49 @@ public:
 
 	~QUICPlugin() override = default;
 
-	void updateBursts(Burst& burst, FlowRecord& flowRecord, const Packet& packet) noexcept;
-
-
 	QUICPlugin(const QUICPlugin& other) = default;
 	QUICPlugin(QUICPlugin&& other) = delete;
 
 private:
+	
+	FlowAction parseQUIC(
+		FlowRecord& flowRecord, 
+		std::span<const std::byte> payload,
+		Direction packetDirection
+	) noexcept;
+
+	constexpr void tryToSetOCCIDandSCID(
+		const QUICDirection quicDirection,
+		std::span<const uint8_t> sourceConnectionId,
+		std::span<const uint8_t> destinationConnectionId
+	) noexcept;
+
+	void processInitial(
+		const std::optional<QUICDirection> quicDirection,
+		const Direction flowDirection,
+		const QUICHeaderView& headerView,
+		const QUICInitialHeaderView& initialHeaderView
+	) noexcept;
+
+	constexpr bool setConnectionIds(
+		const std::optional<QUICDirection> quicDirection,
+		const Direction flowDirection,
+		std::span<const uint8_t> sourceConnectionId,
+		std::span<const uint8_t> destinationConnectionId
+	) noexcept;
+
+	constexpr void parseRetry(
+		std::span<const uint8_t> sourceConnectionId,
+		std::span<const uint8_t> destinationConnectionId
+	) noexcept;
+
 	QUICExport m_exportData;
 	FieldHandlers<QUICFields> m_fieldHandlers;
 
 	QUICTemporalStorage m_temporalCIDStorage;
-	bool m_firstRetryPacketReceived = false;
+	std::size_t m_retryPacketCount = 0;
 
-	boost::static_string<QUICExport::MAX_CONNECTION_ID_LENGTH> m_initialConnectionId;
+	QUICExport::ConnectionId m_initialConnectionId;
 };
 
 } // namespace ipxp

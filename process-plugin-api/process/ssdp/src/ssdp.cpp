@@ -20,7 +20,8 @@
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
-#include <headerFieldsReader/headerFieldReader.hpp>
+#include <readers/headerFieldReader/headerFieldReader.hpp>
+#include <utils/stringViewUtils.hpp>
 
 namespace ipxp {
 
@@ -101,13 +102,12 @@ std::optional<uint16_t> parseLocationPort(std::string_view value) noexcept
 	return port;
 }
 
-constexpr
 void SSDPPlugin::parseSSDPNotify(
-	std::span<const std::byte> headerFields, const uint8_t l4Protocol) noexcept
+	std::string_view headerFields, const uint8_t l4Protocol) noexcept
 {
-	HeaderFieldReader reader(headerFields);
+	HeaderFieldReader reader;
 
-	for(const auto& [key, value] : reader) {
+	for(const auto& [key, value] : reader.getRange(headerFields)) {
 		if (key == "NT") {
 			getURN(value, m_exportData.notificationType);
 		}
@@ -115,7 +115,7 @@ void SSDPPlugin::parseSSDPNotify(
 		if (key == "LOCATION") {
 			const std::optional<uint16_t> port = 
 				parseLocationPort(value);
-			if (port.has_value) {
+			if (port.has_value()) {
 				m_exportData.port = *port;
 			}
 		}
@@ -128,12 +128,11 @@ void SSDPPlugin::parseSSDPNotify(
 	}
 }
 
-constexpr
-void SSDPPlugin::parseSSDPMSearch(std::span<const std::byte> headerFields) noexcept
+void SSDPPlugin::parseSSDPMSearch(std::string_view headerFields) noexcept
 {
-	HeaderFieldReader reader(headerFields);
+	HeaderFieldReader reader;
 
-	for(const auto& [key, value] : reader) {
+	for(const auto& [key, value] : reader.getRange(headerFields)) {
 		if (key == "ST") {
 			getURN(value, m_exportData.searchTarget);
 		}
@@ -147,19 +146,18 @@ void SSDPPlugin::parseSSDPMSearch(std::span<const std::byte> headerFields) noexc
 }
 
 constexpr
-void SSDPPlugin::parseSSDP(
-	std::span<const std::byte> payload, const uint8_t l4Protocol) noexcept
+void SSDPPlugin::parseSSDP(std::string_view payload, const uint8_t l4Protocol) noexcept
 {
 	if (payload.empty()) {
 		return;
 	}
 
-	auto headerEnd = std::ranges::find(payload, '\n');
-	if (headerEnd == payload.end()) {
+	auto headerEnd = payload.find('\n');
+	if (headerEnd == std::string_view::npos) {
 		return;
 	}
 
-	auto headerFields = payload.subspan(std::next(headerEnd) - payload.begin());
+	std::string_view headerFields = payload.substr(headerEnd + 1);
 
 	if (toStringView(payload).starts_with("NOTIFY")) {
 		parseSSDPNotify(headerFields, l4Protocol);
@@ -177,7 +175,7 @@ FlowAction SSDPPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, cons
 		return FlowAction::RequestNoData;
 	}
 
-	parseSSDP(packet.payload);
+	parseSSDP(toStringView(packet.payload), packet.flowKey.l4Protocol);
 
 	return FlowAction::RequestTrimmedData;
 }
@@ -187,7 +185,7 @@ FlowAction SSDPPlugin::onFlowUpdate([[maybe_unused]]FlowRecord& flowRecord,
 {
 	constexpr std::size_t SSDP_PORT = 1900;
 	if (packet.flowKey.dstPort == SSDP_PORT) {
-		parseSSDP(packet.payload);
+		parseSSDP(toStringView(packet.payload), packet.flowKey.l4Protocol);
 	}
 
 	return FlowAction::RequestTrimmedData;
