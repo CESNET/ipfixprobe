@@ -1,0 +1,23 @@
+#pragma once
+
+#include <cstddef>
+
+namespace ipxp
+{
+
+enum class SMTPFields : std::size_t {
+	SMTP_2XX_STAT_CODE_COUNT = 0,
+	SMTP_3XX_STAT_CODE_COUNT,
+	SMTP_4XX_STAT_CODE_COUNT,
+	SMTP_5XX_STAT_CODE_COUNT,
+	SMTP_COMMAND_FLAGS,
+	SMTP_MAIL_CMD_COUNT,
+	SMTP_RCPT_CMD_COUNT,
+	SMTP_STAT_CODE_FLAGS,
+	SMTP_DOMAIN,
+	SMTP_FIRST_RECIPIENT,
+	SMTP_FIRST_SENDER,
+	FIELDS_SIZE,
+};    
+    
+} // namespace ipxp

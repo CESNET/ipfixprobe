@@ -1,6 +1,8 @@
 #pragma once
 
 #include "timestamp.hpp"
+#include "flowKey.hpp"
+#include "directionalField.hpp"
 
 #include <array>
 #include <bitset>
@@ -45,6 +47,15 @@ struct DirectionalData {
 
 class FlowRecord {
 public:
+	uint64_t hash;
+
+	uint64_t timeCreation;
+	uint64_t timeLastUpdate;
+
+	FlowKey flowKey;
+
+	DirectionalField<DirectionalData> directionalData;
+
 	// Bitset of flow fields that were specified as present
 	mutable FieldsBitset fieldsAvailable = {};
 	// Bitset of successfully constructed plugins (constructor accepted packet)

@@ -19,6 +19,7 @@ int main()
 	processPlugins.disableProcessPlugin("TestDummy");
 	processPlugins.enableProcessPlugin("TestDummy");
 
+	const FlowKeyLayout VlanFlowKeyLayout{20, 4};
 	FlowRecordBuilder builder(processPlugins.getEntries(), VlanFlowKeyLayout);
 
 	builder.printLayoutInfo();

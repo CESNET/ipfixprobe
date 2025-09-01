@@ -2,7 +2,7 @@
 
 #include "fieldHandler.hpp"
 #include "flowRecord.hpp"
-#include "icmp.hpp"
+#include "process/basicPlus/src/basicPlus.hpp"
 #include "packet.hpp"
 #include "processPluginEntry.hpp"
 
@@ -31,7 +31,7 @@ public:
 		std::lock_guard<std::mutex> lock(m_mutex);
 
 		auto processPlugin
-			= std::make_shared<IcmpPlugin>(std::forward<Args>(args)..., m_fieldManager);
+			= std::make_shared<BasicPlusPlugin>(std::forward<Args>(args)..., m_fieldManager);
 		auto [pluginDataSize, pluginDataAlignment] = processPlugin->getDataMemoryLayout();
 		ProcessPluginEntry pluginEntry = {
 			.name = pluginName,

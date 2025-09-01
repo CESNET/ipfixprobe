@@ -16,6 +16,8 @@
 
 #include <cstdint>
 
+#include "packet.hpp"
+
 namespace ipxp {
 
 /**
@@ -139,6 +141,8 @@ public:
 	ProcessPlugin& operator=(const ProcessPlugin&) = delete;
 	ProcessPlugin(ProcessPlugin&&) = delete;
 	ProcessPlugin& operator=(ProcessPlugin&&) = delete;
+
+	virtual std::string getName() const noexcept = 0;
 
 	/**
 	 * @brief Called to attempt plugin construction for a flow.
