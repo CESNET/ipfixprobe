@@ -16,7 +16,7 @@ struct Packet {
     FlowKey flowKey{};
 
     uint64_t timestamp{0};
-    uint8_t ipTtl{0};
+    uint8_t ipTTL{0};
     uint8_t ipFlags{0};
     uint16_t ipLength{0};
 
