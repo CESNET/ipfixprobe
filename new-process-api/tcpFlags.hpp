@@ -12,7 +12,10 @@ union TcpFlags {
 
     constexpr TcpFlags() noexcept
     : raw(std::byte{0}) {}
-    
+
+    constexpr TcpFlags(std::byte raw) noexcept
+    : raw(raw) {}
+
     struct {
         uint8_t noOperation : 1;              ///< 0: No-Operation (NS) flag
         uint8_t congestionWindowReduced : 1;  ///< 1: Congestion Window Reduced (CWR) flag
@@ -39,28 +42,33 @@ union TcpFlags {
     TcpFlags operator&(const TcpFlags& other) const noexcept
     {
         TcpFlags result;
-        result.raw = this->raw & other.raw;
+        result.raw = raw & other.raw;
         return result;
     }
 
     constexpr
     TcpFlags& operator|=(const TcpFlags& other) noexcept
     {
-        this->raw |= other.raw;
+        raw |= other.raw;
         return *this;
     }
 
     constexpr
     TcpFlags& operator&=(const TcpFlags& other) noexcept
     {
-        this->raw &= other.raw;
+        raw &= other.raw;
         return *this;
     }
 
     constexpr
     bool operator==(const TcpFlags& other) const noexcept
     {
-        return this->raw == other.raw;
+        return raw == other.raw;
+    }
+
+    constexpr operator std::byte() const noexcept
+    {
+        return raw;
     }
 };
 

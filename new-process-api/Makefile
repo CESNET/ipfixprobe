@@ -6,7 +6,7 @@ SRC := main.cpp \
 	$(wildcard process/common/*/*.cpp) \
 	$(wildcard process/*/src/*.cpp)
 
-INCLUDE := -I. -I../include/ipfixprobe/pluginFactory -Iprocess/common
+INCLUDE := -I. -I../include/ipfixprobe/pluginFactory -Iprocess/common -I../include
 
 OBJ := $(SRC:.cpp=.o)
 
