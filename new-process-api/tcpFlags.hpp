@@ -5,15 +5,15 @@
 namespace ipxp {
 
 /**
- * @struct TcpFlags
+ * @struct TCPFlags
  * @brief Structure representing TCP flags.
  */
-union TcpFlags {
+union TCPFlags {
 
-    constexpr TcpFlags() noexcept
-    : raw(std::byte{0}) {}
+    constexpr TCPFlags() noexcept
+    : raw(0) {}
 
-    constexpr TcpFlags(std::byte raw) noexcept
+    constexpr TCPFlags(const uint8_t raw) noexcept
     : raw(raw) {}
 
     struct {
@@ -28,50 +28,50 @@ union TcpFlags {
         uint8_t finish : 1;                   ///< 8: Finish (FIN) flag
     } bitfields;
 
-    std::byte raw; ///< Byte representing TCP flags
+    uint8_t raw; ///< Byte representing TCP flags
 
     constexpr
-    TcpFlags operator|(const TcpFlags& other) const noexcept
+    TCPFlags operator|(const TCPFlags& other) const noexcept
     {
-        TcpFlags result;
-        result.raw = this->raw | other.raw;
+        TCPFlags result;
+        result.raw = raw | other.raw;
         return result;
     }
 
     constexpr
-    TcpFlags operator&(const TcpFlags& other) const noexcept
+    TCPFlags operator&(const TCPFlags& other) const noexcept
     {
-        TcpFlags result;
+        TCPFlags result;
         result.raw = raw & other.raw;
         return result;
     }
 
     constexpr
-    TcpFlags& operator|=(const TcpFlags& other) noexcept
+    TCPFlags& operator|=(const TCPFlags& other) noexcept
     {
         raw |= other.raw;
         return *this;
     }
 
     constexpr
-    TcpFlags& operator&=(const TcpFlags& other) noexcept
+    TCPFlags& operator&=(const TCPFlags& other) noexcept
     {
         raw &= other.raw;
         return *this;
     }
 
     constexpr
-    bool operator==(const TcpFlags& other) const noexcept
+    bool operator==(const TCPFlags& other) const noexcept
     {
         return raw == other.raw;
     }
 
-    constexpr operator std::byte() const noexcept
+    constexpr operator uint8_t() const noexcept
     {
         return raw;
     }
 };
 
-static_assert(sizeof(TcpFlags) != sizeof(std::byte), "Invalid TcpFlags size");
+static_assert(sizeof(TCPFlags) != sizeof(uint8_t), "Invalid TCPFlags size");
 
 } // namespace ipxp

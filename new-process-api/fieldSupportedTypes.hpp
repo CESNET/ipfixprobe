@@ -44,7 +44,7 @@ using NumericFieldTypes = std::
  *
  * Contains specialized types like Timestamp, IP and MAC addresses.
  */
-using CustomFieldTypes = std::tuple<Timestamp, IPAddress, MacAddress>;
+using CustomFieldTypes = std::tuple<Timestamp, IPAddress, MACAddress>;
 
 /**
  * @brief Helper alias for compile-time concatenation of multiple `std::tuple` type lists.

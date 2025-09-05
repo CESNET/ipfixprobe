@@ -1,8 +1,10 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for parsing pstats traffic.
+ * @author Tomas Cejka <cejkat@cesnet.cz>
+ * @author Karel Hynek <hynekkar@fit.cvut.cz>
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
  * Copyright (c) 2025 CESNET
@@ -20,6 +22,7 @@
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
+#include <utils/spanUtils.hpp>
 
 namespace ipxp {
 
@@ -35,25 +38,29 @@ static const PluginManifest packetStatsPluginManifest = {
 		},
 };
 
-static void createPacketStatsSchema(FieldManager& manager, FieldHandlers<PacketStatsFields>& handlers) noexcept
+static void createPacketStatsSchema(FieldManager& fieldManager, FieldHandlers<PacketStatsFields>& handlers) noexcept
 {
 	FieldSchema schema = fieldManager.createFieldSchema("pstats");
 
 	handlers.insert(PacketStatsFields::PPI_PKT_LENGTHS, schema.addVectorField(
 		"PPI_PKT_LENGTHS",
-		[](const void* context) {return toSpan(reinterpret_cast<const PacketStatsExport*>(context)->lengths);
-	}));
+		[](const void* context) {
+			return toSpan<const uint16_t>(reinterpret_cast<const PacketStatsData*>(context)->lengths);
+		}));
 	handlers.insert(PacketStatsFields::PPI_PKT_FLAGS, schema.addVectorField(
 		"PPI_PKT_FLAGS",
-		[](const void* context) {return toSpan<const uint8_t>(reinterpret_cast<const PacketStatsExport*>(context)->tcpFlags);
+		[](const void* context) {
+			return toSpan<const uint8_t>(reinterpret_cast<const PacketStatsData*>(context)->tcpFlags);
 	}));
 	handlers.insert(PacketStatsFields::PPI_PKT_DIRECTIONS, schema.addVectorField(
 		"PPI_PKT_DIRECTIONS",
-		[](const void* context) { return getSpan(reinterpret_cast<const PacketStatsExport*>(context)->directions);
+		[](const void* context) { 
+			return toSpan<const uint8_t>(reinterpret_cast<const PacketStatsData*>(context)->directions);
 	}));
 	handlers.insert(PacketStatsFields::PPI_PKT_TIMES, schema.addVectorField(
 		"PPI_PKT_TIMES",
-		[](const void* context) {return toSpan(reinterpret_cast<const PacketStatsExport*>(context)->timestamps);
+		[](const void* context) {
+			return toSpan<const Timestamp>(reinterpret_cast<const PacketStatsData*>(context)->timestamps);
 	}));
 }
 
@@ -88,9 +95,13 @@ PluginUpdateResult PacketStatsPlugin::onUpdate(const FlowContext& flowContext, v
 PluginExportResult PacketStatsPlugin::onExport(const FlowRecord& flowRecord, void* pluginContext)
 {
 	const std::size_t packetsTotal 
-		= flowRecord.src_packets + flowRecord.dst_packets;
+		= flowRecord.directionalData[Direction::Forward].packets + 
+		flowRecord.directionalData[Direction::Reverse].packets;
 	
-	if (packetsTotal <= MIN_FLOW_LENGTH) {
+	const TCPFlags flags = flowRecord.directionalData[Direction::Forward].tcpFlags | 
+		flowRecord.directionalData[Direction::Reverse].tcpFlags;
+	
+	if (packetsTotal <= MIN_FLOW_LENGTH && flags.bitfields.synchronize) {
 		return {
 			.flowAction = FlowAction::RemovePlugin,
 		};
@@ -113,7 +124,7 @@ bool isSequenceOverflowed(const uint32_t currentValue, const uint32_t prevValue)
 		static_cast<double>(std::numeric_limits<uint32_t>::max()) / 100);
 
 	return static_cast<int64_t>(prevValue) 
-		- static_cast<int64_t>(currentValue) > MAX_DIFF
+		- static_cast<int64_t>(currentValue) > MAX_DIFF;
 }
 
 static
@@ -136,7 +147,7 @@ bool isDuplicate(const Packet& packet, const PacketStatsData& pluginData) noexce
 
 	if (suspiciousSequence && suspiciousAcknowledgment 
 		&& packet.payload_len == pluginData.processingState.lastLength[packet.source_pkt]
-		&& packet.tcp_flags == pluginData.processingState.lastFlags[packet.source_pkt] 
+		&& TCPFlags(packet.tcp_flags) == pluginData.processingState.lastFlags[packet.source_pkt] 
 		&& pluginData.lengths.size() != 0) {
 		return true;
 	}
@@ -153,28 +164,24 @@ void PacketStatsPlugin::updatePacketsData(const Packet& packet, PacketStatsData&
 	pluginData.processingState.lastSequence[packet.source_pkt] = packet.tcp_seq;
 	pluginData.processingState.lastAcknowledgment[packet.source_pkt] = packet.tcp_ack;
 	pluginData.processingState.lastLength[packet.source_pkt] = packet.payload_len;
-	pluginData.processingState.lastFlags[packet.source_pkt] = TcpFlags(packet.tcp_flags);
+	pluginData.processingState.lastFlags[packet.source_pkt] = TCPFlags(packet.tcp_flags);
 
 	if (packet.packet_len == 0 && !m_countEmptyPackets) {
 		return;
 	}
 
-	if (pluginData.lengths.size() == pluginData.lengths.capacity()) {
+	if (pluginData.lengths.size() == PacketStatsData::INITIAL_SIZE) {
+		pluginData.reserveMaxSize();
+	}
+	if (pluginData.lengths.size() == PacketStatsData::MAX_SIZE) {
 		return;
 	}
 	
-	pluginData.lengths.push_back(static_cast<uint16_t>(packet.payload_len_wire));
-
-	pluginData.tcpFlags.push_back(TcpFlags(packet.tcp_flags));
-
-	pluginData.timestamps.push_back(packet.ts);
-	
-	/*
-	 * direction =  1 iff client -> server
-	 * direction = -1 iff server -> client
-	 */
 	const int8_t direction = packet.source_pkt ? 1 : -1;
 	pluginData.directions.push_back(direction);
+	pluginData.lengths.push_back(static_cast<uint16_t>(packet.payload_len_wire));
+	pluginData.tcpFlags.push_back(TCPFlags(packet.tcp_flags));
+	pluginData.timestamps.push_back(packet.ts);
 }
 
 void PacketStatsPlugin::onDestroy(void* pluginContext)
@@ -182,17 +189,12 @@ void PacketStatsPlugin::onDestroy(void* pluginContext)
 	std::destroy_at(reinterpret_cast<PacketStatsData*>(pluginContext));
 }
 
-PluginDataMemoryLayout DNSSDPlugin::getDataMemoryLayout() const noexcept
+PluginDataMemoryLayout PacketStatsPlugin::getDataMemoryLayout() const noexcept
 {
 	return {
 		.size = sizeof(PacketStatsData),
 		.alignment = alignof(PacketStatsData),
 	};
-}
-
-std::string PacketStatsPlugin::getName() const noexcept
-{
-	return packetStatsPluginManifest.name;
 }
 
 static const PluginRegistrar<PacketStatsPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>

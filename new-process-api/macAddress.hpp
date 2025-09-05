@@ -4,9 +4,9 @@
 
 namespace ipxp {
 
-struct MacAddress {};
+struct MACAddress {};
 
-inline std::ostream& operator<<(std::ostream& os, const MacAddress& mac)
+inline std::ostream& operator<<(std::ostream& os, const MACAddress& mac)
 {
 	(void) mac;
 

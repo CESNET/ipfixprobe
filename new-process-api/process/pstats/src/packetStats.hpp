@@ -27,11 +27,10 @@
  * @class PacketStatsPlugin
  * @brief A plugin for processing and collecting statistics about packets within flows.
  *
- * This plugin provides functionality to initialize, update, export, and destroy packet statistics
- * for network flows. It manages packet statistics data and interacts with field handlers for
- * exporting relevant statistics.
+ * Collects packet lengths, TCP flags, acknowledgments, sequences untill 
+ * the storage is filled.
  *
- * @note Duplicate packets can be skipped and empty packets can be optionally counted.
+ * @note Duplicate and empty packets can be optionally skipped.
  */
 namespace ipxp {
 
@@ -57,36 +56,39 @@ public:
 	PluginInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
 
 	/**
-	 * @brief Updates packet statistics for the current packet in the flow.
-	 * @param flowContext Contextual information about the flow.
-	 * @param pluginContext Pointer to plugin-specific context data.
-	 * @return Result of the update process.
+	 * @brief Updates plugin data with values from new packet.
+	 *
+	 * Inserts TCP acknowledgment, sequence, length and flags into `PacketStatsData` 
+	 * from `pluginContext`.
+	 *
+	 * @param flowContext Contextual information about the flow to be updated.
+	 * @param pluginContext Pointer to `PacketStatsData`.
+	 * @return Result of the update, may not require new packets if the packet storage is full.
 	 */
 	PluginUpdateResult onUpdate(const FlowContext& flowContext, void* pluginContext) override;
 
 	/**
-	 * @brief Exports collected packet statistics for the completed flow record.
+	 * @brief Prepare the export for export.
+	 *
+	 * Removes record if packet count is less than `MIN_FLOW_LENGTH`.
+	 * Sets all fields as available.
+	 *
 	 * @param flowRecord The flow record containing aggregated flow data.
-	 * @param pluginContext Pointer to plugin-specific context data.
-	 * @return Result of the export process.
+	 * @param pluginContext Pointer to `PacketStatsData`.
+	 * @return Remove if packet count is less than `MIN_FLOW_LENGTH`, 
+	 * else no action required.
 	 */
 	PluginExportResult onExport(const FlowRecord& flowRecord, void* pluginContext) override;
 
 	/**
-	 * @brief Cleans up and destroys plugin-specific context data.
-	 * @param pluginContext Pointer to plugin-specific context data.
+	 * @brief Cleans up and destroys `PacketStatsData`.
+	 * @param pluginContext Pointer to `PacketStatsData`.
 	 */
 	void onDestroy(void* pluginContext) override;
 
 	/**
-	 * @brief Returns the name of the plugin.
-	 * @return Plugin name as a string.
-	 */
-	std::string getName() const noexcept override;
-
-	/**
-	 * @brief Provides the memory layout of plugin-specific data.
-	 * @return Memory layout description for plugin data.
+	 * @brief Provides the memory layout of `PacketStatsData`.
+	 * @return Memory layout description for the plugin data.
 	 */
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
@@ -95,11 +97,18 @@ private:
 	* @brief Minimum number of packets required for a flow to be considered valid.
  	*/
 	constexpr static std::size_t MIN_FLOW_LENGTH = 1;
-
 	
 	void updatePacketsData(const Packet& packet, PacketStatsData& pluginData) noexcept;
 
+	/**
+	* @brief Skip packets that repeat ack or seq of last TCP fragment with
+	* same length and flags if set.
+ 	*/
 	const bool m_skipDuplicates{true};
+
+	/**
+	* @brief Skips empty packets if set.
+ 	*/
 	const bool m_countEmptyPackets{false};
 
 	FieldHandlers<PacketStatsFields> m_fieldHandlers;

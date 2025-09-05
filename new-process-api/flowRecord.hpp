@@ -3,6 +3,7 @@
 #include "timestamp.hpp"
 #include "flowKey.hpp"
 #include "directionalField.hpp"
+#include "tcpFlags.hpp"
 
 #include <array>
 #include <bitset>
@@ -42,7 +43,7 @@ struct DirectionalData {
 	Timestamp timeEnd;
 	uint64_t packets = 0;
 	uint64_t bytes = 0;
-	uint8_t tcpFlags = 0;
+	TCPFlags tcpFlags = 0;
 };
 
 class FlowRecord {

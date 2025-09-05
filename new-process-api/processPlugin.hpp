@@ -142,8 +142,6 @@ public:
 	ProcessPlugin(ProcessPlugin&&) = delete;
 	ProcessPlugin& operator=(ProcessPlugin&&) = delete;
 
-	virtual std::string getName() const noexcept = 0;
-
 	/**
 	 * @brief Called to attempt plugin construction for a flow.
 	 *
