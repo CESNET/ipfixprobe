@@ -68,14 +68,14 @@ public:
 	PluginUpdateResult onUpdate(const FlowContext& flowContext, void* pluginContext) override;
 
 	/**
-	 * @brief Prepare the export for export.
+	 * @brief Prepare the export data.
 	 *
-	 * Removes record if packet count is less than `MIN_FLOW_LENGTH`.
-	 * Sets all fields as available.
+	 * Removes record if it seems to be TCP scan.
+	 * Sets all fields as available otherwise.
 	 *
 	 * @param flowRecord The flow record containing aggregated flow data.
 	 * @param pluginContext Pointer to `PacketStatsData`.
-	 * @return Remove if packet count is less than `MIN_FLOW_LENGTH`, 
+	 * @return RemovePlugin if packet count is less than `MIN_FLOW_LENGTH`, 
 	 * else no action required.
 	 */
 	PluginExportResult onExport(const FlowRecord& flowRecord, void* pluginContext) override;
