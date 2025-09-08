@@ -11,7 +11,7 @@ struct TCPData {
     uint16_t window{0};
     uint64_t options{0};
     uint32_t mss{0};
-    TcpFlags flags{};
+    TCPFlags flags{};
     uint32_t sequence{0};
     uint32_t acknowledgment{0};
 };

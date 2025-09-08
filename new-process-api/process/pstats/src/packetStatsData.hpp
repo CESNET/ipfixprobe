@@ -18,7 +18,7 @@ namespace ipxp
  * 
  */
 struct PacketStatsData {
-	/// Initial reserved size for stora.
+	/// Initial reserved size for the storage.
 	constexpr static std::size_t INITIAL_SIZE = 5;
 	/// Maximum storage size.
 	constexpr static std::size_t MAX_SIZE = 30;

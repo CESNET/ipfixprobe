@@ -5,6 +5,12 @@
 namespace ipxp
 {
 
+/**
+ * @enum BasicPlusFields
+ * @brief Enumerates the fields exported by the BasicPlus plugin.
+ *
+ * These enum values are used to index field handlers for this plugin.
+ */
 enum class BasicPlusFields : std::size_t {
 	IP_TTL = 0,
 	IP_TTL_REV,

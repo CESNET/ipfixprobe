@@ -19,6 +19,7 @@
 #include <pluginFactory.hpp>
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
+#include <tcpData.hpp>
 
 namespace ipxp {
 
@@ -97,13 +98,14 @@ PluginInitResult BasicPlusPlugin::onInit(const FlowContext& flowContext, void* p
 {
 	auto* pluginData = std::construct_at(reinterpret_cast<BasicPlusData*>(pluginContext));
 
-	pluginData->ipTTL[Direction::Forward] = flowContext.packet.ipTTL;
+	pluginData->ipTTL[Direction::Forward] = flowContext.packet.ip_ttl;
 	m_fieldHandlers[BasicPlusFields::IP_TTL].setAsAvailable(flowContext.flowRecord);
 
-	pluginData->ipFlag[Direction::Forward] = flowContext.packet.ipFlags;
+	pluginData->ipFlag[Direction::Forward] = flowContext.packet.ip_flags;
 	m_fieldHandlers[BasicPlusFields::IP_FLG].setAsAvailable(flowContext.flowRecord);
 
-	if (!flowContext.packet.tcpData.has_value()) {
+	constexpr std::size_t TCP = 6;
+	if (flowContext.packet.ip_proto != TCP) {
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = UpdateRequirement::RequiresUpdate,
@@ -111,17 +113,17 @@ PluginInitResult BasicPlusPlugin::onInit(const FlowContext& flowContext, void* p
 		};
 	}
 
-	pluginData->tcpWindow[Direction::Forward] = flowContext.packet.tcpData->window;
+	pluginData->tcpWindow[Direction::Forward] = flowContext.packet.tcp_window;
 	m_fieldHandlers[BasicPlusFields::TCP_WIN].setAsAvailable(flowContext.flowRecord);
 
-	pluginData->tcpOption[Direction::Forward] = flowContext.packet.tcpData->options;
+	pluginData->tcpOption[Direction::Forward] = flowContext.packet.tcp_options;
 	m_fieldHandlers[BasicPlusFields::TCP_OPT].setAsAvailable(flowContext.flowRecord);
 
-	pluginData->tcpMSS[Direction::Forward] = flowContext.packet.tcpData->mss;
+	pluginData->tcpMSS[Direction::Forward] = flowContext.packet.tcp_mss;
 	m_fieldHandlers[BasicPlusFields::TCP_MSS].setAsAvailable(flowContext.flowRecord);
 
-	if (flowContext.packet.tcpData->flags.bitfields.synchronize) { // check if SYN packet
-		pluginData->tcpSynSize = flowContext.packet.ipLength;
+	if (TCPFlags(flowContext.packet.tcp_flags).bitfields.synchronize) { // check if SYN packet
+		pluginData->tcpSynSize = flowContext.packet.ip_len;
 		m_fieldHandlers[BasicPlusFields::TCP_SYN_SIZE].setAsAvailable(flowContext.flowRecord);
 	}
 
@@ -136,38 +138,39 @@ PluginUpdateResult BasicPlusPlugin::onUpdate(const FlowContext& flowContext, voi
 {
 	auto* pluginData = reinterpret_cast<BasicPlusData*>(pluginContext);
 	
-	pluginData->ipTTL[flowContext.packet.direction] 
-		= std::min(pluginData->ipTTL[flowContext.packet.direction], flowContext.packet.ipTTL);
+	pluginData->ipTTL[flowContext.packet.source_pkt] 
+		= std::min(pluginData->ipTTL[flowContext.packet.source_pkt], flowContext.packet.ip_ttl);
 
-	if (!flowContext.packet.tcpData.has_value()) {
+	constexpr std::size_t TCP = 6;
+	if (flowContext.packet.ip_proto != TCP) {
 		return {
 			.updateRequirement = UpdateRequirement::RequiresUpdate,
 			.flowAction = FlowAction::NoAction,
 		};
 	}
 
-	pluginData->tcpOption[flowContext.packet.direction] |= flowContext.packet.tcpData->options;
+	pluginData->tcpOption[flowContext.packet.source_pkt] |= flowContext.packet.tcp_options;
 
-	if (flowContext.packet.direction == Direction::Forward) {
+	if (flowContext.packet.source_pkt == Direction::Forward) {
 		return {
 			.updateRequirement = UpdateRequirement::RequiresUpdate,
 			.flowAction = FlowAction::NoAction,
 		};
 	}
 
-	pluginData->ipTTL[Direction::Reverse] = flowContext.packet.ipTTL;
+	pluginData->ipTTL[Direction::Reverse] = flowContext.packet.ip_ttl;
 	m_fieldHandlers[BasicPlusFields::IP_TTL_REV].setAsAvailable(flowContext.flowRecord);
 
-	pluginData->ipFlag[Direction::Reverse] = flowContext.packet.ipFlags;
+	pluginData->ipFlag[Direction::Reverse] = flowContext.packet.ip_flags;
 	m_fieldHandlers[BasicPlusFields::IP_FLG_REV].setAsAvailable(flowContext.flowRecord);
 
-	pluginData->tcpWindow[Direction::Reverse] = flowContext.packet.tcpData->window;
+	pluginData->tcpWindow[Direction::Reverse] = flowContext.packet.tcp_window;
 	m_fieldHandlers[BasicPlusFields::TCP_WIN_REV].setAsAvailable(flowContext.flowRecord);
 
-	pluginData->tcpOption[Direction::Reverse] = flowContext.packet.tcpData->options;
+	pluginData->tcpOption[Direction::Reverse] = flowContext.packet.tcp_options;
 	m_fieldHandlers[BasicPlusFields::TCP_OPT_REV].setAsAvailable(flowContext.flowRecord);
 
-	pluginData->tcpMSS[Direction::Reverse] = flowContext.packet.tcpData->mss;
+	pluginData->tcpMSS[Direction::Reverse] = flowContext.packet.tcp_mss;
 	m_fieldHandlers[BasicPlusFields::TCP_MSS_REV].setAsAvailable(flowContext.flowRecord);
 
 	return {
@@ -179,11 +182,6 @@ PluginUpdateResult BasicPlusPlugin::onUpdate(const FlowContext& flowContext, voi
 void BasicPlusPlugin::onDestroy(void* pluginContext) 
 {
 	std::destroy_at(reinterpret_cast<BasicPlusData*>(pluginContext));
-}
-
-std::string BasicPlusPlugin::getName() const noexcept
-{ 
-	return basicPlusPluginManifest.name; 
 }
 
 PluginDataMemoryLayout BasicPlusPlugin::getDataMemoryLayout() const noexcept
