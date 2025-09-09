@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Request manager declaration that handles query making and responses.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <string>
@@ -36,11 +45,10 @@ struct OSQueryRequestManager {
 	std::optional<JsonParser::AboutProgram> 
 	readInfoAboutProgram(const FlowKey& flowKey) noexcept;
 
-	//OSQueryRequestManager(const OSQueryRequestManager& other) noexcept;
-
 private:
 	constexpr static std::size_t CHUNK_SIZE = 1024;
 	constexpr static std::size_t BUFFER_SIZE = CHUNK_SIZE * 20 + 1;
+	constexpr static std::size_t MAX_COUNT_OF_ATTEMPTS = 2;
 
 	/**
 	 * Sends a request and receives a response from osquery.
@@ -99,21 +107,11 @@ private:
 	 */
 	std::optional<pid_t> getPID(const FlowKey& flowKey) noexcept;
 
-
-	//int inputFD;
-	//int outputFD;
-
 	
-	constexpr static std::size_t MAX_COUNT_OF_ATTEMPTS = 2;
-	
-
 	pollfd m_pollFileDescriptor;
-	//bool isFDOpened;
 	int countOfAttempts;
-	//pid_t osqueryProcessId;
 	std::optional<Process> m_queryingProcess;
 	OSQueryStateHandler handler;
-	//JsonParser parser;
 };
 
 } // namespace ipxp

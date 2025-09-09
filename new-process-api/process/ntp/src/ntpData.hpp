@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Export data of NTP plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <boost/static_string/static_string.hpp>
@@ -5,6 +14,10 @@
 namespace ipxp
 {
 
+/**
+ * @struct NetworkTimeData
+ * @brief Struct representing NTP flow statistics.
+ */
 struct NetworkTimeData {
 	uint8_t leap;
 	uint8_t version;

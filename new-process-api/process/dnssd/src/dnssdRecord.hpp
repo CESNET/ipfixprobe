@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief DNS-SD record.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <string_view>
@@ -9,7 +18,11 @@
 
 namespace ipxp
 {
-    
+   
+/**
+ * @struct DNSSDRecord
+ * @brief Struct representing DNS-SD request and response to it.
+ */
 struct DNSSDRecord {
     DNSName requestName;
 
@@ -19,14 +32,16 @@ struct DNSSDRecord {
     DNSName operatingSystem;
     std::vector<DNSName> txtContent;
 
+    /**
+	 * @brief Converts record to string.
+	 * @return String representation of the record.
+	 */
     std::string toString() const noexcept
     {
-        // TODO FIX
-        const std::string& txtContentStr = "";
-        /*fmt::join(txtContent |
+        const std::string& txtContentStr = fmt::join(txtContent |
             std::transform([](const DNSName& name) {
                 return name.toString();
-            }), ":");*/
+            }), ":");
         return std::format(
             "{};{};{};{};{};{};", requestName.toString(), 
             srvPort, srvTarget.toString(), 
@@ -34,6 +49,5 @@ struct DNSSDRecord {
             txtContentStr);
     }
 };
-
 
 } // namespace ipxp

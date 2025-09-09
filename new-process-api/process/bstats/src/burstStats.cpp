@@ -1,13 +1,15 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for parsing bstats traffic.
+ * @author Karel Hynek <hynekkar@fit.cvut.cz>
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that extracts packet burst statistics of flows,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "burstStats.hpp"
@@ -165,11 +167,6 @@ PluginDataMemoryLayout BurstStatsPlugin::getDataMemoryLayout() const noexcept
 		.size = sizeof(BurstStatsData),
 		.alignment = alignof(BurstStatsData),
 	};
-}
-
-std::string BurstStatsPlugin::getName() const noexcept 
-{ 
-	return burstStatsPluginManifest.name; 
 }
 
 static const PluginRegistrar<BurstStatsPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>

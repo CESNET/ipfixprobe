@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Export data of HTTP plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <boost/static_string.hpp>
@@ -5,6 +14,10 @@
 namespace ipxp
 {
 
+/**
+ * @struct HTTPData
+ * @brief Structure representing HTTP request/response data and its processing state.
+ */
 struct HTTPData {
 	constexpr static std::size_t MAX_METHOD_LENGTH = 16;
 	boost::static_string<MAX_METHOD_LENGTH> method;

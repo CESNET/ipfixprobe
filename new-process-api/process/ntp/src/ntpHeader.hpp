@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief NTP header structure.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -5,6 +14,10 @@
 namespace ipxp
 {
 
+/**
+ * @union NetworkTimeHeader
+ * @brief Union representing NTP header.
+ */
 union NetworkTimeHeader {
 
     NetworkTimeHeader(const uint8_t raw) noexcept

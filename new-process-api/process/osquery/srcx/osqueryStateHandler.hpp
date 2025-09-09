@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Query state handler that displays if read was successful or not.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <cstdint>

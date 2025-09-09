@@ -1,13 +1,14 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
- * @author Pavel Siska <siska@cesnet.cz>
+ * @brief Plugin for parsing Nettisa flow.
+ * @author Josef Koumar koumajos@fit.cvut.cz
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that extracts advanced statistics based on packet lengths,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "nettisa.hpp"
@@ -35,22 +36,6 @@ static const PluginManifest nettisaPluginManifest = {
 		},
 };
 
-const inline std::vector<FieldPair<NetTimeSeriesFields>> fields = {
-	{, "NTS_MEAN"},
-	{NetTimeSeriesFields::NTS_MIN, "NTS_MIN"},
-	{NetTimeSeriesFields::NTS_MAX, "NTS_MAX"},
-	{NetTimeSeriesFields::NTS_STDEV, "NTS_STDEV"},
-	{NetTimeSeriesFields::NTS_KURTOSIS, "NTS_KURTOSIS"},
-	{NetTimeSeriesFields::NTS_ROOT_MEAN_SQUARE, "NTS_ROOT_MEAN_SQUARE"},
-	{NetTimeSeriesFields::NTS_AVERAGE_DISPERSION, "NTS_AVERAGE_DISPERSION"},
-	{NetTimeSeriesFields::NTS_MEAN_SCALED_TIME, "NTS_MEAN_SCALED_TIME"},
-	{NetTimeSeriesFields::NTS_MEAN_DIFFTIMES, "NTS_MEAN_DIFFTIMES"},
-	{NetTimeSeriesFields::NTS_MIN_DIFFTIMES, "NTS_MIN_DIFFTIMES"},
-	{NetTimeSeriesFields::NTS_MAX_DIFFTIMES, "NTS_MAX_DIFFTIMES"},
-	{NetTimeSeriesFields::NTS_TIME_DISTRIBUTION, "NTS_TIME_DISTRIBUTION"},
-	{NetTimeSeriesFields::NTS_SWITCHING_RATIO, "NTS_SWITCHING_RATIO"},
-};
-
 static FieldSchema createNetTimeSeriesSchema(FieldManager& fieldManager, const FieldHandlers<NetTimeSeriesFields>& handlers) noexcept
 {
 	FieldSchema schema = fieldManager.createFieldSchema("nettisa");
@@ -58,7 +43,7 @@ static FieldSchema createNetTimeSeriesSchema(FieldManager& fieldManager, const F
 	handlers.insert(NetTimeSeriesFields::NTS_MEAN, schema.addScalarField(
 		"NTS_MEAN",
 		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->mean; },
-	);
+	));
 
 	handlers.insert(NetTimeSeriesFields::NTS_MIN, schema.addScalarField(
 		"NTS_MIN",
@@ -72,7 +57,7 @@ static FieldSchema createNetTimeSeriesSchema(FieldManager& fieldManager, const F
 
 	handlers.insert(NetTimeSeriesFields::NTS_STDEV, schema.addScalarField(
 		"NTS_STDEV",
-		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->stdev; },
+		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->standardDeviation; },
 	));
 
 	handlers.insert(NetTimeSeriesFields::NTS_KURTOSIS, schema.addScalarField(
@@ -187,15 +172,15 @@ PluginExportResult NetTimeSeriesPlugin::onExport(const FlowRecord& flowRecord, v
 		};
 	}
 	m_exportData.switchingRatio = m_exportData.switchingRatio / packetsTotal;
-	m_exportData.stdev = static_cast<float>(std::pow(
+	m_exportData.standardDeviation = static_cast<float>(std::pow(
 		(m_exportData.rootMeanSquare / packetsTotal) - 
 			std::pow(static_cast<float>(m_exportData.processingState.sumPayload) / packetsTotal, 2),
 		0.5));
-	if (m_exportData.stdev == 0) {
+	if (m_exportData.standardDeviation == 0) {
 		m_exportData.kurtosis = 0;
 	} else {
-		m_exportData.kurtosis = static_cast<float>(m_exportData.kurtosis 
-			/ (packetsTotal * std::pow(m_exportData.stdev, 4)));
+		m_exportData.kurtosis = static_cast<float>(m_exportData.kurtosis
+			/ (packetsTotal * std::pow(m_exportData.standardDeviation, 4)));
 	}
 	m_exportData.timeDistribution = (m_exportData.timeDistribution / (packetsTotal - 1))
 		/ (m_exportData.maxDifftimes - m_exportData.min);
@@ -230,11 +215,6 @@ void NetTimeSeriesPlugin::makeAllFieldsAvailable(const FlowRecord& flowRecord)
 void NetTimeSeriesPlugin::onDestroy(void* pluginContext)
 {
 	std::destroy_at(reinterpret_cast<NetTimeSeriesData*>(pluginContext));
-}
-
-std::string NetTimeSeriesPlugin::getName() const noexcept
-{ 
-	return nettisaPluginManifest.name; 
 }
 
 PluginDataMemoryLayout NetTimeSeriesPlugin::getDataMemoryLayout() const noexcept

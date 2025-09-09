@@ -1,13 +1,14 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for parsing netbios traffic.
+ * @author Ondrej Sedlacek <xsedla1o@stud.fit.vutbr.cz>
  * @author Pavel Siska <siska@cesnet.cz>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that extracts NetBIOS suffix and name from packets,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "netbios.hpp"
@@ -60,7 +61,8 @@ NetBIOSPlugin::NetBIOSPlugin([[maybe_unused]]const std::string& params, FieldMan
 
 PluginInitResult NetBIOSPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	if (packet.flowKey.srcPort == 137 || packet.flowKey.dstPort == 137) {
+	constexpr uint8_t NETBIOS_PORT = 137;
+	if (packet.flowKey.srcPort == NETBIOS_PORT || packet.flowKey.dstPort == NETBIOS_PORT) {
 		auto* pluginData = std::construct_at(reinterpret_cast<NetBIOSData*>(pluginContext));
 		parseNetBIOS(flowRecord, packet.payload, *pluginData);
 		return {
@@ -116,11 +118,6 @@ void NetBIOSPlugin::parseNetBIOS(FlowRecord& flowRecord, std::span<const std::by
 void NetBIOSPlugin::onDestroy(void* pluginContext)
 {
 	std::destroy_at(reinterpret_cast<NetBIOSData*>(pluginContext));
-}
-
-std::string NetBIOSPlugin::getName() const noexcept
-{ 
-	return netbiosPluginManifest.name; 
 }
 
 PluginDataMemoryLayout NetBIOSPlugin::getDataMemoryLayout() const noexcept

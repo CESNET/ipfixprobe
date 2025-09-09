@@ -1,13 +1,15 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for parsing osquery traffic.
+ * @author Anton Aheyeu aheyeant@fit.cvut.cz
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that queries OS to obtain info about flows,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "osquery.hpp"
@@ -160,11 +162,6 @@ void OSQUERYPlugin::finish(bool print_stats)
 				  << std::endl;
 	}
 }*/
-
-std::string OSQueryPlugin::getName() const noexcept
-{
-	return osqueryPluginManifest.name;
-}
 
 static const PluginRegistrar<OSQueryPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	osqueryRegistrar(osqueryPluginManifest);

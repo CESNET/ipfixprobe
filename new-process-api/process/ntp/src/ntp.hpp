@@ -1,13 +1,14 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
- * @author Pavel Siska <siska@cesnet.cz>
+ * @brief Plugin for parsing ntp traffic.
+ * @author Alejandro Robledo <robleale@fit.cvut.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that parses NTP packets and extracts relevant fields,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
@@ -24,16 +25,43 @@
 
 namespace ipxp {
 
+/**
+ * @class NetworkTimePlugin
+ * @brief A plugin for parsing NTP traffic.
+ */
 class NetworkTimePlugin : public ProcessPlugin {
 public:
+
+	/**
+	 * @brief Constructs the NetworkTime plugin.
+	 *
+	 * @param parameters Plugin parameters as a string (currently unused).
+	 * @param fieldManager Reference to the FieldManager for field registration.
+	 */
 	NetworkTimePlugin(const std::string& params, FieldManager& manager);
 
+	/**
+	 * @brief Initializes plugin data for a new flow.
+	 *
+	 * Constructs `NetworkTimePlugin` in `pluginContext` and initializes it with
+	 * burst containing initial packet.
+	 *
+	 * @param flowContext Contextual information about the flow to fill new record.
+	 * @param pluginContext Pointer to pre-allocated memory to create record.
+	 * @return Result of the initialization process.
+	 */
 	PluginInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
 
+	/**
+	 * @brief Cleans up and destroys `NetworkTimePlugin`.
+	 * @param pluginContext Pointer to `NetworkTimePlugin`.
+	 */
 	void onDestroy(void* pluginContext) override;
 
-	std::string getName() const noexcept override;
-
+	/**
+	 * @brief Provides the memory layout of `NetworkTimePlugin`.
+	 * @return Memory layout description for the plugin data.
+	 */
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
@@ -43,7 +71,6 @@ private:
 	bool fillNetworkTimeHeader(NetworkTimeHeader networkTimeHeader) noexcept;
 
 	FieldHandlers<NetworkTimeFields> m_fieldHandlers;
-	
 };
 
 } // namespace ipxp

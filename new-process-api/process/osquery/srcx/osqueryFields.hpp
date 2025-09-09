@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Export fields of osquery plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <cstddef>
@@ -5,6 +14,12 @@
 namespace ipxp
 {
 
+/**
+ * @enum BurstStatsFields
+ * @brief Enumerates the fields exported by the BurstStats plugin.
+ *
+ * These enum values are used to index field handlers for this plugin.
+ */
 enum class OSQueryFields : std::size_t {
 	OSQUERY_PROGRAM_NAME = 0,
 	OSQUERY_USERNAME,

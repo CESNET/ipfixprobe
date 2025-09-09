@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Request manager implementation that handles query making and responses.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #include "osqueryRequestManager.hpp"
 
 #include <optional>

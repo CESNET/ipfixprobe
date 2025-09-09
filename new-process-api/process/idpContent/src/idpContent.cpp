@@ -1,13 +1,15 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for parsing idpcontent traffic.
+ * @author Karel Hynek <Karel.Hynek@cesnet.cz>
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that exports packet payloads as IDP content,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "idpContent.hpp"
@@ -34,11 +36,6 @@ static const PluginManifest idpcontentPluginManifest = {
 			/*OptionsParser parser("idpcontent", "Parse first bytes of flow payload");
 			parser.usage(std::cout);*/
 		},
-};
-
-const inline std::vector<FieldPair<IDPContentFields>> fields = {
-	{IDPContentFields::IDP_CONTENT, "IDP_CONTENT"},
-	{IDPContentFields::IDP_CONTENT_REV, "IDP_CONTENT_REV"},
 };
 
 static FieldSchema createIDPContentSchema(FieldManager& fieldManager, FieldHandlers<IDPContentFields>& handlers) noexcept
@@ -79,7 +76,7 @@ UpdateRequirement IDPContentPlugin::updateContent(FlowRecord& flowRecord, const 
 	const std::size_t sizeToSave = std::min(IDPContentData::MAX_CONTENT_LENGTH, packet.payload.size());
 	m_exportData.directionalContent[packet.direction] = std::make_optional<IDPContentExport::Content>(
 		packet.payload.data(), packet.payload.data() + sizeToSave);
-	m_fieldHandlers[fields[packet.direction].first].setAsAvailable(flowRecord);
+	m_fieldHandlers[packet.direction ? IDPContentFields::IDP_CONTENT : IDPContentFields::IDP_CONTENT_REV].setAsAvailable(flowRecord);
 
 	return UpdateRequirement::RequiresUpdate;
 }
@@ -107,11 +104,6 @@ PluginUpdateResult IDPContentPlugin::onUpdate(const FlowContext& flowContext, vo
 void IDPContentPlugin::onDestroy(void* pluginContext)
 {
 	std::destroy_at(reinterpret_cast<IDPContentExport*>(pluginContext));
-}
-
-std::string IDPContentPlugin::getName() const noexcept
-{ 
-	return idpcontentPluginManifest.name; 
 }
 
 static const PluginRegistrar<IDPContentPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>

@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Export fields of nettisa plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <cstddef>
@@ -5,6 +14,12 @@
 namespace ipxp
 {
 
+/**
+ * @enum NetTimeSeriesFields
+ * @brief Enumerates the fields exported by the NetTimeSeries plugin.
+ *
+ * These enum values are used to index field handlers for this plugin.
+ */
 enum class NetTimeSeriesFields : std::size_t {
 	NTS_MEAN = 0,
 	NTS_MIN,

@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Export data of basicplus plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <directionalField.hpp>

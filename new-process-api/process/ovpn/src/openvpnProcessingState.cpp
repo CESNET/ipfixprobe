@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Provides OVPN finite state machine implementation.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #include "openvpnProcessingState.hpp"
 
 namespace ipxp

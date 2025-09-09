@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Export data of OVPN plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <array>
@@ -10,6 +19,10 @@
 namespace ipxp
 {
 
+/**
+ * @struct OpenVPNData
+ * @brief Struct representing OVPN export data - confidence level and current processing state.
+ */
 struct OpenVPNData {
 	uint8_t vpnConfidence;
 

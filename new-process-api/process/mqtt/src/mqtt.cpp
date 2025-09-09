@@ -26,6 +26,7 @@
 
 namespace ipxp {
 
+
 static const PluginManifest mqttPluginManifest = {
 	.name = "mqtt",
 	.description = "Mqtt process plugin for parsing mqtt traffic.",
@@ -37,32 +38,6 @@ static const PluginManifest mqttPluginManifest = {
 			parser.usage(std::cout);*/
 		},
 };
-
-/**
- * \brief Read variable integer as defined in
- * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html. 
- * \param [in] data Pointer to IP payload. 
- * \param [in] payload_len IP payload length. 
- * \param [in] last_byte Next after last read byte. 
- * \return Pair of read integer and bool. Bool is false in case read was unsuccessful.
- */
-constexpr static
-std::optional<VariableLenghtInt> readVariableInt(std::span<const std::byte> payload) noexcept
-{
-	VariableLenghtInt res{0, 0};
-
-	for (const std::byte byte : payload) {
-		res.value <<= 8;
-		res.value |= static_cast<int32_t>(byte);
-		res.readBytes++;
-		
-		if (const bool readNext = (static_cast<uint32_t>(byte) & 0b1000'0000U); !readNext) {
-			return std::make_optional<VariableLenghtInt>(res);
-		}
-	}
-
-	return std::nullopt;
-}
 
 /**
  * \brief Read utf8 encoded string as defined in

@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Export fields of HTTP plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <cstddef>
@@ -5,6 +14,12 @@
 namespace ipxp
 {
 
+/**
+ * @enum HTTPFields
+ * @brief Enumerates the fields exported by the HTTP plugin.
+ *
+ * These enum values are used to index field handlers for this plugin.
+ */
 enum class HTTPFields : std::size_t {
 	HTTP_REQUEST_METHOD = 0,
 	HTTP_REQUEST_HOST,

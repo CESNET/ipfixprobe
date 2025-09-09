@@ -1,13 +1,15 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for parsing mpls traffic.
+ * @author Jakub Antonín Štigler xstigl00@stud.fit.vut.cz
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that extracts MPLS top label from packets,
+ * stores them in per-flow plugin data, and exposes that field via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
@@ -22,16 +24,44 @@
 
 namespace ipxp {
 
+/**
+ * @class MPLSPlugin
+ * @brief A plugin for parsing MPLS traffic.
+ */
 class MPLSPlugin : public ProcessPlugin {
 public:
+
+	/**
+	 * @brief Constructs the MPLS plugin.
+	 *
+	 * @param parameters Plugin parameters as a string (currently unused).
+	 * @param fieldManager Reference to the FieldManager for field registration.
+	 */
 	MPLSPlugin(const std::string& params, FieldManager& manager);
 
+	/**
+	 * @brief Initializes plugin data for a new flow.
+	 *
+	 * Constructs `MPLSData` in `pluginContext` and initializes it with
+	 * the top label from the packet if present.
+	 * Removes export data if packet does not contain MPLS label.
+	 *
+	 * @param flowContext Contextual information about the flow to fill new record.
+	 * @param pluginContext Pointer to pre-allocated memory to create record.
+	 * @return Result of the initialization process.
+	 */
 	PluginInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
 
+	/**
+	 * @brief Cleans up and destroys `MPLSData`.
+	 * @param pluginContext Pointer to `MPLSData`.
+	 */
 	void onDestroy(void* pluginContext) override;
 
-	std::string getName() const noexcept override;
-
+	/**
+	 * @brief Provides the memory layout of `MPLSData`.
+	 * @return Memory layout description for the plugin data.
+	 */
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:

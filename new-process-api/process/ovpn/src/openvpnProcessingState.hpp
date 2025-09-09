@@ -1,13 +1,25 @@
+/**
+ * @file
+ * @brief Provides OVPN finite state machine declaration.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <ipAddress.hpp>
 
 #include "openvpnOpcode.hpp"
 
-
 namespace ipxp
 {
 
+/**
+ * @class OpenVPNProcessingState
+ * @brief A class that handles transitions between OpenVPN processing states.
+ */
 class OpenVPNProcessingState {
 public:
 
@@ -43,10 +55,7 @@ private:
     std::size_t m_largePacketCount{0};
     std::size_t m_dataPacketCount{0};
     std::size_t m_invalidPacketCount{0};
-    //uint32_t m_status;
     IPAddress m_clientIp;
-
 };
-
 
 } // namespace ipxp

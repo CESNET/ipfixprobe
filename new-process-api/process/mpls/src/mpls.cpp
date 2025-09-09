@@ -1,13 +1,15 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for parsing mpls traffic.
+ * @author Jakub Antonín Štigler xstigl00@stud.fit.vut.cz
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that extracts MPLS top label from packets,
+ * stores them in per-flow plugin data, and exposes that field via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "mpls.hpp"
@@ -77,11 +79,6 @@ PluginInitResult MPLSPlugin::onInit(const FlowContext& flowContext, void* plugin
 void MPLSPlugin::onDestroy(void* pluginContext)
 {
 	std::destroy_at(reinterpret_cast<MPLSData*>(pluginContext));
-}
-
-std::string MPLSPlugin::getName() const noexcept
-{ 
-	return mplsPluginManifest.name; 
 }
 
 static const PluginRegistrar<MPLSPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> mplsRegistrar(mplsPluginManifest);

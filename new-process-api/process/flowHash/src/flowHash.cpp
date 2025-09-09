@@ -1,13 +1,15 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for processing flow_hash value.
+ * @author Jakub Antonín Štigler xstigl00@stud.fit.vut.cz
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that extracts hashes of flows,
+ * stores them in per-flow plugin data, and exposes that field via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "flowHash.hpp"
@@ -68,11 +70,6 @@ PluginInitResult FlowHashPlugin::onInit(const FlowContext& flowContext, void* pl
 void FlowHashPlugin::onDestroy(void* pluginContext)
 {
 	std::destroy_at(reinterpret_cast<FlowHashData*>(pluginContext));
-}
-
-std::string FlowHashPlugin::getName() const noexcept
-{
-	return flowhashPluginManifest.name; 
 }
 
 PluginDataMemoryLayout FlowHashPlugin::getDataMemoryLayout() const noexcept

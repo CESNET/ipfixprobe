@@ -1,13 +1,16 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for parsing ovpn traffic.
+ * @author Karel Hynek <hynekkar@fit.cvut.cz>
+ * @author Martin Ctrnacty <ctrnama2@fit.cvut.cz>
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that calculates confidence level that given flow is OpenVPN,
+ * stores it in per-flow plugin data, and exposes that field via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "openvpn.hpp"
@@ -203,11 +206,6 @@ PluginDataMemoryLayout OpenVPNPlugin::getDataMemoryLayout() const noexcept
 		.size = sizeof(OpenVPNData),
 		.alignment = alignof(OpenVPNData),
 	};
-}
-
-std::string OpenVPNPlugin::getName() const noexcept
-{
-	return ovpnPluginManifest.name;
 }
 
 static const PluginRegistrar<OpenVPNPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>

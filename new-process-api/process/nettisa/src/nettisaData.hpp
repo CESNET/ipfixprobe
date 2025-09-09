@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Export data of nettisa plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -5,11 +14,17 @@
 namespace ipxp
 {
 
+/**
+ * @struct NetTimeSeriesData
+ * @brief Struct representing flow time series statistics.
+ *
+ * Contains various export statistics calculated from packet lengths over time and current processing state.
+ */
 struct NetTimeSeriesData {
 	float mean;
 	uint16_t min;
 	uint16_t max;
-	float stdev;
+	float standardDeviation;
 	float kurtosis;
 	float rootMeanSquare;
 	float averageDispersion;

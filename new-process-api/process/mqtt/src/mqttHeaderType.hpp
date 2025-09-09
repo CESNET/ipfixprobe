@@ -1,9 +1,21 @@
+/**
+ * @file
+ * @brief MQTT header types.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <cstdint>
 
 namespace ipxp {
 
+/**
+ * @enum MQTTHeaderType
+ * @brief Enumerates the header types of MQTT that will be parsed.
+ */
 enum class MQTTHeaderType : uint8_t {
     CONNECT = 1,
     CONNECT_ACK,

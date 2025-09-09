@@ -1,13 +1,15 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for parsing icmp traffic.
+ * @author Jakub Antonín Štigler xstigl00@xstigl00@stud.fit.vut.cz
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that extracts ICMP typecode from packets,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "icmp.hpp"
@@ -86,11 +88,6 @@ PluginInitResult ICMPPlugin::onInit(const FlowContext& flowContext, void* plugin
 		.updateRequirement = UpdateRequirement::NoUpdateNeeded,
 		.flowAction = FlowAction::NoAction,
 	};
-}
-
-std::string ICMPPlugin::getName() const noexcept
-{ 
-	return icmpPluginManifest.name; 
 }
 
 static const PluginRegistrar<ICMPPlugin, 

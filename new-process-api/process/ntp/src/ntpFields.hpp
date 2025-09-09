@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Export fields of NTP plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <cstddef>
@@ -5,6 +14,12 @@
 namespace ipxp
 {
 
+/**
+ * @enum NetworkTimeFields
+ * @brief Enumerates the fields exported by the NetworkTime plugin.
+ *
+ * These enum values are used to index field handlers for this plugin.
+ */
 enum class NetworkTimeFields : std::size_t {
 	NTP_LEAP = 0,
 	NTP_VERSION,

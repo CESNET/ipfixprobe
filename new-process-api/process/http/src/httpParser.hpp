@@ -1,9 +1,13 @@
 /**
  * @file
- * @brief HTTP parser class declaration
- * @author Zainullin Damir <zaidamilda@gmail.com>
+ * @brief Declaration of HTTP parser class.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a parser of HTTP traffic. Extracts HTTP method, URI, host, user-agent,
+ * referer, status code, content type, server, and cookies from HTTP packets.
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
@@ -18,7 +22,8 @@
 namespace ipxp {
 
 /**
- * @brief HTTP parser class
+ * @class HTTPParser
+ * @brief Class for parsing HTTP packets.
  */
 class HTTPParser {
 	constexpr static size_t MAX_COOKIE_COUNT = 50;

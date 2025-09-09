@@ -1,9 +1,13 @@
 /**
  * @file
- * @brief HTTP parser class definition
- * @author Zainullin Damir <zaidamilda@gmail.com>
+ * @brief Definition of HTTP parser class.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a parser of HTTP traffic. Extracts HTTP method, URI, host, user-agent,
+ * referer, status code, content type, server, and cookies from HTTP packets.
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "httpParser.hpp"

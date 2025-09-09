@@ -1,13 +1,14 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
- * @author Pavel Siska <siska@cesnet.cz>
+ * @brief Plugin for parsing ntp traffic.
+ * @author Alejandro Robledo <robleale@fit.cvut.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that parses NTP packets and extracts relevant fields,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "ntp.hpp"
@@ -112,7 +113,8 @@ NetworkTimePlugin::NetworkTimePlugin([[maybe_unused]]const std::string& params, 
 
 PluginInitResult NetworkTimePlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	if (flowContext.packet.flowKey.srcPort == 123 || flowContext.packet.flowKey.dstPort == 123) {
+	constexpr uint16_t NTP_PORT = 123;
+	if (flowContext.packet.flowKey.srcPort == NTP_PORT || flowContext.packet.flowKey.dstPort == NTP_PORT) {
 		auto* pluginData = std::construct_at(reinterpret_cast<NetworkTimeData*>(pluginContext));
 		if (!parseNTP(flowRecord, flowContext.packet.payload, *pluginData)) {
 			return {
@@ -274,12 +276,6 @@ bool NetworkTimePlugin::parseNTP(FlowRecord& flowRecord, std::span<const std::by
 void NetworkTimePlugin::onDestroy(void* pluginContext)
 {
 	std::destroy_at(reinterpret_cast<NetworkTimeData*>(pluginContext));
-}
-
-
-std::string NetworkTimePlugin::getName() const noexcept
-{ 
-	return ntpPluginManifest.name; 
 }
 
 PluginDataMemoryLayout DNSSDPlugin::getDataMemoryLayout() const noexcept

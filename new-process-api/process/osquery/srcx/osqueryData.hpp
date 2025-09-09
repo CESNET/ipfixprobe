@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Export data of osquery plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <array>
@@ -8,7 +17,11 @@
 namespace ipxp
 {
 
-struct OSQueryExport {
+/**
+ * @struct OSQueryData
+ * @brief Struct representing OS query data. Contains information about the OS query process.
+ */
+struct OSQueryData {
     constexpr static std::string_view defaultFillText = "UNDEFINED";
 
 	std::string programName{defaultFillText};

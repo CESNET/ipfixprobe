@@ -1,13 +1,15 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for parsing dnssd traffic.
+ * @author Ondrej Sedlacek <xsedla1o@stud.fit.vutbr.cz>
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that extracts DNS-SD data from packets,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "dnssd.hpp"
@@ -197,11 +199,6 @@ PluginExportResult DNSSDPlugin::onExport(const FlowRecord& flowRecord, void* plu
 	return {
 		.flowAction = FlowAction::NoAction,
 	};
-}
-
-std::string DNSSDPlugin::getName() const noexcept
-{ 
-	return dnssdPluginManifest.name; 
 }
 
 PluginDataMemoryLayout DNSSDPlugin::getDataMemoryLayout() const noexcept

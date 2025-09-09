@@ -3,11 +3,13 @@
  * @brief Plugin for parsing basicplus traffic.
  * @author Jiri Havranek <havranek@cesnet.cz>
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that extracts DNS fields from packets,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "dns.hpp"
@@ -22,7 +24,6 @@
 #include <utils.hpp>
 #include <dnsParser/dnsParser.hpp>
 #include <utils/stringViewUtils.hpp>
-
 
 namespace ipxp {
 
@@ -87,7 +88,8 @@ DNSPlugin::DNSPlugin([[maybe_unused]]const std::string& params, FieldManager& ma
 
 PluginInitResult DNSPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	if (flowContext.packet.flowKey.srcPort != 53 && flowContext.packet.flowKey.dstPort != 53) {
+	constexpr uint16_t DNS_PORT = 53;
+	if (flowContext.packet.flowKey.srcPort != DNS_PORT && flowContext.packet.flowKey.dstPort != DNS_PORT) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -214,11 +216,6 @@ bool DNSPlugin::parseDNS(
 void DNSPlugin::onDestroy(void* pluginContext)
 {
 	std::destroy_at(reinterpret_cast<DNSData*>(pluginContext));
-}
-
-std::string DNSPlugin::getName() const noexcept
-{
-	return dnsPluginManifest.name;
 }
 
 PluginDataMemoryLayout DNSPlugin::getDataMemoryLayout() const noexcept
