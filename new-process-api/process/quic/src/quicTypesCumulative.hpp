@@ -22,7 +22,7 @@ union QUICTypesCumulative {
         uint8_t handshake : 1;
         uint8_t zeroRTT : 1;
         uint8_t initial : 1;
-    } bits;
+    } bitfields;
 
     std::byte raw;
 };

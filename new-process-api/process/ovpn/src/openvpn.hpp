@@ -27,6 +27,10 @@
 
 namespace ipxp {
 
+/**
+ * @class OpenVPNPlugin
+ * @brief A plugin for detecting OpenVPN traffic.
+ */
 class OpenVPNPlugin : public ProcessPlugin {
 public:
 	

@@ -7,9 +7,10 @@
  * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that calculates packet statistics as flags, acknowledgments, and sequences within flows,
+ * stores it in per-flow plugin data, and exposes that field via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
@@ -23,6 +24,9 @@
 #include "packetStatsData.hpp"
 #include "packetStatsFields.hpp"
 
+
+namespace ipxp {
+
 /**
  * @class PacketStatsPlugin
  * @brief A plugin for processing and collecting statistics about packets within flows.
@@ -32,10 +36,9 @@
  *
  * @note Duplicate and empty packets can be optionally skipped.
  */
-namespace ipxp {
-
 class PacketStatsPlugin : public ProcessPlugin {
 public:
+
 	/**
 	 * @brief Constructs the PacketStatsPlugin and initializes field handlers.
 	 * @param params String with plugin-specific parameters for configuration(currently unused).
@@ -75,8 +78,7 @@ public:
 	 *
 	 * @param flowRecord The flow record containing aggregated flow data.
 	 * @param pluginContext Pointer to `PacketStatsData`.
-	 * @return RemovePlugin if packet count is less than `MIN_FLOW_LENGTH`, 
-	 * else no action required.
+	 * @return Remove plugin if it is TCP scan.
 	 */
 	PluginExportResult onExport(const FlowRecord& flowRecord, void* pluginContext) override;
 

@@ -7,9 +7,10 @@
  * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that calculates packet statistics as flags, acknowledgments, and sequences within flows,
+ * stores it in per-flow plugin data, and exposes that field via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "packetStats.hpp"

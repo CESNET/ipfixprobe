@@ -1,13 +1,15 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for parsing phists traffic.
+ * @author Karel Hynek <hynekkar@fit.cvut.cz>
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that creates histograms based on packet sizes and inter-arrival times,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "packetHistogram.hpp"
@@ -199,11 +201,6 @@ PluginDataMemoryLayout DNSSDPlugin::getDataMemoryLayout() const noexcept
 		.size = sizeof(PacketHistogramData),
 		.alignment = alignof(PacketHistogramData),
 	};
-}
-
-std::string PacketHistogramPlugin::getName() const noexcept
-{
-	return packetHistogramPluginManifest.name;
 }
 
 static const PluginRegistrar<PacketHistogramPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>

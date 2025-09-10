@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Export fields of QUIC plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <cstddef>
@@ -5,6 +14,12 @@
 namespace ipxp
 {
 
+/**
+ * @enum QUICFields
+ * @brief Enumerates the fields exported by the QUIC plugin.
+ *
+ * These enum values are used to index field handlers for this plugin.
+ */
 enum class QUICFields : std::size_t {
 	QUIC_SNI = 0,
 	QUIC_USER_AGENT,

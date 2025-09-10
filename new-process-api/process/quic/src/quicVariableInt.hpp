@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Provides QUIC variable-length integer.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <span>
@@ -12,6 +21,12 @@ namespace ipxp
 
 using VariableLengthInt = VariableLengthType<uint64_t>;
 
+/**
+ * @brief Reads a QUIC variable-length integer from a span.
+ *
+ * @param data Span to read integer from.
+ * @return Value if read successfully, std::nullopt otherwise.
+ */
 constexpr inline
 std::optional<VariableLengthInt> readQUICVariableLengthInt(std::span<const std::byte> data) noexcept
 {

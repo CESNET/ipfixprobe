@@ -230,13 +230,12 @@ bool RTSPPlugin::parseResponse(std::string_view payload) noexcept
 }
 
 constexpr
-FlowAction RTSPPlugin::updateExportData(
-	std::span<const std::byte> payload) noexcept
+PluginUpdateResult RTSPPlugin::updateExportData(std::span<const std::byte> payload, RTSPData& pluginData) noexcept
 {
 	std::string_view payloadView = {
 		reinterpret_cast<const char*>(payload.data()), payload.size()};
 	if (isRequest(payloadView)) {
-		if (m_requestParsed) {
+		if (pluginData.processingState.requestParsed) {
 			return FlowAction::FlushAndReinsert;
 		}
 		if (!parseRequest(payloadView)) {
@@ -245,7 +244,7 @@ FlowAction RTSPPlugin::updateExportData(
 	}
 
 	if (isResponse(payloadView)) {
-		if (m_responseParsed) {
+		if (pluginData.processingState.responseParsed) {
 			return FlowAction::FlushAndReinsert;
 		}
 		if (!parseResponse(payloadView)) {
@@ -277,14 +276,6 @@ ProcessPlugin* RTSPPlugin::clone(std::byte* constructAtAddress) const
 {
 	return std::construct_at(reinterpret_cast<RTSPPlugin*>(constructAtAddress), *this);
 }
-
-std::string RTSPPlugin::getName() const { 
-	return rtspPluginManifest.name; 
-}
-
-const void* RTSPPlugin::getExportData() const noexcept {
-	return &m_exportData;
-}	
 
 static const PluginRegistrar<RTSPPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	rtspRegistrar(rtspPluginManifest);

@@ -1,13 +1,17 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for parsing QUIC traffic.
+ * @author Andrej Lukacovic lukacan1@fit.cvut.cz
+ * @author Karel Hynek <Karel.Hynek@cesnet.cz>
+ * @author Jonas Mücke <jonas.muecke@tu-dresden.de>
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
- *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * 
+ * Provides a plugin that parses QUIC traffic and extracts various QUIC fields,
+ * stores it in per-flow plugin data, and exposes that field via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "quic.hpp"
@@ -39,8 +43,9 @@ static const PluginManifest quicPluginManifest = {
 			parser.usage(std::cout);*/
 		},
 };
+
 constexpr static
-static FieldSchema createQUICSchema(FieldManager& fieldManager, FieldHandlers<QUICFields>& handlers) noexcept
+FieldSchema createQUICSchema(FieldManager& fieldManager, FieldHandlers<QUICFields>& handlers) noexcept
 {
 	FieldSchema schema = fieldManager.createFieldSchema("quic");
 

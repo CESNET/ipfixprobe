@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Provides QUIC version used to decrypt payload.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -5,6 +14,10 @@
 namespace ipxp
 {
 
+/**
+ * @enum QUICVersionId
+ * @brief Enumerates QUIC version identifiers.
+ */
 enum class QUICVersionId : uint32_t {
     // Full versions
     facebook1 = 0xfaceb001,
@@ -48,12 +61,20 @@ enum class QUICVersionId : uint32_t {
     quic_over_scion = 0x5c100000
 };
 
+/**
+ * @enum QUICGeneration
+ * @brief Enumerates QUIC generations.
+ */
 enum class QUICGeneration {
     V0, // IETF implementation
     V1,
     V2,
 };
 
+/**
+ * @struct QUICVersion
+ * @brief Calculates draft and generation based on QUIC version id.
+ */
 struct QUICVersion {
     uint8_t draft;
     QUICVersionId id;
@@ -177,7 +198,6 @@ struct QUICVersion {
             return;
         }
 }
-
 
 };
 

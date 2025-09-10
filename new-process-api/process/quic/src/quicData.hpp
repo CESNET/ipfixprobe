@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Export data of QUIC plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <array>
@@ -10,6 +19,10 @@
 namespace ipxp
 {
 
+/**
+ * @struct QUICData
+ * @brief Contains parsed QUIC values for export and processing state required to decrypt payloads.
+ */
 struct QUICData {
 	constexpr static std::size_t MAX_CONNECTION_ID_LENGTH = 20;
 	using ConnectionId 
@@ -50,47 +63,6 @@ struct QUICData {
 		std::size_t retryPacketCount = 0;
 		ConnectionId initialConnectionId;
 	} processingState;
-
-
-	/*// We use a char as a buffer.
-	uint8_t occidLength;
-	uint8_t oscidLength;
-	uint8_t scidLength;
-	//uint8_t initial_dcid_length;
-	
-	boost::static_string<MAX_CONNECTION_ID_LENGTH> initialDestConnectionId;
-	// Intermediate storage when direction is not clear
-	boost::static_string<MAX_CONNECTION_ID_LENGTH> dirScid;
-	boost::static_string<MAX_CONNECTION_ID_LENGTH> dirDcid;
-	boost::static_string<MAX_CONNECTION_ID_LENGTH> dirScid2;
-	boost::static_string<MAX_CONNECTION_ID_LENGTH> dirDcid2;
-	uint16_t dirDport;
-	uint16_t dirDport2;
-	uint8_t cntRetryPackets;
-
-
-
-	
-	uint16_t tls_ext_type_len;
-	bool tls_ext_type_set;
-
-	uint8_t tls_ext_len_len;
-	bool tls_ext_len_set;
-
-	uint16_t tls_ext_length;
-	bool tls_ext_set;
-
-	uint8_t last_pkt_type;
-
-
-	// Flags to ease decisions
-	bool occid_set;
-	bool oscid_set;
-	bool scid_set;
-
-	bool client_version_set;
-	bool client_hello_seen;
-	bool packet_from_server_seen;*/
 };  
 
 } // namespace ipxp

@@ -1,18 +1,16 @@
-/* SPDX-License-Identifier: BSD-3-Clause
- * Copyright (C) 2022, CESNET z.s.p.o.
- */
-
 /**
  * \file quic_parser.hpp
- * \brief Class for parsing quic traffic.
+ * \brief Parser for QUIC traffic.
  * \author Andrej Lukacovic lukacan1@fit.cvut.cz
  * \author Karel Hynek <Karel.Hynek@cesnet.cz>
  * \author Jonas Mücke <jonas.muecke@tu-dresden.de>
- * \date 2023
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * \date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
-//#include <ipfixprobe/byte-utils.hpp>
-//#include <ipfixprobe/processPlugin.hpp>
+#pragma once
 
 #include <span>
 #include <optional>

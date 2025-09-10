@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Export data of passive DNS plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <boost/static_string.hpp>
@@ -8,6 +17,10 @@
 namespace ipxp
 {
 
+/**
+ * @struct PassiveDNSData
+ * @brief Struct representing passive DNS export data.
+ */
 struct PassiveDNSData {
 	DNSQueryType type;
 	uint16_t id;

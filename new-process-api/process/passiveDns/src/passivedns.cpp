@@ -39,14 +39,6 @@ static const PluginManifest passiveDNSPluginManifest = {
 		},
 };
 
-const inline std::vector<FieldPair<PassiveDNSFields>> fields = {
-	{PassiveDNSFields::DNS_ID, "DNS_ID"},
-	{PassiveDNSFields::DNS_ATYPE, "DNS_ATYPE"},
-	{PassiveDNSFields::DNS_NAME, "DNS_NAME"},
-	{PassiveDNSFields::DNS_RR_TTL, "DNS_RR_TTL"},
-	{PassiveDNSFields::DNS_IP, "DNS_IP"},
-};
-
 static FieldSchema createPassiveDNSSchema(FieldManager& manager, FieldHandlers<PassiveDNSFields>& handlers) noexcept
 {
 	FieldSchema schema = fieldManager.createFieldSchema("passivedns");
@@ -257,11 +249,6 @@ PluginDataMemoryLayout DNSSDPlugin::getDataMemoryLayout() const noexcept
 		.size = sizeof(PassiveDNSData),
 		.alignment = alignof(PassiveDNSData),
 	};
-}
-
-std::string PassiveDNSPlugin::getName() const noexcept
-{ 
-	return passiveDNSPluginManifest.name; 
 }
 
 static const PluginRegistrar<PassiveDNSPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
