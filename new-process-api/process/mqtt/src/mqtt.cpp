@@ -20,6 +20,8 @@
 #include <pluginFactory.hpp>
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
+#include <utils/stringViewUtils.hpp>
+#include <utils/spanUtils.hpp>
 
 #include "variableLengthInt.hpp"
 #include "mqttTypeFlag.hpp"
@@ -77,93 +79,67 @@ bool mqttLabelPresent(std::span<const std::byte> payload) noexcept
 {
 	if (payload.size() <= sizeof(MQTTTypeFlag))
 		return false;
-	
-	const std::optional<VariableLenghtInt> packetLength 
-		= readVariableInt(payload.subspan(sizeof(MQTTTypeFlag)));
+
+	const std::optional<VariableLengthInt> packetLength 
+		= readVariableLengthInt(payload.subspan(sizeof(MQTTTypeFlag)));
 	if (!packetLength.has_value()) {
 		return false;
 	}
 
-	const std::size_t labelOffset = sizeof(MQTTTypeFlag) + packetLength->readBytes;
+	const std::size_t labelOffset = sizeof(MQTTTypeFlag) + packetLength->length;
 	std::optional<std::string_view> mqttLabel 
 		= readUTF8String(payload.subspan(labelOffset));
 	return mqttLabel.has_value() && mqttLabel == "MQTT";
 }
 
-const inline std::vector<FieldPair<MQTTFields>> fields = {
-	{MQTTFields::MQTT_TYPE_CUMULATIVE, "MQTT_TYPE_CUMULATIVE"},
-	{MQTTFields::MQTT_VERSION, "MQTT_VERSION"},
-	{MQTTFields::MQTT_CONNECTION_FLAGS, "MQTT_CONNECTION_FLAGS"},
-	{MQTTFields::MQTT_KEEP_ALIVE, "MQTT_KEEP_ALIVE"},
-	{MQTTFields::MQTT_CONNECTION_RETURN_CODE, "MQTT_CONNECTION_RETURN_CODE"},
-	{MQTTFields::MQTT_PUBLISH_FLAGS, "MQTT_PUBLISH_FLAGS"},
-	{MQTTFields::MQTT_TOPICS, "MQTT_TOPICS"},
-};
-
-static FieldSchema createMQTTSchema()
+static FieldSchema createMQTTSchema(FieldManager& fieldManager, FieldHandlers<MQTTFields>& handlers) noexcept
 {
-	FieldSchema schema("mqtt");
+	FieldSchema schema = fieldManager.createFieldSchema("mqtt");
 
-	schema.addScalarField<uint16_t>(
+	handlers.insert(MQTTFields::MQTT_TYPE_CUMULATIVE, schema.addScalarField(
 		"MQTT_TYPE_CUMULATIVE",
-		FieldDirection::DirectionalIndifferent,
-		offsetof(MQTTExportBase, typeCumulative));
-
-	schema.addScalarField<uint8_t>(
+		[](const void* context) { return reinterpret_cast<const MQTTData*>(context)->typeCumulative; }
+	));
+	handlers.insert(MQTTFields::MQTT_VERSION, schema.addScalarField(
 		"MQTT_VERSION",
-		FieldDirection::DirectionalIndifferent,
-		offsetof(MQTTExportBase, version));
-
-	schema.addScalarField<uint8_t>(
+		[](const void* context) { return reinterpret_cast<const MQTTData*>(context)->version; }
+	));
+	handlers.insert(MQTTFields::MQTT_CONNECTION_FLAGS, schema.addScalarField(
 		"MQTT_CONNECTION_FLAGS",
-		FieldDirection::DirectionalIndifferent,
-		offsetof(MQTTExportBase, connectionFlags));
-
-	schema.addScalarField<uint16_t>(
+		[](const void* context) { return reinterpret_cast<const MQTTData*>(context)->connectionFlags; }
+	));
+	handlers.insert(MQTTFields::MQTT_KEEP_ALIVE, schema.addScalarField(
 		"MQTT_KEEP_ALIVE",
-		FieldDirection::DirectionalIndifferent,
-		offsetof(MQTTExportBase, keepAlive));
-
-	schema.addScalarField<uint8_t>(
+		[](const void* context) { return reinterpret_cast<const MQTTData*>(context)->keepAlive; }
+	));
+	handlers.insert(MQTTFields::MQTT_CONNECTION_RETURN_CODE, schema.addScalarField(
 		"MQTT_CONNECTION_RETURN_CODE",
-		FieldDirection::DirectionalIndifferent,
-		offsetof(MQTTExportBase, connectionReturnCode));
-
-	schema.addScalarField<uint8_t>(
+		[](const void* context) { return reinterpret_cast<const MQTTData*>(context)->connectionReturnCode; }
+	));
+	handlers.insert(MQTTFields::MQTT_PUBLISH_FLAGS, schema.addScalarField(
 		"MQTT_PUBLISH_FLAGS",
-		FieldDirection::DirectionalIndifferent,
-		offsetof(MQTTExportBase, publishFlags));
-
-	/*schema.addVectorField<uint8_t>(
+		[](const void* context) { return reinterpret_cast<const MQTTData*>(context)->publishFlags; }
+	));
+	handlers.insert(MQTTFields::MQTT_TOPICS, schema.addScalarField(
 		"MQTT_TOPICS",
-		FieldDirection::DirectionalIndifferent,
-		[](const void* thisPtr) -> std::span<const uint8_t> {
-			return std::span<const uint8_t>(
-				reinterpret_cast<const uint8_t*>(
-					reinterpret_cast<const MQTTExport*>(thisPtr)->getTopics().data()),
-				reinterpret_cast<const MQTTExport*>(thisPtr)->getTopics().size());
-		});*/
+		[](const void* context) { 
+			return toStringView(reinterpret_cast<const MQTTData*>(context)->topics);
+		}));
 
 	return schema;
 }
 
 MQTTPlugin::MQTTPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
 {
-	const FieldSchema schema = createMQTTSchema();
-	const FieldSchemaHandler schemaHandler = manager.registerSchema(schema);
-
-	/// TODO OPTION PARSER
-
-	for (const auto& [field, name] : fields) {
-		m_fieldHandlers[field] = schemaHandler.getFieldHandler(name);
-	}
+	createMQTTSchema(manager, m_fieldHandlers);
 }
 
 PluginInitResult MQTTPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	if (mqttLabelPresent(flowContext.packet.payload)) {
+	if (mqttLabelPresent(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len))) {
 		auto* pluginData = std::construct_at(reinterpret_cast<MQTTData*>(pluginContext));
-		auto [updateRequirement, flowAction] = parseMQTT(flowContext.packet.payload, flowContext.flowRecord, *pluginData);
+		auto [updateRequirement, flowAction] = parseMQTT(
+			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, *pluginData);
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = updateRequirement,
@@ -201,8 +177,8 @@ PluginUpdateResult MQTTPlugin::parseMQTT(std::span<const std::byte> payload, Flo
 			|= (1 << static_cast<uint8_t>(typeFlag.bitfields.type));
 		m_fieldHandlers[MQTTFields::MQTT_TYPE_CUMULATIVE].setAsAvailable(flowRecord);
 
-		std::optional<VariableLenghtInt> packetLength 
-			= readVariableInt(payload.subspan(currentOffset));
+		std::optional<VariableLengthInt> packetLength 
+			= readVariableLengthInt(payload.subspan(currentOffset));
 		if (!packetLength.has_value() || 
 				currentOffset + packetLength->value > payload.size()) {
 			return {
@@ -211,7 +187,7 @@ PluginUpdateResult MQTTPlugin::parseMQTT(std::span<const std::byte> payload, Flo
 			};
 		}
 
-		currentOffset += packetLength->readBytes;
+		currentOffset += packetLength->length;
 		const uint16_t firstByteAfterPayload 
 			= static_cast<uint16_t>(packetLength->value + currentOffset);
 		
@@ -294,12 +270,8 @@ void MQTTPlugin::onDestroy(void* pluginContext)
 
 PluginUpdateResult MQTTPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
-	return parseMQTT(flowContext.packet.payload, flowContext.flowRecord, *reinterpret_cast<MQTTData*>(pluginContext));
-}
-
-std::string MQTTPlugin::getName() const noexcept
-{ 
-	return mqttPluginManifest.name; 
+	return parseMQTT(toSpan<const std::byte>(
+		flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, *reinterpret_cast<MQTTData*>(pluginContext));
 }
 
 static const PluginRegistrar<MQTTPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> 

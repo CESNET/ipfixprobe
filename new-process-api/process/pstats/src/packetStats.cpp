@@ -43,7 +43,8 @@ static void createPacketStatsSchema(FieldManager& fieldManager, FieldHandlers<Pa
 {
 	FieldSchema schema = fieldManager.createFieldSchema("pstats");
 
-	handlers.insert(PacketStatsFields::PPI_PKT_LENGTHS, schema.addVectorField(
+	// TODO FIX
+	/*handlers.insert(PacketStatsFields::PPI_PKT_LENGTHS, schema.addVectorField(
 		"PPI_PKT_LENGTHS",
 		[](const void* context) {
 			return toSpan<const uint16_t>(reinterpret_cast<const PacketStatsData*>(context)->lengths);
@@ -62,7 +63,7 @@ static void createPacketStatsSchema(FieldManager& fieldManager, FieldHandlers<Pa
 		"PPI_PKT_TIMES",
 		[](const void* context) {
 			return toSpan<const Timestamp>(reinterpret_cast<const PacketStatsData*>(context)->timestamps);
-	}));
+	}));*/
 }
 
 PacketStatsPlugin::PacketStatsPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
@@ -93,7 +94,7 @@ PluginUpdateResult PacketStatsPlugin::onUpdate(const FlowContext& flowContext, v
 	};
 }
 
-PluginExportResult PacketStatsPlugin::onExport(const FlowRecord& flowRecord, void* pluginContext)
+PluginExportResult PacketStatsPlugin::onExport(const FlowRecord& flowRecord, [[maybe_unused]] void* pluginContext)
 {
 	const std::size_t packetsTotal 
 		= flowRecord.directionalData[Direction::Forward].packets + 

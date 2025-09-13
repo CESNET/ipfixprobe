@@ -24,6 +24,7 @@
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
 #include <utils/stringViewUtils.hpp>
+#include <utils/spanUtils.hpp>
 
 #include "quicHeaderView.hpp"
 #include "quicInitialHeaderView.hpp"
@@ -44,7 +45,7 @@ static const PluginManifest quicPluginManifest = {
 		},
 };
 
-constexpr static
+static
 FieldSchema createQUICSchema(FieldManager& fieldManager, FieldHandlers<QUICFields>& handlers) noexcept
 {
 	FieldSchema schema = fieldManager.createFieldSchema("quic");
@@ -63,7 +64,7 @@ FieldSchema createQUICSchema(FieldManager& fieldManager, FieldHandlers<QUICField
 	));
 	handlers.insert(QUICFields::QUIC_CLIENT_VERSION, schema.addScalarField(
 		"QUIC_CLIENT_VERSION", 
-		[](const void* context) { return static_cast<const QUICData*>(context)->clientVersion; }
+		[](const void* context) { return static_cast<const QUICData*>(context)->quicClientVersion; }
 	));
 	handlers.insert(QUICFields::QUIC_TOKEN_LENGTH, schema.addScalarField(
 		"QUIC_TOKEN_LENGTH",
@@ -91,28 +92,29 @@ FieldSchema createQUICSchema(FieldManager& fieldManager, FieldHandlers<QUICField
 	));
 	handlers.insert(QUICFields::QUIC_ZERO_RTT, schema.addScalarField(
 		"QUIC_ZERO_RTT", 
-		[](const void* context) { return static_cast<const QUICData*>(context)->zeroRttCount; }
+		[](const void* context) { return static_cast<const QUICData*>(context)->quicZeroRTTCount; }
 	));
 	handlers.insert(QUICFields::QUIC_SERVER_PORT, schema.addScalarField(
 		"QUIC_SERVER_PORT", 
 		[](const void* context) { return static_cast<const QUICData*>(context)->serverPort; }
 	));
-	handlers.insert(QUICFields::QUIC_PACKETS, schema.addScalarField(
+	// TODO FIX
+	/*handlers.insert(QUICFields::QUIC_PACKETS, schema.addVectorField(
 		"QUIC_PACKETS", 
-		[](const void* context) { return static_cast<const QUICData*>(context)->packetCount; }
-	));
+		[](const void* context) { return toSpan<const uint8_t>(static_cast<const QUICData*>(context)->packetTypes); }
+	));*/
 	handlers.insert(QUICFields::QUIC_CH_PARSED, schema.addScalarField(
 		"QUIC_CH_PARSED", 
 		[](const void* context) { return static_cast<const QUICData*>(context)->clientHelloParsed; }
 	));
-	handlers.insert(QUICFields::QUIC_TLS_EXT_TYPE, schema.addVectorField(
+	/*handlers.insert(QUICFields::QUIC_TLS_EXT_TYPE, schema.addVectorField(
 		"QUIC_TLS_EXT_TYPE", 
-		[](const void* context) { return toSpan(static_cast<const QUICData*>(context)->tlsExtensionTypes); }
+		[](const void* context) { return toSpan<const uint16_t>(static_cast<const QUICData*>(context)->tlsExtensionTypes); }
 	));
 	handlers.insert(QUICFields::QUIC_TLS_EXT_LEN, schema.addVectorField(
 		"QUIC_TLS_EXT_LEN", 
-		[](const void* context) { return toSpan(static_cast<const QUICData*>(context)->tlsExtensionLengths); }
-	));
+		[](const void* context) { return toSpan<const uint16_t>(static_cast<const QUICData*>(context)->tlsExtensionLengths); }
+	));*/
 	handlers.insert(QUICFields::QUIC_TLS_EXT, schema.addScalarField(
 		"QUIC_TLS_EXT", 
 		[](const void* context) { return toStringView(static_cast<const QUICData*>(context)->extensionsPayload); }
@@ -153,23 +155,22 @@ void QUICPlugin::tryToSetOCCIDandSCID(
 ) noexcept
 {
 	DirectionalField<std::span<const uint8_t>> currentIds;
-	currentIds[static_cast<Direction>(QUICDirection::CLIENT_TO_SERVER)] 
+	currentIds[static_cast<bool>(QUICDirection::CLIENT_TO_SERVER)] 
 		= destinationConnectionId;
-	currentIds[static_cast<Direction>(QUICDirection::SERVER_TO_CLIENT)] 
+	currentIds[static_cast<bool>(QUICDirection::SERVER_TO_CLIENT)] 
 		= sourceConnectionId;
 
-	const QUICExport::ConnectionId& serverId 
+	const ConnectionId& serverId 
 		= pluginData.processingState.temporalCIDStorage.getSourceCID();
 	copyFromIfNotEmptyTo(serverId, pluginData.originalServerId);
 	copyFromIfNotEmptyTo(
-		currentIds[static_cast<Direction>(quicDirection)], pluginData.originalServerId);
+		currentIds[static_cast<bool>(quicDirection)], pluginData.originalServerId);
 
-	const QUICExport::ConnectionId& originalClientId 
+	const ConnectionId& originalClientId 
 		= pluginData.processingState.temporalCIDStorage.getClientCID();
 	copyFromIfNotEmptyTo(originalClientId, pluginData.originalClientId);
 	copyFromIfNotEmptyTo(
-		currentIds[static_cast<Direction>(
-			!static_cast<bool>(quicDirection))], pluginData.originalClientId);
+		currentIds[!static_cast<bool>(quicDirection)], pluginData.originalClientId);
 }
 
 void QUICPlugin::processInitial(
@@ -198,7 +199,7 @@ void QUICPlugin::processInitial(
 	}
 
 	if (initialHeaderView.tokenLength.has_value()) {
-		m_exportData.quicTokenLength = *initialHeaderView.tokenLength;
+		pluginData.quicTokenLength = *initialHeaderView.tokenLength;
 	}
 
 	if (initialHeaderView.tokenLength.has_value() &&
@@ -274,19 +275,19 @@ constexpr static
 QUICHeaderView::PacketType getMostSignificantPacketType(
 	const QUICTypesCumulative packetTypesCumulative) noexcept
 {
-	if (packetTypesCumulative.bits.versionNegotiation) {
+	if (packetTypesCumulative.bitfields.versionNegotiation) {
 		return QUICHeaderView::PacketType::VERSION_NEGOTIATION;
 	}
-	if (packetTypesCumulative.bits.initial) {
+	if (packetTypesCumulative.bitfields.initial) {
 		return QUICHeaderView::PacketType::INITIAL;
 	}
-	if (packetTypesCumulative.bits.retry) {
+	if (packetTypesCumulative.bitfields.retry) {
 		return QUICHeaderView::PacketType::RETRY;
 	}
-	if (packetTypesCumulative.bits.zeroRTT) {
+	if (packetTypesCumulative.bitfields.zeroRTT) {
 		return QUICHeaderView::PacketType::ZERO_RTT;
 	}
-	if (packetTypesCumulative.bits.handshake) {
+	if (packetTypesCumulative.bitfields.handshake) {
 		return QUICHeaderView::PacketType::HANDSHAKE;
 	}
 
@@ -325,7 +326,7 @@ PluginUpdateResult QUICPlugin::parseQUIC(
 
 	const bool quicParsed = quicParser.parse(
 		payload, 
-		m_initialConnectionId,
+		pluginData.processingState.initialConnectionId,
 		flowRecord.flowKey.l4Protocol
 	);
 	
@@ -342,7 +343,7 @@ PluginUpdateResult QUICPlugin::parseQUIC(
 		};
 	}
 
-	if (quicParser.packetTypesCumulative.bits.zeroRTT) {
+	if (quicParser.packetTypesCumulative.bitfields.zeroRTT) {
 		pluginData.quicVersion 
 			= static_cast<uint32_t>(quicParser.headerView->version->id);
 		pluginData.quicZeroRTTCount = std::min<uint16_t>(
@@ -383,7 +384,8 @@ PluginUpdateResult QUICPlugin::parseQUIC(
 			quicParser.quicDirection,
 			packetDirection,
 			*quicParser.headerView,
-			*quicParser.initialHeaderView
+			*quicParser.initialHeaderView,
+			pluginData
 		);
 		break;
 	}
@@ -426,7 +428,8 @@ PluginUpdateResult QUICPlugin::parseQUIC(
 PluginInitResult QUICPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = std::construct_at(reinterpret_cast<QUICData*>(pluginContext));
-	auto [updateRequirement, flowAction] = parseQUIC(flowRecord, packet.payload, packet.direction, *pluginData);
+	auto [updateRequirement, flowAction] = parseQUIC(flowContext.flowRecord, 
+		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), flowContext.packet.source_pkt, *pluginData);
 	return {
 		.constructionState = ConstructionState::Constructed,
 		.updateRequirement = updateRequirement,
@@ -434,9 +437,11 @@ PluginInitResult QUICPlugin::onInit(const FlowContext& flowContext, void* plugin
 	};
 }
 
-PluginUpdateResult QUICPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext) override;
+PluginUpdateResult QUICPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
-	return parseQUIC(flowRecord, packet.payload, packet.direction);
+	auto* pluginData = reinterpret_cast<QUICData*>(pluginContext);
+	return parseQUIC(flowContext.flowRecord, toSpan<const std::byte>(
+		flowContext.packet.payload, flowContext.packet.payload_len), flowContext.packet.source_pkt, *pluginData);
 }
 
 void onDestroy(void* pluginContext)
@@ -450,11 +455,6 @@ PluginDataMemoryLayout QUICPlugin::getDataMemoryLayout() const noexcept
 		.size = sizeof(QUICData),
 		.alignment = alignof(QUICData),
 	};
-}
-
-std::string QUICPlugin::getName() const noexcept
-{
-	return quicPluginManifest.name;
 }
 
 static const PluginRegistrar<QUICPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>

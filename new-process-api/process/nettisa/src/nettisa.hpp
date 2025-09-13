@@ -87,7 +87,7 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 	
 private:
-	void makeAllFieldsAvailable(FlowRecord& flowRecord) noexcept;
+	void makeAllFieldsAvailable(const FlowRecord& flowRecord) noexcept;
 	void updateNetTimeSeries(FlowRecord& flowRecord, const Packet& packet, NetTimeSeriesData& pluginData) noexcept;
 
 	FieldHandlers<NetTimeSeriesFields> m_fieldHandlers;

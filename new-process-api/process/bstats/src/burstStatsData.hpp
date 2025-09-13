@@ -14,6 +14,8 @@
 #include <optional>
 #include <span>
 
+#include <timestamp.hpp>
+
 #include "burst.hpp"
 
 namespace ipxp
@@ -30,8 +32,8 @@ class BurstStatsData {
 	
 	DirectionalField<boost::container::static_vector<uint32_t, MAX_BURST_COUNT>> packets;
 	DirectionalField<boost::container::static_vector<uint32_t, MAX_BURST_COUNT>> bytes;
-	DirectionalField<boost::container::static_vector<uint64_t, MAX_BURST_COUNT>> start;
-	DirectionalField<boost::container::static_vector<uint64_t, MAX_BURST_COUNT>> end;
+	DirectionalField<boost::container::static_vector<Timestamp, MAX_BURST_COUNT>> start;
+	DirectionalField<boost::container::static_vector<Timestamp, MAX_BURST_COUNT>> end;
 
 public:
 
@@ -63,9 +65,9 @@ public:
 	 * @param direction The direction for which to retrieve the start timestamps span.
 	 * @return A span over the start timestamps.
 	 */
-	std::span<const uint64_t> getStartTimestamps(const Direction direction) const noexcept
+	std::span<const Timestamp> getStartTimestamps(const Direction direction) const noexcept
 	{
-		return std::span<const uint64_t>(start[direction].data(), static_cast<std::size_t>(start[direction].size()));
+		return std::span<const Timestamp>(start[direction].data(), static_cast<std::size_t>(start[direction].size()));
 	}
 
 	/**
@@ -74,9 +76,9 @@ public:
 	 * @param direction The direction for which to retrieve the end timestamps span.
 	 * @return A span over the end timestamps.
 	 */
-	std::span<const uint64_t> getEndTimestamps(const Direction direction) const noexcept
+	std::span<const Timestamp> getEndTimestamps(const Direction direction) const noexcept
 	{
-		return std::span<const uint64_t>(&*end[direction].begin(), static_cast<std::size_t>(end[direction].size()));
+		return std::span<const Timestamp>(end[direction].data(), static_cast<std::size_t>(end[direction].size()));
 	}
 
 	/**
@@ -112,8 +114,8 @@ public:
 
 		packets[direction].push_back(0);
 		bytes[direction].push_back(0);
-		start[direction].push_back(0);
-		end[direction].push_back(0);
+		start[direction].push_back({});
+		end[direction].push_back({});
 
 		return back(direction);
 	}

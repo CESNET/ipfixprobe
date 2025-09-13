@@ -23,6 +23,7 @@
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <utils/spanUtils.hpp>
+#include <utils/stringViewUtils.hpp>
 #include <dnsParser/dnsParser.hpp>
 
 namespace ipxp {
@@ -39,7 +40,7 @@ static const PluginManifest passiveDNSPluginManifest = {
 		},
 };
 
-static FieldSchema createPassiveDNSSchema(FieldManager& manager, FieldHandlers<PassiveDNSFields>& handlers) noexcept
+static FieldSchema createPassiveDNSSchema(FieldManager& fieldManager, FieldHandlers<PassiveDNSFields>& handlers) noexcept
 {
 	FieldSchema schema = fieldManager.createFieldSchema("passivedns");
 
@@ -49,7 +50,7 @@ static FieldSchema createPassiveDNSSchema(FieldManager& manager, FieldHandlers<P
 	));
 	handlers.insert(PassiveDNSFields::DNS_ATYPE, schema.addScalarField(
 		"DNS_ATYPE",
-		[] (const void* context) { return static_cast<const PassiveDNSData*>(context)->type; }
+		[] (const void* context) { return static_cast<uint16_t>(static_cast<const PassiveDNSData*>(context)->type); }
 	));
 	handlers.insert(PassiveDNSFields::DNS_NAME, schema.addScalarField(
 		"DNS_NAME",
@@ -76,8 +77,8 @@ PluginInitResult PassiveDNSPlugin::onInit(const FlowContext& flowContext, void* 
 {
 	// TODO DISSCECTOR VALUE
 	constexpr std::size_t DNS_PORT = 53;
-	if (flowContext.packet.flowKey.srcPort != DNS_PORT && 
-		flowContext.packet.flowKey.dstPort != DNS_PORT) {
+	if (flowContext.packet.src_port != DNS_PORT && 
+		flowContext.packet.dst_port != DNS_PORT) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -86,8 +87,9 @@ PluginInitResult PassiveDNSPlugin::onInit(const FlowContext& flowContext, void* 
 	}
 
 	auto* pluginData = std::construct_at(reinterpret_cast<PassiveDNSData*>(pluginContext));
-	if (flowContext.packet.flowKey.srcPort == DNS_PORT) {
-		parseDNS(flowContext.packet.payload, flowContext.flowRecord, flowContext.packet.flowKey.l4Protocol, *pluginData);
+	if (flowContext.packet.src_port == DNS_PORT) {
+		parseDNS(toSpan<const std::byte>(
+			flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, flowContext.packet.ip_proto, *pluginData);
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -102,12 +104,14 @@ PluginInitResult PassiveDNSPlugin::onInit(const FlowContext& flowContext, void* 
 	};
 }
 
-PluginUpdateResult onUpdate(const FlowContext& flowContext, void* pluginContext)
+PluginUpdateResult PassiveDNSPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
-	// TODO DISSCECTOR VALUE
 	auto* pluginData = reinterpret_cast<PassiveDNSData*>(pluginContext);
-	if (flowContext.packet.flowKey.srcPort == DNS_PORT) {
-		parseDNS(flowContext.packet.payload, flowContext.flowRecord, flowContext.packet.flowKey.l4Protocol, *pluginData);
+	// TODO DISSCECTOR VALUE
+	constexpr std::size_t DNS_PORT = 53;
+	if (flowContext.packet.src_port == DNS_PORT) {
+		parseDNS(toSpan<const std::byte>(
+			flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, flowContext.packet.ip_proto, *pluginData);
 		return {
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
 			.flowAction = FlowAction::Flush,
@@ -234,7 +238,7 @@ void PassiveDNSPlugin::parseDNS(
 		return;
 	}
 
-	m_exportData.id = parser.id;
+	pluginData.id = parser.id;
 	m_fieldHandlers[PassiveDNSFields::DNS_ID].setAsAvailable(flowRecord);
 }
 
@@ -243,7 +247,7 @@ void PassiveDNSPlugin::onDestroy(void* pluginContext)
 	std::destroy_at(reinterpret_cast<PassiveDNSData*>(pluginContext));
 }
 
-PluginDataMemoryLayout DNSSDPlugin::getDataMemoryLayout() const noexcept
+PluginDataMemoryLayout PassiveDNSPlugin::getDataMemoryLayout() const noexcept
 {
 	return {
 		.size = sizeof(PassiveDNSData),

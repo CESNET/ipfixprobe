@@ -101,10 +101,10 @@ void BurstStatsPlugin::updateBursts(Burst& burst, FlowRecord& flowRecord,
 	const Packet& packet) noexcept
 {
 	burst.packets++;
-	burst.bytes += packet.realLength;	
-	burst.end.get() = packet.timestamp;
+	burst.bytes += packet.ip_payload_len;	
+	burst.end.get() = packet.ts;
 	if (burst.packets == 1) {
-		burst.start.get() = packet.timestamp;
+		burst.start.get() = packet.ts;
 	}
 }
 
@@ -112,9 +112,9 @@ PluginUpdateResult BurstStatsPlugin::onUpdate(const FlowContext& flowContext, vo
 {
 	auto* pluginData = reinterpret_cast<BurstStatsData*>(pluginContext);
 
-	std::optional<Burst> burst = pluginData->back(flowContext.packet.direction);
-	if (!burst.has_value() || !burst->belongs(flowContext.packet.timestamp)) {
-		burst = pluginData->push(flowContext.packet.direction);
+	std::optional<Burst> burst = pluginData->back(flowContext.packet.source_pkt);
+	if (!burst.has_value() || !burst->belongs(flowContext.packet.ts)) {
+		burst = pluginData->push(flowContext.packet.source_pkt);
 	}
 	if (!burst.has_value()) {
 		return {

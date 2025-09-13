@@ -24,9 +24,9 @@
 #include <utils.hpp>
 #include <dnsParser/dnsParser.hpp>
 #include <utils/stringViewUtils.hpp>
+#include <utils/spanUtils.hpp>
 
 namespace ipxp {
-
 
 static const PluginManifest dnsPluginManifest = {
 	.name = "dns",
@@ -89,7 +89,7 @@ DNSPlugin::DNSPlugin([[maybe_unused]]const std::string& params, FieldManager& ma
 PluginInitResult DNSPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	constexpr uint16_t DNS_PORT = 53;
-	if (flowContext.packet.flowKey.srcPort != DNS_PORT && flowContext.packet.flowKey.dstPort != DNS_PORT) {
+	if (flowContext.packet.src_port != DNS_PORT && flowContext.packet.dst_port != DNS_PORT) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -100,8 +100,8 @@ PluginInitResult DNSPlugin::onInit(const FlowContext& flowContext, void* pluginC
 	auto* pluginData = std::construct_at(reinterpret_cast<DNSData*>(pluginContext));
 	// TODO USE VALUES FROM DISSECTOR
 	constexpr uint8_t TCP = 6;
-	const bool isDNSOverTCP = flowContext.packet.flowKey.l4Protocol == TCP;
-	if (parseDNS(flowContext.packet.payload, isDNSOverTCP, flowContext.flowRecord, *pluginData)) {
+	const bool isDNSOverTCP = flowContext.packet.ip_proto == TCP;
+	if (parseDNS(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), isDNSOverTCP, flowContext.flowRecord, *pluginData)) {
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -122,8 +122,8 @@ PluginUpdateResult DNSPlugin::onUpdate(const FlowContext& flowContext, void* plu
 	
 	// TODO USE VALUES FROM DISSECTOR
 	constexpr uint8_t TCP = 6;
-	const bool isDNSOverTCP = flowContext.packet.flowKey.l4Protocol == TCP;
-	if (parseDNS(flowContext.packet.payload, isDNSOverTCP, flowContext.flowRecord, *pluginData)) {
+	const bool isDNSOverTCP = flowContext.packet.ip_proto == TCP;
+	if (parseDNS(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), isDNSOverTCP, flowContext.flowRecord, *pluginData)) {
 		return {
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
 			.flowAction = FlowAction::Flush,

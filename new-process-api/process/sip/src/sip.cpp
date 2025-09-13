@@ -42,21 +42,46 @@ static const PluginManifest sipPluginManifest = {
 		},
 };
 
-const inline std::vector<FieldPair<SIPFields>> fields = {
-	{SIPFields::SIP_MSG_TYPE, "SIP_MSG_TYPE"},
-	{SIPFields::SIP_STATUS_CODE, "SIP_STATUS_CODE"},
-	{SIPFields::SIP_CSEQ, "SIP_CSEQ"},
-	{SIPFields::SIP_CALLING_PARTY, "SIP_CALLING_PARTY"},
-	{SIPFields::SIP_CALLED_PARTY, "SIP_CALLED_PARTY"},
-	{SIPFields::SIP_CALL_ID, "SIP_CALL_ID"},
-	{SIPFields::SIP_USER_AGENT, "SIP_USER_AGENT"},
-	{SIPFields::SIP_REQUEST_URI, "SIP_REQUEST_URI"},
-	{SIPFields::SIP_VIA, "SIP_VIA"},
-};
-
-static FieldSchema createSIPSchema()
+static FieldSchema createSIPSchema(FieldManager& fieldManager, FieldHandlers<SIPFields>& handlers) noexcept
 {
-	FieldSchema schema("sip");
+	FieldSchema schema = fieldManager.createFieldSchema("sip");
+
+	handlers.insert(SIPFields::SIP_MSG_TYPE, schema.addScalarField(
+		"SIP_MSG_TYPE",
+		[](const void* context) { return reinterpret_cast<const SIPData*>(context)->messageType; }
+	));
+	handlers.insert(SIPFields::SIP_STATUS_CODE, schema.addScalarField(
+		"SIP_STATUS_CODE",
+		[](const void* context) { return reinterpret_cast<const SIPData*>(context)->statusCode; }
+	));
+	handlers.insert(SIPFields::SIP_CSEQ, schema.addScalarField(
+		"SIP_CSEQ",
+		[](const void* context) { return toStringView(reinterpret_cast<const SIPData*>(context)->commandSequence); }
+	));
+	handlers.insert(SIPFields::SIP_CALLING_PARTY, schema.addScalarField(
+		"SIP_CALLING_PARTY",
+		[](const void* context) { return toStringView(reinterpret_cast<const SIPData*>(context)->callingParty); }
+	));
+	handlers.insert(SIPFields::SIP_CALLED_PARTY, schema.addScalarField(
+		"SIP_CALLED_PARTY",
+		[](const void* context) { return toStringView(reinterpret_cast<const SIPData*>(context)->calledParty); }
+	));
+	handlers.insert(SIPFields::SIP_CALL_ID, schema.addScalarField(
+		"SIP_CALL_ID",
+		[](const void* context) { return toStringView(reinterpret_cast<const SIPData*>(context)->callId); }
+	));
+	handlers.insert(SIPFields::SIP_USER_AGENT, schema.addScalarField(
+		"SIP_USER_AGENT",
+		[](const void* context) { return toStringView(reinterpret_cast<const SIPData*>(context)->userAgent); }
+	));
+	handlers.insert(SIPFields::SIP_REQUEST_URI, schema.addScalarField(
+		"SIP_REQUEST_URI",
+		[](const void* context) { return toStringView(reinterpret_cast<const SIPData*>(context)->requestURI); }
+	));
+	handlers.insert(SIPFields::SIP_VIA, schema.addScalarField(
+		"SIP_VIA",
+		[](const void* context) { return toStringView(reinterpret_cast<const SIPData*>(context)->via); }
+	));
 
 	return schema;
 }
@@ -64,12 +89,7 @@ static FieldSchema createSIPSchema()
 SIPPlugin::SIPPlugin(
 	[[maybe_unused]]const std::string& params, FieldManager& manager)
 {
-	const FieldSchema schema = createSIPSchema();
-	const FieldSchemaHandler schemaHandler = manager.registerSchema(schema);
-
-	for (const auto& [field, name] : fields) {
-		m_fieldHandlers[field] = schemaHandler.getFieldHandler(name);
-	}
+	createSIPSchema(manager, m_fieldHandlers);
 }
 
 constexpr static
@@ -157,7 +177,7 @@ std::string_view getURI(std::string_view fieldValue) noexcept
 }
 
 constexpr
-bool SIPPlugin::parseSIPData(std::string_view payload) noexcept
+bool SIPPlugin::parseSIPData(std::string_view payload, SIPData& pluginData, FlowRecord& flowRecord) noexcept
 {
 	const std::size_t headerEnd = payload.find('\n');
 	if (headerEnd == std::string_view::npos) {
@@ -167,7 +187,7 @@ bool SIPPlugin::parseSIPData(std::string_view payload) noexcept
 	const std::vector<std::string_view> tokens 
 		= splitToVector(payload.substr(headerEnd), ' ');
 
-	if (m_exportData.messageType <= 10) {
+	if (pluginData.messageType <= 10) {
 		/* Note: First SIP request line has syntax: 
 		 *	"Method SP Request-URI SP SIP-Version CRLF"
 		 * (SP=single space) */
@@ -176,11 +196,12 @@ bool SIPPlugin::parseSIPData(std::string_view payload) noexcept
 		}
 
 		std::ranges::copy(tokens[1] | 
-			std::views::take(m_exportData.requestURI.capacity()),
-			std::back_inserter(m_exportData.requestURI));
+			std::views::take(pluginData.requestURI.capacity()),
+			std::back_inserter(pluginData.requestURI));
+		m_fieldHandlers[SIPFields::SIP_REQUEST_URI].setAsAvailable(flowRecord);
 	} 
 
-	if (static_cast<SIPMessageType>(m_exportData.messageType) == SIPMessageType::REPLY) {
+	if (static_cast<SIPMessageType>(pluginData.messageType) == SIPMessageType::REPLY) {
 		if (tokens.size() < 2) {
 			return false;
 		}
@@ -188,99 +209,123 @@ bool SIPPlugin::parseSIPData(std::string_view payload) noexcept
 		if (std::from_chars(
 			tokens[1].begin(), 
 			tokens[1].end(), 
-			m_exportData.statusCode).ec == std::errc()) {
+			pluginData.statusCode).ec == std::errc()) {
 			return false;
 		}
+		m_fieldHandlers[SIPFields::SIP_STATUS_CODE].setAsAvailable(flowRecord);
 	}
 
 	HeaderFieldReader headerFieldReader;
 	for (const auto& [key, value] : headerFieldReader.getRange(payload.substr(headerEnd + 1))) {
 		if (key == "FROM" || key == "F") {
-			m_exportData.callingParty.clear();
+			pluginData.callingParty.clear();
 			std::ranges::copy(getURI(value) | 
-				std::views::take(m_exportData.callingParty.capacity()),
-				std::back_inserter(m_exportData.callingParty));
+				std::views::take(pluginData.callingParty.capacity()),
+				std::back_inserter(pluginData.callingParty));
+			m_fieldHandlers[SIPFields::SIP_CALLING_PARTY].setAsAvailable(flowRecord);
 		}
 
 		if (key == "TO" || key == "T") {
-			m_exportData.calledParty.clear();
+			pluginData.calledParty.clear();
 			std::ranges::copy(getURI(value) | 
-				std::views::take(m_exportData.calledParty.capacity()),
-				std::back_inserter(m_exportData.calledParty));
+				std::views::take(pluginData.calledParty.capacity()),
+				std::back_inserter(pluginData.calledParty));
+			m_fieldHandlers[SIPFields::SIP_CALLED_PARTY].setAsAvailable(flowRecord);
 		}
 
 		if (key == "VIA" || key == "V") {
-			pushBackWithDelimiter(getURI(value), m_exportData.via, ';');
+			pushBackWithDelimiter(getURI(value), pluginData.via, ';');
+			m_fieldHandlers[SIPFields::SIP_VIA].setAsAvailable(flowRecord);
 		}
 
 		if (key == "CALL-ID" || key == "I") {
-			m_exportData.callId.clear();
+			pluginData.callId.clear();
 			std::ranges::copy(value | 
-				std::views::take(m_exportData.callId.capacity()),
-				std::back_inserter(m_exportData.callId));
+				std::views::take(pluginData.callId.capacity()),
+				std::back_inserter(pluginData.callId));
+			m_fieldHandlers[SIPFields::SIP_CALL_ID].setAsAvailable(flowRecord);
 		}
 
 		if (key == "USER-AGENT") {
-			m_exportData.userAgent.clear();
+			pluginData.userAgent.clear();
 			std::ranges::copy(value | 
-				std::views::take(m_exportData.userAgent.capacity()),
-				std::back_inserter(m_exportData.userAgent));
+				std::views::take(pluginData.userAgent.capacity()),
+				std::back_inserter(pluginData.userAgent));
+			m_fieldHandlers[SIPFields::SIP_USER_AGENT].setAsAvailable(flowRecord);
 		}
 
 		if (key == "CSeq") {
-			m_exportData.commandSequence.clear();
+			pluginData.commandSequence.clear();
 			std::ranges::copy(value | 
-				std::views::take(m_exportData.commandSequence.capacity()),
-				std::back_inserter(m_exportData.commandSequence));
+				std::views::take(pluginData.commandSequence.capacity()),
+				std::back_inserter(pluginData.commandSequence));
+			m_fieldHandlers[SIPFields::SIP_CSEQ].setAsAvailable(flowRecord);
 		}
 	}
 
 	return true;
 }
 
-FlowAction SIPPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, const Packet& packet)
+PluginInitResult SIPPlugin::onInit(const FlowContext& flowContext, void* pluginContext) 
 {
 	const std::optional<SIPMessageType> messageType 
-		= getMessageType(toStringView(packet.payload));
+		= getMessageType(toStringView(flowContext.packet.payload, flowContext.packet.payload_len));
 	if (!messageType.has_value()) {
-		return FlowAction::RequestNoData;
+		return {
+			.constructionState = ConstructionState::NotConstructed,
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::RemovePlugin,
+		};
 	}
 
-	m_exportData.messageType = static_cast<uint16_t>(*messageType);
+	auto* pluginData = std::construct_at(reinterpret_cast<SIPData*>(pluginContext));
+	pluginData->messageType = static_cast<uint16_t>(*messageType);
+	m_fieldHandlers[SIPFields::SIP_MSG_TYPE].setAsAvailable(flowContext.flowRecord);
 
-	if (!parseSIPData(toStringView(packet.payload))) {
-		return FlowAction::RequestNoData;
+	if (!parseSIPData(toStringView(flowContext.packet.payload, flowContext.packet.payload_len), *pluginData, flowContext.flowRecord)) {
+		return {
+			.constructionState = ConstructionState::Constructed,
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::RemovePlugin,
+		};
 	}
 
-	return FlowAction::RequestTrimmedData;
+	return {
+		.constructionState = ConstructionState::Constructed,
+		.updateRequirement = UpdateRequirement::RequiresUpdate,
+		.flowAction = FlowAction::NoAction,
+	};
 }
 
-FlowAction SIPPlugin::onFlowUpdate([[maybe_unused]]FlowRecord& flowRecord, 
-	const Packet& packet)
+
+PluginUpdateResult SIPPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
-	if (getMessageType(toStringView(packet.payload)).has_value()) {
-		return FlowAction::FlushAndReinsert;
+	if (getMessageType(toStringView(flowContext.packet.payload, flowContext.packet.payload_len)).has_value()) {
+		// TODO Flush and reinsert
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction
+		};
 	}
 
-	return FlowAction::RequestNoData;
+	return {
+		.updateRequirement = UpdateRequirement::RequiresUpdate,
+		.flowAction = FlowAction::NoAction
+	};
 }
 
-void SIPPlugin::onFlowExport(FlowRecord& flowRecord) {
-	// TODO makeAllAvailable(flowRecord) ?
-}
-
-ProcessPlugin* SIPPlugin::clone(std::byte* constructAtAddress) const
+void SIPPlugin::onDestroy(void* pluginContext)
 {
-	return std::construct_at(reinterpret_cast<SIPPlugin*>(constructAtAddress), *this);
+	std::destroy_at(reinterpret_cast<SIPData*>(pluginContext));
 }
 
-std::string SIPPlugin::getName() const {
-	return sipPluginManifest.name;
+PluginDataMemoryLayout SIPPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(SIPData),
+		.alignment = alignof(SIPData),
+	};
 }
-
-const void* SIPPlugin::getExportData() const noexcept {
-	return &m_exportData;
-}	
 
 static const PluginRegistrar<SIPPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	sipRegistrar(sipPluginManifest);

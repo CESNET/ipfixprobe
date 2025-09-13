@@ -19,6 +19,7 @@
 #include "quicInitialHeaderView.hpp"
 #include "quicTypesCumulative.hpp"
 #include "quicDirection.hpp"
+#include "quicConnectionId.hpp"
 
 /*#define HASH_SHA2_256_LENGTH 32
 #define TLS13_AEAD_NONCE_LENGTH 12
@@ -83,7 +84,7 @@ public:
 
 	bool parse(
 		std::span<const std::byte> payload,
-		const QUICExport::ConnectionId& initialConnectionId,
+		const ConnectionId& initialConnectionId,
 		const uint8_t l4Protocol
 	) noexcept;
 

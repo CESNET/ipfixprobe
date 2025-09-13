@@ -23,6 +23,7 @@
 #include "quicHeaderView.hpp"
 #include "quicVariableInt.hpp"
 #include "quicSalt.hpp"
+#include "quicConnectionId.hpp"
 
 namespace ipxp {
 
@@ -42,7 +43,7 @@ QUICParser::parseRetry(std::span<const std::byte> payload) noexcept
 	}
 
 	quicDirection = QUICDirection::SERVER_TO_CLIENT;
-	packetTypesCumulative.bits.retry = true;
+	packetTypesCumulative.bitfields.retry = true;
 
 	return IntegrityTagSize;
 }
@@ -61,7 +62,7 @@ std::optional<std::size_t> QUICParser::parseZeroRTT(
 		zeroRTTPackets++;
 	}
 
-	packetTypesCumulative.bits.zeroRTT = true;
+	packetTypesCumulative.bitfields.zeroRTT = true;
 	quicDirection = QUICDirection::CLIENT_TO_SERVER;
 
 	return restPayloadLength->value + restPayloadLength->length;
@@ -77,11 +78,11 @@ std::optional<std::size_t> QUICParser::parseHandshake(
 		return std::nullopt;
 	}
 
-	if (restPayloadLength->value > QUICExport::MAX_TLS_PAYLOAD_TO_SAVE) {
+	if (restPayloadLength->value > QUICData::MAX_TLS_PAYLOAD_TO_SAVE) {
 		return false;
 	}
 
-	packetTypesCumulative.bits.handshake = true;
+	packetTypesCumulative.bitfields.handshake = true;
 
 	return restPayloadLength->value + restPayloadLength->length;
 }
@@ -115,7 +116,7 @@ std::optional<std::size_t> QUICParser::parseInitial(
 		}
 	}
 
-	packetTypesCumulative.bits.initial = true;
+	packetTypesCumulative.bitfields.initial = true;
 
 	if (initialHeaderView->tlsHandshake.type == TLSHandshake::Type::SERVER_HELLO) {
 		quicDirection = QUICDirection::SERVER_TO_CLIENT;
@@ -129,7 +130,7 @@ std::optional<std::size_t> QUICParser::parseInitial(
 
 bool QUICParser::parse(
 	std::span<const std::byte> payload,
-	const QUICExport::ConnectionId& initialConnectionId,
+	const ConnectionId& initialConnectionId,
 	const uint8_t l4Protocol
 ) noexcept
 {
@@ -184,7 +185,7 @@ bool QUICParser::parse(
 		}
 		case QUICHeaderView::PacketType::VERSION_NEGOTIATION: {
 			quicDirection = QUICDirection::SERVER_TO_CLIENT;
-			packetTypesCumulative.bits.versionNegotiation = true;
+			packetTypesCumulative.bitfields.versionNegotiation = true;
 			break;
 		}
 		}

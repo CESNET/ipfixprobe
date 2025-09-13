@@ -11,6 +11,8 @@
 
 #include <cstdint>
 
+#include <timestamp.hpp>
+
 namespace ipxp
 {
 
@@ -37,7 +39,7 @@ struct NetTimeSeriesData {
 
 	struct {
 		uint16_t prevPayload;
-		uint64_t prevTime;
+		Timestamp prevTime;
 		uint64_t sumPayload;
 	} processingState;
 };  

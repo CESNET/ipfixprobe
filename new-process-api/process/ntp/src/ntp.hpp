@@ -43,8 +43,10 @@ public:
 	/**
 	 * @brief Initializes plugin data for a new flow.
 	 *
-	 * Constructs `NetworkTimePlugin` in `pluginContext` and initializes it with
-	 * burst containing initial packet.
+	 * Constructs `NetworkTimePlugin` in `pluginContext` and initializes it 
+	 * with parsed NTP values of the first packet.
+	 * Removes plugin data if NTP parsing fails.
+	 * Immediately flushes the flow if parsed successfully.
 	 *
 	 * @param flowContext Contextual information about the flow to fill new record.
 	 * @param pluginContext Pointer to pre-allocated memory to create record.
@@ -67,8 +69,6 @@ public:
 private:
 	void makeAllFieldsAvailable(FlowRecord& flowRecord) noexcept;
 	bool parseNTP(FlowRecord& flowRecord, std::span<const std::byte> payload, NetworkTimeData& pluginData) noexcept;
-	void fillTimestamps(std::span<const std::byte> timestampsPayload) noexcept;
-	bool fillNetworkTimeHeader(NetworkTimeHeader networkTimeHeader) noexcept;
 
 	FieldHandlers<NetworkTimeFields> m_fieldHandlers;
 };

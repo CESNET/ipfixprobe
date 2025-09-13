@@ -22,6 +22,7 @@
 #include <utils.hpp>
 
 #include <utils/stringViewUtils.hpp>
+#include <utils/spanUtils.hpp>
 
 #include "smtpStatusCode.hpp"
 #include "smtpCommand.hpp"
@@ -40,40 +41,65 @@ static const PluginManifest smtpPluginManifest = {
 		},
 };
 
-const inline std::vector<FieldPair<SMTPFields>> fields = {
-	{SMTPFields::SMTP_2XX_STAT_CODE_COUNT, "SMTP_2XX_STAT_CODE_COUNT"},
-	{SMTPFields::SMTP_3XX_STAT_CODE_COUNT, "SMTP_3XX_STAT_CODE_COUNT"},
-	{SMTPFields::SMTP_4XX_STAT_CODE_COUNT, "SMTP_4XX_STAT_CODE_COUNT"},
-	{SMTPFields::SMTP_5XX_STAT_CODE_COUNT, "SMTP_5XX_STAT_CODE_COUNT"},
-	{SMTPFields::SMTP_COMMAND_FLAGS, "SMTP_COMMAND_FLAGS"},
-	{SMTPFields::SMTP_MAIL_CMD_COUNT, "SMTP_MAIL_CMD_COUNT"},
-	{SMTPFields::SMTP_RCPT_CMD_COUNT, "SMTP_RCPT_CMD_COUNT"},
-	{SMTPFields::SMTP_STAT_CODE_FLAGS, "SMTP_STAT_CODE_FLAGS"},
-	{SMTPFields::SMTP_DOMAIN, "SMTP_DOMAIN"},
-	{SMTPFields::SMTP_FIRST_RECIPIENT, "SMTP_FIRST_RECIPIENT"},
-	{SMTPFields::SMTP_FIRST_SENDER, "SMTP_FIRST_SENDER"},
-};
-
-
-static FieldSchema createSMTPSchema()
+static FieldSchema createSMTPSchema(FieldManager& fieldManager, FieldHandlers<SMTPFields>& handlers) noexcept
 {
-	FieldSchema schema("smtp");
-	//TODO
+	FieldSchema schema = fieldManager.createFieldSchema("smtp");
+	
+	handlers.insert(SMTPFields::SMTP_2XX_STAT_CODE_COUNT, schema.addScalarField(
+		"SMTP_2XX_STAT_CODE_COUNT",
+		[](const void* context) { return reinterpret_cast<const SMTPData*>(context)->codeCount2xx; }
+	));
+	handlers.insert(SMTPFields::SMTP_3XX_STAT_CODE_COUNT, schema.addScalarField(
+		"SMTP_3XX_STAT_CODE_COUNT",
+		[](const void* context) { return reinterpret_cast<const SMTPData*>(context)->codeCount3xx; }
+	));
+	handlers.insert(SMTPFields::SMTP_4XX_STAT_CODE_COUNT, schema.addScalarField(
+		"SMTP_4XX_STAT_CODE_COUNT",
+		[](const void* context) { return reinterpret_cast<const SMTPData*>(context)->codeCount4xx; }
+	));
+	handlers.insert(SMTPFields::SMTP_5XX_STAT_CODE_COUNT, schema.addScalarField(
+		"SMTP_5XX_STAT_CODE_COUNT",
+		[](const void* context) { return reinterpret_cast<const SMTPData*>(context)->codeCount5xx; }
+	));
+	handlers.insert(SMTPFields::SMTP_COMMAND_FLAGS, schema.addScalarField(
+		"SMTP_COMMAND_FLAGS",
+		[](const void* context) { return reinterpret_cast<const SMTPData*>(context)->commandFlags; }
+	));
+	handlers.insert(SMTPFields::SMTP_MAIL_CMD_COUNT, schema.addScalarField(
+		"SMTP_MAIL_CMD_COUNT",
+		[](const void* context) { return reinterpret_cast<const SMTPData*>(context)->mailCommandCount; }
+	));
+	handlers.insert(SMTPFields::SMTP_RCPT_CMD_COUNT, schema.addScalarField(
+		"SMTP_RCPT_CMD_COUNT",
+		[](const void* context) { return reinterpret_cast<const SMTPData*>(context)->mailRecipientCount; }
+	));
+	handlers.insert(SMTPFields::SMTP_STAT_CODE_FLAGS, schema.addScalarField(
+		"SMTP_STAT_CODE_FLAGS",
+		[](const void* context) { return reinterpret_cast<const SMTPData*>(context)->mailCodeFlags; }
+	));
+	handlers.insert(SMTPFields::SMTP_DOMAIN, schema.addScalarField(
+		"SMTP_DOMAIN",
+		[](const void* context) { return toStringView(reinterpret_cast<const SMTPData*>(context)->domain); }
+	));
+	handlers.insert(SMTPFields::SMTP_FIRST_RECIPIENT, schema.addScalarField(
+		"SMTP_FIRST_RECIPIENT",
+		[](const void* context) { return toStringView(reinterpret_cast<const SMTPData*>(context)->firstRecipient); }
+	));
+	handlers.insert(SMTPFields::SMTP_FIRST_SENDER, schema.addScalarField(
+		"SMTP_FIRST_SENDER",
+		[](const void* context) { return toStringView(reinterpret_cast<const SMTPData*>(context)->firstSender); }
+	));
+
 	return schema;
 }
 
 SMTPPlugin::SMTPPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
 {
-	const FieldSchema schema = createSMTPSchema();
-	const FieldSchemaHandler schemaHandler = manager.registerSchema(schema);
-
-	for (const auto& [field, name] : fields) {
-		m_fieldHandlers[field] = schemaHandler.getFieldHandler(name);
-	}
+	createSMTPSchema(manager, m_fieldHandlers);
 }
 
 constexpr
-bool SMTPPlugin::parseResponse(std::string_view payload) noexcept
+bool SMTPPlugin::parseResponse(std::string_view payload, SMTPData& pluginData, FlowRecord& flowRecord) noexcept
 {
 	if (payload.size() < 5 || !(payload[3] == ' ' || payload[3] == '-')) {
 		return false;
@@ -98,106 +124,109 @@ bool SMTPPlugin::parseResponse(std::string_view payload) noexcept
 
 	switch (statusCode) {
 	case 211:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_211;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_211;
 		break;
 	case 214:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_214;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_214;
 		break;
 	case 220:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_220;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_220;
 		break;
 	case 221:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_221;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_221;
 		break;
 	case 250:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_250;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_250;
 		break;
 	case 251:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_251;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_251;
 		break;
 	case 252:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_252;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_252;
 		break;
 	case 354:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_354;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_354;
 		break;
 	case 421:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_421;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_421;
 		break;
 	case 450:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_450;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_450;
 		break;
 	case 451:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_451;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_451;
 		break;
 	case 452:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_452;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_452;
 		break;
 	case 455:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_455;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_455;
 		break;
 	case 500:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_500;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_500;
 		break;
 	case 501:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_501;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_501;
 		break;
 	case 502:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_502;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_502;
 		break;
 	case 503:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_503;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_503;
 		break;
 	case 504:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_504;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_504;
 		break;
 	case 550:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_550;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_550;
 		break;
 	case 551:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_551;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_551;
 		break;
 	case 552:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_552;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_552;
 		break;
 	case 553:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_553;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_553;
 		break;
 	case 554:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_554;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_554;
 		break;
 	case 555:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_555;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_555;
 		break;
 	default:
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_UNKNOWN;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_UNKNOWN;
 		break;
 	}
-
 	if (std::ranges::equal(payload | 
 		std::views::transform([](const unsigned char c){
 			 return std::toupper(c); 
 			}), "SPAM")) {
-		m_exportData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_SPAM;
+		pluginData.mailCodeFlags |= SMTPStatusCode::STATUS_CODE_SPAM;
 	}
+	m_fieldHandlers[SMTPFields::SMTP_STAT_CODE_FLAGS].setAsAvailable(flowRecord);
 
 	switch (statusPayload[0]) {
 	case '2':
-		m_exportData.codeCount2xx++;
+		pluginData.codeCount2xx++;
+		m_fieldHandlers[SMTPFields::SMTP_2XX_STAT_CODE_COUNT].setAsAvailable(flowRecord);
 		break;
 	case '3':
-		m_exportData.codeCount3xx++;
+		pluginData.codeCount3xx++;
+		m_fieldHandlers[SMTPFields::SMTP_3XX_STAT_CODE_COUNT].setAsAvailable(flowRecord);
 		break;
 	case '4':
-		m_exportData.codeCount4xx++;
+		pluginData.codeCount4xx++;
+		m_fieldHandlers[SMTPFields::SMTP_4XX_STAT_CODE_COUNT].setAsAvailable(flowRecord);
 		break;
 	case '5':
-		m_exportData.codeCount5xx++;
+		pluginData.codeCount5xx++;
+		m_fieldHandlers[SMTPFields::SMTP_5XX_STAT_CODE_COUNT].setAsAvailable(flowRecord);
 		break;
 	default:
 		return false;
 	}
-
 	return true;
 }
 
@@ -211,17 +240,17 @@ bool isSMTPKeyword(std::string_view keyword) noexcept
 }
 
 constexpr
-bool SMTPPlugin::parseCommand(std::string_view payload) noexcept
+bool SMTPPlugin::parseCommand(std::string_view payload, SMTPData& pluginData, FlowRecord& flowRecord) noexcept
 {
 	if (payload.empty()) {
 		return false;
 	}
 
-	if (m_isDataTransfer) {
+	if (pluginData.processingState.isDataTransfer) {
 		if (payload != ".\r\n") {
 			return false;
 		}
-		m_isDataTransfer = false;
+		pluginData.processingState.isDataTransfer = false;
 		return true;
 	}
 
@@ -241,13 +270,14 @@ bool SMTPPlugin::parseCommand(std::string_view payload) noexcept
 		}
 
 		std::ranges::copy(tokens[1] | 
-			std::views::take(m_exportData.domain.capacity()),
-			std::back_inserter(m_exportData.domain));
+			std::views::take(pluginData.domain.capacity()),
+			std::back_inserter(pluginData.domain));
+		m_fieldHandlers[SMTPFields::SMTP_DOMAIN].setAsAvailable(flowRecord);
 	}
 
 	if (tokens[0] == "RCPT") {
-		m_exportData.mailRecipientCount++;
-
+		pluginData.mailRecipientCount++;
+		m_fieldHandlers[SMTPFields::SMTP_RCPT_CMD_COUNT].setAsAvailable(flowRecord);
 		if (tokens.size() < 2) {
 			return false;
 		}
@@ -259,13 +289,14 @@ bool SMTPPlugin::parseCommand(std::string_view payload) noexcept
 
 		std::ranges::copy(tokens[1] | 
 			std::views::drop(semicolonPos + 1) |
-			std::views::take(m_exportData.firstRecipient.capacity()),
-			std::back_inserter(m_exportData.firstRecipient));
+			std::views::take(pluginData.firstRecipient.capacity()),
+			std::back_inserter(pluginData.firstRecipient));
+		m_fieldHandlers[SMTPFields::SMTP_FIRST_RECIPIENT].setAsAvailable(flowRecord);
 	}
 
 	if (tokens[0] == "MAIL") {
-		m_exportData.mailCommandCount++;
-		
+		pluginData.mailCommandCount++;
+		m_fieldHandlers[SMTPFields::SMTP_MAIL_CMD_COUNT].setAsAvailable(flowRecord);
 		if (tokens.size() < 2) {
 			return false;
 		}
@@ -276,12 +307,13 @@ bool SMTPPlugin::parseCommand(std::string_view payload) noexcept
 		}
 		
 		std::ranges::copy(tokens[1].substr(semicolonPos + 1) | 
-			std::views::take(m_exportData.firstSender.capacity()),
-			std::back_inserter(m_exportData.firstSender));
+			std::views::take(pluginData.firstSender.capacity()),
+			std::back_inserter(pluginData.firstSender));
+		m_fieldHandlers[SMTPFields::SMTP_FIRST_SENDER].setAsAvailable(flowRecord);
 	}
 
 	if (tokens[0] == "DATA") {
-		m_isDataTransfer = true;
+		pluginData.processingState.isDataTransfer = true;
 	}
 
 	constexpr auto commandsMapping 
@@ -305,59 +337,71 @@ bool SMTPPlugin::parseCommand(std::string_view payload) noexcept
 		});
 
 	if (commandIt != commandsMapping.end()) {
-		m_exportData.commandFlags |= commandIt->second;
+		pluginData.commandFlags |= commandIt->second;
 	} else if (!isSMTPKeyword(tokens[0])) {
-		m_exportData.commandFlags |= SMTPCommand::UNKNOWN;
+		pluginData.commandFlags |= SMTPCommand::UNKNOWN;
 	}
+	m_fieldHandlers[SMTPFields::SMTP_COMMAND_FLAGS].setAsAvailable(flowRecord);
 
 	return true;
 }
 
 constexpr
-FlowAction SMTPPlugin::updateSMTPData(
-	std::span<const std::byte> payload, const uint16_t srcPort, const uint16_t dstPort) noexcept
+PluginUpdateResult SMTPPlugin::updateSMTPData(
+	std::span<const std::byte> payload, const uint16_t srcPort, const uint16_t dstPort, SMTPData& pluginData, FlowRecord& flowRecord) noexcept
 {
 	constexpr uint16_t SMTP_PORT = 25;
-	if (dstPort == SMTP_PORT && !parseCommand(toStringView(payload))) {
-		return FlowAction::RequestNoData;
+	if (dstPort == SMTP_PORT && !parseCommand(toStringView(payload), pluginData, flowRecord)) {
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction,
+		};
 	}
 
-	if (srcPort == SMTP_PORT && !parseResponse(toStringView(payload))) {
-		return FlowAction::RequestNoData;
+	if (srcPort == SMTP_PORT && !parseResponse(toStringView(payload), pluginData, flowRecord)) {
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction,
+		};
 	}
 
-	return FlowAction::RequestNoData;
+	return {
+		.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+		.flowAction = FlowAction::NoAction,
+	};
 }
 
-FlowAction SMTPPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, const Packet& packet)
+PluginInitResult SMTPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	return updateSMTPData(
-		packet.payload, packet.flowKey.srcPort, packet.flowKey.dstPort);
+	auto* pluginData = std::construct_at(reinterpret_cast<SMTPData*>(pluginContext));
+	auto [updateRequirement, flowAction] = updateSMTPData(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+		flowContext.packet.src_port, flowContext.packet.dst_port, *pluginData, flowContext.flowRecord);
+	return {
+		.constructionState = ConstructionState::Constructed,
+		.updateRequirement = updateRequirement,
+		.flowAction = flowAction,
+	};
 }
 
-FlowAction SMTPPlugin::onFlowUpdate([[maybe_unused]]FlowRecord& flowRecord, 
-	const Packet& packet)
+PluginUpdateResult SMTPPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
-	return updateSMTPData(
-		packet.payload, packet.flowKey.srcPort, packet.flowKey.dstPort);
+	auto* pluginData = reinterpret_cast<SMTPData*>(pluginContext);
+	return updateSMTPData(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), 
+		flowContext.packet.src_port, flowContext.packet.dst_port, *pluginData, flowContext.flowRecord);
 }
 
-void SMTPPlugin::onFlowExport(FlowRecord& flowRecord) {
-	// TODO make all available
-}
-
-ProcessPlugin* SMTPPlugin::clone(std::byte* constructAtAddress) const
+void SMTPPlugin::onDestroy(void* pluginContext)
 {
-	return std::construct_at(reinterpret_cast<SMTPPlugin*>(constructAtAddress), *this);
+	std::destroy_at(reinterpret_cast<SMTPData*>(pluginContext));
 }
 
-std::string SMTPPlugin::getName() const {
-	return smtpPluginManifest.name;
+PluginDataMemoryLayout SMTPPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(SMTPData),
+		.alignment = alignof(SMTPData),
+	};
 }
-
-const void* SMTPPlugin::getExportData() const noexcept {
-	return &m_exportData;
-}	
 
 static const PluginRegistrar<SMTPPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	smtpRegistrar(smtpPluginManifest);

@@ -22,7 +22,7 @@
 #include <tlsParser/tlsParser.hpp>
 #include <fieldHandlersEnum.hpp>
 
-#include "tlsExport.hpp"
+#include "tlsData.hpp"
 #include "tlsFields.hpp"
 
 namespace ipxp {
@@ -32,47 +32,65 @@ namespace ipxp {
  */
 class TLSPlugin : public ProcessPlugin {
 public:
+
+	/**
+	 * \brief Constructs the TLS plugin and initializes field handlers.
+	 * \param params String with plugin-specific parameters for configuration(currently unused).
+	 * \param manager Reference to the FieldManager for field handler registration.
+	 */
 	TLSPlugin(const std::string& params, FieldManager& manager);
 
-	FlowAction onFlowCreate(FlowRecord& flowRecord, const Packet& packet) override;
+	/**
+	 * \brief Initializes plugin data for a new flow.
+	 *
+	 * Constructs `TLSData` in `pluginContext` and initializes it with parsed TLS values.
+	 *
+	 * \param flowContext Contextual information about the flow to fill new record.
+	 * \param pluginContext Pointer to pre-allocated memory to create record.
+	 * \return Result of the initialization process.
+	 */
+	PluginInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
 
-	FlowAction onFlowUpdate(FlowRecord& flowRecord, const Packet& packet) override;
+	/**
+	 * \brief Updates plugin data with values from new packet.
+	 *
+	 * Inserts parsed TLS values into `TLSData` from `pluginContext`.
+	 *
+	 * \param flowContext Contextual information about the flow to be updated.
+	 * \param pluginContext Pointer to `TLSData`.
+	 * \return Result of the update.
+	 */
+	PluginUpdateResult onUpdate(const FlowContext& flowContext, void* pluginContext) override;
 
-	void onFlowExport(FlowRecord& flowRecord) override;
+	/**
+	 * \brief Destroys plugin data.
+	 *
+	 * Calls the destructor of `TLSData` in `pluginContext`.
+	 *
+	 * \param pluginContext Pointer to `TLSData`.
+	 */
+	void onDestroy(void* pluginContext) override;
 
-	ProcessPlugin* clone(std::byte* constructAtAddress) const override;
-
-	const void* getExportData() const noexcept override;
-
-	std::string getName() const override;
-
-	~TLSPlugin() override = default;
-
-	TLSPlugin(const TLSPlugin& other) = default;
-	TLSPlugin(TLSPlugin&& other) = delete;
+	/**
+	 * \brief Provides memory layout information for `TLSData`.
+	 *
+	 * \return Size and alignment requirements for `TLSData`.
+	 */
+	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
 	constexpr bool parseTLS(
-	std::span<const std::byte> payload, const uint8_t l4Protocol) noexcept;
-	void saveJA3(const TLSParser& parser) noexcept;
-	void saveJA4(const TLSParser& parser, const uint8_t l4Protocol) noexcept;
-	bool parseClientHelloExtensions(TLSParser& parser) noexcept;
-	bool parseServerHelloExtensions(TLSParser& parser) noexcept;
+		std::span<const std::byte> payload, const uint8_t l4Protocol, TLSData& pluginData, FlowRecord& flowRecord) noexcept;
+	
+	void saveJA3(const TLSParser& parser, TLSData& pluginData, FlowRecord& flowRecord) noexcept;
+
+	void saveJA4(const TLSParser& parser, const uint8_t l4Protocol, TLSData& pluginData, FlowRecord& flowRecord) noexcept;
+
+	bool parseClientHelloExtensions(TLSParser& parser, TLSData& pluginData, FlowRecord& flowRecord) noexcept;
+
+	bool parseServerHelloExtensions(TLSParser& parser, TLSData& pluginData, FlowRecord& flowRecord) noexcept;
 
 	FieldHandlers<TLSFields> m_fieldHandlers;
-	TLSExport m_exportData;
-
-	std::optional<TLSParser::EllipticCurvePointFormats> m_pointFormats;
-	std::optional<TLSParser::ALPNs> m_alpns;
-	std::optional<TLSParser::SupportedVersions> m_supportedVersions;
-	std::optional<TLSParser::SupportedGroups> m_supportedGroups;
-	std::optional<TLSParser::SignatureAlgorithms> m_signatureAlgorithms;
-	std::optional<TLSParser::ServerNames> m_serverNames;
-	bool m_clientHelloParsed{false};
-	bool m_serverHelloParsed{false};
-
-
-
 };
 
 } // namespace ipxp

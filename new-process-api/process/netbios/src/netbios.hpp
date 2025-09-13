@@ -19,7 +19,7 @@
 #include <fieldManager.hpp>
 #include <fieldHandlersEnum.hpp>
 
-#include "netbiosExport.hpp"
+#include "netbiosData.hpp"
 #include "netbiosFields.hpp"
 
 namespace ipxp {
@@ -65,8 +65,9 @@ public:
 	 */
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
-	private:
+private:
 	void parseNetBIOS(FlowRecord& flowRecord, std::span<const std::byte> payload, NetBIOSData& pluginData) noexcept;
+	
 	FieldHandlers<NetBIOSFields> m_fieldHandlers;
 };
 

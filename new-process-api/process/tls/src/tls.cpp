@@ -46,104 +46,129 @@ static const PluginManifest tlsPluginManifest = {
 		},
 };
 
-const inline std::vector<FieldPair<TLSFields>> fields = {
-	{TLSFields::TLS_SNI, "TLS_SNI"},
-	{TLSFields::TLS_JA3, "TLS_JA3"},
-	{TLSFields::TLS_JA4, "TLS_JA4"},
-	{TLSFields::TLS_ALPN, "TLS_ALPN"},
-	{TLSFields::TLS_VERSION, "TLS_VERSION"},
-	{TLSFields::TLS_EXT_TYPE, "TLS_EXT_TYPE"},
-	{TLSFields::TLS_EXT_LEN, "TLS_EXT_LEN"},
-};
-
-
-static FieldSchema createTLSSchema()
+static FieldSchema createTLSSchema(FieldManager& fieldManager, FieldHandlers<TLSFields>& handlers) noexcept
 {
-	FieldSchema schema("tls");
+	FieldSchema schema = fieldManager.createFieldSchema("tls");
 
-	// TODO EXPORT STRINGS
+	handlers.insert(TLSFields::TLS_SNI, schema.addScalarField(
+		"TLS_SNI",
+		[](const void* context) { return toStringView(reinterpret_cast<const TLSData*>(context)->serverNames); }
+	));
+	// TODO FIX
+	/*handlers.insert(TLSFields::TLS_JA3, schema.addVectorField(
+		"TLS_JA3",
+		[](const void* context) { return toSpan<const uint8_t>(reinterpret_cast<const TLSData*>(context)->ja3); }
+	));*/
+	handlers.insert(TLSFields::TLS_JA4, schema.addScalarField(
+		"TLS_JA4",
+		[](const void* context) { return toStringView(reinterpret_cast<const TLSData*>(context)->ja4); }
+	));
+	handlers.insert(TLSFields::TLS_ALPN, schema.addScalarField(
+		"TLS_ALPN",
+		[](const void* context) { return toStringView(reinterpret_cast<const TLSData*>(context)->serverALPNs); }
+	));
+	handlers.insert(TLSFields::TLS_VERSION, schema.addScalarField(
+		"TLS_VERSION",
+		[](const void* context) { return reinterpret_cast<const TLSData*>(context)->version; }
+	));
+	/*handlers.insert(TLSFields::TLS_EXT_TYPE, schema.addVectorField(
+		"TLS_EXT_TYPE",
+		[](const void* context) { return toSpan<const uint16_t>(reinterpret_cast<const TLSData*>(context)->extensionTypes); }
+	));
+	handlers.insert(TLSFields::TLS_EXT_LEN, schema.addVectorField(
+		"TLS_EXT_LEN",
+		[](const void* context) { return toSpan<const uint16_t>(reinterpret_cast<const TLSData*>(context)->extensionLengths); }
+	));*/
 
 	return schema;
 }
 
 TLSPlugin::TLSPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
 {
-	const FieldSchema schema = createTLSSchema();
-	const FieldSchemaHandler schemaHandler = manager.registerSchema(schema);
-
-	for (const auto& [field, name] : fields) {
-		m_fieldHandlers[field] = schemaHandler.getFieldHandler(name);
-	}
+	createTLSSchema(manager, m_fieldHandlers);
 }
 
-FlowAction TLSPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, const Packet& packet)
+PluginInitResult TLSPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	parseTLS(packet.payload, packet.flowKey.l4Protocol);
+	auto* pluginData = std::construct_at(reinterpret_cast<TLSData*>(pluginContext));
+	parseTLS(toSpan<const std::byte>(
+		flowContext.packet.payload, flowContext.packet.payload_len), flowContext.packet.ip_proto, *pluginData, flowContext.flowRecord);
 
-	return FlowAction::RequestFullData;
+	return {
+		.constructionState = ConstructionState::Constructed,
+		.updateRequirement = UpdateRequirement::RequiresUpdate,
+		.flowAction = FlowAction::NoAction,
+	}; 
 }
 
-FlowAction TLSPlugin::onFlowUpdate(FlowRecord& flowRecord, 
-	const Packet& packet)
+PluginUpdateResult TLSPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
-	if (!m_serverHelloParsed) {
-		parseTLS(packet.payload, packet.flowKey.l4Protocol);
+	auto* pluginData = reinterpret_cast<TLSData*>(pluginContext);
+	if (!pluginData->processingState.serverHelloParsed) {
+		parseTLS(toSpan<const std::byte>(
+			flowContext.packet.payload, flowContext.packet.payload_len), flowContext.packet.ip_proto, *pluginData, flowContext.flowRecord);
 	}
 
-	if (m_serverHelloParsed && m_clientHelloParsed) {
-		//makeAllFieldsAvailable(flowRecord);
-		return FlowAction::RequestNoData;
+	if (pluginData->processingState.serverHelloParsed && pluginData->processingState.clientHelloParsed) {
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction,
+		};
 	}
 
-	return FlowAction::RequestFullData;
+	return {
+		.updateRequirement = UpdateRequirement::RequiresUpdate,
+		.flowAction = FlowAction::NoAction,
+	}; 
 }
 
-bool TLSPlugin::parseClientHelloExtensions(TLSParser& parser) noexcept
+bool TLSPlugin::parseClientHelloExtensions(TLSParser& parser, TLSData& pluginData, FlowRecord& flowRecord) noexcept
 {
 	return parser.parseExtensions([&](const TLSExtension& extension) {
 		switch (extension.type)
 		{
 		case TLSExtensionType::SERVER_NAME: {
-			m_serverNames = parser.parseServerNames(extension.payload);
-			if (!m_serverNames.has_value()) {
+			pluginData.processingState.serverNames = parser.parseServerNames(extension.payload);
+			if (!pluginData.processingState.serverNames.has_value()) {
 				return false;
 			}
-			concatenateRangeTo(*m_serverNames, m_exportData.serverNames, 0);
+			concatenateRangeTo(*pluginData.processingState.serverNames, pluginData.serverNames, 0);
+			m_fieldHandlers[TLSFields::TLS_SNI].setAsAvailable(flowRecord);
 			break;
 		}
-		case TLSExtensionType::SUPPORTED_GROUPS: { 
-			m_supportedGroups = parser.parseSupportedGroups(extension.payload);
-			if (!m_supportedGroups.has_value()) {
+		case TLSExtensionType::SUPPORTED_GROUPS: {
+			pluginData.processingState.supportedGroups = parser.parseSupportedGroups(extension.payload);
+			if (!pluginData.processingState.supportedGroups.has_value()) {
 				return false;
 			}
 			break;
 		}
 		case TLSExtensionType::ELLIPTIC_CURVE_POINT_FORMATS: {
-			m_pointFormats = parser.parseEllipticCurvePointFormats(extension.payload);
-			if (!m_pointFormats.has_value()) {
+			pluginData.processingState.pointFormats = parser.parseEllipticCurvePointFormats(extension.payload);
+			if (!pluginData.processingState.pointFormats.has_value()) {
 				return false;
 			}
 			break;
 		}
 		case TLSExtensionType::ALPN: {
-			m_alpns = parser.parseALPN(extension.payload);
-			if (!m_alpns.has_value()) {
+			pluginData.processingState.alpns = parser.parseALPN(extension.payload);
+			if (!pluginData.processingState.alpns.has_value()) {
 				return false;
 			}
 			break;
 		}
 		case TLSExtensionType::SIGNATURE_ALGORITHMS: {
-			m_signatureAlgorithms 
+			pluginData.processingState.signatureAlgorithms 
 				= parser.parseSignatureAlgorithms(extension.payload);
-			if (!m_signatureAlgorithms.has_value()) {
+			if (!pluginData.processingState.signatureAlgorithms.has_value()) {
 				return false;
 			}
 			break;
 		}
 		case TLSExtensionType::SUPPORTED_VERSION: {
-			m_supportedVersions 
+			pluginData.processingState.supportedVersions 
 				= parser.parseSupportedVersions(extension.payload, *parser.handshake);
-			if (!m_supportedVersions.has_value()) {
+			if (!pluginData.processingState.supportedVersions.has_value()) {
 				return false;
 			}
 			break;
@@ -152,16 +177,19 @@ bool TLSPlugin::parseClientHelloExtensions(TLSParser& parser) noexcept
 			break;
 		}
 
-		if (m_exportData.extensionTypes.size() != m_exportData.extensionTypes.capacity()) {
-			m_exportData.extensionTypes.push_back(static_cast<uint16_t>(extension.type));
-			m_exportData.extensionLengths.push_back(extension.payload.size());
+		if (pluginData.extensionTypes.size() != pluginData.extensionTypes.capacity()) {
+			pluginData.extensionTypes.push_back(static_cast<uint16_t>(extension.type));
+			m_fieldHandlers[TLSFields::TLS_EXT_TYPE].setAsAvailable(flowRecord);
+			
+			pluginData.extensionLengths.push_back(extension.payload.size());
+			m_fieldHandlers[TLSFields::TLS_EXT_LEN].setAsAvailable(flowRecord);
 		}
 
 		return true;
 	});
 }
 
-bool TLSPlugin::parseServerHelloExtensions(TLSParser& parser) noexcept
+bool TLSPlugin::parseServerHelloExtensions(TLSParser& parser, TLSData& pluginData, FlowRecord& flowRecord) noexcept
 {
 	return parser.parseExtensions([&](const TLSExtension& extension) {
 		if (extension.type == TLSExtensionType::ALPN) {
@@ -170,13 +198,14 @@ bool TLSPlugin::parseServerHelloExtensions(TLSParser& parser) noexcept
 			if (!alpns.has_value()) {
 				return false;
 			}
-			concatenateRangeTo(*alpns, m_exportData.serverALPNs, 0);
+			concatenateRangeTo(*alpns, pluginData.serverALPNs, 0);
+			m_fieldHandlers[TLSFields::TLS_ALPN].setAsAvailable(flowRecord);
 		}
 		
 		if (extension.type == TLSExtensionType::SUPPORTED_VERSION) {
-			m_supportedVersions 
+			pluginData.processingState.supportedVersions
 				= parser.parseSupportedVersions(extension.payload, *parser.handshake);
-			if (!m_supportedVersions.has_value()) {
+			if (!pluginData.processingState.supportedVersions.has_value()) {
 				return false;
 			}
 		}
@@ -185,50 +214,52 @@ bool TLSPlugin::parseServerHelloExtensions(TLSParser& parser) noexcept
 	});
 }
 
-void TLSPlugin::saveJA3(const TLSParser& parser) noexcept
+void TLSPlugin::saveJA3(const TLSParser& parser, TLSData& pluginData, FlowRecord& flowRecord) noexcept
 {
 	if (!parser.cipherSuites.has_value()
-		|| !m_supportedGroups.has_value()
-		|| !m_pointFormats.has_value()) {
+		|| !pluginData.processingState.supportedGroups.has_value()
+		|| !pluginData.processingState.pointFormats.has_value()) {
 		return;
 	}
 
 	JA3 ja3(std::bit_cast<uint16_t>(parser.handshake->version),
 		toSpan<const uint16_t>(*parser.cipherSuites),
-		toSpan<const uint16_t>(m_exportData.extensionTypes),
-		toSpan<const uint16_t>(*m_supportedGroups),
-		toSpan<const uint8_t>(*m_pointFormats)
+		toSpan<const uint16_t>(pluginData.extensionTypes),
+		toSpan<const uint16_t>(*pluginData.processingState.supportedGroups),
+		toSpan<const uint8_t>(*pluginData.processingState.pointFormats)
 	);
 
-	std::ranges::copy(ja3.getHash(), m_exportData.ja3.begin());
+	std::ranges::copy(ja3.getHash(), pluginData.ja3.begin());
+	m_fieldHandlers[TLSFields::TLS_JA3].setAsAvailable(flowRecord);
 }
 
-void TLSPlugin::saveJA4(const TLSParser& parser, const uint8_t l4Protocol) noexcept
+void TLSPlugin::saveJA4(const TLSParser& parser, const uint8_t l4Protocol, TLSData& pluginData, FlowRecord& flowRecord) noexcept
 {
-	if (!m_alpns.has_value() 
-		|| !m_signatureAlgorithms.has_value()
+	if (!pluginData.processingState.alpns.has_value()
+		|| !pluginData.processingState.signatureAlgorithms.has_value()
 		|| !parser.cipherSuites.has_value()
-		|| !m_serverNames.has_value()
-		|| !m_supportedVersions.has_value()) {
+		|| !pluginData.processingState.serverNames.has_value()
+		|| !pluginData.processingState.supportedVersions.has_value()) {
 		return;
 	}
 
 	JA4 ja4(l4Protocol,
 		*parser.handshake,
-		toSpan<const std::string_view>(*m_serverNames),
-		toSpan<const std::string_view>(*m_alpns),
+		toSpan<const std::string_view>(*pluginData.processingState.serverNames),
+		toSpan<const std::string_view>(*pluginData.processingState.alpns),
 		toSpan<const uint16_t>(*parser.cipherSuites),
-		toSpan<const uint16_t>(m_exportData.extensionTypes),
-		toSpan<const uint16_t>(*m_signatureAlgorithms),
-		toSpan<const uint16_t>(*m_supportedVersions)
+		toSpan<const uint16_t>(pluginData.extensionTypes),
+		toSpan<const uint16_t>(*pluginData.processingState.signatureAlgorithms),
+		toSpan<const uint16_t>(*pluginData.processingState.supportedVersions)
 	);
 
-	std::ranges::copy(ja4.getView(), m_exportData.ja4.begin());
+	std::ranges::copy(ja4.getView(), pluginData.ja4.begin());
+	m_fieldHandlers[TLSFields::TLS_JA4].setAsAvailable(flowRecord);
 }
 
 constexpr
 bool TLSPlugin::parseTLS(
-	std::span<const std::byte> payload, const uint8_t l4Protocol) noexcept
+	std::span<const std::byte> payload, const uint8_t l4Protocol, TLSData& pluginData, FlowRecord& flowRecord) noexcept
 {
 	TLSParser parser;
 	if (!parser.parseHello(payload)) {
@@ -236,54 +267,42 @@ bool TLSPlugin::parseTLS(
 	}
 
 	if (parser.isClientHello()) {
-		if (m_clientHelloParsed) {
+		if (pluginData.processingState.clientHelloParsed) {
 			return true;
 		}
 
-		if (!parseClientHelloExtensions(parser)) {
+		if (!parseClientHelloExtensions(parser, pluginData, flowRecord)) {
 			return false;
 		}
 
-		m_exportData.version = std::bit_cast<uint16_t>(parser.handshake->version);
-		saveJA3(parser);
-		saveJA4(parser, l4Protocol);
+		pluginData.version = std::bit_cast<uint16_t>(parser.handshake->version);
+		m_fieldHandlers[TLSFields::TLS_VERSION].setAsAvailable(flowRecord);
+		saveJA3(parser, pluginData, flowRecord);
+		saveJA4(parser, l4Protocol, pluginData, flowRecord);
 
-		m_clientHelloParsed = true;
+		pluginData.processingState.clientHelloParsed = true;
 
 		return true;
 	}
 
 	if (parser.isServerHello()) {
-		if (!parseServerHelloExtensions(parser)) {
+		if (!parseServerHelloExtensions(parser, pluginData, flowRecord)) {
 			return false;
 		}
 
-		if (!m_supportedVersions.has_value()) {
+		if (!pluginData.processingState.supportedVersions.has_value()) {
 			return false;
 		}
 
-		if (!m_supportedVersions->empty()) {
-			m_exportData.version = m_supportedVersions->front();
+		if (!pluginData.processingState.supportedVersions->empty()) {
+			pluginData.version = pluginData.processingState.supportedVersions->front();
 		}
-	
-		m_serverHelloParsed = true;
+
+		pluginData.processingState.serverHelloParsed = true;
 	}
 
 	return false;
 }
-
-ProcessPlugin* TLSPlugin::clone(std::byte* constructAtAddress) const
-{
-	return std::construct_at(reinterpret_cast<TLSPlugin*>(constructAtAddress), *this);
-}
-
-std::string TLSPlugin::getName() const { 
-	return tlsPluginManifest.name; 
-}
-
-const void* TLSPlugin::getExportData() const noexcept {
-	return &m_exportData;
-}	
 
 static const PluginRegistrar<TLSPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> 
 	tlsRegistrar(tlsPluginManifest);

@@ -37,78 +37,90 @@ static const PluginManifest ssaDetectorPluginManifest = {
 		},
 };
 
-const inline std::vector<FieldPair<SSADetectorFields>> fields = {
-	{SSADetectorFields::SSA_CONF_LEVEL, "SSA_CONF_LEVEL"},
-};
-
-
-static FieldSchema createSSADetectorSchema()
+static FieldSchema createSSADetectorSchema(FieldManager& fieldManager, FieldHandlers<SSADetectorFields> handlers) noexcept
 {
-	FieldSchema schema("ssadetector");
+	FieldSchema schema = fieldManager.createFieldSchema("ssadetector");
 
-	schema.addScalarField<uint8_t>(
+	handlers.insert(SSADetectorFields::SSA_CONF_LEVEL, schema.addScalarField(
 		"SSA_CONF_LEVEL",
-		FieldDirection::DirectionalIndifferent,
-		offsetof(SSADetectorExport, confidence));
-
+		[](const void* context) { return reinterpret_cast<const SSADetectorData*>(context)->confidence; }
+	));
 	return schema;
 }
 
 SSADetectorPlugin::SSADetectorPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
 {
-	const FieldSchema schema = createSSADetectorSchema();
-	const FieldSchemaHandler schemaHandler = manager.registerSchema(schema);
-
-	for (const auto& [field, name] : fields) {
-		m_fieldHandlers[field] = schemaHandler.getFieldHandler(name);
-	}
+	createSSADetectorSchema(manager, m_fieldHandlers);
 }
 
 constexpr
 void SSADetectorPlugin::updatePacketsData(
 	const std::size_t length,
-	const uint64_t timestamp,
-	const Direction direction) noexcept
+	const Timestamp timestamp,
+	const Direction direction,
+	SSADetectorData& pluginData
+) noexcept
 {
 	if (!PacketStorage::isValid(length)) {
 		return;
 	}
 
 	constexpr std::size_t MaxSynToSynAckSizeDiff = 12;
-	const bool foundTCPHandshake = m_synAckPackets.hasSimilarPacketsRecently(
+	const bool foundTCPHandshake = pluginData.processingState.synAckPackets.hasSimilarPacketsRecently(
 		length, MaxSynToSynAckSizeDiff, timestamp, static_cast<Direction>(!direction));
 
 	if (foundTCPHandshake) {
-		m_synPackets.clear();
-		m_synAckPackets.clear();
-		m_suspects++;
-		if (m_suspectLengths.size() != m_suspectLengths.capacity()) {
-			m_suspectLengths.push_back(length);
+		pluginData.processingState.synPackets.clear();
+		pluginData.processingState.synAckPackets.clear();
+		pluginData.processingState.suspects++;
+		if (pluginData.processingState.suspectLengths.size() != pluginData.processingState.suspectLengths.capacity()) {
+			pluginData.processingState.suspectLengths.push_back(length);
 		}
 		return;
 	}
 
 	constexpr std::size_t MaxSynAckToSynSizeDiff = 10;
-	const bool correspondingSynFound = m_synPackets.hasSimilarPacketsRecently(
+	const bool correspondingSynFound = pluginData.processingState.synPackets.hasSimilarPacketsRecently(
 		length, MaxSynAckToSynSizeDiff, timestamp, static_cast<Direction>(!direction));
 	if (correspondingSynFound) {
-		m_synAckPackets.insert(length, timestamp, direction);
+		pluginData.processingState.synAckPackets.insert(length, timestamp, direction);
 	}
 
-	m_synPackets.insert(length, timestamp, direction);
+	pluginData.processingState.synPackets.insert(length, timestamp, direction);
 }
 
-FlowAction SSADetectorPlugin::onFlowUpdate([[maybe_unused]]FlowRecord& flowRecord, 
-	const Packet& packet)
+
+PluginInitResult SSADetectorPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	constexpr std::size_t MIN_FLOW_LENGTH = 30;
-	if (flowRecord.dataForward.packets + flowRecord.dataReverse.packets < MIN_FLOW_LENGTH) {
-		return FlowAction::RequestTrimmedData;
+	if (flowContext.flowRecord.directionalData[Direction::Forward].packets + 
+		flowContext.flowRecord.directionalData[Direction::Reverse].packets < MIN_FLOW_LENGTH) {
+		return {
+			.constructionState = ConstructionState::NotConstructed,
+			.updateRequirement = UpdateRequirement::RequiresUpdate,
+			.flowAction = FlowAction::NoAction,
+		};
 	}
+	
+	auto* pluginData = std::construct_at(reinterpret_cast<SSADetectorData*>(pluginContext));
+	updatePacketsData(flowContext.packet.payload_len, flowContext.packet.ts, flowContext.packet.source_pkt, *pluginData);
 
-	updatePacketsData(packet.payload.size(), packet.timestamp, packet.direction);
+	return {
+		.constructionState = ConstructionState::Constructed,
+		.updateRequirement = UpdateRequirement::RequiresUpdate,
+		.flowAction = FlowAction::NoAction,
+	};
+}
 
-	return FlowAction::RequestTrimmedData;
+
+PluginUpdateResult SSADetectorPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
+{
+	auto* pluginData = reinterpret_cast<SSADetectorData*>(pluginContext);
+	updatePacketsData(flowContext.packet.payload_len, flowContext.packet.ts, flowContext.packet.source_pkt, *pluginData);
+	return {
+		.updateRequirement = UpdateRequirement::RequiresUpdate,
+		.flowAction = FlowAction::NoAction,
+	}; 
 }
 
 constexpr static
@@ -120,63 +132,66 @@ double calculateUniqueRatio(auto&& container) noexcept
 		std::distance(container.begin(), last)) / container.size();
 }
 
-void SSADetectorPlugin::onFlowExport(FlowRecord& flowRecord) 
+PluginExportResult SSADetectorPlugin::onExport(const FlowRecord& flowRecord, void* pluginContext)
 {
+	auto pluginData = *reinterpret_cast<SSADetectorData*>(pluginContext);
 	// do not export for small packets flows
 	constexpr double HIGH_NUM_SUSPECTS_MAX_RATIO = 0.2;
 
 	const std::size_t packetsTotal 
-		= flowRecord.dataForward.packets + flowRecord.dataReverse.packets;
+		= flowRecord.directionalData[Direction::Forward].packets + flowRecord.directionalData[Direction::Reverse].packets;
 	constexpr std::size_t MIN_PACKETS = 30;
 	if (packetsTotal <= MIN_PACKETS) {
-		return;
+		return {
+			.flowAction = FlowAction::RemovePlugin,
+		};
 	}
 
 	constexpr std::size_t MIN_SUSPECTS_COUNT = 3;
-	if (m_suspects < MIN_SUSPECTS_COUNT) {
-		return;
+	if (pluginData.processingState.suspects < MIN_SUSPECTS_COUNT) {
+		return {
+			.flowAction = FlowAction::RemovePlugin,
+		};
 	}
 
 	constexpr std::size_t MIN_SUSPECTS_RATIO = 2500;
-	if (double(packetsTotal) / double(m_suspects) > MIN_SUSPECTS_RATIO) {
-		return;
+	if (double(packetsTotal) / double(pluginData.processingState.suspects) > MIN_SUSPECTS_RATIO) {
+		return {
+			.flowAction = FlowAction::RemovePlugin,
+		};
 	}
 
-	const double uniqueRatio = calculateUniqueRatio(m_suspectLengths);
+	const double uniqueRatio = calculateUniqueRatio(pluginData.processingState.suspectLengths);
 	constexpr std::size_t LOW_NUM_SUSPECTS_THRESHOLD = 15;
 	constexpr double LOW_NUM_SUSPECTS_MAX_RATIO = 0.6;
-	if (m_suspects < LOW_NUM_SUSPECTS_THRESHOLD 
+	if (pluginData.processingState.suspects < LOW_NUM_SUSPECTS_THRESHOLD 
 		&& uniqueRatio > LOW_NUM_SUSPECTS_MAX_RATIO) {
-		return;
+		return {
+			.flowAction = FlowAction::RemovePlugin,
+		};
 	}
 	
 	constexpr std::size_t MID_NUM_SUSPECTS_THRESHOLD = 40;
 	constexpr double MID_NUM_SUSPECTS_MAX_RATIO = 0.4;
-	if (m_suspects < MID_NUM_SUSPECTS_THRESHOLD 
+	if (pluginData.processingState.suspects < MID_NUM_SUSPECTS_THRESHOLD 
 		&& uniqueRatio > MID_NUM_SUSPECTS_MAX_RATIO) {
-		return;
+		return {
+			.flowAction = FlowAction::RemovePlugin,
+		};
 	}
 
 	if (uniqueRatio > HIGH_NUM_SUSPECTS_MAX_RATIO) {
-		return;
+		return {
+			.flowAction = FlowAction::RemovePlugin,
+		};
 	}
 
-	m_exportData.confidence = 1;
+	pluginData.confidence = 1;
 	m_fieldHandlers[SSADetectorFields::SSA_CONF_LEVEL].setAsAvailable(flowRecord);
+	return {
+		.flowAction = FlowAction::NoAction,
+	};
 }
-
-ProcessPlugin* SSADetectorPlugin::clone(std::byte* constructAtAddress) const
-{
-	return std::construct_at(reinterpret_cast<SSADetectorPlugin*>(constructAtAddress), *this);
-}
-
-std::string SSADetectorPlugin::getName() const { 
-	return ssaDetectorPluginManifest.name; 
-}
-
-const void* SSADetectorPlugin::getExportData() const noexcept {
-	return &m_exportData;
-}	
 
 static const PluginRegistrar<SSADetectorPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	ssaDetectorRegistrar(ssaDetectorPluginManifest);

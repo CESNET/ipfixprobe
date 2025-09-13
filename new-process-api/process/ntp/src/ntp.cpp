@@ -22,6 +22,8 @@
 #include <pluginFactory.hpp>
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
+#include <utils/spanUtils.hpp>
+#include <utils/stringViewUtils.hpp>
 
 namespace ipxp {
 
@@ -45,62 +47,62 @@ static FieldSchema createNetworkTimeSchema(FieldManager& fieldManager, FieldHand
 
 	handlers.insert(NetworkTimeFields::NTP_LEAP, schema.addScalarField(
 		"NTP_LEAP",
-		[] (const void* context) { return reinterpret_cast<const NetworkTimeExport*>(context)->leap; },
+		[] (const void* context) { return reinterpret_cast<const NetworkTimeData*>(context)->leap; }
 	));
 
 	handlers.insert(NetworkTimeFields::NTP_VERSION, schema.addScalarField(
 		"NTP_VERSION",
-		[] (const void* context) { return reinterpret_cast<const NetworkTimeExport*>(context)->version; },
+		[] (const void* context) { return reinterpret_cast<const NetworkTimeData*>(context)->version; }
 	));
 
 	handlers.insert(NetworkTimeFields::NTP_MODE, schema.addScalarField(
 		"NTP_MODE",
-		[] (const void* context) { return reinterpret_cast<const NetworkTimeExport*>(context)->mode; },
+		[] (const void* context) { return reinterpret_cast<const NetworkTimeData*>(context)->mode; }
 	));
 
 	handlers.insert(NetworkTimeFields::NTP_STRATUM, schema.addScalarField(
 		"NTP_STRATUM",
-		[] (const void* context) { return reinterpret_cast<const NetworkTimeExport*>(context)->stratum; },
+		[] (const void* context) { return reinterpret_cast<const NetworkTimeData*>(context)->stratum; }
 	));
 
 	handlers.insert(NetworkTimeFields::NTP_POLL, schema.addScalarField(
 		"NTP_POLL",
-		[] (const void* context) { return reinterpret_cast<const NetworkTimeExport*>(context)->poll; },
+		[] (const void* context) { return reinterpret_cast<const NetworkTimeData*>(context)->poll; }
 	));
 
 	handlers.insert(NetworkTimeFields::NTP_DELAY, schema.addScalarField(
 		"NTP_DELAY",
-		[] (const void* context) { return reinterpret_cast<const NetworkTimeExport*>(context)->delay; },
+		[] (const void* context) { return reinterpret_cast<const NetworkTimeData*>(context)->delay; }
 	));
 
 	handlers.insert(NetworkTimeFields::NTP_DISPERSION, schema.addScalarField(
 		"NTP_DISPERSION",
-		[] (const void* context) { return reinterpret_cast<const NetworkTimeExport*>(context)->dispersion; },
+		[] (const void* context) { return reinterpret_cast<const NetworkTimeData*>(context)->dispersion; }
 	));
 
 	handlers.insert(NetworkTimeFields::NTP_REF_ID, schema.addScalarField(
 		"NTP_REF_ID",
-		[] (const void* context) { return reinterpret_cast<const NetworkTimeExport*>(context)->referenceId; },
+		[] (const void* context) { return toStringView(reinterpret_cast<const NetworkTimeData*>(context)->referenceId); }
 	));
 
 	handlers.insert(NetworkTimeFields::NTP_REF, schema.addScalarField(
 		"NTP_REF",
-		[] (const void* context) { return reinterpret_cast<const NetworkTimeExport*>(context)->reference; },
+		[] (const void* context) { return toStringView(reinterpret_cast<const NetworkTimeData*>(context)->reference); }
 	));
 
 	handlers.insert(NetworkTimeFields::NTP_ORIG, schema.addScalarField(
 		"NTP_ORIG",
-		[] (const void* context) { return reinterpret_cast<const NetworkTimeExport*>(context)->origin; },
+		[] (const void* context) { return toStringView(reinterpret_cast<const NetworkTimeData*>(context)->origin); }
 	));
 
 	handlers.insert(NetworkTimeFields::NTP_RECV, schema.addScalarField(
 		"NTP_RECV",
-		[] (const void* context) { return reinterpret_cast<const NetworkTimeExport*>(context)->receive; },
+		[] (const void* context) { return toStringView(reinterpret_cast<const NetworkTimeData*>(context)->receive); }
 	));
 
 	handlers.insert(NetworkTimeFields::NTP_SENT, schema.addScalarField(
 		"NTP_SENT",
-		[] (const void* context) { return reinterpret_cast<const NetworkTimeExport*>(context)->sent; },
+		[] (const void* context) { return toStringView(reinterpret_cast<const NetworkTimeData*>(context)->sent); }
 	));
 
 	return schema;
@@ -114,30 +116,34 @@ NetworkTimePlugin::NetworkTimePlugin([[maybe_unused]]const std::string& params, 
 PluginInitResult NetworkTimePlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	constexpr uint16_t NTP_PORT = 123;
-	if (flowContext.packet.flowKey.srcPort == NTP_PORT || flowContext.packet.flowKey.dstPort == NTP_PORT) {
-		auto* pluginData = std::construct_at(reinterpret_cast<NetworkTimeData*>(pluginContext));
-		if (!parseNTP(flowRecord, flowContext.packet.payload, *pluginData)) {
-			return {
-				.constructionState = ConstructionState::Constructed,
-				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-				.flowAction = FlowAction::RemovePlugin,
-			};
-		}
+	if (flowContext.packet.src_port != NTP_PORT && flowContext.packet.dst_port != NTP_PORT) {
+		return {
+			.constructionState = ConstructionState::NotConstructed,
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::RemovePlugin,
+		};
+	}
+
+	auto* pluginData = std::construct_at(reinterpret_cast<NetworkTimeData*>(pluginContext));
+	if (!parseNTP(flowContext.flowRecord, toSpan<const std::byte>(
+		flowContext.packet.payload, flowContext.packet.payload_len), *pluginData)) {
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-			.flowAction = FlowAction::Flush,
+			.flowAction = FlowAction::RemovePlugin,
 		};
 	}
+	
 	return {
-		.constructionState = ConstructionState::NotConstructed,
+		.constructionState = ConstructionState::Constructed,
 		.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-		.flowAction = FlowAction::RemovePlugin,
+		.flowAction = FlowAction::Flush,
 	};
+
 }
 
 static
-boost::static_string<NetworkTimeExport::MAX_TIMESTAMP_AS_TEXT_LENGTH> 
+boost::static_string<NetworkTimeData::MAX_TIMESTAMP_AS_TEXT_LENGTH> 
 ntpTimestampToString(std::span<const std::byte, 2 * sizeof(uint32_t)> timestampSpan)
 {
 	const double seconds 
@@ -146,33 +152,33 @@ ntpTimestampToString(std::span<const std::byte, 2 * sizeof(uint32_t)> timestampS
 		*reinterpret_cast<const uint32_t*>(
 			timestampSpan.data() + sizeof(uint32_t)))) * (1.0 / (1ULL << 32));
 
-	boost::static_string<NetworkTimeExport::MAX_TIMESTAMP_AS_TEXT_LENGTH> res;
+	boost::static_string<NetworkTimeData::MAX_TIMESTAMP_AS_TEXT_LENGTH> res;
 	std::format_to(std::back_inserter(res), "{}", seconds + fractions);
 	return res;
 }
 
-bool
-NetworkTimePlugin::fillNetworkTimeHeader(NetworkTimeHeader networkTimeHeader) noexcept
+static 
+bool fillNetworkTimeHeader(NetworkTimeHeader networkTimeHeader, NetworkTimeData& pluginData) noexcept
 {
-	m_exportData.leap = networkTimeHeader.bitfields.leap;
+	pluginData.leap = networkTimeHeader.bitfields.leap;
 
 	if (networkTimeHeader.bitfields.version != 4) {
 		//Error: Bad number of version or NTP exploit detected
 		return false;
 	}
-	m_exportData.version = networkTimeHeader.bitfields.version;
+	pluginData.version = networkTimeHeader.bitfields.version;
 
 	if (networkTimeHeader.bitfields.mode < 3 || 
 			networkTimeHeader.bitfields.mode > 4) {
 		// Error: Bad NTP mode or NTP exploit detected.
 		return false;
 	}
-	m_exportData.mode = networkTimeHeader.bitfields.mode;
+	pluginData.mode = networkTimeHeader.bitfields.mode;
 
 	return true;
 }
 
-constexpr boost::static_string<NetworkTimeExport::MAX_IP4_AS_TEXT_LENGTH>
+constexpr boost::static_string<NetworkTimeData::MAX_IP4_AS_TEXT_LENGTH>
 getReferenceIdAsString(std::span<const std::byte, sizeof(uint32_t)> referenceIdPayload, uint8_t stratum) noexcept
 {
 	constexpr auto refIdPairs = std::to_array({
@@ -182,7 +188,7 @@ getReferenceIdAsString(std::span<const std::byte, sizeof(uint32_t)> referenceIdP
 		std::make_pair("82.65.84.69"sv, "RATE"sv),
 	});
 
-	boost::static_string<NetworkTimeExport::MAX_IP4_AS_TEXT_LENGTH> res;
+	boost::static_string<NetworkTimeData::MAX_IP4_AS_TEXT_LENGTH> res;
 	std::for_each_n(referenceIdPayload.data(), referenceIdPayload.size(),
 		[&](const std::byte referenceIdByte) {
 			std::format_to(std::back_inserter(
@@ -199,29 +205,39 @@ getReferenceIdAsString(std::span<const std::byte, sizeof(uint32_t)> referenceIdP
 	return res;
 }
 
-void NetworkTimePlugin::fillTimestamps(std::span<const std::byte> timestampsPayload) noexcept
+static
+void fillTimestamps(std::span<const std::byte> timestampsPayload, NetworkTimeData& pluginData) noexcept
 {
-	m_exportData.reference = ntpTimestampToString(std::span<const std::byte, 2 * sizeof(uint32_t)>
+	pluginData.reference = ntpTimestampToString(std::span<const std::byte, 2 * sizeof(uint32_t)>
 		{timestampsPayload.data(), 2 * sizeof(uint32_t)});
 
 	constexpr std::size_t originOffset = 2 * sizeof(uint32_t);
-	m_exportData.origin = ntpTimestampToString(std::span<const std::byte, 2 * sizeof(uint32_t)>
+	pluginData.origin = ntpTimestampToString(std::span<const std::byte, 2 * sizeof(uint32_t)>
 		{&timestampsPayload[originOffset], 2 * sizeof(uint32_t)});
 
 	constexpr std::size_t receiveOffset = originOffset + 2 * sizeof(uint32_t);
-	m_exportData.receive = ntpTimestampToString(std::span<const std::byte, 2 * sizeof(uint32_t)>
+	pluginData.receive = ntpTimestampToString(std::span<const std::byte, 2 * sizeof(uint32_t)>
 		{&timestampsPayload[receiveOffset], 2 * sizeof(uint32_t)});
 
 	constexpr std::size_t sentOffset = receiveOffset + 2 * sizeof(uint32_t);
-	m_exportData.sent = ntpTimestampToString(std::span<const std::byte, 2 * sizeof(uint32_t)>
+	pluginData.sent = ntpTimestampToString(std::span<const std::byte, 2 * sizeof(uint32_t)>
 		{&timestampsPayload[sentOffset], 2 * sizeof(uint32_t)});
 }
 
 void NetworkTimePlugin::makeAllFieldsAvailable(FlowRecord& flowRecord) noexcept
 {
-	for (auto& [field, handler] : m_fieldHandlers) {
-		handler.setAsAvailable(flowRecord);
-	}
+	m_fieldHandlers[NetworkTimeFields::NTP_LEAP].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetworkTimeFields::NTP_VERSION].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetworkTimeFields::NTP_MODE].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetworkTimeFields::NTP_STRATUM].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetworkTimeFields::NTP_POLL].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetworkTimeFields::NTP_DELAY].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetworkTimeFields::NTP_DISPERSION].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetworkTimeFields::NTP_REF_ID].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetworkTimeFields::NTP_REF].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetworkTimeFields::NTP_ORIG].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetworkTimeFields::NTP_RECV].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetworkTimeFields::NTP_SENT].setAsAvailable(flowRecord);
 }
 
 bool NetworkTimePlugin::parseNTP(FlowRecord& flowRecord, std::span<const std::byte> payload, NetworkTimeData& pluginData) noexcept 
@@ -231,7 +247,7 @@ bool NetworkTimePlugin::parseNTP(FlowRecord& flowRecord, std::span<const std::by
 		return false;
 	}
 
-	if (!fillNetworkTimeHeader(static_cast<uint8_t>(payload[0]))) {
+	if (!fillNetworkTimeHeader(static_cast<uint8_t>(payload[0]), pluginData)) {
 		return false;
 	}
 	
@@ -266,7 +282,7 @@ bool NetworkTimePlugin::parseNTP(FlowRecord& flowRecord, std::span<const std::by
 	
 
 	constexpr std::size_t referenceOffset = referenceIdOffset + sizeof(uint32_t);
-	fillTimestamps(payload.subspan(referenceOffset));
+	fillTimestamps(payload.subspan(referenceOffset), pluginData);
 
 	makeAllFieldsAvailable(flowRecord);
 
@@ -278,7 +294,7 @@ void NetworkTimePlugin::onDestroy(void* pluginContext)
 	std::destroy_at(reinterpret_cast<NetworkTimeData*>(pluginContext));
 }
 
-PluginDataMemoryLayout DNSSDPlugin::getDataMemoryLayout() const noexcept
+PluginDataMemoryLayout NetworkTimePlugin::getDataMemoryLayout() const noexcept
 {
 	return {
 		.size = sizeof(NetworkTimeData),

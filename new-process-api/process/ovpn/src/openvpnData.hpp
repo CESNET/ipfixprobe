@@ -16,6 +16,8 @@
 
 #include <ipAddress.hpp>
 
+#include "openvpnProcessingState.hpp"
+
 namespace ipxp
 {
 

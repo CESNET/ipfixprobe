@@ -18,43 +18,69 @@
 #include <fieldManager.hpp>
 #include <fieldHandlersEnum.hpp>
 
-#include "ssdpExport.hpp"
+#include "ssdpData.hpp"
 #include "ssdpFields.hpp"
 
 namespace ipxp {
 
 class SSDPPlugin : public ProcessPlugin {
 public:
+
+	/**
+	 * @brief Constructs the SSDP plugin and initializes field handlers.
+	 * @param params String with plugin-specific parameters for configuration(currently unused).
+	 * @param manager Reference to the FieldManager for field handler registration.
+	 */
 	SSDPPlugin(const std::string& params, FieldManager& manager);
 
-	FlowAction onFlowCreate(FlowRecord& flowRecord, const Packet& packet) override;
+	/**
+	 * @brief Initializes plugin data for a new flow.
+	 *
+	 * Constructs `SSDPData` in `pluginContext` and initializes it with
+	 * parsed SSDP values.
+	 *
+	 * @param flowContext Contextual information about the flow to fill new record.
+	 * @param pluginContext Pointer to pre-allocated memory to create record.
+	 * @return Result of the initialization process.
+	 */
+	PluginInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
 
-	FlowAction onFlowUpdate(FlowRecord& flowRecord, const Packet& packet) override;
+	/**
+	 * @brief Updates plugin data with values from new packet.
+	 *
+	 * Inserts parsed SSDP values into `SSDPData` from `pluginContext`.
+	 *
+	 * @param flowContext Contextual information about the flow to be updated.
+	 * @param pluginContext Pointer to `SSDPData`.
+	 * @return Result of the update.
+	 */
+	PluginUpdateResult onUpdate(const FlowContext& flowContext, void* pluginContext) override;
 
-	void onFlowExport(FlowRecord& flowRecord) override;
+	/**
+	 * @brief Cleans up resources associated with the plugin data.
+	 *
+	 * Calls the destructor of `SSDPData` to free any allocated resources.
+	 *
+	 * @param pluginContext Pointer to `SSDPData` to be destroyed.
+	 */
+	void onDestroy(void* pluginContext) override;
 
-	ProcessPlugin* clone(std::byte* constructAtAddress) const override;
-
-	const void* getExportData() const noexcept override;
-
-	std::string getName() const override;
-
-	~SSDPPlugin() override = default;
-
-	SSDPPlugin(const SSDPPlugin& other) = default;
-	SSDPPlugin(SSDPPlugin&& other) = delete;
+	/**
+	 * @brief Provides the memory layout of `PacketStatsData`.
+	 * @return Memory layout description for the plugin data.
+	 */
+	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
 
 	constexpr void parseSSDP(
-		std::string_view payload, const uint8_t l4Protocol) noexcept;
-		
-	void parseSSDPMSearch(std::string_view headerFields) noexcept;
-	
-	void parseSSDPNotify(
-		std::string_view headerFields, const uint8_t l4Protocol) noexcept;
+		std::string_view payload, const uint8_t l4Protocol, SSDPData& pluginData, FlowRecord& flowRecord) noexcept;
 
-	SSDPExport m_exportData;
+	void parseSSDPMSearch(std::string_view headerFields, SSDPData& pluginData, FlowRecord& flowRecord) noexcept;
+
+	void parseSSDPNotify(
+		std::string_view headerFields, const uint8_t l4Protocol, SSDPData& pluginData, FlowRecord& flowRecord) noexcept;
+
 	FieldHandlers<SSDPFields> m_fieldHandlers;
 };
 

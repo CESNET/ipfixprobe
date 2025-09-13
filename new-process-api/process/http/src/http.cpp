@@ -22,6 +22,7 @@
 #include <utils.hpp>
 #include <ranges>
 #include <utils/stringViewUtils.hpp>
+#include <utils/spanUtils.hpp>
 
 #include "httpParser.hpp"
 
@@ -189,7 +190,8 @@ PluginUpdateResult HTTPPlugin::parseHTTP(
 PluginInitResult HTTPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = std::construct_at(reinterpret_cast<HTTPData*>(pluginContext));
-	auto [updateRequirement, flowAction] = parseHTTP(flowContext.packet.payload, flowContext.flowRecord, *pluginData);
+	auto [updateRequirement, flowAction] = parseHTTP(
+		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, *pluginData);
 	return {
 		.constructionState = ConstructionState::Constructed,
 		.updateRequirement = updateRequirement,
@@ -200,7 +202,8 @@ PluginInitResult HTTPPlugin::onInit(const FlowContext& flowContext, void* plugin
 PluginUpdateResult HTTPPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = reinterpret_cast<HTTPData*>(pluginContext);
-	return parseHTTP(flowContext.packet.payload, flowContext.flowRecord, *pluginData);
+	return parseHTTP(
+		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, *pluginData);
 }
 
 void HTTPPlugin::onDestroy(void* pluginContext) 

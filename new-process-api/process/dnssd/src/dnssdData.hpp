@@ -25,6 +25,9 @@ struct DNSSDData {
 	boost::static_string<MAX_STRING_SIZE> queries;
 	boost::static_string<MAX_STRING_SIZE> responses;
 
+	constexpr static std::size_t MAX_REQUEST_TO_STORE = 10;
+	boost::container::static_vector<DNSSDRecord, MAX_REQUEST_TO_STORE> requests;
+
 	/**
 	 * @brief Creates new DNS-SD record or find existing one if it already exists.
 	 *
@@ -43,9 +46,6 @@ struct DNSSDData {
 		requests.emplace_back(name);
 		return requests.back();
 	}
-private:
-	constexpr static std::size_t MAX_REQUEST_TO_STORE = 10;
-	boost::container::static_vector<DNSSDRecord, MAX_REQUEST_TO_STORE> requests;
 };  
 
 } // namespace ipxp

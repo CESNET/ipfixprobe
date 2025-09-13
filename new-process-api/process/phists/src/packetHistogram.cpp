@@ -25,6 +25,7 @@
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
+#include <utils/spanUtils.hpp>
 
 namespace ipxp {
 
@@ -47,11 +48,11 @@ static FieldSchema createPacketHistogramSchema(FieldManager& fieldManager, Field
 	auto [forwardSizesField, reverseSizesField] = schema.addVectorDirectionalFields(
 		"S_PHISTS_SIZES", "D_PHISTS_SIZES",
 		[] (const void* context) { 
-			return getSpan(reinterpret_cast<const PacketHistogramExport*>(context)
+			return toSpan<const uint16_t>(reinterpret_cast<const PacketHistogramData*>(context)
 				->packetLengths[Direction::Forward]); 
 		},
 		[] (const void* context) { 
-			return getSpan(reinterpret_cast<const PacketHistogramExport*>(context)
+			return toSpan<const uint16_t>(reinterpret_cast<const PacketHistogramData*>(context)
 				->packetLengths[Direction::Reverse]); 
 		}
 	);
@@ -61,11 +62,11 @@ static FieldSchema createPacketHistogramSchema(FieldManager& fieldManager, Field
 	auto [forwardIPTField, reverseIPTField] = schema.addVectorDirectionalFields(
 		"S_PHISTS_IPT", "D_PHISTS_IPT",
 		[] (const void* context) {
-			return getSpan(reinterpret_cast<const PacketHistogramExport*>(context)
+			return toSpan<const Timestamp>(reinterpret_cast<const PacketHistogramData*>(context)
 				->packetTimediffs[Direction::Forward]);
 		},
 		[] (const void* context) {
-			return getSpan(reinterpret_cast<const PacketHistogramExport*>(context)
+			return toSpan<const Timestamp>(reinterpret_cast<const PacketHistogramData*>(context)
 				->packetTimediffs[Direction::Reverse]);
 		}
 	);
@@ -114,7 +115,7 @@ constexpr static void incrementWithoutOverflow(uint32_t& valueToIncrement) noexc
  */
 constexpr static
 void updateHistogram(const uint32_t value, 
-	std::array<uint32_t, PacketHistogramExport::HISTOGRAM_SIZE>& histogram) noexcept
+	std::array<uint32_t, PacketHistogramData::HISTOGRAM_SIZE>& histogram) noexcept
 {
 	// first bin starts on 2^4, -1 for indexing from 0
 	constexpr std::size_t firstBinOffset = 3;
@@ -125,7 +126,7 @@ void updateHistogram(const uint32_t value,
 }
 
 void PacketHistogramPlugin::updateExportData(
-	const std::size_t realPacketLength, const uint64_t packetTimestamp, const Direction direction, PacketHistogramData& pluginData) noexcept
+	const std::size_t realPacketLength, const Timestamp packetTimestamp, const Direction direction, PacketHistogramData& pluginData) noexcept
 {
 	if (realPacketLength == 0 && !m_countEmptyPackets) {
 		return;
@@ -134,20 +135,19 @@ void PacketHistogramPlugin::updateExportData(
 	updateHistogram(static_cast<uint32_t>(realPacketLength), pluginData.packetLengths[direction]);
 
 	if (!pluginData.processingState.lastTimestamps[direction].has_value()) {
-		pluginData.processingState.lastTimestamps[direction] = packetTimestamp;
+		pluginData.processingState.lastTimestamps[direction] = static_cast<uint32_t>(packetTimestamp.ns);
 		return;
 	}
 
-	const int64_t timediff = std::max<int64_t>(0, static_cast<int64_t>(
-		packetTimestamp - *pluginData.processingState.lastTimestamps[direction]));
-	pluginData.processingState.lastTimestamps[direction] = packetTimestamp;
+	const int64_t timediff = std::max<int64_t>(0, (packetTimestamp.ns - *pluginData.processingState.lastTimestamps[direction]));
+	pluginData.processingState.lastTimestamps[direction] = static_cast<uint32_t>(packetTimestamp.ns);
 	updateHistogram(static_cast<uint32_t>(timediff), pluginData.packetTimediffs[direction]);
 }
 
 PluginInitResult PacketHistogramPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = std::construct_at(reinterpret_cast<PacketHistogramData*>(pluginContext));
-	updateExportData(packet.realLength, packet.timestamp, Direction::Forward, *pluginData);
+	updateExportData(flowContext.packet.payload_len_wire, flowContext.packet.ts, Direction::Forward, *pluginData);
 
 	return {
 		.constructionState = ConstructionState::Constructed,
@@ -159,7 +159,7 @@ PluginInitResult PacketHistogramPlugin::onInit(const FlowContext& flowContext, v
 PluginUpdateResult PacketHistogramPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = reinterpret_cast<PacketHistogramData*>(pluginContext);
-	updateExportData(flowContext.packet.realLength, flowContext.packet.timestamp, flowContext.packet.direction, *pluginData);
+	updateExportData(flowContext.packet.payload_len_wire, flowContext.packet.ts, flowContext.packet.source_pkt, *pluginData);
 
 	return {
 		.updateRequirement = UpdateRequirement::RequiresUpdate,
@@ -169,12 +169,14 @@ PluginUpdateResult PacketHistogramPlugin::onUpdate(const FlowContext& flowContex
 
 PluginExportResult PacketHistogramPlugin::onExport(const FlowRecord& flowRecord, void* pluginContext)
 {
-	constexpr std::size_t MIN_FLOW_LENGTH = 1;
-	const std::size_t packetsTotal = flowRecord.dataForward.packets + flowRecord.dataReverse.packets;
-	const TcpFlags tcpFlags = flowRecord.dataForward.tcpFlags | flowRecord.dataReverse.tcpFlags;
+	const std::size_t packetsTotal = 
+		flowRecord.directionalData[Direction::Forward].packets + flowRecord.directionalData[Direction::Reverse].packets;
+	const TCPFlags tcpFlags = 
+		flowRecord.directionalData[Direction::Forward].tcpFlags | flowRecord.directionalData[Direction::Reverse].tcpFlags;
 
 	// do not export phists for single packets flows, usually port scans
-	if (packetsTotal <= MIN_FLOW_LENGTH && (tcpFlags.bitfields.synchronize)) { // tcp SYN set
+	constexpr std::size_t MIN_FLOW_LENGTH = 1;
+	if (packetsTotal <= MIN_FLOW_LENGTH && tcpFlags.bitfields.synchronize) {
 		return {
 			.flowAction = FlowAction::RemovePlugin,
 		};
@@ -195,7 +197,7 @@ void PacketHistogramPlugin::onDestroy(void* pluginContext)
 	std::destroy_at(reinterpret_cast<PacketHistogramData*>(pluginContext));
 }
 
-PluginDataMemoryLayout DNSSDPlugin::getDataMemoryLayout() const noexcept
+PluginDataMemoryLayout PacketHistogramPlugin::getDataMemoryLayout() const noexcept
 {
 	return {
 		.size = sizeof(PacketHistogramData),

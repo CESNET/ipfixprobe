@@ -16,6 +16,9 @@
 #include <boost/container/static_vector.hpp>
 #include <vector>
 
+#include "quicConnectionId.hpp"
+#include "quicTemporalStorage.hpp"
+
 namespace ipxp
 {
 
@@ -24,9 +27,7 @@ namespace ipxp
  * @brief Contains parsed QUIC values for export and processing state required to decrypt payloads.
  */
 struct QUICData {
-	constexpr static std::size_t MAX_CONNECTION_ID_LENGTH = 20;
-	using ConnectionId 
-		= boost::container::static_vector<uint8_t, MAX_CONNECTION_ID_LENGTH>;
+
 
 	constexpr static std::size_t BUFFER_SIZE = 255;
 	using ServerName = boost::static_string<BUFFER_SIZE>; 

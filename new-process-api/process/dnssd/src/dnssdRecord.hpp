@@ -12,9 +12,11 @@
 #include <string_view>
 #include <vector>
 #include <format>
+#include <sstream>
 
 #include <dnsParser/dnsRecord.hpp>
 #include <dnsParser/dnsName.hpp>
+#include <utils/stringUtils.hpp>
 
 namespace ipxp
 {
@@ -38,10 +40,12 @@ struct DNSSDRecord {
 	 */
     std::string toString() const noexcept
     {
-        const std::string& txtContentStr = fmt::join(txtContent |
-            std::transform([](const DNSName& name) {
+        std::string txtContentStr(200, '\0');
+        concatenateRangeTo(txtContent |
+            std::views::transform([](const DNSName& name) {
                 return name.toString();
-            }), ":");
+            }), txtContentStr, ':');
+
         return std::format(
             "{};{};{};{};{};{};", requestName.toString(), 
             srvPort, srvTarget.toString(), 

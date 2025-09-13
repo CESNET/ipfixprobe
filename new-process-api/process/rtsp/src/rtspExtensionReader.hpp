@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Provides RTSP extension reader to obtain key-value pairs from RTSP headers.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <span>
@@ -8,11 +17,19 @@
 namespace ipxp
 {
 
+/**
+ * @struct Extension
+ * @brief RTSP extension key-value pair.
+ */
 struct Extension {
     std::string_view key;
     std::string_view value;
 };
 
+/**
+ * @class RTSPExtensionReader
+ * @brief Reader to obtain RTSP extensions from raw payload.
+ */
 class RTSPExtensionReader : public RangeReader {
 public:
     auto getRange(std::string_view payload) noexcept
@@ -49,12 +66,5 @@ public:
         });
     }
 };
-
-/*
-class RTSPExtensionReader : public RangeReader<RTSPExtensionReaderFactory> {
-public:
-    RTSPExtensionReader(std::span<const std::byte> payload)
-        : RangeReader(payload, RTSPExtensionReaderFactory{this}) {}
-};*/
 
 } // namespace ipxp

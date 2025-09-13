@@ -21,12 +21,12 @@ namespace ipxp
  * @brief Structure representing one packet burst. Contains packets, bytes which belong to that burst with begin and end timestamps.
  */
 struct Burst {
-    constexpr static uint64_t MAX_INTERPACKET_TIMEDIFF = 1'000'000;
+    constexpr static timeval MAX_INTERPACKET_TIMEDIFF = {1, 0}; ///< Maximum time difference between packets in one burst (1 second).
 
     std::reference_wrapper<uint32_t> packets;
 	std::reference_wrapper<uint32_t> bytes;
-	std::reference_wrapper<uint64_t> start;
-	std::reference_wrapper<uint64_t> end;
+	std::reference_wrapper<Timestamp> start;
+	std::reference_wrapper<Timestamp> end;
 
     /**
 	 * @brief Checks if the given timestamp belongs to the burst.
@@ -35,11 +35,10 @@ struct Burst {
      * @return true if the timestamp belongs to the burst, false otherwise.
 	 */
     constexpr
-    bool belongs(const uint64_t time) const noexcept 
+    bool belongs(const timeval time) const noexcept 
     {
-        return time - end < MAX_INTERPACKET_TIMEDIFF;
+        return Timestamp(time) - end < MAX_INTERPACKET_TIMEDIFF;
     }
 };
-
 
 } // namespace ipxp

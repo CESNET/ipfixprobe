@@ -87,7 +87,7 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	FlowAction updateConfidenceLevel(const Packet& packet);
+	bool updateConfidenceLevel(const Packet& packet, OpenVPNData& pluginData) noexcept;
 
 	FieldHandlers<OpenVPNFields> m_fieldHandlers;
 };

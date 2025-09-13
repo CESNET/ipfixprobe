@@ -82,10 +82,9 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	constexpr bool parseRequest(std::string_view payload) noexcept;
-	constexpr bool parseResponse(std::string_view payload) noexcept;
-	constexpr FlowAction updateExportData(
-		std::span<const std::byte> payload) noexcept;
+	constexpr bool parseRequest(std::string_view payload, RTSPData& pluginData) noexcept;
+	constexpr bool parseResponse(std::string_view payload, RTSPData& pluginData) noexcept;
+	constexpr PluginUpdateResult updateExportData(std::span<const std::byte> payload, RTSPData& pluginData) noexcept;
 
 	FieldHandlers<RTSPFields> m_fieldHandlers;
 };

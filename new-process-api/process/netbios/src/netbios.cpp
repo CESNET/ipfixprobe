@@ -22,6 +22,8 @@
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
 #include <dns-utils.hpp>
+#include <utils/spanUtils.hpp>
+#include <utils/stringViewUtils.hpp>
 
 namespace ipxp {
 
@@ -43,12 +45,12 @@ static FieldSchema createNetBIOSSchema(FieldManager& fieldManager, FieldHandlers
 
 	fieldHandlers.insert(NetBIOSFields::NB_SUFFIX, schema.addScalarField(
 		"NB_SUFFIX",
-		[] (const void* context) { return static_cast<const NetBIOSData*>(context)->suffix;}
+		[] (const void* context) { return static_cast<uint8_t>(static_cast<const NetBIOSData*>(context)->suffix); }
 	));
 
 	fieldHandlers.insert(NetBIOSFields::NB_NAME, schema.addScalarField(
 		"NB_NAME",
-		[] (const void* context) { return toStringView(static_cast<const NetBIOSData*>(context)->name);}
+		[] (const void* context) { return toStringView(static_cast<const NetBIOSData*>(context)->name); }
 	));
 
 	return schema;
@@ -62,9 +64,9 @@ NetBIOSPlugin::NetBIOSPlugin([[maybe_unused]]const std::string& params, FieldMan
 PluginInitResult NetBIOSPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	constexpr uint8_t NETBIOS_PORT = 137;
-	if (packet.flowKey.srcPort == NETBIOS_PORT || packet.flowKey.dstPort == NETBIOS_PORT) {
+	if (flowContext.packet.src_port == NETBIOS_PORT || flowContext.packet.dst_port == NETBIOS_PORT) {
 		auto* pluginData = std::construct_at(reinterpret_cast<NetBIOSData*>(pluginContext));
-		parseNetBIOS(flowRecord, packet.payload, *pluginData);
+		parseNetBIOS(flowContext.flowRecord, toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), *pluginData);
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -97,8 +99,7 @@ void NetBIOSPlugin::parseNetBIOS(FlowRecord& flowRecord, std::span<const std::by
 		return;
 	}
 
-	const uint8_t nameLength 
-		= *reinterpret_cast<const uint8_t*>(payload.data() + sizeof(dns_hdr));
+	const uint8_t nameLength = *reinterpret_cast<const uint8_t*>(payload.data() + sizeof(dns_hdr));
 	constexpr std::size_t VALID_NB_NAME_LENGTH = 32;
 	if (nameLength != VALID_NB_NAME_LENGTH) {
 		return;
@@ -107,11 +108,11 @@ void NetBIOSPlugin::parseNetBIOS(FlowRecord& flowRecord, std::span<const std::by
 	auto nameIt = reinterpret_cast<const std::pair<char, char>*>(payload.data());
 	for (; reinterpret_cast<const std::byte*>(nameIt) 
 			!= payload.data() + payload.size() - 2; nameIt++) {
-		m_exportData.name.push_back(compressCharPair(nameIt->first, nameIt->second));
+		pluginData.name.push_back(compressCharPair(nameIt->first, nameIt->second));
 	}
 	m_fieldHandlers[NetBIOSFields::NB_NAME].setAsAvailable(flowRecord);
 
-	m_exportData.suffix = compressCharPair(nameIt->first, nameIt->second);
+	pluginData.suffix = compressCharPair(nameIt->first, nameIt->second);
 	m_fieldHandlers[NetBIOSFields::NB_SUFFIX].setAsAvailable(flowRecord);
 }
 

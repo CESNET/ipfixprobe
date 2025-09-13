@@ -14,8 +14,8 @@ class PacketStorage {
 public:
     constexpr static std::size_t MIN_PACKET_SIZE = 60;
     constexpr static std::size_t MAX_PACKET_SIZE = 150;
-    constexpr static std::size_t MAX_PACKET_TIMEDIFF_US =
-        std::chrono::duration_cast<std::chrono::microseconds>(
+    constexpr static std::size_t MAX_PACKET_TIMEDIFF_NS =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::seconds(3)).count();
 
 
@@ -26,7 +26,7 @@ public:
 
     constexpr void insert(
         const std::size_t length, 
-        const uint64_t timestamp,
+        const Timestamp timestamp,
         const Direction direction) noexcept
     {
         timestamps.resize(length - MIN_PACKET_SIZE);
@@ -37,7 +37,7 @@ public:
     bool hasSimilarPacketsRecently(
         const std::size_t length, 
         const std::size_t maxSizeDiff, 
-        const uint64_t now, 
+        const Timestamp now, 
         const Direction direction) noexcept
     {
         
@@ -48,7 +48,7 @@ public:
 
         for (std::size_t i = startIndex; i <= endIndex; ++i) {
             if (now > timestamps[i][direction] && 
-                now - timestamps[i][direction] < MAX_PACKET_TIMEDIFF_US) {
+                (now - timestamps[i][direction]).ns < MAX_PACKET_TIMEDIFF_NS) {
                 return true;
             }
         }
@@ -62,7 +62,7 @@ public:
     }
 
 private:
-    std::vector<DirectionalField<uint64_t>> timestamps;
+    std::vector<DirectionalField<Timestamp>> timestamps;
 };
 
 } // namespace ipxp

@@ -20,7 +20,7 @@
 #include <fieldManager.hpp>
 #include <fieldHandlersEnum.hpp>
 
-#include "packetHistogramExport.hpp"
+#include "packetHistogramData.hpp"
 #include "packetHistogramFields.hpp"
 
 namespace ipxp {
@@ -91,7 +91,7 @@ public:
 
 private:
 	void updateExportData(
-		const std::size_t realPacketLength, const uint64_t packetTimestamp, const Direction direction, PacketHistogramData& pluginData) noexcept;
+		const std::size_t realPacketLength, const Timestamp packetTimestamp, const Direction direction, PacketHistogramData& pluginData) noexcept;
 
 	bool m_countEmptyPackets{false};
 

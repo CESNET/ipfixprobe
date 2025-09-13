@@ -21,6 +21,8 @@
 #include <fieldManager.hpp>
 #include <utils.hpp>
 
+#include "vlanData.hpp"
+
 namespace ipxp {
 
 static const PluginManifest vlanPluginManifest = {
@@ -35,53 +37,48 @@ static const PluginManifest vlanPluginManifest = {
 		},
 };
 
-const inline std::vector<FieldPair<VLANFields>> fields = {
-	{VLANFields::VLAN_ID, "VLAN_ID"},
-};
-
-static FieldSchema createVLANSchema()
+static FieldSchema createVLANSchema(FieldManager& fieldManager, FieldHandlers<VLANFields>& handlers) noexcept
 {
-	FieldSchema schema("vlan");
+	FieldSchema schema = fieldManager.createFieldSchema("vlan");
 
-	schema.addScalarField<uint16_t>(
+	handlers.insert(VLANFields::VLAN_ID, schema.addScalarField(
 		"VLAN_ID",
-		FieldDirection::DirectionalIndifferent,
-		offsetof(VLANExport, vlanId));
+		[](const void* context) { return reinterpret_cast<const VLANData*>(context)->vlanId; }
+	));
 
 	return schema;
 }
 
 VLANPlugin::VLANPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
 {
-	const FieldSchema schema = createVLANSchema();
-	const FieldSchemaHandler schemaHandler = manager.registerSchema(schema);
-
-	for (const auto& [field, name] : fields) {
-		m_fieldHandlers[field] = schemaHandler.getFieldHandler(name);
-	}
+	createVLANSchema(manager, m_fieldHandlers);
 }
 
-FlowAction VLANPlugin::onFlowCreate(FlowRecord& flowRecord, const Packet& packet)
+PluginInitResult VLANPlugin::onInit(const FlowContext& flowContext, void* pluginContext) 
 {
-	m_exportData.vlanId 
-		= packet.vlanId.has_value() ? *packet.vlanId : 0;
-	m_fieldHandlers[VLANFields::VLAN_ID].setAsAvailable(flowRecord);
+	auto pluginData = *std::construct_at(reinterpret_cast<VLANData*>(pluginContext));
+	pluginData.vlanId = flowContext.packet.vlan_id;
+	m_fieldHandlers[VLANFields::VLAN_ID].setAsAvailable(flowContext.flowRecord);
 
-	return FlowAction::RequestNoData;
+	return {
+		.constructionState = ConstructionState::Constructed,
+		.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+		.flowAction = FlowAction::NoAction,
+	};
 }
 
-ProcessPlugin* VLANPlugin::clone(std::byte* constructAtAddress) const
+void VLANPlugin::onDestroy(void* pluginContext)
 {
-	return std::construct_at(reinterpret_cast<VLANPlugin*>(constructAtAddress), *this);
+	std::destroy_at(reinterpret_cast<VLANData*>(pluginContext));
 }
 
-std::string VLANPlugin::getName() const { 
-	return vlanPluginManifest.name; 
+PluginDataMemoryLayout VLANPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(VLANData),
+		.alignment = alignof(VLANData),
+	};
 }
-
-const void* VLANPlugin::getExportData() const noexcept {
-	return &m_exportData;
-}	
 
 static const PluginRegistrar<VLANPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	vlanRegistrar(vlanPluginManifest);

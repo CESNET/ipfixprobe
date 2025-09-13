@@ -50,8 +50,8 @@ class FlowRecord {
 public:
 	uint64_t hash;
 
-	uint64_t timeCreation;
-	uint64_t timeLastUpdate;
+	Timestamp timeCreation;
+	Timestamp timeLastUpdate;
 
 	FlowKey flowKey;
 

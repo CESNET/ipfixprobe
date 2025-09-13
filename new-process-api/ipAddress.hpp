@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <format>
 
+#include <ipfixprobe/ipaddr.hpp>
+
 namespace ipxp {
 
 union IPAddress {
@@ -33,6 +35,11 @@ union IPAddress {
 	{
 		std::copy(
 			ipv6.begin(), ipv6.end(), reinterpret_cast<std::byte*>(u8.data()));
+	}
+
+	constexpr IPAddress(const ipaddr_t address) noexcept
+	{
+		// TODO
 	}
 
 	constexpr bool isIPv4() const noexcept

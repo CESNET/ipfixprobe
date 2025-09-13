@@ -106,7 +106,6 @@ private:
 	 * @return true true if success or false.
 	 */
 	std::optional<pid_t> getPID(const FlowKey& flowKey) noexcept;
-
 	
 	pollfd m_pollFileDescriptor;
 	int countOfAttempts;

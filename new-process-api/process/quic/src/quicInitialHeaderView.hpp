@@ -8,7 +8,7 @@
 #include <tlsParser/tlsParser.hpp>
 
 #include "quicInitialSecrets.hpp"
-#include "quicExport.hpp"
+#include "quicData.hpp"
 #include "quicHeaderView.hpp"
 
 namespace ipxp
@@ -27,7 +27,7 @@ public:
         = boost::container::static_vector<std::byte, MAX_BUFFER_SIZE>;
 
     using TLSExtensionBuffer 
-        = boost::container::static_vector<std::byte, QUICExport::MAX_TLS_PAYLOAD_TO_SAVE>;
+        = boost::container::static_vector<std::byte, QUICData::MAX_TLS_PAYLOAD_TO_SAVE>;
 
     using DeobfuscatedHeader
         = boost::container::static_vector<std::byte, 5>;
@@ -61,8 +61,8 @@ public:
     TLSExtensionBuffer tlsExtensionBuffer;
     TLSHandshake tlsHandshake;
     std::optional<uint64_t> tokenLength;
-    std::optional<QUICExport::ServerName> serverName;
-    std::optional<QUICExport::UserAgent> userAgent;
+    std::optional<QUICData::ServerName> serverName;
+    std::optional<QUICData::UserAgent> userAgent;
     boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> extensionTypes;
     boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> extensionLengths;
     std::vector<std::byte> extensionsPayload;

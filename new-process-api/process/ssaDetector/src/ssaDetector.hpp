@@ -20,7 +20,7 @@
 #include <fieldManager.hpp>
 #include <fieldHandlersEnum.hpp>
 
-#include "ssaDetectorExport.hpp"
+#include "ssaDetectorData.hpp"
 #include "ssaDetectorFields.hpp"
 #include "packetStorage.hpp"
 
@@ -28,41 +28,72 @@ namespace ipxp {
 
 class SSADetectorPlugin : public ProcessPlugin {
 public:
+	/**
+	 * @brief Constructs the SSADetector plugin and initializes field handlers.
+	 * @param params String with plugin-specific parameters for configuration(currently unused).
+	 * @param manager Reference to the FieldManager for field handler registration.
+	 */
 	SSADetectorPlugin(const std::string& params, FieldManager& manager);
 
-	FlowAction onFlowCreate(FlowRecord& flowRecord, const Packet& packet) override;
+	/**
+	 * @brief Initializes plugin data for a new flow.
+	 *
+	 * Constructs `SSADetectorData` in `pluginContext`. Do nothing for first 30 packets.
+	 *
+	 * @param flowContext Contextual information about the flow to fill new record.
+	 * @param pluginContext Pointer to pre-allocated memory to create record.
+	 * @return Result of the initialization process.
+	 */
+	PluginInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
 
-	FlowAction onFlowUpdate(FlowRecord& flowRecord, const Packet& packet) override;
+	/**
+	 * @brief Updates plugin data with values from new packet.
+	 *
+	 * Searches for packets that could be TCP syn-synack-ack transitions and add them to `SSADetectorData`
+	 *
+	 * @param flowContext Contextual information about the flow to be updated.
+	 * @param pluginContext Pointer to `SSADetectorData`.
+	 * @return Result of the update.
+	 */
+	PluginUpdateResult onUpdate(const FlowContext& flowContext, void* pluginContext) override;
 
-	void onFlowExport(FlowRecord& flowRecord) override;
+	/**
+	 * @brief Prepares export data.
+	 *
+	 * Decides whether the flow is tunnel or not based on the number of detected SYN-SYNACK-ACK sequences.
+	 * If the confidence is too low, the plugin is removed.
+	 *
+	 * @param flowRecord The flow record containing aggregated flow data.
+	 * @param pluginContext Pointer to `SSADetectorData`.
+	 * @return Result of the export.
+	 */
+	PluginExportResult onExport(const FlowRecord& flowRecord, void* pluginContext) override;
 
-	ProcessPlugin* clone(std::byte* constructAtAddress) const override;
+	/**
+	 * @brief Destroys plugin data.
+	 *
+	 * Calls the destructor of `SSADetectorData` in `pluginContext`.
+	 *
+	 * @param pluginContext Pointer to `SSADetectorData`.
+	 */
+	void onDestroy(void* pluginContext) override;
 
-	const void* getExportData() const noexcept override;
-
-	std::string getName() const override;
-
-	~SSADetectorPlugin() override = default;
-
-	SSADetectorPlugin(const SSADetectorPlugin& other) = default;
-	SSADetectorPlugin(SSADetectorPlugin&& other) = delete;
+	/**
+	 * @brief Provides memory layout information for `SSADetectorData`.
+	 *
+	 * @return Memory layout including size and alignment of `SSADetectorData`.
+	 */
+	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
 	constexpr void updatePacketsData(
 		const std::size_t length,
-		const uint64_t timestamp,
-		const Direction direction
+		const Timestamp timestamp,
+		const Direction direction,
+		SSADetectorData& pluginData
 	) noexcept;
 	
-	SSADetectorExport m_exportData;
 	FieldHandlers<SSADetectorFields> m_fieldHandlers;
-
-	PacketStorage m_synPackets;
-	PacketStorage m_synAckPackets;
-	std::size_t m_suspects{0};
-
-	constexpr static std::size_t MAX_SUSPECT_LENGTHS = 100;
-	boost::container::static_vector<std::size_t, MAX_SUSPECT_LENGTHS> m_suspectLengths;
 };
 
 } // namespace ipxp

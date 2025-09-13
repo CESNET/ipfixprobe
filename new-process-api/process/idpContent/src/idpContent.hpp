@@ -21,6 +21,7 @@
 #include <fieldHandlersEnum.hpp>
 
 #include "idpContentFields.hpp"
+#include "idpContentData.hpp"
 
 namespace ipxp {
 
@@ -76,7 +77,7 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	UpdateRequirement updateContent(FlowRecord& flowRecord, const Packet& packet) noexcept;
+	UpdateRequirement updateContent(FlowRecord& flowRecord, const Packet& packet, IDPContentData& exportData) noexcept;
 
 	FieldHandlers<IDPContentFields> m_fieldHandlers;
 };

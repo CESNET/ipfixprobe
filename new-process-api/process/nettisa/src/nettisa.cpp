@@ -36,73 +36,73 @@ static const PluginManifest nettisaPluginManifest = {
 		},
 };
 
-static FieldSchema createNetTimeSeriesSchema(FieldManager& fieldManager, const FieldHandlers<NetTimeSeriesFields>& handlers) noexcept
+static FieldSchema createNetTimeSeriesSchema(FieldManager& fieldManager, FieldHandlers<NetTimeSeriesFields>& handlers) noexcept
 {
 	FieldSchema schema = fieldManager.createFieldSchema("nettisa");
 
 	handlers.insert(NetTimeSeriesFields::NTS_MEAN, schema.addScalarField(
 		"NTS_MEAN",
-		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->mean; },
+		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->mean; }
 	));
 
 	handlers.insert(NetTimeSeriesFields::NTS_MIN, schema.addScalarField(
 		"NTS_MIN",
-		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->min; },
+		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->min; }
 	));
 
 	handlers.insert(NetTimeSeriesFields::NTS_MAX, schema.addScalarField(
 		"NTS_MAX",
-		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->max; },
+		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->max; }
 	));
 
 	handlers.insert(NetTimeSeriesFields::NTS_STDEV, schema.addScalarField(
 		"NTS_STDEV",
-		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->standardDeviation; },
+		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->standardDeviation; }
 	));
 
 	handlers.insert(NetTimeSeriesFields::NTS_KURTOSIS, schema.addScalarField(
 		"NTS_KURTOSIS",
-		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->kurtosis; },
+		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->kurtosis; }
 	));
 
 	handlers.insert(NetTimeSeriesFields::NTS_ROOT_MEAN_SQUARE, schema.addScalarField(
 		"NTS_ROOT_MEAN_SQUARE",
-		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->rootMeanSquare; },
+		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->rootMeanSquare; }
 	));
 
 	handlers.insert(NetTimeSeriesFields::NTS_AVERAGE_DISPERSION, schema.addScalarField(
 		"NTS_AVERAGE_DISPERSION",
-		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->averageDispersion; },
+		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->averageDispersion; }
 	));
 
 	handlers.insert(NetTimeSeriesFields::NTS_MEAN_SCALED_TIME, schema.addScalarField(
 		"NTS_MEAN_SCALED_TIME",
-		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->meanScaledTime; },
+		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->meanScaledTime; }
 	));
 	
 	handlers.insert(NetTimeSeriesFields::NTS_MEAN_DIFFTIMES, schema.addScalarField(
 		"NTS_MEAN_DIFFTIMES",
-		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->meanDifftimes; },
+		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->meanDifftimes; }
 	));
 
 	handlers.insert(NetTimeSeriesFields::NTS_MAX_DIFFTIMES, schema.addScalarField(
 		"NTS_MAX_DIFFTIMES",
-		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->maxDifftimes; },
+		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->maxDifftimes; }
 	));
 
 	handlers.insert(NetTimeSeriesFields::NTS_MIN_DIFFTIMES, schema.addScalarField(
 		"NTS_MIN_DIFFTIMES",
-		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->minDifftimes; },
+		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->minDifftimes; }
 	));
 
 	handlers.insert(NetTimeSeriesFields::NTS_TIME_DISTRIBUTION, schema.addScalarField(
 		"NTS_TIME_DISTRIBUTION",
-		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->timeDistribution; },
+		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->timeDistribution; }
 	));
 
 	handlers.insert(NetTimeSeriesFields::NTS_SWITCHING_RATIO, schema.addScalarField(
 		"NTS_SWITCHING_RATIO",
-		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->switchingRatio; },
+		[] (const void* context) { return reinterpret_cast<const NetTimeSeriesData*>(context)->switchingRatio; }
 	));
 
 	return schema;
@@ -137,57 +137,59 @@ PluginUpdateResult NetTimeSeriesPlugin::onUpdate(const FlowContext& flowContext,
 void NetTimeSeriesPlugin::updateNetTimeSeries(FlowRecord& flowRecord, const Packet& packet, NetTimeSeriesData& pluginData) noexcept
 {
 	const float variationFromMean 
-		= static_cast<float>(packet.realLength) - pluginData.mean;
-	const float packetsTotal 
-		= static_cast<float>(flowRecord.dataForward.packets + flowRecord.dataReverse.packets + 1);
+		= static_cast<float>(packet.payload_len_wire) - pluginData.mean;
+	const float packetsTotal = static_cast<float>(
+			flowRecord.directionalData[Direction::Forward].packets + flowRecord.directionalData[Direction::Reverse].packets + 1);
 	const float diff = std::max<float>(static_cast<float>(
-		packet.timestamp - flowRecord.timeLastUpdate), 0);
-	pluginData.processingState.sumPayload += packet.realLength;
-	pluginData.processingState.prevTime = packet.timestamp;
-	pluginData.mean += (variationFromMean) / packetsTotal;
-	pluginData.min = std::min<uint16_t>(pluginData.min, static_cast<uint16_t>(packet.realLength));
-	pluginData.max = std::max<uint16_t>(pluginData.max, static_cast<uint16_t>(packet.realLength));
-	pluginData.rootMeanSquare += static_cast<float>(std::pow(packet.realLength, 2));
+		(Timestamp(packet.ts) - flowRecord.timeLastUpdate).ns), 0);
+	pluginData.processingState.sumPayload += packet.payload_len_wire;
+	pluginData.processingState.prevTime = Timestamp(packet.ts);
+	pluginData.mean += variationFromMean / packetsTotal;
+	pluginData.min = std::min<uint16_t>(pluginData.min, static_cast<uint16_t>(packet.payload_len_wire));
+	pluginData.max = std::max<uint16_t>(pluginData.max, static_cast<uint16_t>(packet.payload_len_wire));
+	pluginData.rootMeanSquare += static_cast<float>(std::pow(packet.payload_len_wire, 2));
 	pluginData.averageDispersion += std::abs(variationFromMean);
 	pluginData.kurtosis += static_cast<float>(std::pow(variationFromMean, 4));
-	pluginData.meanScaledTime += (static_cast<float>(packet.timestamp - 
-		flowRecord.timeCreation) - pluginData.meanScaledTime) / packetsTotal;
+	pluginData.meanScaledTime += (static_cast<float>((Timestamp(packet.ts) - 
+		flowRecord.timeCreation).ns) - pluginData.meanScaledTime) / packetsTotal;
 	pluginData.meanDifftimes += (diff - pluginData.meanDifftimes) / packetsTotal;
 	pluginData.minDifftimes = std::min(pluginData.minDifftimes, diff);
 	pluginData.maxDifftimes = std::max(pluginData.maxDifftimes, diff);
 	pluginData.timeDistribution += std::abs(pluginData.meanDifftimes - diff);
-	if (pluginData.processingState.prevPayload != packet.realLength) {
+	if (pluginData.processingState.prevPayload != packet.payload_len_wire) {
 		pluginData.switchingRatio += 1;
-		pluginData.processingState.prevPayload = static_cast<uint16_t>(packet.realLength);
+		pluginData.processingState.prevPayload = static_cast<uint16_t>(packet.payload_len_wire);
 	}
 }
 
 PluginExportResult NetTimeSeriesPlugin::onExport(const FlowRecord& flowRecord, void* pluginContext)
 {
+	auto* pluginData = reinterpret_cast<NetTimeSeriesData*>(pluginContext);
+
 	const float packetsTotal = static_cast<float>(
-		flowRecord.dataForward.packets + flowRecord.dataReverse.packets);
+		flowRecord.directionalData[Direction::Forward].packets + flowRecord.directionalData[Direction::Reverse].packets);
 	if (packetsTotal == 1) {
 		return {
 			.flowAction = FlowAction::RemovePlugin,
 		};
 	}
-	m_exportData.switchingRatio = m_exportData.switchingRatio / packetsTotal;
-	m_exportData.standardDeviation = static_cast<float>(std::pow(
-		(m_exportData.rootMeanSquare / packetsTotal) - 
-			std::pow(static_cast<float>(m_exportData.processingState.sumPayload) / packetsTotal, 2),
+	pluginData->switchingRatio = pluginData->switchingRatio / packetsTotal;
+	pluginData->standardDeviation = static_cast<float>(std::pow(
+		(pluginData->rootMeanSquare / packetsTotal) - 
+			std::pow(static_cast<float>(pluginData->processingState.sumPayload) / packetsTotal, 2),
 		0.5));
-	if (m_exportData.standardDeviation == 0) {
-		m_exportData.kurtosis = 0;
+	if (pluginData->standardDeviation == 0) {
+		pluginData->kurtosis = 0;
 	} else {
-		m_exportData.kurtosis = static_cast<float>(m_exportData.kurtosis
-			/ (packetsTotal * std::pow(m_exportData.standardDeviation, 4)));
+		pluginData->kurtosis = static_cast<float>(pluginData->kurtosis
+			/ (packetsTotal * std::pow(pluginData->standardDeviation, 4)));
 	}
-	m_exportData.timeDistribution = (m_exportData.timeDistribution / (packetsTotal - 1))
-		/ (m_exportData.maxDifftimes - m_exportData.min);
-	
-	m_exportData.rootMeanSquare = static_cast<float>(std::pow(
-		m_exportData.rootMeanSquare / packetsTotal, 0.5));
-	m_exportData.averageDispersion = m_exportData.averageDispersion / packetsTotal;
+	pluginData->timeDistribution = (pluginData->timeDistribution / (packetsTotal - 1))
+		/ (pluginData->maxDifftimes - pluginData->minDifftimes);
+
+	pluginData->rootMeanSquare = static_cast<float>(std::pow(
+		pluginData->rootMeanSquare / packetsTotal, 0.5));
+	pluginData->averageDispersion = pluginData->averageDispersion / packetsTotal;
 
 	makeAllFieldsAvailable(flowRecord);
 	return {
@@ -195,7 +197,7 @@ PluginExportResult NetTimeSeriesPlugin::onExport(const FlowRecord& flowRecord, v
 	};
 }
 
-void NetTimeSeriesPlugin::makeAllFieldsAvailable(const FlowRecord& flowRecord)
+void NetTimeSeriesPlugin::makeAllFieldsAvailable(const FlowRecord& flowRecord) noexcept
 {
 	m_fieldHandlers[NetTimeSeriesFields::NTS_MEAN].setAsAvailable(flowRecord);
 	m_fieldHandlers[NetTimeSeriesFields::NTS_MIN].setAsAvailable(flowRecord);

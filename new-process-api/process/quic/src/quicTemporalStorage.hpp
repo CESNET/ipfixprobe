@@ -2,14 +2,15 @@
 
 #include <directionalField.hpp>
 
-#include "quicExport.hpp"
+#include "quicConnectionId.hpp"
 #include "quicDirection.hpp"
+
 namespace ipxp
 {
     
 class QUICTemporalStorage {
     struct TemporaryConnectionIdBuffer {
-        DirectionalField<QUICExport::ConnectionId> ids;
+        DirectionalField<ConnectionId> ids;
 	};
 public:
 
@@ -42,15 +43,15 @@ public:
 		std::span<const uint8_t> destinationConnectionId) noexcept
     {
         m_buffer[flowDirection].ids[Direction::Forward] 
-            = QUICExport::ConnectionId(
+            = ConnectionId(
                 sourceConnectionId.begin(), sourceConnectionId.end());
         m_buffer[flowDirection].ids[Direction::Reverse] 
-            = QUICExport::ConnectionId(
+            = ConnectionId(
                 destinationConnectionId.begin(), destinationConnectionId.end());
     }
 
     constexpr
-    QUICExport::ConnectionId& getSourceCID() noexcept
+    ConnectionId& getSourceCID() noexcept
     {
         return m_buffer[
             m_serverIsDestination ? 
@@ -60,7 +61,7 @@ public:
     }
 
     constexpr
-    QUICExport::ConnectionId& getClientCID() noexcept
+    ConnectionId& getClientCID() noexcept
     {
         return m_buffer[
             m_serverIsDestination ? 

@@ -57,19 +57,18 @@ ICMPPlugin::ICMPPlugin([[maybe_unused]]const std::string& params, FieldManager& 
 
 PluginInitResult ICMPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	// TODO :
-	// values from dissector enums
+	// TODO values from dissector enums
 	constexpr uint16_t ICMP_PROTO = 1;
 	constexpr uint16_t ICMPV6_PROTO = 58;
 
-	if (flowContext.packet.flowKey.l4Protocol != ICMP_PROTO && flowContext.packet.flowKey.l4Protocol != ICMPV6_PROTO) {
+	if (flowContext.packet.ip_proto != ICMP_PROTO && flowContext.packet.ip_proto != ICMPV6_PROTO) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
 			.flowAction = FlowAction::RemovePlugin,
 		};
 	}
-	if (flowContext.packet.payload.size() < sizeof(ICMPData::typeCode)) {
+	if (flowContext.packet.payload_len < sizeof(ICMPData::typeCode)) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::RequiresUpdate,
@@ -80,7 +79,7 @@ PluginInitResult ICMPPlugin::onInit(const FlowContext& flowContext, void* plugin
 	// the type and code are the first two bytes, type on MSB and code on LSB
 	// in the network byte order
 	std::construct_at(reinterpret_cast<ICMPData*>(pluginContext))->typeCode 
-		= *reinterpret_cast<const uint16_t*>(flowContext.packet.payload.data());
+		= *reinterpret_cast<const uint16_t*>(flowContext.packet.payload);
 	m_fieldHandlers[ICMPFields::L4_ICMP_TYPE_CODE].setAsAvailable(flowContext.flowRecord);
 
 	return {

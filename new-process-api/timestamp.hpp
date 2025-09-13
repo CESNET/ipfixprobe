@@ -19,6 +19,23 @@ struct Timestamp {
 		// TODO
 		(void)tv;
 	}
+
+	constexpr Timestamp operator-(const Timestamp& other) const noexcept
+	{
+		Timestamp ts;
+		ts.ns = ns - other.ns;
+		return ts;
+	}
+
+	constexpr bool operator<(const Timestamp& other) const noexcept
+	{
+		return ns < other.ns;
+	}
+
+	constexpr bool operator>(const Timestamp& other) const noexcept
+	{
+		return ns > other.ns;
+	}
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Timestamp& ts)

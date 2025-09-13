@@ -25,6 +25,8 @@
 #include <dnsParser/dnsParser.hpp>
 #include <dnsParser/dnsQueryType.hpp>
 #include <utils/stringViewUtils.hpp>
+#include <utils/stringUtils.hpp>
+#include <utils/spanUtils.hpp>
 
 namespace ipxp {
 
@@ -63,8 +65,8 @@ DNSSDPlugin::DNSSDPlugin([[maybe_unused]]const std::string& params, FieldManager
 PluginInitResult DNSSDPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	constexpr uint16_t DNSSD_PORT = 5353;
-	if (flowContext.packet.flowKey.srcPort != DNSSD_PORT && 
-		flowContext.packet.flowKey.dstPort != DNSSD_PORT) {
+	if (flowContext.packet.src_port != DNSSD_PORT && 
+		flowContext.packet.dst_port != DNSSD_PORT) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -75,8 +77,8 @@ PluginInitResult DNSSDPlugin::onInit(const FlowContext& flowContext, void* plugi
 	auto* pluginData = std::construct_at(reinterpret_cast<DNSSDData*>(pluginContext));
 	// TODO USE VALUES FROM DISSECTOR
 	constexpr std::size_t TCP = 6;
-	const bool isDNSoverTCP = (flowContext.packet.flowKey.l4Protocol == TCP);
-	if (!parseDNSSD(flowContext.packet.payload, isDNSoverTCP, flowContext.flowRecord, *pluginData)) {
+	const bool isDNSoverTCP = (flowContext.packet.ip_proto == TCP);
+	if (!parseDNSSD(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), isDNSoverTCP, flowContext.flowRecord, *pluginData)) {
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -96,8 +98,8 @@ PluginUpdateResult DNSSDPlugin::onUpdate(const FlowContext& flowContext, void* p
 	auto* pluginData = reinterpret_cast<DNSSDData*>(pluginContext);
 	// TODO USE VALUES FROM DISSECTOR
 	constexpr std::size_t TCP = 6;
-	const bool isDNSoverTCP = (flowContext.packet.flowKey.l4Protocol == TCP);
-	if (!parseDNSSD(flowContext.packet.payload, isDNSoverTCP, flowContext.flowRecord, *pluginData)) {
+	const bool isDNSoverTCP = (flowContext.packet.ip_proto == TCP);
+	if (!parseDNSSD(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), isDNSoverTCP, flowContext.flowRecord, *pluginData)) {
 		return {
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
 			.flowAction = FlowAction::RemovePlugin,
@@ -172,26 +174,12 @@ PluginExportResult DNSSDPlugin::onExport(const FlowRecord& flowRecord, void* plu
 		};
 	}
 
-	std::ranges::for_each(pluginData.requests, 
-		[&](const DNSSDRecord& response) {
-			const std::string& name = response.requestName.toString();
-			if (name.size() < 
-				pluginData.queries.capacity() - pluginData.queries.size()) {
-				pluginData.queries.insert(
-					pluginData.queries.end(), name.begin(), name.end());
-				pluginData.queries.push_back(';');
-			}
-		});
-
-	std::ranges::for_each(pluginData.requests, 
-		[&](const DNSSDRecord& response) {
-			const std::string& value = response.toString() + ';';
-			std::ranges::copy(value | 
-				std::views::take(
-					pluginData.responses.capacity() - 
-					pluginData.responses.size()),
-				std::back_inserter(pluginData.responses));
-		});
+	concatenateRangeTo(pluginData.requests | std::views::transform([](const DNSSDRecord& record) {
+		return record.requestName.toString();
+	}), pluginData.queries, ';');
+	concatenateRangeTo(pluginData.requests | std::views::transform([](const DNSSDRecord& record) {
+		return record.toString();
+	}), pluginData.responses, ';');
 	
 	m_fieldHandlers[DNSSDFields::DNSSD_QUERIES].setAsAvailable(flowRecord);
 	m_fieldHandlers[DNSSDFields::DNSSD_RESPONSES].setAsAvailable(flowRecord);

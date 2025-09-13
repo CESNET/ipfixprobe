@@ -21,6 +21,7 @@
 #include <pluginFactory.hpp>
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
+#include <utils/spanUtils.hpp>
 
 #include "mplsData.hpp"
 
@@ -42,12 +43,13 @@ static FieldSchema createMPLSSchema(FieldManager& fieldManager, FieldHandlers<MP
 {
 	FieldSchema schema = fieldManager.createFieldSchema("mpls");
 
-	handlers.insert(MPLSFields::MPLS_TOP_LABEL_STACK_SECTION, schema.addVectorField(
+	// TODO FIX
+	/*handlers.insert(MPLSFields::MPLS_TOP_LABEL_STACK_SECTION, schema.addVectorField(
 		"MPLS_TOP_LABEL_STACK_SECTION",
-		[](const void* context) -> std::span<const uint8_t> { return {reinterpret_cast<const uint8_t*>(
+		[](const void* context) { return toSpan<const std::byte>(reinterpret_cast<const uint8_t*>(
 				&reinterpret_cast<const MPLSData*>(context)->topLabel),
-				sizeof(uint32_t)};
-		}));
+				sizeof(uint32_t)); }
+	));*/
 
 	return schema;
 }
@@ -59,7 +61,7 @@ MPLSPlugin::MPLSPlugin([[maybe_unused]]const std::string& params, FieldManager& 
 
 PluginInitResult MPLSPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	if (!packet.mplsTopLabel.has_value()) {
+	if (!flowContext.packet.mplsTop != 0) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -67,8 +69,8 @@ PluginInitResult MPLSPlugin::onInit(const FlowContext& flowContext, void* plugin
 		};
 	}
 
-	std::construct_at(reinterpret_cast<MPLSData*>(pluginContext))->topLabel = *packet.mplsTopLabel;
-	m_fieldHandlers[MPLSFields::MPLS_TOP_LABEL_STACK_SECTION].setAsAvailable(flowRecord);
+	std::construct_at(reinterpret_cast<MPLSData*>(pluginContext))->topLabel = flowContext.packet.mplsTop;
+	m_fieldHandlers[MPLSFields::MPLS_TOP_LABEL_STACK_SECTION].setAsAvailable(flowContext.flowRecord);
 	return {
 		.constructionState = ConstructionState::Constructed,
 		.updateRequirement = UpdateRequirement::NoUpdateNeeded,

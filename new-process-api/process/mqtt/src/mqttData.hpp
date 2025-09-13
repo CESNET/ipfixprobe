@@ -10,11 +10,11 @@
 #pragma once
 
 #include <array>
-#include <boost/container/static_vector.hpp>
+#include <boost/static_string.hpp>
 #include <optional>
 #include <span>
 
-#include <utils/
+#include <utils/stringUtils.hpp>
 
 namespace ipxp
 {
@@ -23,7 +23,7 @@ namespace ipxp
  * @class MQTTData
  * @brief Class representing MQTT export data.
  */
-class MQTTData : public MQTTExportBase {
+class MQTTData {
 public:
 	uint16_t typeCumulative; /**< Types of packets presented during communication and session
 	present flag. DISCONNECT(1b) | PINGRESP(1b) | PINGREQ(1b) | UNSUBACK(1b) | UNSUBSCRIBE(1b) |
@@ -45,7 +45,7 @@ public:
 	uint8_t publishFlags; ///< Cumulative of Publish header flags
 
 	constexpr static std::size_t MAX_TOPICS_LENGTH = 1024;
-	boost::container::static_vector<char, MAX_TOPICS_LENGTH> topics;
+	boost::static_string<MAX_TOPICS_LENGTH> topics;
 
 	/**
 	 * @brief Adds topic if there is enough space.

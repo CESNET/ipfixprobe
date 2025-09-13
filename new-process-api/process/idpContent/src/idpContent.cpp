@@ -21,8 +21,8 @@
 #include <pluginFactory.hpp>
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
+#include <utils/spanUtils.hpp>
 
-#include "idpContentData.hpp"
 
 namespace ipxp {
 
@@ -42,12 +42,12 @@ static FieldSchema createIDPContentSchema(FieldManager& fieldManager, FieldHandl
 {
 	FieldSchema schema = fieldManager.createFieldSchema("idpcontent");
 
-	auto [contentField, contentRevField] = schema.addVectorField<uint8_t>(
+	auto [contentField, contentRevField] = schema.addVectorDirectionalFields(
 		"IDP_CONTENT", "IDP_CONTENT_REV",
-		[](const void* context) { return {toSpan(
-			reinterpret_cast<const IDPContentExport*>(context)->directionalContent[Direction::Forward])}; },
-		[](const void* context) { return {toSpan(
-			reinterpret_cast<const IDPContentExport*>(context)->directionalContent[Direction::Reverse])}; }
+		[](const void* context) { return toSpan<const std::byte>(
+			*reinterpret_cast<const IDPContentData*>(context)->directionalContent[Direction::Forward]); },
+		[](const void* context) { return toSpan<const std::byte>(
+			*reinterpret_cast<const IDPContentData*>(context)->directionalContent[Direction::Reverse]); }
 		);
 	handlers.insert(IDPContentFields::IDP_CONTENT, contentField);
 	handlers.insert(IDPContentFields::IDP_CONTENT_REV, contentRevField);
@@ -60,30 +60,30 @@ IDPContentPlugin::IDPContentPlugin([[maybe_unused]]const std::string& params, Fi
 	createIDPContentSchema(manager, m_fieldHandlers);
 }
 
-UpdateRequirement IDPContentPlugin::updateContent(FlowRecord& flowRecord, const Packet& packet) noexcept
+UpdateRequirement IDPContentPlugin::updateContent(FlowRecord& flowRecord, const Packet& packet, IDPContentData& pluginData) noexcept
 {
 	// Check zero-packets and be sure, that the exported content is from both directions
-	if (m_exportData.directionalContent[packet.direction].has_value()) {
-		return m_exportData.directionalContent[static_cast<Direction>(!packet.direction)].has_value()
+	if (pluginData.directionalContent[packet.source_pkt].has_value()) {
+		return pluginData.directionalContent[static_cast<Direction>(!packet.source_pkt)].has_value()
 				? UpdateRequirement::NoUpdateNeeded
 				: UpdateRequirement::RequiresUpdate;
 	}
 
-	if (packet.payload.empty()) {
+	if (packet.payload_len == 0) {
 		return UpdateRequirement::RequiresUpdate;
 	}
 
-	const std::size_t sizeToSave = std::min(IDPContentData::MAX_CONTENT_LENGTH, packet.payload.size());
-	m_exportData.directionalContent[packet.direction] = std::make_optional<IDPContentExport::Content>(
-		packet.payload.data(), packet.payload.data() + sizeToSave);
-	m_fieldHandlers[packet.direction ? IDPContentFields::IDP_CONTENT : IDPContentFields::IDP_CONTENT_REV].setAsAvailable(flowRecord);
+	const std::size_t sizeToSave = std::min<size_t>(IDPContentData::MAX_CONTENT_LENGTH, packet.payload_len);
+	pluginData.directionalContent[packet.source_pkt] = std::make_optional<IDPContentData::Content>(
+		reinterpret_cast<const std::byte*>(packet.payload), reinterpret_cast<const std::byte*>(packet.payload) + sizeToSave);
+	m_fieldHandlers[packet.source_pkt ? IDPContentFields::IDP_CONTENT : IDPContentFields::IDP_CONTENT_REV].setAsAvailable(flowRecord);
 
 	return UpdateRequirement::RequiresUpdate;
 }
 
 PluginInitResult IDPContentPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	auto* pluginData = std::construct_at(reinterpret_cast<IDPContentExport*>(pluginContext));
+	auto* pluginData = std::construct_at(reinterpret_cast<IDPContentData*>(pluginContext));
 	UpdateRequirement updateRequirement = updateContent(flowContext.flowRecord, flowContext.packet, *pluginData);
 	return {
 		.constructionState = ConstructionState::Constructed,
@@ -94,6 +94,7 @@ PluginInitResult IDPContentPlugin::onInit(const FlowContext& flowContext, void* 
 
 PluginUpdateResult IDPContentPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
+	auto* pluginData = reinterpret_cast<IDPContentData*>(pluginContext);
 	UpdateRequirement updateRequirement = updateContent(flowContext.flowRecord, flowContext.packet, *pluginData);
 	return {
 		.updateRequirement = updateRequirement,
@@ -103,7 +104,7 @@ PluginUpdateResult IDPContentPlugin::onUpdate(const FlowContext& flowContext, vo
 
 void IDPContentPlugin::onDestroy(void* pluginContext)
 {
-	std::destroy_at(reinterpret_cast<IDPContentExport*>(pluginContext));
+	std::destroy_at(reinterpret_cast<IDPContentData*>(pluginContext));
 }
 
 static const PluginRegistrar<IDPContentPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>

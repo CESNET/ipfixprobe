@@ -84,35 +84,43 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	FlowAction parseQUIC(
+	PluginUpdateResult parseQUIC(
 		FlowRecord& flowRecord, 
 		std::span<const std::byte> payload,
-		Direction packetDirection
+		Direction packetDirection,
+		QUICData& pluginData
 	) noexcept;
 
-	constexpr void tryToSetOCCIDandSCID(
+	constexpr
+	void tryToSetOCCIDandSCID(
 		const QUICDirection quicDirection,
 		std::span<const uint8_t> sourceConnectionId,
-		std::span<const uint8_t> destinationConnectionId
+		std::span<const uint8_t> destinationConnectionId,
+		QUICData& pluginData
 	) noexcept;
 
 	void processInitial(
 		const std::optional<QUICDirection> quicDirection,
 		const Direction flowDirection,
 		const QUICHeaderView& headerView,
-		const QUICInitialHeaderView& initialHeaderView
+		const QUICInitialHeaderView& initialHeaderView,
+		QUICData& pluginData
 	) noexcept;
 
-	constexpr bool setConnectionIds(
+	constexpr
+	bool setConnectionIds(
 		const std::optional<QUICDirection> quicDirection,
 		const Direction flowDirection,
 		std::span<const uint8_t> sourceConnectionId,
-		std::span<const uint8_t> destinationConnectionId
+		std::span<const uint8_t> destinationConnectionId,
+		QUICData& pluginData
 	) noexcept;
 
-	constexpr void parseRetry(
+	constexpr
+	void parseRetry(
 		std::span<const uint8_t> sourceConnectionId,
-		std::span<const uint8_t> destinationConnectionId
+		std::span<const uint8_t> destinationConnectionId,
+		QUICData& pluginData
 	) noexcept;
 
 	FieldHandlers<QUICFields> m_fieldHandlers;

@@ -10,7 +10,7 @@
 #include <utils/stringViewUtils.hpp>
 
 #include "sha256.hpp"
-#include "tlsExport.hpp"
+#include "tlsData.hpp"
 
 namespace ipxp
 {
@@ -203,7 +203,7 @@ public:
     }
 
 private:
-    boost::static_string<TLSExport::JA4_SIZE> value;
+    boost::static_string<TLSData::JA4_SIZE> value;
 };
     
 } // namespace ipxp

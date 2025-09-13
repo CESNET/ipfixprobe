@@ -17,6 +17,13 @@ std::string_view toStringView(const T& container) noexcept
         reinterpret_cast<const char*>(container.data()), container.size());
 }
 
+constexpr static inline 
+std::string_view toStringView(const auto* data, const std::size_t size) noexcept 
+{
+    return std::string_view(
+        reinterpret_cast<const char*>(data), size);
+}
+
 constexpr static inline
 auto split(std::string_view view, const char delimiter) noexcept
 {

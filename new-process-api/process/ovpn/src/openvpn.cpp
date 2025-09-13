@@ -23,6 +23,8 @@
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
 
+#include <utils/spanUtils.hpp>
+
 #include "openvpnOpcode.hpp"
 #include "rtpHeader.hpp"
 
@@ -43,7 +45,7 @@ static const PluginManifest ovpnPluginManifest = {
 
 static FieldSchema createOpenVPNSchema(FieldManager& manager, FieldHandlers<OpenVPNFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("ovpn");
+	FieldSchema schema = manager.createFieldSchema("ovpn");
 
 	handlers.insert(OpenVPNFields::OVPN_CONF_LEVEL, schema.addScalarField(
 		"OVPN_CONF_LEVEL",
@@ -81,14 +83,14 @@ constexpr static
 bool isValidRTPHeader(const Packet& packet)
 {
 	// TODO USE DISSECTOR VALUES
-	if (packet.flowKey.l4Protocol != 17)
+	if (packet.ip_proto != 17)
 		return false;
 
-	if (packet.payload.size() < sizeof(RTPHeader))
+	if (packet.payload_len < sizeof(RTPHeader))
 		return false;
 
 	const RTPHeader* rtpHeader 
-		= reinterpret_cast<const RTPHeader*>(packet.payload.data());
+		= reinterpret_cast<const RTPHeader*>(packet.payload);
 
 	if (rtpHeader->version != 2)
 		return false;
@@ -115,30 +117,30 @@ std::optional<std::size_t> getOpcodeOffset(const uint8_t l4Protocol)
 	return std::nullopt;
 }
 
-bool OpenVPNPlugin::updateConfidenceLevel(const Packet& packet, OpenVPNData& pluginData)
+bool OpenVPNPlugin::updateConfidenceLevel(const Packet& packet, OpenVPNData& pluginData) noexcept
 {
-	// TODO USE VALUES FROM DISSECTOR 
-	
-	if (packet.payload.size() < 2) {
+	std::span<const std::byte> payload = toSpan<const std::byte>(packet.payload, packet.payload_len);
+	if (payload.size() < 2) {
 		return false;
 	}
 
+	// TODO USE VALUES FROM DISSECTOR 
 	const std::optional<std::size_t> opcodeOffset 
-		= getOpcodeOffset(packet.flowKey.l4Protocol);
+		= getOpcodeOffset(packet.ip_proto);
 	if (!opcodeOffset.has_value()) {
 		return false;
 	}
 
 	const OpenVPNOpcode opcode 
-		= static_cast<OpenVPNOpcode>(packet.payload[*opcodeOffset]);
+		= static_cast<OpenVPNOpcode>(payload[*opcodeOffset]);
 
 	constexpr std::size_t openvpnHeaderSize = 14;
-	const bool hasClientHello = packet.payload.size() > openvpnHeaderSize
-		&& hasTLSClientHello(packet.payload.subspan(openvpnHeaderSize));
+	const bool hasClientHello = payload.size() > openvpnHeaderSize
+		&& hasTLSClientHello(payload.subspan(openvpnHeaderSize));
 
 	pluginData.processingState.processOpcode(opcode, 
-		packet.flowKey.srcIp, packet.flowKey.dstIp, hasClientHello, 
-		isValidRTPHeader(packet), packet.realLength);
+		packet.src_ip, packet.dst_ip, hasClientHello, 
+		isValidRTPHeader(packet), packet.payload_len_wire);
 
 	return true;
 }
@@ -182,7 +184,7 @@ PluginExportResult OpenVPNPlugin::onExport(const FlowRecord& flowRecord, void* p
 	auto* pluginData = reinterpret_cast<OpenVPNData*>(pluginContext);
 	// do not export ovpn for short flows, usually port scans
 	const std::size_t packetsTotal 
-		= flowRecord.dataForward.packets + flowRecord.dataReverse.packets;
+		= flowRecord.directionalData[Direction::Forward].packets + flowRecord.directionalData[Direction::Reverse].packets;
 	const std::optional<uint8_t> confidenceLevel 
 		= pluginData->processingState.getCurrentConfidenceLevel(packetsTotal);
 	if (!confidenceLevel.has_value()) {
@@ -193,6 +195,10 @@ PluginExportResult OpenVPNPlugin::onExport(const FlowRecord& flowRecord, void* p
 
 	pluginData->vpnConfidence = *confidenceLevel;
 	m_fieldHandlers[OpenVPNFields::OVPN_CONF_LEVEL].setAsAvailable(flowRecord);
+	
+	return {
+		.flowAction = FlowAction::NoAction,
+	};
 }
 
 void OpenVPNPlugin::onDestroy(void* pluginContext)

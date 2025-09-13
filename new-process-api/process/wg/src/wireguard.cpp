@@ -21,6 +21,7 @@
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <arpa/inet.h>
+#include <utils/spanUtils.hpp>
 
 #include "wireguardPacketType.hpp"
 #include "wireguardPacketSize.hpp"
@@ -39,59 +40,59 @@ static const PluginManifest wireguardPluginManifest = {
 		},
 };
 
-const inline std::vector<FieldPair<WireguardFields>> fields = {
-	{WireguardFields::WG_CONF_LEVEL, "WG_CONF_LEVEL"},
-	{WireguardFields::WG_SRC_PEER, "WG_SRC_PEER"},
-	{WireguardFields::WG_DST_PEER, "WG_DST_PEER"},
-};
-
-
-static FieldSchema createWireguardSchema()
+static FieldSchema createWireguardSchema(FieldManager& fieldManager, FieldHandlers<WireguardFields>& handlers) noexcept
 {
-	FieldSchema schema("wg");
+	FieldSchema schema = fieldManager.createFieldSchema("wg");
 
-	/*schema.addScalarField<uint8_t>(
+	handlers.insert(WireguardFields::WG_CONF_LEVEL, schema.addScalarField(
 		"WG_CONF_LEVEL",
-		FieldDirection::DirectionalIndifferent,
-		offsetof(WireguardExport, confidence));
+		[](const void* context) { return reinterpret_cast<const WireguardData*>(context)->confidence; }
+	));
 
-	schema.addScalarField<uint32_t>(
+	auto [srcPeerHandler, dstPeerHandler] = schema.addScalarBiflowFields(
 		"WG_SRC_PEER",
-		FieldDirection::DirectionalIndifferent,
-		offsetof(WireguardExport, peer[Direction::Forward]));
-
-	schema.addScalarField<uint32_t>(
 		"WG_DST_PEER",
-		FieldDirection::DirectionalIndifferent,
-		offsetof(WireguardExport, peer[Direction::Reverse]));*/
-
+		[](const void* context) { return *reinterpret_cast<const WireguardData*>(context)->peer[Direction::Forward]; },
+		[](const void* context) { return *reinterpret_cast<const WireguardData*>(context)->peer[Direction::Reverse]; }
+	);
+	handlers.insert(WireguardFields::WG_SRC_PEER, srcPeerHandler);
+	handlers.insert(WireguardFields::WG_DST_PEER, dstPeerHandler);
+	
 	return schema;
 }
 
 WireguardPlugin::WireguardPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
 {
-	const FieldSchema schema = createWireguardSchema();
-	const FieldSchemaHandler schemaHandler = manager.registerSchema(schema);
-
-	for (const auto& [field, name] : fields) {
-		m_fieldHandlers[field] = schemaHandler.getFieldHandler(name);
-	}
+	createWireguardSchema(manager, m_fieldHandlers);
 }
 
-FlowAction WireguardPlugin::onFlowCreate([[maybe_unused]]FlowRecord& flowRecord, const Packet& packet)
+PluginInitResult WireguardPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
+	// TODO DISSECTOR VALUE
 	constexpr uint8_t UDP = 17;
-	if (packet.flowKey.l4Protocol != UDP) {
-	return FlowAction::RequestNoData;
+	if (flowContext.packet.ip_proto != UDP) {
+		return {
+			.constructionState = ConstructionState::NotConstructed,
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::RemovePlugin,
+		};
 	}
 
-	return parseWireguard(packet.payload, packet.direction);
+	auto* pluginData = std::construct_at(reinterpret_cast<WireguardData*>(pluginContext));
+	auto [updateRequirement, flowAction] = parseWireguard(toSpan<const std::byte>(
+		flowContext.packet.payload, flowContext.packet.payload_len), flowContext.packet.source_pkt, *pluginData, flowContext.flowRecord);
+	return {
+		.constructionState = ConstructionState::Constructed,
+		.updateRequirement = updateRequirement,
+		.flowAction = flowAction,
+	};
 }
 
-FlowAction WireguardPlugin::onFlowUpdate([[maybe_unused]]FlowRecord& flowRecord, 
-	const Packet& packet)
+PluginUpdateResult WireguardPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
-	return parseWireguard(packet.payload, packet.direction);
+	auto* pluginData = reinterpret_cast<WireguardData*>(pluginContext);
+	return parseWireguard(toSpan<const std::byte>(
+		flowContext.packet.payload, flowContext.packet.payload_len), flowContext.packet.source_pkt, *pluginData, flowContext.flowRecord);
 }
 
 constexpr static
@@ -141,18 +142,28 @@ bool checkPacketSize(
 }
 
 constexpr
-FlowAction WireguardPlugin::parseWireguard(
-	std::span<const std::byte> payload, const Direction direction) noexcept
+PluginUpdateResult WireguardPlugin::parseWireguard(
+	std::span<const std::byte> payload, const Direction direction, WireguardData& pluginData, FlowRecord& flowRecord) noexcept
 {
 	const auto type = static_cast<WireguardPacketType>(payload[0]);
 	if (!isValidPacketType(type) || checkPacketSize(type, payload.size())) {
-		m_exportData.confidence = 0;
-		return FlowAction::RequestNoData;
+		pluginData.confidence = 0;
+		m_fieldHandlers[WireguardFields::WG_CONF_LEVEL].setAsAvailable(flowRecord);
+		
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction,
+		}; 
 	}
 
 	if (!checkReservedBytes(payload)) {
-		m_exportData.confidence = 0;
-		return FlowAction::RequestNoData;
+		pluginData.confidence = 0;
+		m_fieldHandlers[WireguardFields::WG_CONF_LEVEL].setAsAvailable(flowRecord);
+
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction,
+		};
 	}
 
 	constexpr std::size_t senderIndexOffset = 4;
@@ -164,30 +175,42 @@ FlowAction WireguardPlugin::parseWireguard(
 		// compare the current dst_peer and see if it matches the original source.
 		// If not, the flow flush may be needed to create a new flow.
 
-		const std::optional<uint32_t> savedPeer 
-			= m_exportData.peer[direction]; 
+		const std::optional<uint32_t> savedPeer = pluginData.peer[direction];
 
 		if (savedPeer.has_value() && 
 			senderIndex != *savedPeer) {
-			return FlowAction::FlushAndReinsert;
+			// TODO FLUSH AND REINSERT
+			return {
+				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+				.flowAction = FlowAction::Flush,
+			};
 		}
-
-		m_exportData.peer[direction] = senderIndex;
+		pluginData.peer[direction] = senderIndex;
 
 		break;
 	}
 	case WireguardPacketType::HANDSHAKE_RESPONSE: {
-		m_exportData.peer[direction] = senderIndex;
+		pluginData.peer[direction] = senderIndex;
 
 		constexpr std::size_t dstPeerOffset = 8;
-		m_exportData.peer[static_cast<Direction>(!direction)] 
+		pluginData.peer[static_cast<Direction>(!direction)] 
 			= ntohl(*reinterpret_cast<const uint32_t*>(payload.data() + dstPeerOffset));
+
+		m_fieldHandlers[WireguardFields::WG_SRC_PEER].setAsAvailable(flowRecord);
+		m_fieldHandlers[WireguardFields::WG_DST_PEER].setAsAvailable(flowRecord);
 
 		break;
 	}
 	case WireguardPacketType::COOCKIE_REPLY: [[fallthrough]];
 	case WireguardPacketType::TRANSPORT_DATA:
-		m_exportData.peer[direction] = senderIndex;
+		constexpr auto mapping = std::to_array({
+			WireguardFields::WG_SRC_PEER,
+			WireguardFields::WG_DST_PEER
+		});
+
+		pluginData.peer[direction] = senderIndex;
+		m_fieldHandlers[mapping[direction]].setAsAvailable(flowRecord);
+		
 		break;
 	}
 
@@ -200,26 +223,35 @@ FlowAction WireguardPlugin::parseWireguard(
 	const bool matchesMask 
 		= std::ranges::equal(dnsQueryMask, payload.subspan(senderIndexOffset));
 	if (matchesMask) {
-		m_exportData.confidence = 1;
-		return FlowAction::RequestNoData;
+		pluginData.confidence = 1;
+		m_fieldHandlers[WireguardFields::WG_CONF_LEVEL].setAsAvailable(flowRecord);
+
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction,
+		};
 	}
-	m_exportData.confidence = 100;
+	pluginData.confidence = 100;
+	m_fieldHandlers[WireguardFields::WG_CONF_LEVEL].setAsAvailable(flowRecord);
 
-	return FlowAction::RequestTrimmedData;
+	return {
+		.updateRequirement = UpdateRequirement::RequiresUpdate,
+		.flowAction = FlowAction::NoAction,
+	};
 }
 
-ProcessPlugin* WireguardPlugin::clone(std::byte* constructAtAddress) const
+void WireguardPlugin::onDestroy(void* pluginContext)
 {
-	return std::construct_at(reinterpret_cast<WireguardPlugin*>(constructAtAddress), *this);
+	std::destroy_at(reinterpret_cast<WireguardData*>(pluginContext));
 }
 
-std::string WireguardPlugin::getName() const {
-	return wireguardPluginManifest.name; 
+PluginDataMemoryLayout WireguardPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(WireguardData),
+		.alignment = alignof(WireguardData),
+	};
 }
-
-const void* WireguardPlugin::getExportData() const noexcept {
-	return &m_exportData;
-}	
 
 static const PluginRegistrar<WireguardPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	wireguardRegistrar(wireguardPluginManifest);
