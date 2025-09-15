@@ -1,7 +1,7 @@
 /**
  * @file
- * @brief Plugin for parsing mqtt traffic.
- * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @brief Plugin for parsing basicplus traffic.
+ * @author Jiri Havranek <havranek@cesnet.cz>
  * @author Pavel Siska <siska@cesnet.cz>
  * @date 2025
  *
@@ -12,17 +12,22 @@
 
 #include "mqtt.hpp"
 
-#include <cstring>
+#include <iostream>
+#include <arpa/inet.h>
 
-#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
-#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
+#include <pluginFactory.hpp>
+#include <fieldSchema.hpp>
+#include <fieldManager.hpp>
+#include <utils/stringViewUtils.hpp>
+#include <utils/spanUtils.hpp>
 
-#ifdef DEBUG_MQTT
-static const bool debug_mqtt = true;
-#else
-static const bool debug_mqtt = false;
-#endif
+#include "variableLengthInt.hpp"
+#include "mqttTypeFlag.hpp"
+
 namespace ipxp {
+
 
 static const PluginManifest mqttPluginManifest = {
 	.name = "mqtt",
@@ -31,73 +36,121 @@ static const PluginManifest mqttPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			MQTTOptionsParser parser;
-			parser.usage(std::cout);
+			/*MQTTOptionsParser parser;
+			parser.usage(std::cout);*/
 		},
 };
 
-MQTTPlugin::MQTTPlugin(const std::string& params, int pluginID)
-	: ProcessPlugin(pluginID)
-{
-	init(params.c_str());
-}
-
-int MQTTPlugin::post_create(Flow& rec, const Packet& pkt)
-{
-	if (has_mqtt_protocol_name(reinterpret_cast<const char*>(pkt.payload), pkt.payload_len))
-		add_ext_mqtt(reinterpret_cast<const char*>(pkt.payload), pkt.payload_len, rec);
-	return 0;
-}
-
-int MQTTPlugin::pre_update(Flow& rec, Packet& pkt)
-{
-	const char* payload = reinterpret_cast<const char*>(pkt.payload);
-	RecordExt* ext = rec.get_extension(m_pluginID);
-	if (ext == nullptr) {
-		return 0;
-	} else {
-		parse_mqtt(payload, pkt.payload_len, static_cast<RecordExtMQTT*>(ext));
-	}
-	return 0;
-}
-
-/**
- * \brief Read variable integer as defined in
- * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html. \param [in] data Pointer to IP
- * payload. \param [in] payload_len IP payload length. \param [in] last_byte Next after last read
- * byte. \return Pair of read integer and bool. Bool is false in case read was unsuccessful.
- */
-std::pair<uint32_t, bool>
-MQTTPlugin::read_variable_int(const char* data, int payload_len, uint32_t& last_byte) const noexcept
-{
-	uint32_t res = 0;
-	bool next;
-	for (next = true; next && last_byte < (uint32_t) payload_len; last_byte++) {
-		res <<= 8;
-		res |= data[last_byte];
-		next = (data[last_byte] & 0b1000'0000);
-	}
-	return last_byte == (uint32_t) payload_len && next ? std::make_pair(0u, false)
-													   : std::make_pair(res, true);
-}
-
 /**
  * \brief Read utf8 encoded string as defined in
- * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html. \param [in] data Pointer to IP
- * payload. \param [in] payload_len IP payload length. \param [in] last_byte Next after last read
- * byte. \return Tuple of read string, its length and bool. Bool is false in case read was
- * unsuccessful.
+ * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html. 
+ * \param [in] data Pointer to IP payload. 
+ * \param [in] payload_len IP payload length. 
+ * \param [in] last_byte Next after last read byte. 
+ * \return Tuple of read string, its length and bool. 
+ * Bool is false in case read was unsuccessful.
  */
-std::tuple<uint32_t, std::string_view, bool>
-MQTTPlugin::read_utf8_string(const char* data, int payload_len, uint32_t& last_byte) const noexcept
+constexpr static
+std::optional<std::string_view>
+readUTF8String(std::span<const std::byte> payload) noexcept
 {
-	if (last_byte + 2 >= (uint32_t) payload_len)
-		return {0, {}, false};
-	uint16_t string_length = ntohs(*(uint16_t*) &data[last_byte]);
-	last_byte += 2;
-	if (last_byte + string_length >= (uint32_t) payload_len)
-		return {0, {}, false};
-	return {string_length, std::string_view(&data[last_byte], string_length), true};
+	if (payload.size() < sizeof(uint16_t)) {
+		return std::nullopt;
+	}
+
+	const uint16_t stringLength 
+		= ntohs(*reinterpret_cast<const uint16_t*>(payload.data()));
+	if (payload.size() < sizeof(stringLength) + stringLength)
+		return std::nullopt;
+
+	return std::make_optional<std::string_view>(
+		reinterpret_cast<const char*>(payload.data()), 
+		static_cast<std::size_t>(stringLength));
+}
+
+/**
+ * \brief Parse buffer to check if it contains MQTT packets.
+ * \param [in] data Pointer to IP payload.
+ * \param [in] payload_len IP payload length.
+ * \return True if buffer starts with MQTT label as part of connection mqtt packet.
+ */
+constexpr static
+bool mqttLabelPresent(std::span<const std::byte> payload) noexcept
+{
+	if (payload.size() <= sizeof(MQTTTypeFlag))
+		return false;
+
+	const std::optional<VariableLengthInt> packetLength 
+		= readVariableLengthInt(payload.subspan(sizeof(MQTTTypeFlag)));
+	if (!packetLength.has_value()) {
+		return false;
+	}
+
+	const std::size_t labelOffset = sizeof(MQTTTypeFlag) + packetLength->length;
+	std::optional<std::string_view> mqttLabel 
+		= readUTF8String(payload.subspan(labelOffset));
+	return mqttLabel.has_value() && mqttLabel == "MQTT";
+}
+
+static FieldSchema createMQTTSchema(FieldManager& fieldManager, FieldHandlers<MQTTFields>& handlers) noexcept
+{
+	FieldSchema schema = fieldManager.createFieldSchema("mqtt");
+
+	handlers.insert(MQTTFields::MQTT_TYPE_CUMULATIVE, schema.addScalarField(
+		"MQTT_TYPE_CUMULATIVE",
+		[](const void* context) { return reinterpret_cast<const MQTTData*>(context)->typeCumulative; }
+	));
+	handlers.insert(MQTTFields::MQTT_VERSION, schema.addScalarField(
+		"MQTT_VERSION",
+		[](const void* context) { return reinterpret_cast<const MQTTData*>(context)->version; }
+	));
+	handlers.insert(MQTTFields::MQTT_CONNECTION_FLAGS, schema.addScalarField(
+		"MQTT_CONNECTION_FLAGS",
+		[](const void* context) { return reinterpret_cast<const MQTTData*>(context)->connectionFlags; }
+	));
+	handlers.insert(MQTTFields::MQTT_KEEP_ALIVE, schema.addScalarField(
+		"MQTT_KEEP_ALIVE",
+		[](const void* context) { return reinterpret_cast<const MQTTData*>(context)->keepAlive; }
+	));
+	handlers.insert(MQTTFields::MQTT_CONNECTION_RETURN_CODE, schema.addScalarField(
+		"MQTT_CONNECTION_RETURN_CODE",
+		[](const void* context) { return reinterpret_cast<const MQTTData*>(context)->connectionReturnCode; }
+	));
+	handlers.insert(MQTTFields::MQTT_PUBLISH_FLAGS, schema.addScalarField(
+		"MQTT_PUBLISH_FLAGS",
+		[](const void* context) { return reinterpret_cast<const MQTTData*>(context)->publishFlags; }
+	));
+	handlers.insert(MQTTFields::MQTT_TOPICS, schema.addScalarField(
+		"MQTT_TOPICS",
+		[](const void* context) { 
+			return toStringView(reinterpret_cast<const MQTTData*>(context)->topics);
+		}));
+
+	return schema;
+}
+
+MQTTPlugin::MQTTPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+{
+	createMQTTSchema(manager, m_fieldHandlers);
+}
+
+PluginInitResult MQTTPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
+{
+	if (mqttLabelPresent(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len))) {
+		auto* pluginData = std::construct_at(reinterpret_cast<MQTTData*>(pluginContext));
+		auto [updateRequirement, flowAction] = parseMQTT(
+			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, *pluginData);
+		return {
+			.constructionState = ConstructionState::Constructed,
+			.updateRequirement = updateRequirement,
+			.flowAction = flowAction,
+		};
+	}
+	return {
+		.constructionState = ConstructionState::NotConstructed,
+		.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+		.flowAction = FlowAction::RemovePlugin,
+	};
 }
 
 /**
@@ -107,134 +160,121 @@ MQTTPlugin::read_utf8_string(const char* data, int payload_len, uint32_t& last_b
  * \param [in,out] rec Record to write MQTT data in.
  * \return True if buffer contains set of valid mqtt packets.
  */
-bool MQTTPlugin::parse_mqtt(const char* data, int payload_len, RecordExtMQTT* rec) noexcept
+PluginUpdateResult MQTTPlugin::parseMQTT(std::span<const std::byte> payload, FlowRecord& flowRecord, MQTTData& mqttData) noexcept
 {
-	if (payload_len <= 0)
-		return false;
-	uint32_t last_byte = 0;
+	if (payload.empty()) {
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::RemovePlugin,
+		};
+	}
+
+	uint32_t currentOffset = 0;
 	// Each tcp segment may contain more MQTT packets
-	while (last_byte < (uint32_t) payload_len) {
-		uint8_t type, flags;
-		type = flags = data[last_byte++];
-		type >>= 4;
-		flags &= 0b00001111;
-		rec->type_cumulative |= (0b1 << type);
+	while (currentOffset < payload.size()) {
+		MQTTTypeFlag typeFlag(static_cast<uint8_t>(payload[currentOffset++]));
+		mqttData.typeCumulative 
+			|= (1 << static_cast<uint8_t>(typeFlag.bitfields.type));
+		m_fieldHandlers[MQTTFields::MQTT_TYPE_CUMULATIVE].setAsAvailable(flowRecord);
 
-		auto [remaining_length, success] = read_variable_int(data, payload_len, last_byte);
-		if (!success || last_byte + remaining_length > (uint32_t) payload_len) {
-			if constexpr (debug_mqtt)
-				std::cout << "Invalid remaining length read" << std::endl;
-			return false;
+		std::optional<VariableLengthInt> packetLength 
+			= readVariableLengthInt(payload.subspan(currentOffset));
+		if (!packetLength.has_value() || 
+				currentOffset + packetLength->value > payload.size()) {
+			return {
+				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+				.flowAction = FlowAction::RemovePlugin,
+			};
 		}
-		auto first_byte_after_payload = remaining_length + last_byte;
-		// Connect packet
-		if (type == 1) {
-			if (!has_mqtt_protocol_name(data, payload_len)) {
-				if constexpr (debug_mqtt)
-					std::cout << "Connection packet doesn't have MQTT label" << std::endl;
-				return false;
+
+		currentOffset += packetLength->length;
+		const uint16_t firstByteAfterPayload 
+			= static_cast<uint16_t>(packetLength->value + currentOffset);
+		
+		switch(typeFlag.bitfields.type) {
+		case MQTTHeaderType::CONNECT: {
+			if (!mqttLabelPresent(payload)) {
+				return {
+					.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+					.flowAction = FlowAction::RemovePlugin,
+				};
 			}
-			last_byte += 6; // Skip "MQTT" label(and its 2-byte length)
-			rec->version = data[last_byte++];
+			currentOffset += 6; // Skip "MQTT" label(and its 2-byte length)
+			mqttData.version = static_cast<uint8_t>(payload[currentOffset++]);
+			m_fieldHandlers[MQTTFields::MQTT_VERSION].setAsAvailable(flowRecord);
+
 			// Only MQTT v3.1.1 and v5.0 are supported
-			if (rec->version != 4 && rec->version != 5) {
-				if constexpr (debug_mqtt)
-					std::cout << "Unsupported mqtt version" << std::endl;
-				return false;
+			if (mqttData.version != 4 && mqttData.version != 5) {
+				return {
+					.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+					.flowAction = FlowAction::RemovePlugin,
+				};
 			}
-			rec->connection_flags = data[last_byte++];
-			rec->keep_alive = ntohs(*(uint16_t*) &data[last_byte]);
+			mqttData.connectionFlags = static_cast<uint8_t>(payload[currentOffset++]);
+			m_fieldHandlers[MQTTFields::MQTT_CONNECTION_FLAGS].setAsAvailable(flowRecord);
+			
+			mqttData.keepAlive 
+				= ntohs(*reinterpret_cast<const uint16_t*>(&payload[currentOffset]));
+			m_fieldHandlers[MQTTFields::MQTT_KEEP_ALIVE].setAsAvailable(flowRecord);
+			
+			break;
 		}
-		// Connect ACK packet
-		else if (type == 2) {
-			rec->session_present_flag = data[last_byte++] & 0b1; /// Connect Acknowledge Flags
-			rec->connection_return_code = data[last_byte++];
+		case MQTTHeaderType::CONNECT_ACK: {
+			// Set session present flag
+			mqttData.typeCumulative 
+				|= static_cast<uint16_t>(
+					static_cast<uint8_t>(payload[currentOffset++]) & 0b1);
+			
+			mqttData.connectionReturnCode = static_cast<uint8_t>(payload[currentOffset++]);
+			m_fieldHandlers[MQTTFields::MQTT_CONNECTION_RETURN_CODE].setAsAvailable(flowRecord);
+			
+			break;
 		}
-		// Publish packet
-		else if (type == 3) {
-			rec->publish_flags |= flags;
-			auto [str_len, str, success] = read_utf8_string(data, payload_len, last_byte);
-			if (!success) {
-				if constexpr (debug_mqtt)
-					std::cout << "Invalid utf8 string read" << std::endl;
-				return false;
+		case MQTTHeaderType::PUBLISH: {
+			mqttData.publishFlags |= typeFlag.bitfields.flag;
+			m_fieldHandlers[MQTTFields::MQTT_PUBLISH_FLAGS].setAsAvailable(flowRecord);
+			
+			std::optional<std::string_view> topic = readUTF8String(payload.subspan(currentOffset));
+			if (!topic.has_value() || topic->find('#') != std::string_view::npos) {
+				return {
+					.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+					.flowAction = FlowAction::RemovePlugin,
+				};
 			}
-			if (str.find('#') != std::string::npos) {
-				if constexpr (debug_mqtt)
-					std::cout << "Topic name contains wildcard char" << std::endl;
-				return false;
-			}
-			// Use '#' as delimiter, as '#' and '?' are only forbidden characters for topic name
-			if (rec->topics.count++ < maximal_topic_count) {
-				rec->topics.str += std::move(std::string(str.begin(), str.end()).append("#"));
-			}
+
+			mqttData.addTopic(*topic, maxTopicsToSave);
+			m_fieldHandlers[MQTTFields::MQTT_TOPICS].setAsAvailable(flowRecord);
+			
+			break;
 		}
-		// Disconnect packet
-		else if (type == 14) {
-			flow_flush = true;
+		case MQTTHeaderType::DISCONNECT: {
+			return {
+				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+				.flowAction = FlowAction::Flush,
+			};
+		}
 		}
 
-		last_byte = first_byte_after_payload; // Skip rest of payload
+		currentOffset = firstByteAfterPayload; // Skip rest of payload
 	}
-	return true;
+	return {
+		.updateRequirement = UpdateRequirement::RequiresUpdate,
+		.flowAction = FlowAction::NoAction,
+	};
 }
 
-int MQTTPlugin::post_update(Flow& rec, const Packet& pkt)
+void MQTTPlugin::onDestroy(void* pluginContext)
 {
-	(void) pkt;
-	(void) rec;
-
-	if (flow_flush) {
-		flow_flush = false;
-		return FLOW_FLUSH;
-	}
-	return 0;
+	std::destroy_at(reinterpret_cast<MQTTData*>(pluginContext));
 }
 
-/**
- * \brief Parse buffer to check if it contains MQTT packets.
- * \param [in] data Pointer to IP payload.
- * \param [in] payload_len IP payload length.
- * \return True if buffer starts with MQTT label as part of connection mqtt packet.
- */
-bool MQTTPlugin::has_mqtt_protocol_name(const char* data, int payload_len) const noexcept
+PluginUpdateResult MQTTPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
-	if (payload_len <= 1)
-		return false;
-	auto pos = 1u;
-	if (auto [_, success] = read_variable_int(data, payload_len, pos); !success)
-		return false;
-	auto [string_length, str, success] = read_utf8_string(data, payload_len, pos);
-	return success && str == "MQTT";
+	return parseMQTT(toSpan<const std::byte>(
+		flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, *reinterpret_cast<MQTTData*>(pluginContext));
 }
 
-void MQTTPlugin::add_ext_mqtt(const char* data, int payload_len, Flow& flow)
-{
-	if (recPrealloc == nullptr) {
-		recPrealloc = new RecordExtMQTT(m_pluginID);
-	}
-	if (!parse_mqtt(data, payload_len, recPrealloc))
-		return;
-	flow.add_extension(recPrealloc);
-	recPrealloc = nullptr;
-}
-
-void MQTTPlugin::init(const char* params)
-{
-	MQTTOptionsParser parser;
-	try {
-		parser.parse(params);
-	} catch (ParserError& e) {
-		throw PluginError(e.what());
-	}
-	maximal_topic_count = parser.m_maximal_topic_count;
-}
-
-ProcessPlugin* MQTTPlugin::copy()
-{
-	return new MQTTPlugin(*this);
-}
-
-static const PluginRegistrar<MQTTPlugin, ProcessPluginFactory> mqttRegistrar(mqttPluginManifest);
+static const PluginRegistrar<MQTTPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> 
+	mqttRegistrar(mqttPluginManifest);
 
 } // namespace ipxp

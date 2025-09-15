@@ -1,0 +1,56 @@
+#pragma once
+
+#include <span>
+#include <ranges>
+#include <optional>
+
+#include "../rangeReader/rangeReader.hpp"
+#include "../rangeReader/generator.hpp"
+#include "../../utils/toHostByteOrder.hpp"
+
+namespace ipxp
+{
+
+template<typename LengthType>
+struct PrefixedLengthStringReader : public RangeReader {
+
+    auto getRange(std::span<const std::byte> extension) noexcept 
+    {
+        return Generator::generate([this, extension]() mutable 
+        -> std::optional<std::string_view> {
+            if (extension.empty()) {
+                setSuccess();
+                return std::nullopt;
+            }
+
+            if (extension.size() < sizeof(LengthType)) {
+                return std::nullopt;
+            }
+
+            const LengthType length 
+                = toHostByteOrder(*reinterpret_cast<const LengthType*>(extension.data()));
+            if (extension.size() < length + sizeof(length)) {
+                return std::nullopt;
+            }
+
+            const auto label = reinterpret_cast<const char*>(extension.data() + sizeof(length));
+            extension = extension.subspan(length + sizeof(length));
+
+            return std::string_view(label, length);
+        }) | std::views::take_while([](const std::optional<std::string_view>& v) {
+            return v.has_value();
+        }) | std::views::transform([](const std::optional<std::string_view>& v) {
+            return *v;
+        });
+    }
+};
+
+/*
+template<typename LengthType>
+class PrefixedLengthStringReader : public RangeReader<PrefixedLengthStringReaderFactory<LengthType>> {
+public:
+    PrefixedLengthStringReader(std::span<const std::byte> extension)
+        : RangeReader(extension, PrefixedLengthStringReaderFactory{this}) {}
+};*/
+
+} // namespace ipxp

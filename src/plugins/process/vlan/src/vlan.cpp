@@ -1,7 +1,7 @@
 /**
  * @file
  * @brief Plugin for parsing basicplus traffic.
- * @author Jakub Antonín Štigler xstigl00@xstigl00@stud.fit.vut.cz
+ * @author Jiri Havranek <havranek@cesnet.cz>
  * @author Pavel Siska <siska@cesnet.cz>
  * @date 2025
  *
@@ -14,8 +14,14 @@
 
 #include <iostream>
 
-#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
-#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
+#include <pluginFactory.hpp>
+#include <fieldSchema.hpp>
+#include <fieldManager.hpp>
+#include <utils.hpp>
+
+#include "vlanData.hpp"
 
 namespace ipxp {
 
@@ -26,30 +32,55 @@ static const PluginManifest vlanPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			OptionsParser parser("vlan", "Parse VLAN traffic");
-			parser.usage(std::cout);
+			/*OptionsParser parser("vlan", "Parse VLAN traffic");
+			parser.usage(std::cout);*/
 		},
 };
 
-VLANPlugin::VLANPlugin(const std::string& params, int pluginID)
-	: ProcessPlugin(pluginID)
+static FieldSchema createVLANSchema(FieldManager& fieldManager, FieldHandlers<VLANFields>& handlers) noexcept
 {
-	init(params.c_str());
+	FieldSchema schema = fieldManager.createFieldSchema("vlan");
+
+	handlers.insert(VLANFields::VLAN_ID, schema.addScalarField(
+		"VLAN_ID",
+		[](const void* context) { return reinterpret_cast<const VLANData*>(context)->vlanId; }
+	));
+
+	return schema;
 }
 
-ProcessPlugin* VLANPlugin::copy()
+VLANPlugin::VLANPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
 {
-	return new VLANPlugin(*this);
+	createVLANSchema(manager, m_fieldHandlers);
 }
 
-int VLANPlugin::post_create(Flow& rec, const Packet& pkt)
+PluginInitResult VLANPlugin::onInit(const FlowContext& flowContext, void* pluginContext) 
 {
-	auto ext = new RecordExtVLAN(m_pluginID);
-	ext->vlan_id = pkt.vlan_id;
-	rec.add_extension(ext);
-	return 0;
+	auto pluginData = *std::construct_at(reinterpret_cast<VLANData*>(pluginContext));
+	pluginData.vlanId = flowContext.packet.vlan_id;
+	m_fieldHandlers[VLANFields::VLAN_ID].setAsAvailable(flowContext.flowRecord);
+
+	return {
+		.constructionState = ConstructionState::Constructed,
+		.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+		.flowAction = FlowAction::NoAction,
+	};
 }
 
-static const PluginRegistrar<VLANPlugin, ProcessPluginFactory> vlanRegistrar(vlanPluginManifest);
+void VLANPlugin::onDestroy(void* pluginContext)
+{
+	std::destroy_at(reinterpret_cast<VLANData*>(pluginContext));
+}
+
+PluginDataMemoryLayout VLANPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(VLANData),
+		.alignment = alignof(VLANData),
+	};
+}
+
+static const PluginRegistrar<VLANPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+	vlanRegistrar(vlanPluginManifest);
 
 } // namespace ipxp

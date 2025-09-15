@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Plugin for parsing RTSP traffic.
+ * @brief Plugin for parsing basicplus traffic.
  * @author Jiri Havranek <havranek@cesnet.cz>
  * @author Pavel Siska <siska@cesnet.cz>
  * @date 2025
@@ -12,18 +12,20 @@
 
 #include "rtsp.hpp"
 
-#include "common.hpp"
-
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 
-#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
-#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
+#include <pluginFactory.hpp>
+#include <fieldSchema.hpp>
+#include <fieldManager.hpp>
+#include <utils.hpp>
+#include <utils/stringViewUtils.hpp>
+#include <utils/spanUtils.hpp>
 
-#ifdef WITH_NEMEA
-#include <unirec/unirec.h>
-#endif
+#include "rtspExtensionReader.hpp"
+
+using namespace std::literals::string_view_literals;
 
 namespace ipxp {
 
@@ -34,173 +36,51 @@ static const PluginManifest rtspPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			OptionsParser parser("rtsp", "Parse RTSP traffic");
-			parser.usage(std::cout);
+			/*OptionsParser parser("rtsp", "Parse RTSP traffic");
+			parser.usage(std::cout);*/
 		},
 };
 
-// #define DEBUG_RTSP
-
-// Print debug message if debugging is allowed.
-#ifdef DEBUG_RTSP
-#define DEBUG_MSG(format, ...) fprintf(stderr, format, ##__VA_ARGS__)
-#else
-#define DEBUG_MSG(format, ...)
-#endif
-
-// Process code if debugging is allowed.
-#ifdef DEBUG_RTSP
-#define DEBUG_CODE(code) code
-#else
-#define DEBUG_CODE(code)
-#endif
-
-#define RTSP_LINE_DELIMITER '\n'
-#define RTSP_KEYVAL_DELIMITER ':'
-
-RTSPPlugin::RTSPPlugin(const std::string& params, int pluginID)
-	: ProcessPlugin(pluginID)
-	, recPrealloc(nullptr)
-	, flow_flush(false)
-	, requests(0)
-	, responses(0)
-	, total(0)
+static FieldSchema createRTSPSchema(FieldManager& fieldManager, FieldHandlers<RTSPFields>& handlers) noexcept
 {
-	init(params.c_str());
+	FieldSchema schema = fieldManager.createFieldSchema("rtsp");
+
+	handlers.insert(RTSPFields::RTSP_REQUEST_METHOD, schema.addScalarField(
+		"RTSP_REQUEST_METHOD",
+		[](const void* context) { return toStringView(static_cast<const RTSPData*>(context)->method); }
+	));
+	handlers.insert(RTSPFields::RTSP_REQUEST_AGENT, schema.addScalarField(
+		"RTSP_REQUEST_AGENT",
+		[](const void* context) { return toStringView(static_cast<const RTSPData*>(context)->userAgent); }
+	));
+	handlers.insert(RTSPFields::RTSP_REQUEST_URI, schema.addScalarField(
+		"RTSP_REQUEST_URI",
+		[](const void* context) { return toStringView(static_cast<const RTSPData*>(context)->uri); }
+	));
+	handlers.insert(RTSPFields::RTSP_RESPONSE_STATUS_CODE, schema.addScalarField(
+		"RTSP_RESPONSE_STATUS_CODE",
+		[](const void* context) { return static_cast<const RTSPData*>(context)->code; }
+	));
+	handlers.insert(RTSPFields::RTSP_RESPONSE_SERVER, schema.addScalarField(
+		"RTSP_RESPONSE_SERVER",
+		[](const void* context) { return toStringView(static_cast<const RTSPData*>(context)->server); }
+	));
+	handlers.insert(RTSPFields::RTSP_RESPONSE_CONTENT_TYPE, schema.addScalarField(
+		"RTSP_RESPONSE_CONTENT_TYPE",
+		[](const void* context) { return toStringView(static_cast<const RTSPData*>(context)->contentType); }
+	));
+
+	return schema;
 }
 
-RTSPPlugin::~RTSPPlugin()
+RTSPPlugin::RTSPPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
 {
-	close();
+	createRTSPSchema(manager, m_fieldHandlers);
 }
 
-void RTSPPlugin::init(const char* params)
+constexpr 
+bool RTSPPlugin::parseRequest(std::string_view payload, RTSPData& pluginData) noexcept
 {
-	(void) params;
-}
-
-void RTSPPlugin::close()
-{
-	if (recPrealloc != nullptr) {
-		delete recPrealloc;
-		recPrealloc = nullptr;
-	}
-}
-
-ProcessPlugin* RTSPPlugin::copy()
-{
-	return new RTSPPlugin(*this);
-}
-
-int RTSPPlugin::post_create(Flow& rec, const Packet& pkt)
-{
-	const char* payload = reinterpret_cast<const char*>(pkt.payload);
-	if (is_request(payload, pkt.payload_len)) {
-		add_ext_rtsp_request(payload, pkt.payload_len, rec);
-	} else if (is_response(payload, pkt.payload_len)) {
-		add_ext_rtsp_response(payload, pkt.payload_len, rec);
-	}
-
-	return 0;
-}
-
-int RTSPPlugin::pre_update(Flow& rec, Packet& pkt)
-{
-	RecordExt* ext = nullptr;
-	const char* payload = reinterpret_cast<const char*>(pkt.payload);
-	if (is_request(payload, pkt.payload_len)) {
-		ext = rec.get_extension(m_pluginID);
-		if (ext == nullptr) { /* Check if header is present in flow. */
-			add_ext_rtsp_request(payload, pkt.payload_len, rec);
-			return 0;
-		}
-
-		parse_rtsp_request(payload, pkt.payload_len, static_cast<RecordExtRTSP*>(ext));
-		if (flow_flush) {
-			flow_flush = false;
-			return FLOW_FLUSH_WITH_REINSERT;
-		}
-	} else if (is_response(payload, pkt.payload_len)) {
-		ext = rec.get_extension(m_pluginID);
-		if (ext == nullptr) { /* Check if header is present in flow. */
-			add_ext_rtsp_response(payload, pkt.payload_len, rec);
-			return 0;
-		}
-
-		parse_rtsp_response(payload, pkt.payload_len, static_cast<RecordExtRTSP*>(ext));
-		if (flow_flush) {
-			flow_flush = false;
-			return FLOW_FLUSH_WITH_REINSERT;
-		}
-	}
-
-	return 0;
-}
-
-void RTSPPlugin::finish(bool print_stats)
-{
-	if (print_stats) {
-		std::cout << "RTSP plugin stats:" << std::endl;
-		std::cout << "   Parsed rtsp requests: " << requests << std::endl;
-		std::cout << "   Parsed rtsp responses: " << responses << std::endl;
-		std::cout << "   Total rtsp packets processed: " << total << std::endl;
-	}
-}
-
-bool RTSPPlugin::is_request(const char* data, int payload_len)
-{
-	char chars[5];
-
-	if (payload_len < 4) {
-		return false;
-	}
-	memcpy(chars, data, 4);
-	chars[4] = 0;
-	return valid_rtsp_method(chars);
-}
-
-bool RTSPPlugin::is_response(const char* data, int payload_len)
-{
-	char chars[5];
-
-	if (payload_len < 4) {
-		return false;
-	}
-	memcpy(chars, data, 4);
-	chars[4] = 0;
-	return !strcmp(chars, "RTSP");
-}
-
-#ifdef DEBUG_RTSP
-static uint32_t s_requests = 0, s_responses = 0;
-#endif /* DEBUG_RTSP */
-
-/**
- * \brief Parse and store rtsp request.
- * \param [in] data Packet payload data.
- * \param [in] payload_len Length of packet payload.
- * \param [out] rec Variable where rtsp request will be stored.
- * \return True if request was parsed, false if error occured.
- */
-bool RTSPPlugin::parse_rtsp_request(const char* data, int payload_len, RecordExtRTSP* rec)
-{
-	char buffer[64];
-	const char* begin;
-	const char* end;
-	const char* keyval_delimiter;
-	size_t remaining;
-
-	total++;
-
-	DEBUG_MSG("---------- rtsp parser #%u ----------\n", total);
-	DEBUG_MSG("Parsing request number: %u\n", ++s_requests);
-	DEBUG_MSG("Payload length: %u\n\n", payload_len);
-
-	if (payload_len == 0) {
-		DEBUG_MSG("Parser quits:\tpayload length = 0\n");
-		return false;
-	}
-
 	/* Request line:
 	 *
 	 * METHOD URI VERSION
@@ -211,57 +91,41 @@ bool RTSPPlugin::parse_rtsp_request(const char* data, int payload_len, RecordExt
 	 */
 
 	/* Find begin of URI. */
-	begin = static_cast<const char*>(memchr(data, ' ', payload_len));
-	if (begin == nullptr) {
-		DEBUG_MSG("Parser quits:\tnot a rtsp request header\n");
+	const std::size_t uriBegin = payload.find(' ');
+	if (uriBegin == std::string_view::npos) {
 		return false;
 	}
 
 	/* Find end of URI. */
-
-	if (check_payload_len(payload_len, (begin + 1) - data)) {
-		DEBUG_MSG("Parser quits:\tpayload end\n");
-		return false;
-	}
-	remaining = payload_len - ((begin + 1) - data);
-	end = static_cast<const char*>(memchr(begin + 1, ' ', remaining));
-	if (end == nullptr) {
-		DEBUG_MSG("Parser quits:\trequest is fragmented\n");
+	const std::size_t uriEnd = payload.find(' ', uriBegin + 1);
+	if (uriEnd == std::string_view::npos) {
+		// request is fragmented
 		return false;
 	}
 
-	if (memcmp(end + 1, "RTSP", 4)) {
-		DEBUG_MSG("Parser quits:\tnot a RTSP request\n");
+	if (payload.substr(uriEnd, 4) != "RTSP") {
 		return false;
 	}
 
-	/* Copy and check RTSP method */
-	copy_str(buffer, sizeof(buffer), data, begin);
-	if (rec->req) {
-		flow_flush = true;
-		total--;
-		DEBUG_MSG("Parser quits:\tflushing flow\n");
-		return false;
-	}
-	strncpy(rec->method, buffer, sizeof(rec->method));
-	rec->method[sizeof(rec->method) - 1] = 0;
 
-	copy_str(rec->uri, sizeof(rec->uri), begin + 1, end);
-	DEBUG_MSG("\tMethod: %s\n", rec->method);
-	DEBUG_MSG("\tURI: %s\n", rec->uri);
+	std::string_view method 
+		= payload.substr(0, uriBegin).substr(0, pluginData.method.capacity());
+	pluginData.method.assign(method.begin(), method.end());
 
-	/* Find begin of next line after request line. */
-	if (check_payload_len(payload_len, end - data)) {
-		DEBUG_MSG("Parser quits:\tpayload end\n");
+	std::string_view uri = payload.substr(
+		uriBegin + 1, uriEnd - uriBegin - 1).substr(0, pluginData.uri.capacity());
+	pluginData.uri.assign(uri.begin(), uri.end());
+
+	const std::size_t requestLineEnd 
+		= payload.find('\n', uriEnd + 1);
+	if (requestLineEnd == std::string_view::npos) {
 		return false;
 	}
-	remaining = payload_len - (end - data);
-	begin = static_cast<const char*>(memchr(end, RTSP_LINE_DELIMITER, remaining));
-	if (begin == nullptr) {
-		DEBUG_MSG("Parser quits:\tNo line delim after request line\n");
+
+	const std::size_t requestFieldBegin = requestLineEnd + 1;
+	if (requestFieldBegin == std::string_view::npos) {
 		return false;
 	}
-	begin++;
 
 	/* Header:
 	 *
@@ -272,77 +136,43 @@ bool RTSPPlugin::parse_rtsp_request(const char* data, int payload_len, RecordExt
 	 * --------------------- begin
 	 */
 
-	rec->user_agent[0] = 0;
 	/* Process headers. */
-	while (begin - data < payload_len) {
-		remaining = payload_len - (begin - data);
-		end = static_cast<const char*>(memchr(begin, RTSP_LINE_DELIMITER, remaining));
-		keyval_delimiter
-			= static_cast<const char*>(memchr(begin, RTSP_KEYVAL_DELIMITER, remaining));
+	RTSPExtensionReader reader;
+	std::ranges::for_each(reader.getRange(payload.substr(requestFieldBegin)),
+		[&](const Extension& extension) {
+			if (extension.key == "User-Agent") {
+				std::string_view userAgent = extension.value.substr(
+						0, pluginData.userAgent.capacity() - pluginData.userAgent.size());
+				pluginData.userAgent.assign(userAgent.begin(), userAgent.end());
+			}
+		});
 
-		int tmp = end - begin;
-		if (tmp == 0 || tmp == 1) { /* Check for blank line with \r\n or \n ending. */
-			break; /* Double LF found - end of header section. */
-		} else if (end == nullptr || keyval_delimiter == NULL) {
-			DEBUG_MSG("Parser quits:\theader is fragmented\n");
-			return false;
-		}
+	pluginData.processingState.requestParsed = true;
 
-		/* Copy field name. */
-		copy_str(buffer, sizeof(buffer), begin, keyval_delimiter);
-
-		DEBUG_CODE(char debug_buffer[4096]);
-		DEBUG_CODE(copy_str(debug_buffer, sizeof(debug_buffer), keyval_delimiter + 2, end));
-		DEBUG_MSG("\t%s: %s\n", buffer, debug_buffer);
-
-		/* Copy interesting field values. */
-		if (!strcmp(buffer, "User-Agent")) {
-			copy_str(rec->user_agent, sizeof(rec->user_agent), keyval_delimiter + 2, end);
-		}
-
-		/* Go to next line. */
-		begin = end + 1;
-	}
-
-	DEBUG_MSG("Parser quits:\tend of header section\n");
-	rec->req = true;
-	requests++;
 	return true;
 }
 
-/**
- * \brief Parse and store rtsp response.
- * \param [in] data Packet payload data.
- * \param [in] payload_len Length of packet payload.
- * \param [out] rec Variable where rtsp response will be stored.
- * \return True if request was parsed, false if error occured.
- */
-bool RTSPPlugin::parse_rtsp_response(const char* data, int payload_len, RecordExtRTSP* rec)
+constexpr static
+bool isRequest(std::string_view payload) noexcept
 {
-	char buffer[64];
-	const char* begin;
-	const char* end;
-	const char* keyval_delimiter;
-	size_t remaining;
-	int code;
+	constexpr auto rtspMethods = std::to_array<std::string_view>({
+		"GET ", "POST", "PUT ", "HEAD", "DELE", "TRAC", "OPTI", "CONN", "PATC",
+		"DESC", "SETU", "PLAY", "PAUS", "TEAR", "RECO", "ANNO"});
+	return payload.size() >= 4 && std::ranges::any_of(rtspMethods,
+		[&](std::string_view method) {
+			return payload.starts_with(method);
+		});
+}
 
-	total++;
+constexpr static
+bool isResponse(std::string_view payload) noexcept
+{
+	return payload.starts_with("RTSP");
+}
 
-	DEBUG_MSG("---------- rtsp parser #%u ----------\n", total);
-	DEBUG_MSG("Parsing response number: %u\n", ++s_responses);
-	DEBUG_MSG("Payload length: %u\n\n", payload_len);
-
-	if (payload_len == 0) {
-		DEBUG_MSG("Parser quits:\tpayload length = 0\n");
-		return false;
-	}
-
-	/* Check begin of response header. */
-	if (memcmp(data, "RTSP", 4)) {
-		DEBUG_MSG("Parser quits:\tpacket contains rtsp response data\n");
-		return false;
-	}
-
+constexpr
+bool RTSPPlugin::parseResponse(std::string_view payload, RTSPData& pluginData) noexcept
+{
 	/* Response line:
 	 *
 	 * VERSION CODE REASON
@@ -353,155 +183,118 @@ bool RTSPPlugin::parse_rtsp_response(const char* data, int payload_len, RecordEx
 	 */
 
 	/* Find begin of status code. */
-	begin = static_cast<const char*>(memchr(data, ' ', payload_len));
-	if (begin == nullptr) {
-		DEBUG_MSG("Parser quits:\tnot a rtsp response header\n");
+	const std::size_t versionEnd = payload.find(' ');
+	if (versionEnd == std::string_view::npos) {
 		return false;
 	}
 
-	/* Find end of status code. */
-	if (check_payload_len(payload_len, (begin + 1) - data)) {
-		DEBUG_MSG("Parser quits:\tpayload end\n");
+	const std::size_t statusBegin = versionEnd + 1;
+	if (statusBegin == payload.size()) {
 		return false;
 	}
-	remaining = payload_len - ((begin + 1) - data);
-	end = static_cast<const char*>(memchr(begin + 1, ' ', remaining));
-	if (end == nullptr) {
-		DEBUG_MSG("Parser quits:\tresponse is fragmented\n");
+
+	const std::size_t statusEnd = payload.find(' ', statusBegin + 1);
+	if (statusEnd == std::string_view::npos) {
 		return false;
 	}
 
 	/* Copy and check RTSP response code. */
-	copy_str(buffer, sizeof(buffer), begin + 1, end);
-	code = atoi(buffer);
-	if (code <= 0) {
-		DEBUG_MSG("Parser quits:\twrong response code: %d\n", code);
+	if (std::from_chars(
+			payload.data() + statusBegin, 
+			payload.data() + statusEnd, 
+			pluginData.code).ec == std::errc()) {
 		return false;
 	}
 
-	DEBUG_MSG("\tCode: %d\n", code);
-	if (rec->resp) {
-		flow_flush = true;
-		total--;
-		DEBUG_MSG("Parser quits:\tflushing flow\n");
-		return false;
-	}
-	rec->code = code;
-
-	/* Find begin of next line after request line. */
-	if (check_payload_len(payload_len, end - data)) {
-		DEBUG_MSG("Parser quits:\tpayload end\n");
-		return false;
-	}
-	remaining = payload_len - (end - data);
-	begin = static_cast<const char*>(memchr(end, RTSP_LINE_DELIMITER, remaining));
-	if (begin == nullptr) {
-		DEBUG_MSG("Parser quits:\tNo line delim after request line\n");
-		return false;
-	}
-	begin++;
-
-	/* Header:
-	 *
-	 * REQ-FIELD: VALUE
-	 * |        |      |
-	 * |        |      ----- end
-	 * |        ------------ keyval_delimiter
-	 * --------------------- begin
-	 */
-
-	rec->content_type[0] = 0;
-	/* Process headers. */
-	while (begin - data < payload_len) {
-		remaining = payload_len - (begin - data);
-		end = static_cast<const char*>(memchr(begin, RTSP_LINE_DELIMITER, remaining));
-		keyval_delimiter
-			= static_cast<const char*>(memchr(begin, RTSP_KEYVAL_DELIMITER, remaining));
-
-		int tmp = end - begin;
-		if (tmp == 0 || tmp == 1) { /* Check for blank line with \r\n or \n ending. */
-			break; /* Double LF found - end of header section. */
-		} else if (end == nullptr || keyval_delimiter == NULL) {
-			DEBUG_MSG("Parser quits:\theader is fragmented\n");
-			return false;
-		}
-
-		/* Copy field name. */
-		copy_str(buffer, sizeof(buffer), begin, keyval_delimiter);
-
-		DEBUG_CODE(char debug_buffer[4096]);
-		DEBUG_CODE(copy_str(debug_buffer, sizeof(debug_buffer), keyval_delimiter + 2, end));
-		DEBUG_MSG("\t%s: %s\n", buffer, debug_buffer);
-
-		/* Copy interesting field values. */
-		if (!strcmp(buffer, "Content-Type")) {
-			copy_str(rec->content_type, sizeof(rec->content_type), keyval_delimiter + 2, end);
-		} else if (!strcmp(buffer, "Server")) {
-			copy_str(rec->server, sizeof(rec->server), keyval_delimiter + 2, end);
-		}
-
-		/* Go to next line. */
-		begin = end + 1;
+	const std::size_t lineEnd = payload.find('\n', statusEnd + 1);
+	if (lineEnd == std::string_view::npos) {
+		return false;	
 	}
 
-	DEBUG_MSG("Parser quits:\tend of header section\n");
-	rec->resp = true;
-	responses++;
+	RTSPExtensionReader reader;
+	std::ranges::for_each(reader.getRange(payload.substr(lineEnd + 1)),
+		[&](const Extension& extension) {
+			if (extension.key == "Content-Type") {
+				pluginData.contentType.assign(
+					extension.value.begin(),
+					extension.value.end());
+			}
+			if (extension.key == "Server") {
+				pluginData.server.assign(
+					extension.value.begin(),
+					extension.value.end());
+			}
+		});
+
+	pluginData.processingState.responseParsed = true;
+
 	return true;
 }
 
-/**
- * \brief Check rtsp method.
- * \param [in] method C string with rtsp method.
- * \return True if rtsp method is valid.
- */
-bool RTSPPlugin::valid_rtsp_method(const char* method) const
+constexpr
+PluginUpdateResult RTSPPlugin::updateExportData(std::span<const std::byte> payload, RTSPData& pluginData) noexcept
 {
-	return (
-		!strcmp(method, "GET ") || !strcmp(method, "POST") || !strcmp(method, "PUT ")
-		|| !strcmp(method, "HEAD") || !strcmp(method, "DELE") || !strcmp(method, "TRAC")
-		|| !strcmp(method, "OPTI") || !strcmp(method, "CONN") || !strcmp(method, "PATC")
-		|| !strcmp(method, "DESC") || !strcmp(method, "SETU") || !strcmp(method, "PLAY")
-		|| !strcmp(method, "PAUS") || !strcmp(method, "TEAR") || !strcmp(method, "RECO")
-		|| !strcmp(method, "ANNO"));
+	std::string_view payloadView = {
+		reinterpret_cast<const char*>(payload.data()), payload.size()};
+	if (isRequest(payloadView)) {
+		if (pluginData.processingState.requestParsed) {
+			// TODO Flush and reinsert
+			return {
+				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+				.flowAction = FlowAction::NoAction
+			};
+		}
+		if (!parseRequest(payloadView, pluginData)) {
+			return {
+				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+				.flowAction = FlowAction::NoAction
+			};
+		}
+	}
+
+	if (isResponse(payloadView)) {
+		if (pluginData.processingState.responseParsed) {
+			// TODO Flush and reinsert
+			return {
+				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+				.flowAction = FlowAction::NoAction
+			};
+		}
+		if (!parseResponse(payloadView, pluginData)) {
+			return {
+				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+				.flowAction = FlowAction::NoAction
+			};
+		}
+	}
+
+	return {
+		.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+		.flowAction = FlowAction::NoAction
+	};
 }
 
-/**
- * \brief Add new extension rtsp request header into flow record.
- * \param [in] data Packet payload data.
- * \param [in] payload_len Length of packet payload.
- * \param [out] flow Flow record where to store created extension header.
- */
-void RTSPPlugin::add_ext_rtsp_request(const char* data, int payload_len, Flow& flow)
+PluginInitResult RTSPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	if (recPrealloc == nullptr) {
-		recPrealloc = new RecordExtRTSP(m_pluginID);
-	}
+	auto* pluginData = std::construct_at(reinterpret_cast<RTSPData*>(pluginContext));
+	auto [updateRequirement, flowAction] = updateExportData(toSpan<const std::byte>(
+		flowContext.packet.payload, flowContext.packet.payload_len), *pluginData);
 
-	if (parse_rtsp_request(data, payload_len, recPrealloc)) {
-		flow.add_extension(recPrealloc);
-		recPrealloc = nullptr;
-	}
+	return {
+		.constructionState = ConstructionState::Constructed,
+		.updateRequirement = updateRequirement,
+		.flowAction = flowAction,
+	};
 }
 
-/**
- * \brief Add new extension rtsp response header into flow record.
- * \param [in] data Packet payload data.
- * \param [in] payload_len Length of packet payload.
- * \param [out] flow Flow record where to store created extension header.
- */
-void RTSPPlugin::add_ext_rtsp_response(const char* data, int payload_len, Flow& flow)
+PluginUpdateResult RTSPPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
-	if (recPrealloc == nullptr) {
-		recPrealloc = new RecordExtRTSP(m_pluginID);
-	}
-
-	if (parse_rtsp_response(data, payload_len, recPrealloc)) {
-		flow.add_extension(recPrealloc);
-		recPrealloc = nullptr;
-	}
+	auto* pluginData = reinterpret_cast<RTSPData*>(pluginContext);
+	return updateExportData(toSpan<const std::byte>(
+		flowContext.packet.payload, flowContext.packet.payload_len), *pluginData);
 }
 
-static const PluginRegistrar<RTSPPlugin, ProcessPluginFactory> rtspRegistrar(rtspPluginManifest);
+static const PluginRegistrar<RTSPPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+	rtspRegistrar(rtspPluginManifest);
 
 } // namespace ipxp

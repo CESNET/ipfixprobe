@@ -3,19 +3,27 @@
  * @brief Plugin for parsing mpls traffic.
  * @author Jakub Antonín Štigler xstigl00@stud.fit.vut.cz
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that extracts MPLS top label from packets,
+ * stores them in per-flow plugin data, and exposes that field via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "mpls.hpp"
 
 #include <iostream>
 
-#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
-#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
+#include <pluginFactory.hpp>
+#include <fieldSchema.hpp>
+#include <fieldManager.hpp>
+#include <utils/spanUtils.hpp>
+
+#include "mplsData.hpp"
 
 namespace ipxp {
 
@@ -26,35 +34,55 @@ static const PluginManifest mplsPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			OptionsParser parser("mpls", "Parse MPLS traffic");
-			parser.usage(std::cout);
+			/*OptionsParser parser("mpls", "Parse MPLS traffic");
+			parser.usage(std::cout);*/
 		},
 };
 
-MPLSPlugin::MPLSPlugin(const std::string& params, int pluginID)
-	: ProcessPlugin(pluginID)
+static FieldSchema createMPLSSchema(FieldManager& fieldManager, FieldHandlers<MPLSFields>& handlers) noexcept
 {
-	init(params.c_str());
+	FieldSchema schema = fieldManager.createFieldSchema("mpls");
+
+	// TODO FIX
+	/*handlers.insert(MPLSFields::MPLS_TOP_LABEL_STACK_SECTION, schema.addVectorField(
+		"MPLS_TOP_LABEL_STACK_SECTION",
+		[](const void* context) { return toSpan<const std::byte>(reinterpret_cast<const uint8_t*>(
+				&reinterpret_cast<const MPLSData*>(context)->topLabel),
+				sizeof(uint32_t)); }
+	));*/
+
+	return schema;
 }
 
-ProcessPlugin* MPLSPlugin::copy()
+MPLSPlugin::MPLSPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
 {
-	return new MPLSPlugin(*this);
+	createMPLSSchema(manager, m_fieldHandlers);
 }
 
-int MPLSPlugin::post_create(Flow& rec, const Packet& pkt)
+PluginInitResult MPLSPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	if (pkt.mplsTop == 0) {
-		return 0;
+	if (!flowContext.packet.mplsTop != 0) {
+		return {
+			.constructionState = ConstructionState::NotConstructed,
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::RemovePlugin,
+		};
 	}
 
-	auto ext = new RecordExtMPLS(m_pluginID);
-	ext->mpls = pkt.mplsTop;
-
-	rec.add_extension(ext);
-	return 0;
+	std::construct_at(reinterpret_cast<MPLSData*>(pluginContext))->topLabel = flowContext.packet.mplsTop;
+	m_fieldHandlers[MPLSFields::MPLS_TOP_LABEL_STACK_SECTION].setAsAvailable(flowContext.flowRecord);
+	return {
+		.constructionState = ConstructionState::Constructed,
+		.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+		.flowAction = FlowAction::NoAction,
+	};
 }
 
-static const PluginRegistrar<MPLSPlugin, ProcessPluginFactory> mplsRegistrar(mplsPluginManifest);
+void MPLSPlugin::onDestroy(void* pluginContext)
+{
+	std::destroy_at(reinterpret_cast<MPLSData*>(pluginContext));
+}
+
+static const PluginRegistrar<MPLSPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> mplsRegistrar(mplsPluginManifest);
 
 } // namespace ipxp

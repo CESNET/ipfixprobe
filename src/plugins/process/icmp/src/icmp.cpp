@@ -1,23 +1,31 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for parsing icmp traffic.
+ * @author Jakub Antonín Štigler xstigl00@xstigl00@stud.fit.vut.cz
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that extracts ICMP typecode from packets,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "icmp.hpp"
 
 #include <iostream>
 
-#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
-#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
+#include <pluginFactory.hpp>
+#include <fieldSchema.hpp>
+#include <fieldManager.hpp>
+
+#include "icmpData.hpp"
 
 namespace ipxp {
+
 
 static const PluginManifest icmpPluginManifest = {
 	.name = "icmp",
@@ -26,39 +34,62 @@ static const PluginManifest icmpPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			OptionsParser parser("icmp", "Parse ICMP traffic");
-			parser.usage(std::cout);
+			/*OptionsParser parser("icmp", "Parse ICMP traffic");
+			parser.usage(std::cout);*/
 		},
 };
 
-ICMPPlugin::ICMPPlugin(const std::string& params, int pluginID)
-	: ProcessPlugin(pluginID)
+static FieldSchema createICMPSchema(FieldManager& fieldManager, FieldHandlers<ICMPFields>& handlers)
 {
-	init(params.c_str());
+	FieldSchema schema = fieldManager.createFieldSchema("icmp");
+	handlers.insert(ICMPFields::L4_ICMP_TYPE_CODE, schema.addScalarField(
+		"L4_ICMP_TYPE_CODE",
+		[](const void* context) { return static_cast<const ICMPData*>(context)->typeCode; }
+	));
+
+	return schema;
 }
 
-ProcessPlugin* ICMPPlugin::copy()
+ICMPPlugin::ICMPPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
 {
-	return new ICMPPlugin(*this);
+	createICMPSchema(manager, m_fieldHandlers);
 }
 
-int ICMPPlugin::post_create(Flow& rec, const Packet& pkt)
+PluginInitResult ICMPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	if (pkt.ip_proto == IPPROTO_ICMP || pkt.ip_proto == IPPROTO_ICMPV6) {
-		if (pkt.payload_len < sizeof(RecordExtICMP::type_code))
-			return 0;
+	// TODO values from dissector enums
+	constexpr uint16_t ICMP_PROTO = 1;
+	constexpr uint16_t ICMPV6_PROTO = 58;
 
-		auto ext = new RecordExtICMP(m_pluginID);
-
-		// the type and code are the first two bytes, type on MSB and code on LSB
-		// in the network byte order
-		ext->type_code = *reinterpret_cast<const uint16_t*>(pkt.payload);
-
-		rec.add_extension(ext);
+	if (flowContext.packet.ip_proto != ICMP_PROTO && flowContext.packet.ip_proto != ICMPV6_PROTO) {
+		return {
+			.constructionState = ConstructionState::NotConstructed,
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::RemovePlugin,
+		};
 	}
-	return 0;
+	if (flowContext.packet.payload_len < sizeof(ICMPData::typeCode)) {
+		return {
+			.constructionState = ConstructionState::NotConstructed,
+			.updateRequirement = UpdateRequirement::RequiresUpdate,
+			.flowAction = FlowAction::NoAction,
+		};
+	}
+
+	// the type and code are the first two bytes, type on MSB and code on LSB
+	// in the network byte order
+	std::construct_at(reinterpret_cast<ICMPData*>(pluginContext))->typeCode 
+		= *reinterpret_cast<const uint16_t*>(flowContext.packet.payload);
+	m_fieldHandlers[ICMPFields::L4_ICMP_TYPE_CODE].setAsAvailable(flowContext.flowRecord);
+
+	return {
+		.constructionState = ConstructionState::Constructed,
+		.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+		.flowAction = FlowAction::NoAction,
+	};
 }
 
-static const PluginRegistrar<ICMPPlugin, ProcessPluginFactory> icmpRegistrar(icmpPluginManifest);
+static const PluginRegistrar<ICMPPlugin, 
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> icmpRegistrar(icmpPluginManifest);
 
 } // namespace ipxp

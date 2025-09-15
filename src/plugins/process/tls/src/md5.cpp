@@ -125,6 +125,13 @@ MD5::MD5(const std::string& text)
 	finalize();
 }
 
+MD5::MD5(std::string_view text)
+{
+	init();
+	update(text.data(), text.size());
+	finalize();
+}
+
 //////////////////////////////
 
 void MD5::init()
@@ -378,6 +385,12 @@ std::string md5(const std::string str)
 //////////////////////////////
 
 void md5_get_bin(const std::string str, void* dest)
+{
+	MD5 md5 = MD5(str);
+	memcpy(dest, md5.binary_digest(), 16);
+}
+
+void md5_get_bin(std::string_view str, void* dest)
 {
 	MD5 md5 = MD5(str);
 	memcpy(dest, md5.binary_digest(), 16);

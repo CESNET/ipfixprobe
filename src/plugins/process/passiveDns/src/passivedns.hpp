@@ -1,163 +1,89 @@
 /**
  * @file
- * @brief Plugin for parsing DNS A and AAAA records.
+ * @brief Plugin for parsing DNS responses.
  * @author Jiri Havranek <havranek@cesnet.cz>
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Provides a plugin that parses DNS A, AAAA, PTR responses,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
+ * 
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <cstring>
 #include <sstream>
 #include <string>
+#include <processPlugin.hpp>
+#include <fieldManager.hpp>
+#include <fieldHandlersEnum.hpp>
 
-#ifdef WITH_NEMEA
-#include "fields.h"
-#endif
-
-#include <dns-utils.hpp>
-#include <ipfixprobe/flowifc.hpp>
-#include <ipfixprobe/ipfix-elements.hpp>
-#include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/processPlugin.hpp>
+#include "passivednsData.hpp"
+#include "passivednsFields.hpp"
 
 namespace ipxp {
 
-#define DNS_UNIREC_TEMPLATE "DNS_ID,DNS_ATYPE,DNS_NAME,DNS_RR_TTL,DNS_IP"
-
-UR_FIELDS(uint16 DNS_ID, uint16 DNS_ATYPE, string DNS_NAME, uint32 DNS_RR_TTL, ipaddr DNS_IP)
-
 /**
- * \brief Flow record extension header for storing parsed DNS packets.
- */
-struct RecordExtPassiveDNS : public RecordExt {
-	uint16_t atype;
-	uint16_t id;
-	uint8_t ip_version;
-	char aname[255];
-	uint32_t rr_ttl;
-	ipaddr_t ip;
-
-	/**
-	 * \brief Constructor.
-	 */
-	RecordExtPassiveDNS(int pluginID)
-		: RecordExt(pluginID)
-	{
-		id = 0;
-		atype = 0;
-		ip_version = 0;
-		aname[0] = 0;
-		rr_ttl = 0;
-	}
-
-#ifdef WITH_NEMEA
-	virtual void fill_unirec(ur_template_t* tmplt, void* record)
-	{
-		ur_set(tmplt, record, F_DNS_ID, id);
-		ur_set(tmplt, record, F_DNS_ATYPE, atype);
-		ur_set_string(tmplt, record, F_DNS_NAME, aname);
-		ur_set(tmplt, record, F_DNS_RR_TTL, rr_ttl);
-		if (ip_version == 4) {
-			ur_set(tmplt, record, F_DNS_IP, ip_from_4_bytes_be((char*) &ip.v4));
-		} else if (ip_version == 6) {
-			ur_set(tmplt, record, F_DNS_IP, ip_from_16_bytes_be((char*) ip.v6));
-		}
-	}
-
-	const char* get_unirec_tmplt() const { return DNS_UNIREC_TEMPLATE; }
-#endif
-
-	virtual int fill_ipfix(uint8_t* buffer, int size)
-	{
-		int length;
-		int rdata_len = (ip_version == 4 ? 4 : 16);
-
-		length = strlen(aname);
-		if (length + rdata_len + 10 > size) {
-			return -1;
-		}
-
-		*(uint16_t*) (buffer) = ntohs(id);
-		*(uint32_t*) (buffer + 2) = ntohl(rr_ttl);
-		*(uint16_t*) (buffer + 6) = ntohs(atype);
-		buffer[8] = rdata_len;
-		if (ip_version == 4) {
-			*(uint32_t*) (buffer + 9) = ntohl(ip.v4);
-		} else {
-			memcpy(buffer + 9, ip.v6, sizeof(ip.v6));
-		}
-		buffer[9 + rdata_len] = length;
-		memcpy(buffer + rdata_len + 10, aname, length);
-
-		return length + rdata_len + 10;
-	}
-
-	const char** get_ipfix_tmplt() const
-	{
-		static const char* ipfix_tmplt[] = {IPFIX_PASSIVEDNS_TEMPLATE(IPFIX_FIELD_NAMES) nullptr};
-
-		return ipfix_tmplt;
-	}
-
-	std::string get_text() const
-	{
-		char ip_str[INET6_ADDRSTRLEN];
-		std::ostringstream out;
-
-		if (ip_version == 4) {
-			inet_ntop(AF_INET, (const void*) &ip.v4, ip_str, INET6_ADDRSTRLEN);
-		} else if (ip_version == 6) {
-			inet_ntop(AF_INET6, (const void*) &ip.v6, ip_str, INET6_ADDRSTRLEN);
-		}
-
-		out << "dnsid=" << id << ",atype=" << atype << ",aname=\"" << aname << "\""
-			<< ",rrttl=" << rr_ttl << ",ip=" << ip_str;
-		return out.str();
-	}
-};
-
-/**
- * \brief Flow cache plugin for parsing DNS packets.
+ * @class PassiveDNSPlugin
+ * @brief A plugin for parsing DNS responses.
  */
 class PassiveDNSPlugin : public ProcessPlugin {
 public:
-	PassiveDNSPlugin(const std::string& params, int pluginID);
-	~PassiveDNSPlugin();
-	void init(const char* params);
-	void close();
-	OptionsParser* get_parser() const
-	{
-		return new OptionsParser("passivedns", "Parse A, AAAA and PTR records from DNS traffic");
-	}
-	std::string get_name() const { return "passivedns"; }
-	RecordExt* get_ext() const { return new RecordExtPassiveDNS(m_pluginID); }
-	ProcessPlugin* copy();
-	int post_create(Flow& rec, const Packet& pkt);
-	int post_update(Flow& rec, const Packet& pkt);
-	void finish(bool print_stats);
+
+	/**
+	 * @brief Constructs the PassiveDNS plugin.
+	 *
+	 * @param parameters Plugin parameters as a string (currently unused).
+	 * @param fieldManager Reference to the FieldManager for field registration.
+	 */
+	PassiveDNSPlugin(const std::string& params, FieldManager& manager);
+
+	/**
+	 * @brief Initializes plugin data for a new flow.
+	 *
+	 * Removes plugin if neither source nor destination port is 53.
+	 * Constructs `PassiveDNSData` in `pluginContext`.
+	 * Tries to parse DNS if its a response and updates `PassiveDNSData` with parsed values.
+	 *
+	 * @param flowContext Contextual information about the flow to fill new record.
+	 * @param pluginContext Pointer to pre-allocated memory to create record.
+	 * @return Result of the initialization process.
+	 */
+	PluginInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
+
+	/**
+	 * @brief Updates plugin data with values from new packet.
+	 *
+	 * Parses DNS responses to fill `PassiveDNSData`.
+	 *
+	 * @param flowContext Contextual information about the flow to be updated.
+	 * @param pluginContext Pointer to `PassiveDNSData`.
+	 * @return Result of the update, may not require new packets if burst storage is full.
+	 */
+	PluginUpdateResult onUpdate(const FlowContext& flowContext, void* pluginContext) override;
+
+	/**
+	 * @brief Cleans up and destroys `PassiveDNSData`.
+	 * @param pluginContext Pointer to `PassiveDNSData`.
+	 */
+	void onDestroy(void* pluginContext) override;
+
+	/**
+	 * @brief Provides the memory layout of `PassiveDNSData`.
+	 * @return Memory layout description for the plugin data.
+	 */
+	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	uint32_t total; /**< Total number of parsed DNS responses. */
-	uint32_t parsed_a; /**< Number of parsed A records. */
-	uint32_t parsed_aaaa; /**< Number of parsed AAAA records. */
-	uint32_t parsed_ptr; /**< Number of parsed PTR records. */
+	void parseDNS(
+		std::span<const std::byte> payload,
+		FlowRecord& flowRecord,
+		const uint8_t l4Protocol,
+		PassiveDNSData& pluginData) noexcept;
 
-	const char* data_begin; /**< Pointer to begin of payload. */
-	uint32_t data_len; /**< Length of packet payload. */
-
-	RecordExtPassiveDNS* parse_dns(const char* data, unsigned int payload_len, bool tcp);
-	int add_ext_dns(const char* data, unsigned int payload_len, bool tcp, Flow& rec);
-
-	std::string get_name(const char* data) const;
-	size_t get_name_length(const char* data) const;
-	bool process_ptr_record(std::string name, RecordExtPassiveDNS* rec);
-	bool str_to_uint4(std::string str, uint8_t& dst);
+	FieldHandlers<PassiveDNSFields> m_fieldHandlers;
 };
 
 } // namespace ipxp
