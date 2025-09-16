@@ -10,8 +10,10 @@ private:
 	: m_value(value) {}
 
 public:
-	const static Direction Forward;
-	const static Direction Reverse;
+	//const static Direction Forward;
+	//const static Direction Reverse;
+	inline static const Direction Forward{Value::Forward};
+    inline static const Direction Reverse{Value::Reverse};
 
 	constexpr Direction(const bool value) noexcept 
 	: m_value(static_cast<Value>(value)) {}
@@ -30,8 +32,8 @@ private:
 	Value m_value;
 };
 
-const Direction Direction::Forward = Direction(Value::Forward);
-const Direction Direction::Reverse = Direction(Value::Reverse);
+//const Direction Direction::Forward = Direction(Value::Forward);
+//const Direction Direction::Reverse = Direction(Value::Reverse);
 
 template<typename T>
 struct DirectionalField {

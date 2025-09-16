@@ -3,6 +3,8 @@ project(ipfixprobe-process-mpls VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-mp
 add_library(ipfixprobe-process-mpls MODULE
 	src/mpls.cpp
 	src/mpls.hpp
+	src/mplsData.hpp
+	src/mplsFields.hpp
 )
 
 set_target_properties(ipfixprobe-process-mpls PROPERTIES

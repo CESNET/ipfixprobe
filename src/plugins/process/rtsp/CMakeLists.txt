@@ -3,6 +3,9 @@ project(ipfixprobe-process-rtsp VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-rt
 add_library(ipfixprobe-process-rtsp MODULE
 	src/rtsp.cpp
 	src/rtsp.hpp
+	src/rtspData.hpp
+	src/rtspFields.hpp
+	src/rtspExtensionReader.hpp
 )
 
 set_target_properties(ipfixprobe-process-rtsp PROPERTIES

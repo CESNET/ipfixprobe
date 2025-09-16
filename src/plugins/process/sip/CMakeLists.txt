@@ -3,6 +3,9 @@ project(ipfixprobe-process-sip VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-sip
 add_library(ipfixprobe-process-sip MODULE
 	src/sip.cpp
 	src/sip.hpp
+	src/sipData.hpp
+	src/sipFields.hpp
+	src/sipMessageType.hpp
 )
 
 set_target_properties(ipfixprobe-process-sip PROPERTIES

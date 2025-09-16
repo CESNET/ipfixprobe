@@ -7,8 +7,6 @@
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
-#pragma once
-
 #include "process.hpp"
 
 #include <array>
@@ -22,7 +20,6 @@ Process::popen2(std::string_view command) noexcept
     constexpr std::size_t READ_FD = 0;
     constexpr std::size_t WRITE_FD = 1;
 
-    Process process;
 	std::array<int, 2> pipeStdin;
     std::array<int, 2> pipeStdout;
 	//pid_t pid;
@@ -31,11 +28,10 @@ Process::popen2(std::string_view command) noexcept
 		return std::nullopt;
 	}
 
-    process.pid = fork();
-
-	if (process.pid < 0) {
+	const pid_t pid = fork();
+	if (pid < 0) {
 		return std::nullopt;
-	} else if (process.pid == 0) {
+	} else if (pid == 0) {
 		close(pipeStdin[WRITE_FD]);
 		dup2(pipeStdin[READ_FD], READ_FD);
 		close(pipeStdout[READ_FD]);
@@ -45,10 +41,7 @@ Process::popen2(std::string_view command) noexcept
 		exit(1);
 	}
 
-    process.inputFileDescriptor = pipeStdin[WRITE_FD];
-    process.outputFileDescriptor = pipeStdout[READ_FD];
-
-	return process;
+	return Process{pid, pipeStdin[WRITE_FD], pipeStdout[READ_FD]};
 }
 
 

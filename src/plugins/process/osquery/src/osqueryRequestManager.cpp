@@ -11,7 +11,7 @@
 
 #include <optional>
 #include <format>
-#include <views>
+#include <ranges>
 #include <sys/wait.h>
 #include <arpa/inet.h>
 
@@ -181,7 +181,7 @@ OSQueryRequestManager::readFromOsquery() noexcept
 		return std::nullopt;
 	}
 
-	constexpr auto res 
+	 auto res 
         = std::make_optional<boost::static_string<BUFFER_SIZE>>();
 
     if (!setUpPollFileDescriptor(m_pollFileDescriptor)) {
@@ -192,11 +192,11 @@ OSQueryRequestManager::readFromOsquery() noexcept
         return std::nullopt;
     }
 
-    for (auto chunk : makeChunkReader<CHUNK_SIZE>(outputFD, handler)) {
+    for (auto chunk : makeChunkReader<CHUNK_SIZE>(m_pollFileDescriptor.fd, handler)) {
         if (res->size() + chunk.size() > res->capacity()) {
             chunk.clear();
         }
-        res->append(chunk);
+        res->append(chunk.begin(), chunk.end());
     }
 
     if (handler.isReadSuccess()) {
@@ -230,7 +230,7 @@ void OSQueryRequestManager::openOsqueryFD() noexcept
 	}
 
     handler.setOpen();
-    m_pollFileDescriptor.fd = process->outputFileDescriptor;
+    m_pollFileDescriptor.fd = m_queryingProcess->outputFileDescriptor;
 }
 
 void OSQueryRequestManager::closeOsqueryFD() noexcept

@@ -45,6 +45,8 @@
 #include <poll.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 namespace ipxp {
 
@@ -596,7 +598,7 @@ void serve_stat_clients(ipxp_conf_t& conf, struct pollfd pfds[2])
 	}
 
 	if (pfds[0].revents & POLL_IN) {
-		int fd = accept(pfds[0].fd, NULL, NULL);
+		int fd = accept(pfds[-1].fd, NULL, NULL);
 		if (pfds[1].fd == -1) {
 			pfds[1].fd = fd;
 		} else if (fd != -1) {

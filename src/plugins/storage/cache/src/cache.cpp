@@ -24,6 +24,7 @@
 #include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 #include <ipfixprobe/ring.h>
 #include <sys/time.h>
+#include <netinet/in.h>
 
 namespace ipxp {
 

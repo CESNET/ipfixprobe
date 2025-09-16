@@ -25,9 +25,11 @@ struct Process {
 
     static std::optional<Process> popen2(std::string_view creationCommand) noexcept;
 
-    Process& operator=(Process&& other) = delete;
+    Process(Process&&) = default;
+    Process& operator=(Process&& other) = default;
 private:
-    Process() = default; 
+    Process(const pid_t pid, const int inputFD, const int outputFD)
+        : pid(pid), inputFileDescriptor(inputFD), outputFileDescriptor(outputFD) {}
 };
 
 

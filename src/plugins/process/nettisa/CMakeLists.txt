@@ -3,6 +3,8 @@ project(ipfixprobe-process-nettisa VERSION 1.0.0 DESCRIPTION "ipfixprobe-process
 add_library(ipfixprobe-process-nettisa MODULE
 	src/nettisa.cpp
 	src/nettisa.hpp
+	src/nettisaData.hpp
+	src/nettisaFields.hpp
 )
 
 set_target_properties(ipfixprobe-process-nettisa PROPERTIES

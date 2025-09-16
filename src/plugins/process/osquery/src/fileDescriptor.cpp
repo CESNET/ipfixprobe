@@ -60,6 +60,16 @@ FileDescriptor::FileDescriptor(FileDescriptor&& other) noexcept
 	std::swap(m_fileDescriptor, other.m_fileDescriptor);
 }
 
+FileDescriptor& FileDescriptor::operator=(FileDescriptor&& other) noexcept
+{
+	if (this != &other) {
+		close();
+		std::swap(m_fileDescriptor, other.m_fileDescriptor);
+	}
+	
+	return *this;
+}
+
 FileDescriptor::~FileDescriptor() noexcept
 {
 	close();

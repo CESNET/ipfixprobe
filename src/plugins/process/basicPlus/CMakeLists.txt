@@ -1,8 +1,10 @@
 project(ipfixprobe-process-basicplus VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-basicplus plugin")
 
 add_library(ipfixprobe-process-basicplus MODULE
-	src/basicplus.cpp
-	src/basicplus.hpp
+	src/basicPlus.cpp
+	src/basicPlus.hpp
+	src/basicPlusData.hpp
+	src/basicPlusFields.hpp
 )
 
 set_target_properties(ipfixprobe-process-basicplus PROPERTIES
@@ -10,8 +12,10 @@ set_target_properties(ipfixprobe-process-basicplus PROPERTIES
 	VISIBILITY_INLINES_HIDDEN YES
 )
 
-target_link_libraries(ipfixprobe-process-basicplus PRIVATE
-	ipfixprobe-output-ipfix
+target_link_libraries(ipfixprobe-process-basicplus PRIVATE 
+	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
 )
 
 target_include_directories(ipfixprobe-process-basicplus PRIVATE

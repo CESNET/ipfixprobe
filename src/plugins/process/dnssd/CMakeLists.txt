@@ -3,6 +3,9 @@ project(ipfixprobe-process-dnssd VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-d
 add_library(ipfixprobe-process-dnssd MODULE
 	src/dnssd.cpp
 	src/dnssd.hpp
+	src/dnssdData.hpp
+	src/dnssdFields.hpp
+	src/dnssdRecord.hpp
 )
 
 set_target_properties(ipfixprobe-process-dnssd PROPERTIES
@@ -10,8 +13,10 @@ set_target_properties(ipfixprobe-process-dnssd PROPERTIES
 	VISIBILITY_INLINES_HIDDEN YES
 )
 
-target_include_directories(ipfixprobe-process-dnssd PRIVATE
+target_include_directories(ipfixprobe-process-dnssd PRIVATE 
 	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
 	${CMAKE_SOURCE_DIR}/src/plugins/process/common
 )
 

@@ -704,7 +704,7 @@ bool QUICInitialHeaderView::parseTLSExtensions(TLSParser& parser) noexcept
             const std::optional<TLSParser::ServerNames> parsedServerNames
                 = parser.parseServerNames(extension.payload);
             if (parsedServerNames.has_value() && !parsedServerNames->empty()) {
-                serverName = std::make_optional<QUICExport::ServerName>();
+                serverName = std::make_optional<QUICData::ServerName>();
                 std::ranges::copy((*parsedServerNames)[0] |
                     std::views::take(serverName->capacity()),
                 std::back_inserter(*serverName));
@@ -717,7 +717,7 @@ bool QUICInitialHeaderView::parseTLSExtensions(TLSParser& parser) noexcept
             std::optional<TLSParser::UserAgents> parsedUserAgents = 
                 parser.parseUserAgent(extension.payload);
             if (parsedUserAgents.has_value() && !parsedUserAgents->empty()) {
-                userAgent = std::make_optional<QUICExport::UserAgent>();
+                userAgent = std::make_optional<QUICData::UserAgent>();
                 std::ranges::copy((*parsedUserAgents)[0] |
                     std::views::take(userAgent->capacity()),
                 std::back_inserter(*userAgent));
@@ -730,7 +730,7 @@ bool QUICInitialHeaderView::parseTLSExtensions(TLSParser& parser) noexcept
             || extension.type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS
             || extension.type == TLSExtensionType::QUIC_TRANSPORT_PARAMETERS_V2) {
             std::ranges::copy(extension.payload |
-                std::views::take(QUICExport::MAX_TLS_PAYLOAD_TO_SAVE),
+                std::views::take(QUICData::MAX_TLS_PAYLOAD_TO_SAVE),
                 std::back_inserter(extensionsPayload));
         }
 

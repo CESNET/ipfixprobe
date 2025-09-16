@@ -3,6 +3,9 @@ project(ipfixprobe-process-ntp VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-ntp
 add_library(ipfixprobe-process-ntp MODULE
 	src/ntp.cpp
 	src/ntp.hpp
+	src/ntpData.hpp
+	src/ntpFields.hpp
+	src/ntpHeader.hpp
 )
 
 set_target_properties(ipfixprobe-process-ntp PROPERTIES

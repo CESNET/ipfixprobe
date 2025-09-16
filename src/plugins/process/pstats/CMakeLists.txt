@@ -1,7 +1,7 @@
 project(ipfixprobe-process-pstats VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-pstats plugin")
 
 add_library(ipfixprobe-process-pstats MODULE
-	src/pstats.cpp
+	src/packetStats.cpp
 	src/pstats.hpp
 )
 
@@ -10,8 +10,11 @@ set_target_properties(ipfixprobe-process-pstats PROPERTIES
 	VISIBILITY_INLINES_HIDDEN YES
 )
 
-target_include_directories(ipfixprobe-process-pstats PRIVATE
+target_include_directories(ipfixprobe-process-pstats PRIVATE 
 	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
+	${CMAKE_SOURCE_DIR}/src/plugins/process/common
 )
 
 target_link_libraries(ipfixprobe-process-pstats PRIVATE

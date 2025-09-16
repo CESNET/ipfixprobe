@@ -4,7 +4,7 @@
 
 #include <utils/spanUtils.hpp>
 
-#include "quicExport.hpp"
+#include "quicConnectionId.hpp"
 
 namespace ipxp
 {
@@ -100,7 +100,7 @@ QUICHeaderView::createFrom(
     }
     headerView->destinationConnectionId = toSpan<const uint8_t>(
         payload.data() + destConnectionIdOffset, destConnectionIdLength);
-    if (headerView->destinationConnectionId.size() > QUICExport::MAX_CONNECTION_ID_LENGTH) {
+    if (headerView->destinationConnectionId.size() > MAX_CONNECTION_ID_LENGTH) {
 		// Received DCID longer than supported
 		return std::nullopt;
 	}
@@ -120,7 +120,7 @@ QUICHeaderView::createFrom(
     }
     headerView->sourceConnectionId = toSpan<const uint8_t>(
         payload.data() + srcConnectionIdOffset, srcConnectionIdLength);
-    if (headerView->sourceConnectionId.size() > QUICExport::MAX_CONNECTION_ID_LENGTH) {
+    if (headerView->sourceConnectionId.size() > MAX_CONNECTION_ID_LENGTH) {
 		// Received SCID longer than supported
 		return std::nullopt;
 	}

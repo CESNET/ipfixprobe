@@ -31,6 +31,8 @@ public:
 	explicit FileDescriptor(const int fileDescriptor) noexcept;
 
 	explicit FileDescriptor(FileDescriptor&& other) noexcept;
+	
+	FileDescriptor& operator=(FileDescriptor&& other) noexcept;
 
 	virtual ~FileDescriptor() noexcept;
 
