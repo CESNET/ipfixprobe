@@ -42,7 +42,7 @@ public:
 		CONNECTION_CLOSE2 = 0x1D
 	};
 
-    constexpr static
+    static
     std::optional<QUICInitialHeaderView> createFrom(
         std::span<const std::byte> payload,
         const std::byte headerForm,
@@ -70,7 +70,7 @@ public:
     std::span<const uint8_t> sourceConnectionId;
     std::span<const uint8_t> destinationConnectionId;
 
-    constexpr std::size_t getLength() const noexcept;
+    std::size_t getLength() const noexcept;
 
 private:
 
@@ -84,7 +84,7 @@ private:
         const std::byte* encryptedPacketNumber
     ) noexcept;
 
-    constexpr bool parseTLS(
+    bool parseTLS(
         const ReassembledFrame& reassembledFrame
     ) noexcept;
 

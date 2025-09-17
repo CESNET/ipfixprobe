@@ -16,7 +16,7 @@ struct DNSISDNRecord {
     DNSName isdnAddress;
     DNSName subaddress;
 
-    constexpr static std::optional<DNSISDNRecord> createFrom(
+    static std::optional<DNSISDNRecord> createFrom(
         std::span<const std::byte> payload,
         std::span<const std::byte> fullDNSPayload) noexcept
     {

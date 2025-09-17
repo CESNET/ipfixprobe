@@ -42,7 +42,6 @@ public:
         constexpr std::size_t bufferSize = 512;
         boost::static_string<bufferSize> result;
 
-        auto versionRange = std::views::single(version) | integerToCharPtrView;
         pushBackWithDelimiter(std::to_string(version), result, ',');
 
         auto cipherSuitesRange 

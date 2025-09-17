@@ -167,7 +167,7 @@ struct QUICVersion {
         case QUICVersionId::facebook_experimental2: [[fallthrough]];
         case QUICVersionId::facebook_experimental3: [[fallthrough]];
         case QUICVersionId::facebook_mvfst_alias: [[fallthrough]];
-        case QUICVersionId::facebook_mvfst_alias2: [[fallthrough]];
+        case QUICVersionId::facebook_mvfst_alias2: 
             draft = 27;
             generation = QUICGeneration::V1;
             return;

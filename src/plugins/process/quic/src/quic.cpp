@@ -444,7 +444,7 @@ PluginUpdateResult QUICPlugin::onUpdate(const FlowContext& flowContext, void* pl
 		flowContext.packet.payload, flowContext.packet.payload_len), flowContext.packet.source_pkt, *pluginData);
 }
 
-void onDestroy(void* pluginContext)
+void QUICPlugin::onDestroy(void* pluginContext)
 {
 	std::destroy_at(reinterpret_cast<QUICData*>(pluginContext));
 }

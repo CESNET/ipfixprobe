@@ -74,12 +74,12 @@ public:
 private:
 
 	constexpr void parseSSDP(
-		std::string_view payload, const uint8_t l4Protocol, SSDPData& pluginData, FlowRecord& flowRecord) noexcept;
+		std::string_view payload, SSDPData& pluginData, FlowRecord& flowRecord) noexcept;
 
 	void parseSSDPMSearch(std::string_view headerFields, SSDPData& pluginData, FlowRecord& flowRecord) noexcept;
 
 	void parseSSDPNotify(
-		std::string_view headerFields, const uint8_t l4Protocol, SSDPData& pluginData, FlowRecord& flowRecord) noexcept;
+		std::string_view headerFields, SSDPData& pluginData, FlowRecord& flowRecord) noexcept;
 
 	FieldHandlers<SSDPFields> m_fieldHandlers;
 };

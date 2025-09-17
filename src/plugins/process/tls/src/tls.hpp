@@ -79,7 +79,7 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	constexpr bool parseTLS(
+	bool parseTLS(
 		std::span<const std::byte> payload, const uint8_t l4Protocol, TLSData& pluginData, FlowRecord& flowRecord) noexcept;
 	
 	void saveJA3(const TLSParser& parser, TLSData& pluginData, FlowRecord& flowRecord) noexcept;

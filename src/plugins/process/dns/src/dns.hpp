@@ -20,6 +20,9 @@
 #include <fieldManager.hpp>
 #include <fieldHandlersEnum.hpp>
 
+#include <dnsParser/dnsQuestion.hpp>
+#include <dnsParser/dnsRecord.hpp>
+
 #include "dnsFields.hpp"
 #include "dnsData.hpp"
 
@@ -79,9 +82,11 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-
-	constexpr bool parseDNS(
+	bool parseDNS(
 	std::span<const std::byte> payload, const bool isDNSOverTCP, FlowRecord& flowRecord, DNSData& pluginData) noexcept;
+	bool parseQuery(const DNSQuestion& query, FlowRecord& flowRecord, DNSData& pluginData) noexcept;
+	bool parseAnswer(const DNSRecord& answer, FlowRecord& flowRecord, DNSData& pluginData) noexcept;
+	bool parseAdditional(const DNSRecord& record, FlowRecord& flowRecord, DNSData& pluginData) noexcept;
 
 	FieldHandlers<DNSFields> m_fieldHandlers;
 };

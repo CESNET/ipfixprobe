@@ -88,7 +88,7 @@ PluginInitResult BurstStatsPlugin::onInit(const FlowContext& flowContext, void* 
 	auto* pluginData = std::construct_at(reinterpret_cast<BurstStatsData*>(pluginContext));
 	
 	std::optional<Burst> burst = pluginData->push(Direction::Forward);
-	updateBursts(*burst, flowContext.flowRecord, flowContext.packet);
+	updateBursts(*burst, flowContext.packet);
 
 	return {
 		.constructionState = ConstructionState::Constructed,
@@ -97,8 +97,7 @@ PluginInitResult BurstStatsPlugin::onInit(const FlowContext& flowContext, void* 
 	};
 }
 
-void BurstStatsPlugin::updateBursts(Burst& burst, FlowRecord& flowRecord,
-	const Packet& packet) noexcept
+void BurstStatsPlugin::updateBursts(Burst& burst, const Packet& packet) noexcept
 {
 	burst.packets++;
 	burst.bytes += packet.ip_payload_len;	
@@ -123,7 +122,7 @@ PluginUpdateResult BurstStatsPlugin::onUpdate(const FlowContext& flowContext, vo
 		};
 	}
 
-	updateBursts(*burst, flowContext.flowRecord, flowContext.packet);
+	updateBursts(*burst, flowContext.packet);
 
 	return {
 		.updateRequirement = UpdateRequirement::RequiresUpdate,
@@ -131,7 +130,7 @@ PluginUpdateResult BurstStatsPlugin::onUpdate(const FlowContext& flowContext, vo
 	};
 }
 
-PluginExportResult BurstStatsPlugin::onExport(const FlowRecord& flowRecord, void* pluginContext)
+PluginExportResult BurstStatsPlugin::onExport(const FlowRecord& flowRecord, [[maybe_unused]] void* pluginContext)
 {
 	const uint32_t packetsTotal
 		= static_cast<uint32_t>(

@@ -37,6 +37,7 @@ static const PluginManifest dnssdPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
+			std::cout << "Parse DNS-SD traffic" << std::endl;
 			/*DNSSDOptParser parser;
 			parser.usage(std::cout);*/
 		},
@@ -78,7 +79,7 @@ PluginInitResult DNSSDPlugin::onInit(const FlowContext& flowContext, void* plugi
 	// TODO USE VALUES FROM DISSECTOR
 	constexpr std::size_t TCP = 6;
 	const bool isDNSoverTCP = (flowContext.packet.ip_proto == TCP);
-	if (!parseDNSSD(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), isDNSoverTCP, flowContext.flowRecord, *pluginData)) {
+	if (!parseDNSSD(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), isDNSoverTCP, *pluginData)) {
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -99,7 +100,7 @@ PluginUpdateResult DNSSDPlugin::onUpdate(const FlowContext& flowContext, void* p
 	// TODO USE VALUES FROM DISSECTOR
 	constexpr std::size_t TCP = 6;
 	const bool isDNSoverTCP = (flowContext.packet.ip_proto == TCP);
-	if (!parseDNSSD(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), isDNSoverTCP, flowContext.flowRecord, *pluginData)) {
+	if (!parseDNSSD(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), isDNSoverTCP, *pluginData)) {
 		return {
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
 			.flowAction = FlowAction::RemovePlugin,
@@ -112,10 +113,34 @@ PluginUpdateResult DNSSDPlugin::onUpdate(const FlowContext& flowContext, void* p
 	};
 }
 
+bool DNSSDPlugin::parseAnswer(const DNSRecord& answer, DNSSDData& pluginData) noexcept
+{
+	if (answer.type == DNSQueryType::SRV) {
+		DNSSDRecord& record = pluginData.findOrInsert(answer.name);
+		const auto srv = std::get<DNSSRVRecord>(*answer.payload.getUnderlyingType());
+		record.srvPort = srv.port;
+		record.srvTarget = srv.target;
+	}
+
+	if (answer.type == DNSQueryType::TXT) {
+		DNSSDRecord& record = pluginData.findOrInsert(answer.name);
+		const auto txt = std::get<DNSTXTRecord>(*answer.payload.getUnderlyingType());
+		record.txtContent.push_back(txt.content);
+	}
+
+	if (answer.type == DNSQueryType::HINFO) {
+		DNSSDRecord& record = pluginData.findOrInsert(answer.name);
+		const auto hinfo = std::get<DNSHINFORecord>(*answer.payload.getUnderlyingType());
+		record.cpu = hinfo.cpu;
+		record.operatingSystem = hinfo.operatingSystem;
+	}
+
+	return false;
+}
+
 bool DNSSDPlugin::parseDNSSD(
 	std::span<const std::byte> payload, 
 	const bool isDNSOverTCP,
-	FlowRecord& flowRecord,
 	DNSSDData& pluginData) noexcept
 {
 	DNSParser parser;
@@ -127,31 +152,7 @@ bool DNSSDPlugin::parseDNSSD(
 	};
 
 	auto answerParser = [&](const DNSRecord& answer) {
-
-		if (answer.type == DNSQueryType::SRV) {
-			DNSSDRecord& record = pluginData.findOrInsert(answer.name);
-			const auto& srv 
-				= std::get<DNSSRVRecord>(*answer.payload.getUnderlyingType());
-			record.srvPort = srv.port;
-			record.srvTarget = srv.target;
-		}
-
-		if (answer.type == DNSQueryType::TXT) {
-			DNSSDRecord& record = pluginData.findOrInsert(answer.name);
-			const auto& txt
-				= std::get<DNSTXTRecord>(*answer.payload.getUnderlyingType());
-			record.txtContent.push_back(txt.content);
-		}
-
-		if (answer.type == DNSQueryType::HINFO) {
-			DNSSDRecord& record = pluginData.findOrInsert(answer.name);
-			const auto& hinfo
-				= std::get<DNSHINFORecord>(*answer.payload.getUnderlyingType());
-			record.cpu = hinfo.cpu;
-			record.operatingSystem = hinfo.operatingSystem;
-		}
-
-		return false;
+		return parseAnswer(answer, pluginData);
 	};
 
 	const bool parsed = parser.parse(
@@ -187,6 +188,11 @@ PluginExportResult DNSSDPlugin::onExport(const FlowRecord& flowRecord, void* plu
 	return {
 		.flowAction = FlowAction::NoAction,
 	};
+}
+
+void DNSSDPlugin::onDestroy(void* pluginContext) 
+{
+	std::destroy_at(reinterpret_cast<DNSSDData*>(pluginContext));
 }
 
 PluginDataMemoryLayout DNSSDPlugin::getDataMemoryLayout() const noexcept

@@ -45,8 +45,8 @@ ExpandedLabel expandLabel(
     ExpandedLabel res;
 
 	const uint16_t convertedDesiredLength = htons(DesiredLength);
-    res.push_back(std::byte{convertedDesiredLength >> 8});
-    res.push_back(std::byte{convertedDesiredLength & 0xFF});
+    res.push_back(static_cast<std::byte>(convertedDesiredLength >> 8));
+    res.push_back(static_cast<std::byte>(convertedDesiredLength & 0xFF));
 
     res.insert(
         res.end(), 
@@ -745,7 +745,6 @@ bool QUICInitialHeaderView::parseTLSExtensions(TLSParser& parser) noexcept
 	return extensionsParsed;
 }
 
-constexpr
 bool QUICInitialHeaderView::parseTLS(
     const ReassembledFrame& reassembledFrame
 ) noexcept
@@ -809,13 +808,11 @@ bool QUICInitialHeaderView::parse(
 	return true;
 }
 
-constexpr
 std::size_t QUICInitialHeaderView::getLength() const noexcept
 {
     return m_size;
 }
 
-constexpr
 std::optional<QUICInitialHeaderView> QUICInitialHeaderView::createFrom(
     std::span<const std::byte> payload,
     const std::byte headerForm,

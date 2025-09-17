@@ -87,7 +87,6 @@ std::optional<std::size_t> QUICParser::parseHandshake(
 	return restPayloadLength->value + restPayloadLength->length;
 }
 
-constexpr
 std::optional<std::size_t> QUICParser::parseInitial(
 	std::span<const std::byte> payload,
 	std::span<const uint8_t> currentDCID,

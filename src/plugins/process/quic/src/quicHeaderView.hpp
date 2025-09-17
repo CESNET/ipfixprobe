@@ -31,14 +31,14 @@ public:
     std::span<const uint8_t> sourceConnectionId;
 
 
-    constexpr static std::optional<QUICHeaderView> createFrom(
+    static std::optional<QUICHeaderView> createFrom(
         std::span<const std::byte> payload, 
         const uint8_t l4Protocol
     ) noexcept;
 
-    constexpr std::size_t getLength() const noexcept;
+    std::size_t getLength() const noexcept;
 
-    constexpr PacketType getPacketType() const noexcept;
+    PacketType getPacketType() const noexcept;
 
 private:
 };

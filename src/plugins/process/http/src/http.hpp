@@ -77,7 +77,7 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	constexpr PluginUpdateResult parseHTTP(std::span<const std::byte> payload, FlowRecord& flowRecord, HTTPData& httpData) noexcept;
+	PluginUpdateResult parseHTTP(std::span<const std::byte> payload, FlowRecord& flowRecord, HTTPData& httpData) noexcept;
 
 	FieldHandlers<HTTPFields> m_fieldHandlers;
 };

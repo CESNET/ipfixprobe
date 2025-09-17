@@ -99,7 +99,7 @@ private:
 	constexpr std::optional<std::size_t> parseHandshake(
 		std::span<const std::byte> payload) noexcept;
 
-	constexpr std::optional<std::size_t> parseInitial(
+	std::optional<std::size_t> parseInitial(
 		std::span<const std::byte> payload,
 		std::span<const uint8_t> currentDCID,
 		std::span<const uint8_t> initialDCID,

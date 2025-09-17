@@ -15,7 +15,7 @@ namespace ipxp
 struct DNSTXTRecord {
     DNSName content;
 
-    constexpr static std::optional<DNSTXTRecord> createFrom(
+    static std::optional<DNSTXTRecord> createFrom(
         std::span<const std::byte> payload,
         std::span<const std::byte> fullDNSPayload) noexcept
     {

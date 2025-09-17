@@ -64,7 +64,7 @@ bool checkHeaderForm(const std::byte headerForm) noexcept
     return true;
 }
     
-constexpr std::optional<QUICHeaderView> 
+std::optional<QUICHeaderView> 
 QUICHeaderView::createFrom(
 	std::span<const std::byte> payload, 
 	const uint8_t l4Protocol) noexcept
@@ -128,14 +128,13 @@ QUICHeaderView::createFrom(
     return headerView;
 }
 
-constexpr std::size_t QUICHeaderView::getLength() const noexcept
+std::size_t QUICHeaderView::getLength() const noexcept
 {
     return MIN_HEADER_SIZE +
 		destinationConnectionId.size() + 
 		sourceConnectionId.size();
 }
 
-constexpr
 QUICHeaderView::PacketType 
 QUICHeaderView::getPacketType() const noexcept
 {

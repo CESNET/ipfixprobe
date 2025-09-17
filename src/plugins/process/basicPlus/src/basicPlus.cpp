@@ -32,6 +32,7 @@ static const PluginManifest basicPlusPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
+			std::cout << "Extend basic fields with TTL, TCP window, options, MSS and SYN size" << std::endl;
 			/*OptionsParser parser(
 				"basicplus",
 				"Extend basic fields with TTL, TCP window, options, MSS and SYN size");

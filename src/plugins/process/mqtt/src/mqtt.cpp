@@ -263,15 +263,23 @@ PluginUpdateResult MQTTPlugin::parseMQTT(std::span<const std::byte> payload, Flo
 	};
 }
 
+PluginUpdateResult MQTTPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
+{
+	return parseMQTT(toSpan<const std::byte>(
+		flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, *reinterpret_cast<MQTTData*>(pluginContext));
+}
+
 void MQTTPlugin::onDestroy(void* pluginContext)
 {
 	std::destroy_at(reinterpret_cast<MQTTData*>(pluginContext));
 }
 
-PluginUpdateResult MQTTPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
+PluginDataMemoryLayout MQTTPlugin::getDataMemoryLayout() const noexcept
 {
-	return parseMQTT(toSpan<const std::byte>(
-		flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, *reinterpret_cast<MQTTData*>(pluginContext));
+	return {
+		.size = sizeof(MQTTData),
+		.alignment = alignof(MQTTData),
+	};
 }
 
 static const PluginRegistrar<MQTTPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> 

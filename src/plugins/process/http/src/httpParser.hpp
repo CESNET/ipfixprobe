@@ -34,7 +34,7 @@ public:
 	 * @param rawHttpData HTTP packet data
 	 * @return True of parsed successfully, false otherwise
 	 */
-	constexpr bool parse(std::span<const std::byte> payload) noexcept;
+	bool parse(std::span<const std::byte> payload) noexcept;
 
     bool requestParsed{false};
     bool responseParsed{false};

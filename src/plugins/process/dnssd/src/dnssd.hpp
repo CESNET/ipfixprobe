@@ -92,8 +92,8 @@ private:
 	bool parseDNSSD(
 		std::span<const std::byte> payload, 
 		const bool isDNSoverTCP,
-		FlowRecord& flowRecord,
 		DNSSDData& pluginData) noexcept;
+	bool parseAnswer(const DNSRecord& answer, DNSSDData& pluginData) noexcept;
 
 	FieldHandlers<DNSSDFields> m_fieldHandlers;
 };

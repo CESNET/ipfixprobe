@@ -107,8 +107,8 @@ private:
 	 */
 	std::optional<pid_t> getPID(const FlowKey& flowKey) noexcept;
 	
-	pollfd m_pollFileDescriptor;
-	int countOfAttempts;
+	pollfd m_pollFileDescriptor{};
+	std::size_t countOfAttempts{0};
 	std::optional<Process> m_queryingProcess;
 	OSQueryStateHandler handler;
 };

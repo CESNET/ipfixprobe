@@ -79,7 +79,6 @@ bool isResponse(std::string_view payload) noexcept
 	return hasHttpVersionInResponse(payload);
 }
 
-constexpr
 bool HTTPParser::parse(std::span<const std::byte> payload) noexcept
 {
 	std::string_view payloadView = toStringView(payload);

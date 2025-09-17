@@ -257,7 +257,6 @@ void TLSPlugin::saveJA4(const TLSParser& parser, const uint8_t l4Protocol, TLSDa
 	m_fieldHandlers[TLSFields::TLS_JA4].setAsAvailable(flowRecord);
 }
 
-constexpr
 bool TLSPlugin::parseTLS(
 	std::span<const std::byte> payload, const uint8_t l4Protocol, TLSData& pluginData, FlowRecord& flowRecord) noexcept
 {
@@ -302,6 +301,19 @@ bool TLSPlugin::parseTLS(
 	}
 
 	return false;
+}
+
+void TLSPlugin::onDestroy(void* pluginContext) 
+{
+	std::destroy_at(reinterpret_cast<TLSData*>(pluginContext));
+}
+
+PluginDataMemoryLayout TLSPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(TLSData),
+		.alignment = alignof(TLSData),
+	};
 }
 
 static const PluginRegistrar<TLSPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> 

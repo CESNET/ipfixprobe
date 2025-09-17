@@ -36,7 +36,6 @@ public:
 
     }
 
-    constexpr
     void storeConnectionIds(
         const Direction flowDirection, 
 		std::span<const uint8_t> sourceConnectionId, 

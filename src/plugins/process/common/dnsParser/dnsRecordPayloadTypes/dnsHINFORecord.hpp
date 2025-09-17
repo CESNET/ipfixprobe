@@ -16,7 +16,7 @@ struct DNSHINFORecord {
     DNSName cpu;
     DNSName operatingSystem;
 
-    constexpr static std::optional<DNSHINFORecord> createFrom(
+    static std::optional<DNSHINFORecord> createFrom(
         std::span<const std::byte> payload,
         std::span<const std::byte> fullDNSPayload) noexcept
     {

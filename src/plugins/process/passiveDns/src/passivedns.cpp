@@ -147,19 +147,15 @@ std::optional<IPAddress> getIPFromPTR(std::string ipAsString) noexcept
 		// bytes are in reversed order
 		std::reverse(ipAsString.begin(), ipAsString.end());
 		IPAddress ip;
-		const auto [ptr1, errorCode1] 
-			= std::from_chars(
+
+		if (std::from_chars(
 				ipAsString.data(), 
-				ipAsString.data() + ipAsString.size()/2, ip.u64[0], 16);
-		if (errorCode1 == std::errc()) {
+				ipAsString.data() + ipAsString.size()/2, ip.u64[0], 16).ec != std::errc()) {
 			return std::nullopt;
 		}
-
-		const auto [ptr2, errorCode2] 
-			= std::from_chars(
+		if (std::from_chars(
 				ipAsString.data() + ipAsString.size()/2, 
-				ipAsString.data() + ipAsString.size(), ip.u64[1], 16);
-		if (errorCode2 == std::errc()) {
+				ipAsString.data() + ipAsString.size(), ip.u64[1], 16).ec != std::errc()) {
 			return std::nullopt;
 		}
 
@@ -199,15 +195,13 @@ void PassiveDNSPlugin::parseDNS(
 		}
 
 		if (record.type == DNSQueryType::A) {
-			const auto& aRecord 
-				= std::get<DNSARecord>(*record.payload.getUnderlyingType());
+			const auto aRecord = std::get<DNSARecord>(*record.payload.getUnderlyingType());
 			pluginData.ip = aRecord.address;
 			m_fieldHandlers[PassiveDNSFields::DNS_IP].setAsAvailable(flowRecord);
 		}
 
 		if (record.type == DNSQueryType::AAAA) {
-			const auto& aaaaRecord 
-				= std::get<DNSAAAARecord>(*record.payload.getUnderlyingType());
+			const auto aaaaRecord = std::get<DNSAAAARecord>(*record.payload.getUnderlyingType());
 			pluginData.ip = aaaaRecord.address;
 			m_fieldHandlers[PassiveDNSFields::DNS_IP].setAsAvailable(flowRecord);
 		}

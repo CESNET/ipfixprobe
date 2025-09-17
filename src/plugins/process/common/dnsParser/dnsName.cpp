@@ -38,7 +38,6 @@ constexpr static std::size_t calculateElementsLength(auto&& container) noexcept
         });
 }
 
-constexpr
 std::optional<DNSName> DNSName::createFrom(
     std::span<const std::byte> payload, 
     std::span<const std::byte> fullDNSpayload) noexcept

@@ -83,6 +83,14 @@ void MPLSPlugin::onDestroy(void* pluginContext)
 	std::destroy_at(reinterpret_cast<MPLSData*>(pluginContext));
 }
 
+PluginDataMemoryLayout MPLSPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(MPLSData),
+		.alignment = alignof(MPLSData),
+	};
+}
+
 static const PluginRegistrar<MPLSPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> mplsRegistrar(mplsPluginManifest);
 
 } // namespace ipxp

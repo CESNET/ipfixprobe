@@ -22,6 +22,7 @@ OSQueryRequestManager::OSQueryRequestManager()
 	: countOfAttempts(0)
 {
 	m_pollFileDescriptor.events = POLLIN;
+	m_pollFileDescriptor.fd = -1;
 
 	for (openOsqueryFD();
         !handler.isFatalError() && handler.isOpenError(); 
@@ -117,16 +118,16 @@ bool OSQueryRequestManager::writeToOsquery(std::string_view query) noexcept
 		return false;
 	}
 
-	ssize_t writtenCount 
-        = write(m_queryingProcess->inputFileDescriptor, query.data(), query.size());
+	const ssize_t writtenCount = write(m_queryingProcess->inputFileDescriptor, query.data(), query.size());
+	if (writtenCount == -1) {
+		return false;
+	}
 
-	return writtenCount == query.size();
+	return static_cast<std::size_t>(writtenCount) == query.size();
 }
 
-template<std::size_t ChunkSize>
-constexpr static
-boost::static_string<ChunkSize> readChunk(
-    const int fileDescriptor, OSQueryStateHandler& handler) noexcept
+template<std::size_t ChunkSize> static
+boost::static_string<ChunkSize> readChunk(const int fileDescriptor, OSQueryStateHandler& handler) noexcept
 {
     boost::static_string<ChunkSize> res(ChunkSize, 0);
 
@@ -140,25 +141,23 @@ boost::static_string<ChunkSize> readChunk(
 
     res.resize(bytesRead);
 
-    if (bytesRead < ChunkSize || res[bytesRead - 2] == ']') {
+    if (static_cast<std::size_t>(bytesRead) < ChunkSize || res[bytesRead - 2] == ']') {
         handler.setReadSuccess();
     }
 
     return res;
 }
 
-template <std::size_t ChunkSize>
-constexpr static
+template <std::size_t ChunkSize> static
 auto makeChunkReader(const int fileDescriptor, OSQueryStateHandler& handler) {
-    return std::views::iota(0) | std::views::transform([fileDescriptor, &handler] (int) {
+    return std::views::iota(0) | std::views::transform([&] (int) {
         return readChunk<ChunkSize>(fileDescriptor, handler);
-    }) | std::views::take_while([&handler](const auto& _) {
+    }) | std::views::take_while([&handler]([[maybe_unused]]const auto&) {
         return !handler.isReadSuccess() && !handler.isReadError();
     });
 }
 
-constexpr static
-bool setUpPollFileDescriptor(pollfd& pollFileDescriptor) noexcept
+static bool setUpPollFileDescriptor(pollfd& pollFileDescriptor) noexcept
 {
 	constexpr std::size_t POLL_TIMEOUT = 200; // millis
     pollFileDescriptor.revents = 0;
@@ -181,8 +180,7 @@ OSQueryRequestManager::readFromOsquery() noexcept
 		return std::nullopt;
 	}
 
-	 auto res 
-        = std::make_optional<boost::static_string<BUFFER_SIZE>>();
+	auto res = std::make_optional<boost::static_string<BUFFER_SIZE>>();
 
     if (!setUpPollFileDescriptor(m_pollFileDescriptor)) {
         handler.setReadError();

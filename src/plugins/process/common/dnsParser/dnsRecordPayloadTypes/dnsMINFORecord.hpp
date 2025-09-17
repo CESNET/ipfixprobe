@@ -16,7 +16,7 @@ struct DNSMINFORecord {
     DNSName rMailBox;
     DNSName eMailBox;
 
-    constexpr static std::optional<DNSMINFORecord> createFrom(
+    static std::optional<DNSMINFORecord> createFrom(
         std::span<const std::byte> payload,
         std::span<const std::byte> fullDNSPayload) noexcept
     {

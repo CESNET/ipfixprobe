@@ -107,6 +107,14 @@ void IDPContentPlugin::onDestroy(void* pluginContext)
 	std::destroy_at(reinterpret_cast<IDPContentData*>(pluginContext));
 }
 
+PluginDataMemoryLayout IDPContentPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(IDPContentData),
+		.alignment = alignof(IDPContentData),
+	};
+}
+
 static const PluginRegistrar<IDPContentPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	idpcontentRegistrar(idpcontentPluginManifest);
 

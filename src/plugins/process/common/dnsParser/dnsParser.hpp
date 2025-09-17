@@ -27,7 +27,8 @@ namespace ipxp {
  * @brief DNS parser class
  */
 class DNSParser {
-
+    constexpr static auto EMPTY_QUERY_CALLBACK = [](const DNSQuestion&) { return true; };
+    constexpr static auto EMPTY_RECORD_CALLBACK = [](const DNSRecord&) { return true; };
 public:
 	/**
 	 * @brief Parse given DNS packet
@@ -35,12 +36,11 @@ public:
 	 * @param isDnsOverTCP Flag indicating if the DNS packet is over TCP
 	 * @return True of parsed successfully, false otherwise
 	 */
-	constexpr bool parse(
-    std::span<const std::byte> payload, const bool isDnsOverTCP,
-    const std::function<bool(const DNSQuestion& query)>& queryCallback,
-    const std::function<bool(const DNSRecord& answer)>& answerCallback,
-    const std::function<bool(const DNSRecord& authorityRecord)>& authorityCallback,
-    const std::function<bool(const DNSRecord& additionalRecord)>& additionalCallback) noexcept;
+	bool parse(std::span<const std::byte> payload, const bool isDnsOverTCP,
+    const std::function<bool(const DNSQuestion& query)>& queryCallback = EMPTY_QUERY_CALLBACK,
+    const std::function<bool(const DNSRecord& answer)>& answerCallback = EMPTY_RECORD_CALLBACK,
+    const std::function<bool(const DNSRecord& authorityRecord)>& authorityCallback = EMPTY_RECORD_CALLBACK,
+    const std::function<bool(const DNSRecord& additionalRecord)>& additionalCallback = EMPTY_RECORD_CALLBACK) noexcept;
 
     uint16_t answersCount;
     uint16_t id;
@@ -50,7 +50,6 @@ public:
 	std::optional<OPTRecord> firstOPTRecord;
     std::span<const std::byte> fullDNSPayload;
     
-
 private:
 
 	constexpr std::optional<std::size_t> parseQuestionSection(

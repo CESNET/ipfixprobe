@@ -21,7 +21,7 @@ struct DNSSOARecord {
     DNSName name;
     DNSName email;
 
-    constexpr static std::optional<DNSSOARecord> createFrom(
+    static std::optional<DNSSOARecord> createFrom(
         std::span<const std::byte> payload,
         std::span<const std::byte> fullDNSPayload) noexcept
     {

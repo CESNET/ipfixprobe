@@ -193,6 +193,19 @@ PluginExportResult SSADetectorPlugin::onExport(const FlowRecord& flowRecord, voi
 	};
 }
 
+void SSADetectorPlugin::onDestroy(void* pluginContext)
+{
+	std::destroy_at(reinterpret_cast<SSADetectorData*>(pluginContext));
+}
+
+PluginDataMemoryLayout SSADetectorPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(SSADetectorData),
+		.alignment = alignof(SSADetectorData),
+	};
+}
+
 static const PluginRegistrar<SSADetectorPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	ssaDetectorRegistrar(ssaDetectorPluginManifest);
 

@@ -167,7 +167,7 @@ PluginUpdateResult PacketHistogramPlugin::onUpdate(const FlowContext& flowContex
 	};
 }
 
-PluginExportResult PacketHistogramPlugin::onExport(const FlowRecord& flowRecord, void* pluginContext)
+PluginExportResult PacketHistogramPlugin::onExport(const FlowRecord& flowRecord, [[maybe_unused]] void* pluginContext)
 {
 	const std::size_t packetsTotal = 
 		flowRecord.directionalData[Direction::Forward].packets + flowRecord.directionalData[Direction::Reverse].packets;

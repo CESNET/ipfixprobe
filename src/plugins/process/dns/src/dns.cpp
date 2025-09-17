@@ -136,44 +136,68 @@ PluginUpdateResult DNSPlugin::onUpdate(const FlowContext& flowContext, void* plu
 	};
 }
 
-constexpr
+bool DNSPlugin::parseQuery(const DNSQuestion& query, FlowRecord& flowRecord, DNSData& pluginData) noexcept
+{
+	pluginData.firstQuestionName = query.name.toString();
+	m_fieldHandlers[DNSFields::DNS_NAME].setAsAvailable(flowRecord);
+
+	pluginData.firstQuestionType = query.type;
+	m_fieldHandlers[DNSFields::DNS_QTYPE].setAsAvailable(flowRecord);
+
+	pluginData.firstQuestionClass = query.recordClass;
+	m_fieldHandlers[DNSFields::DNS_CLASS].setAsAvailable(flowRecord);
+
+	return true;
+}
+
+bool DNSPlugin::parseAnswer(const DNSRecord& answer, FlowRecord& flowRecord, DNSData& pluginData) noexcept
+{
+	pluginData.firstResponseTimeToLive = answer.timeToLive;
+	m_fieldHandlers[DNSFields::DNS_RR_TTL].setAsAvailable(flowRecord);
+	const std::optional<DNSRecordPayloadType> firstResponse 
+		= answer.payload.getUnderlyingType(); 
+	pluginData.firstResponseAsString = "";
+	if (firstResponse.has_value()) {
+		pluginData.firstResponseAsString = std::visit(
+			[](const auto& record) {
+				return record.toDNSString();
+			}, *firstResponse);
+	}
+	m_fieldHandlers[DNSFields::DNS_RDATA].setAsAvailable(flowRecord);
+
+	pluginData.firstResponseAsStringLength 
+		= pluginData.firstResponseAsString.size();
+	m_fieldHandlers[DNSFields::DNS_RLENGTH].setAsAvailable(flowRecord);
+
+	return true;
+}
+
+bool DNSPlugin::parseAdditional(const DNSRecord& record, FlowRecord& flowRecord, DNSData& pluginData) noexcept
+{
+	if (record.type != DNSQueryType::OPT) {
+		return false;
+	}
+
+	pluginData.firstOTPPayloadSize = record.recordClass;
+	m_fieldHandlers[DNSFields::DNS_PSIZE].setAsAvailable(flowRecord);
+
+	pluginData.dnssecOkBit = (ntohl(record.timeToLive) & 0x8000) >> 15;
+	m_fieldHandlers[DNSFields::DNS_DO].setAsAvailable(flowRecord);
+
+	return true;
+}
+
 bool DNSPlugin::parseDNS(
 	std::span<const std::byte> payload, const bool isDNSOverTCP, FlowRecord& flowRecord, DNSData& pluginData) noexcept
 {
 	DNSParser parser;
 
 	auto queryParser = [&](const DNSQuestion& query) {
-		pluginData.firstQuestionName = query.name.toString();
-		m_fieldHandlers[DNSFields::DNS_NAME].setAsAvailable(flowRecord);
-
-		pluginData.firstQuestionType = query.type;
-		m_fieldHandlers[DNSFields::DNS_QTYPE].setAsAvailable(flowRecord);
-
-		pluginData.firstQuestionClass = query.recordClass;
-		m_fieldHandlers[DNSFields::DNS_CLASS].setAsAvailable(flowRecord);
-
-		return true;
+		return parseQuery(query, flowRecord, pluginData);
 	};
 
 	auto answerParser = [&](const DNSRecord& answer) {
-		pluginData.firstResponseTimeToLive = answer.timeToLive;
-		m_fieldHandlers[DNSFields::DNS_RR_TTL].setAsAvailable(flowRecord);
-		const std::optional<DNSRecordPayloadType> firstResponse 
-			= answer.payload.getUnderlyingType(); 
-		pluginData.firstResponseAsString = "";
-		if (firstResponse.has_value()) {
-			pluginData.firstResponseAsString = std::visit(
-				[](const auto& record) {
-					return record.toDNSString();
-				}, *firstResponse);
-		}
-		m_fieldHandlers[DNSFields::DNS_RDATA].setAsAvailable(flowRecord);
-
-		pluginData.firstResponseAsStringLength 
-			= pluginData.firstResponseAsString.size();
-		m_fieldHandlers[DNSFields::DNS_RLENGTH].setAsAvailable(flowRecord);
-
-		return true;
+		return parseAnswer(answer, flowRecord, pluginData);		
 	};
 
 	constexpr auto authorityParser = [](const DNSRecord&){
@@ -181,17 +205,7 @@ bool DNSPlugin::parseDNS(
 	};
 
 	auto additionalParser = [&](const DNSRecord& record) {
-		if (record.type != DNSQueryType::OPT) {
-			return false;
-		}
-	
-		pluginData.firstOTPPayloadSize = record.recordClass;
-		m_fieldHandlers[DNSFields::DNS_PSIZE].setAsAvailable(flowRecord);
-
-		pluginData.dnssecOkBit = (ntohl(record.timeToLive) & 0x8000) >> 15;
-		m_fieldHandlers[DNSFields::DNS_DO].setAsAvailable(flowRecord);
-	
-		return true;
+		return parseAdditional(record, flowRecord, pluginData);		
 	};
 
 	const bool parsed = parser.parse(

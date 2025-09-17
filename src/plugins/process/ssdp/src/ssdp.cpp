@@ -99,9 +99,7 @@ std::optional<uint16_t> parseLocationPort(std::string_view value) noexcept
 
 	const std::string_view portView = value.substr(portPos + 1);
 	uint16_t port;
-	const auto [_, errorCode]
-		= std::from_chars(portView.begin(), portView.end(), port);
-	if (errorCode != std::errc()) {
+	if (std::from_chars(portView.begin(), portView.end(), port).ec != std::errc()) {
 		return std::nullopt;
 	}
 
@@ -109,7 +107,7 @@ std::optional<uint16_t> parseLocationPort(std::string_view value) noexcept
 }
 
 void SSDPPlugin::parseSSDPNotify(
-	std::string_view headerFields, const uint8_t l4Protocol, SSDPData& pluginData, FlowRecord& flowRecord) noexcept
+	std::string_view headerFields, SSDPData& pluginData, FlowRecord& flowRecord) noexcept
 {
 	HeaderFieldReader reader;
 
@@ -157,7 +155,7 @@ void SSDPPlugin::parseSSDPMSearch(std::string_view headerFields, SSDPData& plugi
 }
 
 constexpr
-void SSDPPlugin::parseSSDP(std::string_view payload, const uint8_t l4Protocol, SSDPData& pluginData, FlowRecord& flowRecord) noexcept
+void SSDPPlugin::parseSSDP(std::string_view payload, SSDPData& pluginData, FlowRecord& flowRecord) noexcept
 {
 	if (payload.empty()) {
 		return;
@@ -171,7 +169,7 @@ void SSDPPlugin::parseSSDP(std::string_view payload, const uint8_t l4Protocol, S
 	std::string_view headerFields = payload.substr(headerEnd + 1);
 
 	if (toStringView(payload).starts_with("NOTIFY")) {
-		parseSSDPNotify(headerFields, l4Protocol, pluginData, flowRecord);
+		parseSSDPNotify(headerFields, pluginData, flowRecord);
 	}
 	
 	if (toStringView(payload).starts_with("M-SEARCH")) {
@@ -192,7 +190,7 @@ PluginInitResult SSDPPlugin::onInit(const FlowContext& flowContext, void* plugin
 
 	auto* pluginData = std::construct_at(reinterpret_cast<SSDPData*>(pluginContext));
 	parseSSDP(toStringView(
-		flowContext.packet.payload, flowContext.packet.payload_len), flowContext.packet.ip_proto, *pluginData, flowContext.flowRecord);
+		flowContext.packet.payload, flowContext.packet.payload_len), *pluginData, flowContext.flowRecord);
 
 	return {
 		.constructionState = ConstructionState::Constructed,
@@ -207,7 +205,7 @@ PluginUpdateResult SSDPPlugin::onUpdate(const FlowContext& flowContext, void* pl
 	constexpr std::size_t SSDP_PORT = 1900;
 	if (flowContext.packet.dst_port == SSDP_PORT) {
 		parseSSDP(toStringView(
-			flowContext.packet.payload, flowContext.packet.payload_len), flowContext.packet.ip_proto, *pluginData, flowContext.flowRecord);
+			flowContext.packet.payload, flowContext.packet.payload_len), *pluginData, flowContext.flowRecord);
 	}
 
 	return {

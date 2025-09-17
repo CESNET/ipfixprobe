@@ -17,7 +17,7 @@ namespace ipxp
 class DNSName {
 public:
 
-    constexpr static
+    static
     std::optional<DNSName> createFrom(
         std::span<const std::byte> payload, 
         std::span<const std::byte> fullDNSpayload) noexcept;
@@ -34,7 +34,7 @@ public:
      * @return Length of DNS name excluding length of data pointed by DNS pointer
      * i.e after that count of bytes there is DNS question type field
      */
-    constexpr std::size_t length() const noexcept;
+    std::size_t length() const noexcept;
 
     bool operator==(const DNSName& other) const noexcept;
 

@@ -5,6 +5,13 @@ add_library(ipfixprobe-process-dns MODULE
 	src/dns.hpp
 	src/dnsData.hpp
 	src/dnsFields.hpp
+	../common/dnsParser/dnsParser.cpp
+	../common/dnsParser/dnsParser.hpp
+	../common/dnsParser/dnsName.cpp
+	../common/dnsParser/dnsName.hpp
+	../common/dnsParser/dnsSection.cpp
+	../common/dnsParser/dnsSection.hpp
+	../common/dnsParser/dnsQuestion.hpp
 )
 
 set_target_properties(ipfixprobe-process-dns PROPERTIES

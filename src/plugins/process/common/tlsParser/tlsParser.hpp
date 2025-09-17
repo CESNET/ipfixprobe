@@ -88,16 +88,16 @@ public:
 	using SupportedGroups
 		= boost::container::static_vector<uint16_t, TLSParser::MAX_SUPPORTED_GROUPS>;
 
-	constexpr static bool isGreaseValue(const uint16_t value) noexcept;
+	static bool isGreaseValue(const uint16_t value) noexcept;
 
-	constexpr bool parseHello(std::span<const std::byte> payload) noexcept;
+	bool parseHello(std::span<const std::byte> payload) noexcept;
 
-	constexpr bool parseHelloFromQUIC(std::span<const std::byte> payload) noexcept;
+	bool parseHelloFromQUIC(std::span<const std::byte> payload) noexcept;
 
 	bool parseExtensions(
 		const std::function<bool(const TLSExtension&)>& callable) noexcept;
 
-	constexpr static
+	static
 	std::optional<ServerNames>
 	parseServerNames(std::span<const std::byte> extension) noexcept;
 
@@ -105,15 +105,15 @@ public:
 	std::optional<TLSParser::UserAgents>
 	parseUserAgent(std::span<const std::byte> extension) noexcept;
 
-	constexpr static
+	static
 	std::optional<TLSParser::SupportedGroups>
 	parseSupportedGroups(std::span<const std::byte> extension) noexcept;
 
-	constexpr static
+	static
 	std::optional<EllipticCurvePointFormats>
 	parseEllipticCurvePointFormats(std::span<const std::byte> extension) noexcept;
 
-	constexpr static
+	static
 	std::optional<TLSParser::ALPNs>
 	parseALPN(std::span<const std::byte> extension) noexcept;
 
@@ -121,20 +121,20 @@ public:
 	std::optional<TLSParser::SignatureAlgorithms>
 	parseSignatureAlgorithms(std::span<const std::byte> extension) noexcept;
 
-	constexpr static
+	static
 	std::optional<TLSParser::SupportedVersions>
 	parseSupportedVersions(
 		std::span<const std::byte> extension, const TLSHandshake& handshake) noexcept;
 
-	constexpr bool isClientHello() const noexcept;
+	bool isClientHello() const noexcept;
 
-	constexpr bool isServerHello() const noexcept;
+	bool isServerHello() const noexcept;
 
 	//constexpr const TLSHandshake& getHandshake() const noexcept;
 
 //	constexpr const CipherSuites& getCipherSuites() const noexcept;
 
-	constexpr bool parse(
+	bool parse(
 		std::span<const std::byte> payload, const bool isQUIC) noexcept;
 
 	std::optional<TLSHandshake> handshake;

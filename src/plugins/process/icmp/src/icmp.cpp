@@ -89,6 +89,19 @@ PluginInitResult ICMPPlugin::onInit(const FlowContext& flowContext, void* plugin
 	};
 }
 
+void ICMPPlugin::onDestroy(void* pluginContext)
+{
+	std::destroy_at(reinterpret_cast<ICMPData*>(pluginContext));
+}
+
+PluginDataMemoryLayout ICMPPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(ICMPData),
+		.alignment = alignof(ICMPData),
+	};
+}
+
 static const PluginRegistrar<ICMPPlugin, 
 	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> icmpRegistrar(icmpPluginManifest);
 

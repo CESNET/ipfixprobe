@@ -79,6 +79,7 @@ PluginDataMemoryLayout FlowHashPlugin::getDataMemoryLayout() const noexcept
 		.alignment = alignof(FlowHashData),
 	};
 }
+
 static const PluginRegistrar<FlowHashPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	flowhashRegistrar(flowhashPluginManifest);
 

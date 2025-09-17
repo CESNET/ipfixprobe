@@ -163,7 +163,6 @@ std::string_view getTruncatedExtensionsHash(
 
 class JA4 {
 public:
-    constexpr
     JA4(const uint8_t l4Protocol,
         const TLSHandshake& handshake,
         std::span<const std::string_view> serverNames,

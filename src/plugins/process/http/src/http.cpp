@@ -89,7 +89,6 @@ HTTPPlugin::HTTPPlugin([[maybe_unused]]const std::string& params, FieldManager& 
 	createHTTPSchema(manager, m_fieldHandlers);
 }
 
-constexpr
 PluginUpdateResult HTTPPlugin::parseHTTP(
 	std::span<const std::byte> payload, FlowRecord& flowRecord, HTTPData& httpData) noexcept
 {
@@ -209,6 +208,14 @@ PluginUpdateResult HTTPPlugin::onUpdate(const FlowContext& flowContext, void* pl
 void HTTPPlugin::onDestroy(void* pluginContext) 
 {
 	std::destroy_at(reinterpret_cast<HTTPData*>(pluginContext));
+}
+
+PluginDataMemoryLayout HTTPPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(HTTPData),
+		.alignment = alignof(HTTPData),
+	};
 }
 
 static const PluginRegistrar<HTTPPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>

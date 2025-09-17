@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstdint>
+
 #include "dnsQueryType.hpp"
+#include "dnsName.hpp"
 
 namespace ipxp
 {

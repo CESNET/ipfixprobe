@@ -294,6 +294,19 @@ PluginUpdateResult RTSPPlugin::onUpdate(const FlowContext& flowContext, void* pl
 		flowContext.packet.payload, flowContext.packet.payload_len), *pluginData);
 }
 
+void RTSPPlugin::onDestroy(void* pluginContext)
+{
+	std::destroy_at(reinterpret_cast<RTSPData*>(pluginContext));
+}
+
+PluginDataMemoryLayout RTSPPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(RTSPData),
+		.alignment = alignof(RTSPData),
+	};
+}
+
 static const PluginRegistrar<RTSPPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	rtspRegistrar(rtspPluginManifest);
 

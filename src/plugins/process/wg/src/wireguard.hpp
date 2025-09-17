@@ -76,7 +76,7 @@ public:
 
 private:
 
-	constexpr PluginUpdateResult parseWireguard(
+	PluginUpdateResult parseWireguard(
 		std::span<const std::byte> payload, const Direction direction, WireguardData& pluginData, FlowRecord& flowRecord) noexcept;
 
 	FieldHandlers<WireguardFields> m_fieldHandlers;

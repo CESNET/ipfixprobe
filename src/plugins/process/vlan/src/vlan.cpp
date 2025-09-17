@@ -56,8 +56,8 @@ VLANPlugin::VLANPlugin([[maybe_unused]]const std::string& params, FieldManager& 
 
 PluginInitResult VLANPlugin::onInit(const FlowContext& flowContext, void* pluginContext) 
 {
-	auto pluginData = *std::construct_at(reinterpret_cast<VLANData*>(pluginContext));
-	pluginData.vlanId = flowContext.packet.vlan_id;
+	std::construct_at(reinterpret_cast<VLANData*>(pluginContext))->vlanId 
+		= flowContext.packet.vlan_id;
 	m_fieldHandlers[VLANFields::VLAN_ID].setAsAvailable(flowContext.flowRecord);
 
 	return {

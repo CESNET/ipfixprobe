@@ -91,7 +91,7 @@ public:
 private:
 	constexpr static std::size_t MINIMAL_PACKETS_COUNT = 3; ///< Minimal number of packets to consider the flow valid.
 
-	void updateBursts(Burst& burst, FlowRecord& flowRecord, const Packet& packet) noexcept;
+	void updateBursts(Burst& burst, const Packet& packet) noexcept;
 	void makeAllFieldsUnavailable(FlowRecord& flowRecord) noexcept; 
 
 	FieldHandlers<BurstStatsFields> m_fieldHandlers;

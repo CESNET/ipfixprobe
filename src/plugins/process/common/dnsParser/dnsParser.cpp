@@ -77,7 +77,7 @@ std::optional<DNSHeader> parseHeader(std::span<const std::byte> payload) noexcep
 	return *reinterpret_cast<const DNSHeader*>(payload.data());
 }
 
-constexpr bool DNSParser::parse(
+bool DNSParser::parse(
     std::span<const std::byte> payload, const bool isDNSOverTCP,
     const std::function<bool(const DNSQuestion& query)>& queryCallback,
     const std::function<bool(const DNSRecord& answer)>& answerCallback,

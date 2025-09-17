@@ -29,20 +29,18 @@
 
 namespace ipxp {
 
-constexpr bool TLSParser::isGreaseValue(const uint16_t value) noexcept
+bool TLSParser::isGreaseValue(const uint16_t value) noexcept
 {
 	return value != 0 && 
 	!(value & ~(0xFAFA)) && 
 	((0x00FF & value) == (value >> 8));
 }
 
-constexpr
 bool TLSParser::parseHello(std::span<const std::byte> payload) noexcept
 {
 	return parse(payload, false);
 }
 
-constexpr
 bool TLSParser::parseHelloFromQUIC(std::span<const std::byte> payload) noexcept
 {
 	return parse(payload, true);
@@ -198,7 +196,7 @@ parseClientCipherSuites(std::span<const std::byte> payload) noexcept
 	return res;
 }
 
-constexpr bool TLSParser::parse(
+bool TLSParser::parse(
 	std::span<const std::byte> payload, const bool isQUIC) noexcept
 {
 	const std::optional<std::size_t> headerLength 
@@ -248,7 +246,6 @@ constexpr bool TLSParser::parse(
 	return true;
 }
 
-constexpr
 std::optional<TLSParser::ServerNames>
 TLSParser::parseServerNames(std::span<const std::byte> extension) noexcept
 {
@@ -295,7 +292,6 @@ TLSParser::parseUserAgent(std::span<const std::byte> extension) noexcept
 	return res;
 }
 
-constexpr
 std::optional<TLSParser::SupportedGroups>
 TLSParser::parseSupportedGroups(std::span<const std::byte> extension) noexcept
 {
@@ -321,7 +317,6 @@ TLSParser::parseSupportedGroups(std::span<const std::byte> extension) noexcept
 	return res;
 }
 
-constexpr
 std::optional<TLSParser::EllipticCurvePointFormats>
 TLSParser::parseEllipticCurvePointFormats(std::span<const std::byte> extension) noexcept
 {
@@ -347,7 +342,6 @@ TLSParser::parseEllipticCurvePointFormats(std::span<const std::byte> extension) 
 	return res;
 }
 
-constexpr
 std::optional<TLSParser::ALPNs>
 TLSParser::parseALPN(std::span<const std::byte> extension) noexcept
 {
@@ -388,7 +382,6 @@ TLSParser::parseSignatureAlgorithms(std::span<const std::byte> extension) noexce
 	return res;
 }
 
-constexpr
 std::optional<TLSParser::SupportedVersions>
 TLSParser::parseSupportedVersions(
 	std::span<const std::byte> extension, const TLSHandshake& handshake) noexcept
@@ -421,28 +414,14 @@ TLSParser::parseSupportedVersions(
 	return res;
 }
 
-/*constexpr
-const TLSHandshake& TLSParser::getHandshake() const noexcept
-{
-	return *handshake;
-}*/
-
-constexpr
 bool TLSParser::isClientHello() const noexcept
 {
 	return handshake->type == TLSHandshake::Type::CLIENT_HELLO;
 }
 
-constexpr
 bool TLSParser::isServerHello() const noexcept
 {
 	return handshake->type == TLSHandshake::Type::SERVER_HELLO;
 }
-
-/*constexpr
-const TLSParser::CipherSuites& TLSParser::getCipherSuites() const noexcept
-{
-	return *cipherSuites;
-}*/
 
 } // namespace ipxp
