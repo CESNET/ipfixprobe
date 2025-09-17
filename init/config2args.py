@@ -280,14 +280,14 @@ def process_input_raw_plugin(settings):
 
     params = []
     for interface in interfaces_list:
-        param = f"-i \"raw;ifc={interface}\""
+        param = f"-i \"raw;ifc={interface}"
 
         # Add blocks_count and packets_in_block only if they have a value
         if blocks_count:
             param += f";blocks={blocks_count}"
         if packets_in_block:
             param += f";pkts={packets_in_block}"
-
+        param += "\""
         params.append(param)
 
     return " ".join(params)
