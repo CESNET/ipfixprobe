@@ -21,6 +21,8 @@
 #include <string_view>
 #include <type_traits>
 
+#include "../api.hpp"
+
 namespace ipxp {
 
 /**
@@ -34,14 +36,14 @@ namespace ipxp {
  * @tparam Args The types of arguments that will be passed to the plugin constructors.
  */
 template<typename Base, typename... Args>
-class PluginFactory {
+class IPXP_API PluginFactory {
 public:
 	/**
 	 * @brief Retrieves the singleton instance of `PluginFactory`.
 	 *
 	 * @return A reference to the singleton `PluginFactory` instance.
 	 */
-	static PluginFactory& getInstance()
+	inline static PluginFactory& getInstance()
 	{
 		static PluginFactory instance;
 		return instance;
