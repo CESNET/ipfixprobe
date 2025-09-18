@@ -16,9 +16,11 @@
 
 #include <iostream>
 
-#include <pluginManifest.hpp>
-#include <pluginRegistrar.hpp>
-#include <pluginFactory.hpp>
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+//#include <pluginManifest.hpp>
+//#include <pluginRegistrar.hpp>
+//#include <pluginFactory.hpp>
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
 #include <tcpData.hpp>
@@ -32,7 +34,7 @@ static const PluginManifest basicPlusPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			std::cout << "Extend basic fields with TTL, TCP window, options, MSS and SYN size" << std::endl;
+			std::cout << "tes666" << std::endl;
 			/*OptionsParser parser(
 				"basicplus",
 				"Extend basic fields with TTL, TCP window, options, MSS and SYN size");

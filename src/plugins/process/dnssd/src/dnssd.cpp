@@ -16,9 +16,12 @@
 
 #include <iostream>
 
-#include <pluginManifest.hpp>
-#include <pluginRegistrar.hpp>
-#include <pluginFactory.hpp>
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+
+//#include <pluginManifest.hpp>
+//#include <pluginRegistrar.hpp>
+//#include <pluginFactory.hpp>
 #include <fieldSchema.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
@@ -37,7 +40,7 @@ static const PluginManifest dnssdPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			std::cout << "Parse DNS-SD traffic" << std::endl;
+			std::cout << "'XXXXXXXXXXXXXXXXXXXXXXXX TEST'" << std::endl;
 			/*DNSSDOptParser parser;
 			parser.usage(std::cout);*/
 		},
@@ -203,7 +206,6 @@ PluginDataMemoryLayout DNSSDPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<DNSSDPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
-	dnssdRegistrar(dnssdPluginManifest);
+static const PluginRegistrar<DNSSDPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> dnssdRegistrar(dnssdPluginManifest);
 
 } // namespace ipxp

@@ -10,12 +10,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "dnssd.hpp"
+#include "test.hpp"
 
 #include <iostream>
 #include <sstream>
 
-#include <arpa/inet.h>
 #include <errno.h>
 #include <ipfixprobe/pluginFactory/pluginManifest.hpp>
 #include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>

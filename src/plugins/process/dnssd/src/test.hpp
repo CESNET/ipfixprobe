@@ -29,6 +29,7 @@
 #include <ipfixprobe/options.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/processPlugin.hpp>
+#include <arpa/inet.h>
 
 namespace ipxp {
 
