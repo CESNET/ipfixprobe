@@ -21,10 +21,13 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/options.hpp>
-#include <ipfixprobe/outputPlugin.hpp>
-#include <ipfixprobe/processPlugin.hpp>
+//#include <ipfixprobe/outputPlugin.hpp>
+//#include <ipfixprobe/processPlugin.hpp>
 #include <ipfixprobe/utils.hpp>
 #include <lz4.h>
+
+#include "fieldDescriptor.hpp"
+#include "outputPlugin.hpp"
 
 #define COUNT_IPFIX_TEMPLATES(T) +1
 
@@ -41,6 +44,7 @@
 #define RECONNECT_TIMEOUT 60
 #define TEMPLATE_REFRESH_TIME 600
 #define TEMPLATE_REFRESH_PACKETS 0
+#define DEFAULT_EXPORTER_ID 1
 
 namespace ipxp {
 
@@ -546,14 +550,24 @@ private:
 
 class IPFIXExporter : public OutputPlugin {
 public:
-	IPFIXExporter(const std::string& params, ProcessPlugins& plugins);
+
+	IPFIXExporter(const std::string& params, const FieldManager& manager, const std::vector<ProcessPluginEntry>& plugins)
+		: OutputPlugin(manager, plugins)
+	{
+		// TODO parse params
+		(void)params;
+	}
+
+	void processRecord(FlowRecordUniquePtr& flowRecord) override;
+
+	/*IPFIXExporter(const std::string& params, ProcessPlugins& plugins);
 	~IPFIXExporter();
 	void init(const char* params);
 	void init(const char* params, ProcessPlugins& plugins);
 	void close();
 	OptionsParser* get_parser() const { return new IpfixOptParser(); }
 	std::string get_name() const { return "ipfix"; }
-	int export_flow(const Flow& flow);
+	int export_flow(const Flow& flow);*/
 
 private:
 	/* Templates */

@@ -12,14 +12,14 @@ set_target_properties(ipfixprobe-process-basicplus PROPERTIES
 	VISIBILITY_INLINES_HIDDEN YES
 )
 
-target_link_libraries(ipfixprobe-process-basicplus PRIVATE 
-	${CMAKE_SOURCE_DIR}/include/
-	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
-	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
+target_link_libraries(ipfixprobe-process-basicplus PRIVATE
+	ipfixprobe-output-ipfix
 )
 
 target_include_directories(ipfixprobe-process-basicplus PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
 )
 
 if(ENABLE_NEMEA)

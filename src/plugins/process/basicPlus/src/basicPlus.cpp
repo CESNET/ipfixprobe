@@ -197,7 +197,6 @@ PluginDataMemoryLayout BasicPlusPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<BasicPlusPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
-	basicPlusRegistrar(basicPlusPluginManifest);
+static const PluginRegistrar<BasicPlusPlugin, ProcessPluginFactory> basicPlusRegistrar(basicPlusPluginManifest);
 
 } // namespace ipxp

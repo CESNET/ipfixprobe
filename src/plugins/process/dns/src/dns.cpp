@@ -240,7 +240,6 @@ PluginDataMemoryLayout DNSPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<DNSPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
-	dnsRegistrar(dnsPluginManifest);
+static const PluginRegistrar<DNSPlugin, ProcessPluginFactory> dnsRegistrar(dnsPluginManifest);
 
 } // namespace ipxp

@@ -20,7 +20,7 @@ target_include_directories(ipfixprobe-process-bstats PRIVATE
 )
 
 target_link_libraries(ipfixprobe-process-bstats PRIVATE
-	ipfixprobe-output-ipfix
+	ipfixprobe-core
 )
 
 if(ENABLE_NEMEA)

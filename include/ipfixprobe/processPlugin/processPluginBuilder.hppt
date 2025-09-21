@@ -2,7 +2,6 @@
 
 #include "fieldHandler.hpp"
 #include "flowRecord.hpp"
-#include "icmp.hpp"
 #include "packet.hpp"
 #include "processPluginEntry.hpp"
 

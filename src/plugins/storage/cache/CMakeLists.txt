@@ -23,6 +23,8 @@ set_target_properties(ipfixprobe-storage-cache PROPERTIES
 
 target_include_directories(ipfixprobe-storage-cache PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
 )
 
 target_link_libraries(ipfixprobe-storage-cache PRIVATE

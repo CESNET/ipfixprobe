@@ -17,14 +17,14 @@
 
 #include <iostream>
 
-#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+//#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
 #include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 
 //#include <pluginManifest.hpp>
 //#include <pluginRegistrar.hpp>
 //#include <pluginFactory.hpp>
 #include <fieldSchema.hpp>
-#include <fieldManager.hpp>
+//#include <fieldManager.hpp>
 
 namespace ipxp {
 
@@ -36,6 +36,7 @@ static const PluginManifest burstStatsPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
+			std::cout << "Test" << std::endl;
 			/*OptionsParser parser("bstats", "Compute packet bursts stats");
 			parser.usage(std::cout);*/
 		},
@@ -171,7 +172,6 @@ PluginDataMemoryLayout BurstStatsPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<BurstStatsPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
-	burstStatsRegistrar(burstStatsPluginManifest);
+static const PluginRegistrar<BurstStatsPlugin, ProcessPluginFactory> burstStatsRegistrar(burstStatsPluginManifest);
 
 } // namespace ipxp

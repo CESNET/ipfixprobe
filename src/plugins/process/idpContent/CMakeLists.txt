@@ -18,6 +18,9 @@ target_include_directories(ipfixprobe-process-idpcontent PRIVATE
 	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
 	${CMAKE_SOURCE_DIR}/src/plugins/process/common
 )
+target_link_libraries(ipfixprobe-process-idpcontent PRIVATE
+	ipfixprobe-core
+)
 
 if(ENABLE_NEMEA)
 	target_link_libraries(ipfixprobe-process-idpcontent PRIVATE

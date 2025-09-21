@@ -27,6 +27,11 @@ struct Timestamp {
 		return ts;
 	}
 
+	constexpr uint64_t toSeconds() const noexcept
+	{
+		return ns / 1'000'000'000;
+	}
+
 	constexpr bool operator<(const Timestamp& other) const noexcept
 	{
 		return ns < other.ns;

@@ -19,7 +19,6 @@
 #include "packet.hpp"
 #include "fieldManager.hpp"
 #include "../api.hpp"
-#include "../pluginFactory/pluginFactory.hpp"
 
 namespace ipxp {
 
@@ -229,10 +228,23 @@ public:
 	[[nodiscard]] virtual PluginDataMemoryLayout getDataMemoryLayout() const noexcept = 0;
 };
 
-/*template<typename Base, typename... Args>
+/**
+ * @brief Factory template for creating plugins.
+ *
+ * This template allows dynamic creation of plugin instances based on the specified
+ * base class and constructor argument types.
+ *
+ * @tparam Base The base class for the plugin.
+ * @tparam Args The argument types required for the plugin constructor.
+ */
+template<typename Base, typename... Args>
 class IPXP_API PluginFactory;
 
+/**
+ * @brief Type alias for the ProcessPlugin factory.
+ *
+ * Provides a factory for creating ProcessPlugin instances using a string-based constructor.
+ */
 using ProcessPluginFactory = PluginFactory<ProcessPlugin, const std::string&, FieldManager&>;
-*/
 
 } // namespace ipxp

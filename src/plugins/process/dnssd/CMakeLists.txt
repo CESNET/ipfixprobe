@@ -6,8 +6,8 @@ add_library(ipfixprobe-process-dnssd MODULE
 	src/dnssdData.hpp
 	src/dnssdFields.hpp
 	src/dnssdRecord.hpp
-	src/test.hpp
-	src/test.cpp
+	#src/test.hpp
+	#src/test.cpp
 )
 
 set_target_properties(ipfixprobe-process-dnssd PROPERTIES

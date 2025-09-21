@@ -5,6 +5,9 @@
 #include "processPlugin.hpp"
 #include "processPluginEntry.hpp"
 
+#include "../pluginFactory/pluginFactory.hpp"
+#include "flowRecordBuilder.hpp"
+
 namespace ipxp {
 
 class ProcessPluginManager {
@@ -19,8 +22,13 @@ public:
 	{
 		std::lock_guard<std::mutex> lock(m_mutex);
 
-		auto processPlugin
-			= std::make_shared<IcmpPlugin>(std::forward<Args>(args)..., m_fieldManager);
+		auto& processPluginFactory = ProcessPluginFactory::getInstance();
+			//const int pluginID = ProcessPluginIDGenerator::instance().generatePluginID();
+		auto processPlugin = processPluginFactory.createShared(pluginName, std::forward<Args>(args)..., m_fieldManager);
+		if (processPlugin == nullptr) {
+			//throw IPXPError("invalid process plugin " + pluginName); TODO
+		}
+
 		auto [pluginContextSize, pluginContextAlignment] = processPlugin->getDataMemoryLayout();
 		const ProcessPluginEntry pluginEntry = {
 			.name = pluginName,
@@ -88,7 +96,7 @@ public:
 			// Plugin not yet constructed, call onInit
 			if (!flowRecord.pluginsConstructed.test(pluginID)) {
 				const auto pluginInitResult
-					= pluginEntry.plugin->onInit(flowContext, flowRecord.getPluginData(pluginID));
+					= pluginEntry.plugin->onInit(flowContext, flowRecord.getPluginContext(pluginID));
 
 				// If no update is needed, we can reset the update flag
 				if (pluginInitResult.updateRequirement == UpdateRequirement::NoUpdateNeeded) {
@@ -110,9 +118,9 @@ public:
 
 			// Call onUpdate for constructed plugins
 			if (flowRecord.pluginsConstructed.test(pluginID)) {
-				const auto pluginUpdateResult = pluginEntry.plugin->onFlowUpdate(
+				const auto pluginUpdateResult = pluginEntry.plugin->onUpdate(
 					flowContext,
-					flowRecord.getPluginData(pluginID));
+					flowRecord.getPluginContext(pluginID));
 
 				// If no update is needed, we can reset the update flag
 				if (pluginUpdateResult.updateRequirement == UpdateRequirement::NoUpdateNeeded) {
@@ -122,7 +130,7 @@ public:
 				// If the plugin requested to be removed, we reset the available bit
 				if (pluginUpdateResult.flowAction == FlowAction::RemovePlugin) {
 					// call onDestroy
-					pluginEntry.plugin->onDestroy(flowRecord.getPluginData(pluginID));
+					pluginEntry.plugin->onDestroy(flowRecord.getPluginContext(pluginID));
 
 					flowRecord.pluginsAvailable.reset(pluginID);
 					flowRecord.pluginsUpdate.reset(pluginID);
@@ -132,57 +140,64 @@ public:
 				}
 			}
 		}
+	}
 
-		void exportFlowRecord(FlowRecord & flowRecord)
-		{
-			for (std::size_t pluginID = 0; pluginID < m_processPlugins.size(); pluginID++) {
-				const auto& pluginEntry = m_processPlugins[pluginID];
-				// Check if the plugin is available for the flow
-				if (!flowRecord.pluginsAvailable.test(pluginID)) {
-					continue;
-				}
+	void exportFlowRecord(FlowRecord & flowRecord)
+	{
+		for (std::size_t pluginID = 0; pluginID < m_processPlugins.size(); pluginID++) {
+			const auto& pluginEntry = m_processPlugins[pluginID];
+			// Check if the plugin is available for the flow
+			if (!flowRecord.pluginsAvailable.test(pluginID)) {
+				continue;
+			}
 
-				// Check if the plugin is constructed
-				if (!flowRecord.pluginsConstructed.test(pluginID)) {
-					continue;
-				}
+			// Check if the plugin is constructed
+			if (!flowRecord.pluginsConstructed.test(pluginID)) {
+				continue;
+			}
 
-				// Call the plugin's onExport method
-				const auto pluginExportResult
-					= pluginEntry.plugin->onExport(flowRecord, flowRecord.getPluginData(pluginID));
+			// Call the plugin's onExport method
+			const auto pluginExportResult
+				= pluginEntry.plugin->onExport(flowRecord, flowRecord.getPluginContext(pluginID));
 
-				// Check the export result wants to remove the plugin
-				if (pluginExportResult.flowAction == FlowAction::RemovePlugin) {
-					// call onDestroy
-					pluginEntry.plugin->onDestroy(flowRecord.getPluginData(pluginID));
+			// Check the export result wants to remove the plugin
+			if (pluginExportResult.flowAction == FlowAction::RemovePlugin) {
+				// call onDestroy
+				pluginEntry.plugin->onDestroy(flowRecord.getPluginContext(pluginID));
 
-					flowRecord.pluginsAvailable.reset(pluginID);
-					flowRecord.pluginsConstructed.reset(pluginID);
-					flowRecord.pluginsUpdate.reset(pluginID);
-				}
+				flowRecord.pluginsAvailable.reset(pluginID);
+				flowRecord.pluginsConstructed.reset(pluginID);
+				flowRecord.pluginsUpdate.reset(pluginID);
 			}
 		}
+	}
 
-		std::shared_ptr<FlowRecordBuilder> rebuild();
+	std::shared_ptr<FlowRecordBuilder> rebuild();
 
-		const std::vector<ProcessPluginEntry>& getEntries()
-		{
-			return m_processPlugins;
-		}
+	const std::vector<ProcessPluginEntry>& getEntries()
+	{
+		return m_processPlugins;
+	}
 
-	private:
-		void printPluginEntry(const ProcessPluginEntry& entry)
-		{
-			std::cout << "Plugin: " << entry.name << "\n";
-			std::cout << "  Context Size: " << entry.contextSize << " bytes\n";
-			std::cout << "  Context Alignment: " << entry.contextAlignment << " bytes\n";
-			// std::cout << "  Enabled: " << std::boolalpha << entry.isEnabled << "\n";
-		}
+	const FieldManager& getFieldManager() const noexcept
+	{
+		return m_fieldManager;
+	}
 
-		std::mutex m_mutex;
-		std::atomic<std::size_t> m_pluginID = 0;
-		FieldManager & m_fieldManager;
-		std::vector<ProcessPluginEntry> m_processPlugins;
-	};
+private:
+	void printPluginEntry(const ProcessPluginEntry& entry)
+	{
+		std::cout << "Plugin: " << entry.name << "\n";
+		std::cout << "  Context Size: " << entry.contextSize << " bytes\n";
+		std::cout << "  Context Alignment: " << entry.contextAlignment << " bytes\n";
+		// std::cout << "  Enabled: " << std::boolalpha << entry.isEnabled << "\n";
+	}
+
+	std::mutex m_mutex;
+	std::atomic<std::size_t> m_pluginID = 0;
+	FieldManager& m_fieldManager;
+	std::vector<ProcessPluginEntry> m_processPlugins;
+
+};
 
 } // namespace ipxp

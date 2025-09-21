@@ -17,7 +17,7 @@
 #include <sstream>
 #include <string>
 #include <processPlugin.hpp>
-#include <fieldManager.hpp>
+//#include <fieldManager.hpp>
 #include <fieldHandlersEnum.hpp>
 
 #include "burstStatsFields.hpp"
