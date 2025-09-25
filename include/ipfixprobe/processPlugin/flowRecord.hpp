@@ -124,44 +124,38 @@ public:
 		return hash == value;
 	}*/
 
-	void createFrom(const Packet& packet)
+	// TODO remove hashval
+	void createFrom(const Packet& packet, uint64_t hashval)
 	{
-		m_flow.directionalData[Direction::Forward].packets = 1;
+		directionalData[Direction::Forward].packets = 1;
+		directionalData[Direction::Forward].bytes = packet.ip_len;
 
-		m_hash = hash;
+		
+		flowKey.srcPort = packet.src_port;
+		flowKey.dstPort = packet.dst_port;
+		flowKey.l4Protocol = packet.ip_proto;
 
-		m_flow.time_first = pkt.ts;
-		m_flow.time_last = pkt.ts;
-		m_flow.flow_hash = hash;
+		hash = hashval;
 
-		memcpy(m_flow.src_mac, pkt.src_mac, 6);
-		memcpy(m_flow.dst_mac, pkt.dst_mac, 6);
+		timeCreation = packet.ts;
+		timeLastUpdate = packet.ts;
 
-		if (pkt.ip_version == IP::v4) {
-			m_flow.ip_version = pkt.ip_version;
-			m_flow.ip_proto = pkt.ip_proto;
-			m_flow.src_ip.v4 = pkt.src_ip.v4;
-			m_flow.dst_ip.v4 = pkt.dst_ip.v4;
-			m_flow.src_bytes = pkt.ip_len;
-		} else if (pkt.ip_version == IP::v6) {
-			m_flow.ip_version = pkt.ip_version;
-			m_flow.ip_proto = pkt.ip_proto;
-			memcpy(m_flow.src_ip.v6, pkt.src_ip.v6, 16);
-			memcpy(m_flow.dst_ip.v6, pkt.dst_ip.v6, 16);
-			m_flow.src_bytes = pkt.ip_len;
+		macAddress[Direction::Forward] 
+			= std::span<const std::byte, 6>(
+				reinterpret_cast<const std::byte*>(packet.src_mac), 6);
+		macAddress[Direction::Reverse] 
+			= std::span<const std::byte, 6>(
+				reinterpret_cast<const std::byte*>(packet.dst_mac), 6);
+
+		if (packet.ip_version == IP::v4) {
+			flowKey.srcIp = packet.src_ip.v4;
+			flowKey.dstIp = packet.dst_ip.v4;
+		} else if (packet.ip_version == IP::v6) {
+			flowKey.srcIp = std::span<const std::byte, 16>(
+				reinterpret_cast<const std::byte*>(packet.src_ip.v6), 16);
+			flowKey.dstIp = std::span<const std::byte, 16>(
+				reinterpret_cast<const std::byte*>(packet.dst_ip.v6), 16);
 		}
-
-		if (pkt.ip_proto == IPPROTO_TCP) {
-			m_flow.src_port = pkt.src_port;
-			m_flow.dst_port = pkt.dst_port;
-			m_flow.src_tcp_flags = pkt.tcp_flags;
-		} else if (pkt.ip_proto == IPPROTO_UDP) {
-			m_flow.src_port = pkt.src_port;
-			m_flow.dst_port = pkt.dst_port;
-		} else if (pkt.ip_proto == IPPROTO_ICMP || pkt.ip_proto == IPPROTO_ICMPV6) {
-			m_flow.src_port = pkt.src_port;
-			m_flow.dst_port = pkt.dst_port;
-		}*/
 	}
 
 	void update(const Packet& packet, bool src)

@@ -21,6 +21,16 @@ struct MACAddress {
 	{
 		std::ranges::copy(address, this->address.begin());
 	}
+
+	constexpr MACAddress& operator=(std::span<const std::byte, 6> address) noexcept
+	{
+		if (address.data() == this->address.data()) {
+			return *this;
+		}
+
+		std::ranges::copy(address, this->address.begin());
+		return *this;
+	}
 };
 
 inline std::ostream& operator<<(std::ostream& os, const MACAddress& mac)

@@ -39,9 +39,9 @@
 #include <sys/time.h>
 
 #ifdef WITH_NEMEA
-#include <unirec/unirec.h>
+//#include <unirec/unirec.h>
 #else
-#define UR_FIELDS(...)
+//#define UR_FIELDS(...)
 #endif
 
 #include "ipaddr.hpp"
@@ -80,17 +80,17 @@ struct RecordExt {
 	 * \param [in] tmplt Unirec template.
 	 * \param [out] record Pointer to the unirec record.
 	 */
-	virtual void fill_unirec(ur_template_t* tmplt, void* record)
+	/*virtual void fill_unirec(ur_template_t* tmplt, void* record)
 	{
 		(void) tmplt;
 		(void) record;
-	}
+	}*/
 
 	/**
 	 * \brief Get unirec template string.
 	 * \return Unirec template string.
 	 */
-	virtual const char* get_unirec_tmplt() const { return ""; }
+	//virtual const char* get_unirec_tmplt() const { return ""; }
 #endif
 
 	/**

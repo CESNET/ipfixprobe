@@ -180,7 +180,7 @@ void NHTFlowCache::export_flow(size_t index)
 void NHTFlowCache::finish()
 {
 	for (decltype(m_cache_size) i = 0; i < m_cache_size; i++) {
-		if (!m_flow_table[i]->is_empty()) {
+		if (!m_flow_table[i]->isEmpty()) {
 			//plugins_pre_export(m_flow_table[i]->m_flow);
 			m_flow_table[i]->endReason = FlowEndReason::FLOW_END_FORCED;
 			export_flow(i);
@@ -250,7 +250,7 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 
 	/* Find existing flow record in flow cache. */
 	for (flow_index = line_index; flow_index < next_line; flow_index++) {
-		if (m_flow_table[flow_index]->belongs(hashval)) {
+		if (m_flow_table[flow_index]->hash == hashval) {
 			found = true;
 			break;
 		}
@@ -262,7 +262,7 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 		uint64_t line_index_inv = hashval_inv & m_line_mask;
 		uint64_t next_line_inv = line_index_inv + m_line_size;
 		for (flow_index = line_index_inv; flow_index < next_line_inv; flow_index++) {
-			if (m_flow_table[flow_index]->belongs(hashval_inv)) {
+			if (m_flow_table[flow_index]->hash == hashval_inv) {
 				found = true;
 				source_flow = false;
 				hashval = hashval_inv;
@@ -292,7 +292,7 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 	} else {
 		/* Existing flow record was not found. Find free place in flow line. */
 		for (flow_index = line_index; flow_index < next_line; flow_index++) {
-			if (m_flow_table[flow_index]->is_empty()) {
+			if (m_flow_table[flow_index]->isEmpty()) {
 				found = true;
 				break;
 			}
@@ -337,9 +337,9 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 		return 0;
 	}
 
-	if (flow->is_empty()) {
+	if (flow->isEmpty()) {
 		m_flows_in_cache++;
-		flow->create(pkt, hashval);
+		flow->createFrom(pkt, hashval);
 		ret = 0; //plugins_post_create(flow->m_flow, pkt);
 
 		//if (ret & FLOW_FLUSH) {
@@ -408,7 +408,7 @@ uint8_t NHTFlowCache::get_export_reason(FlowRecord& flow)
 void NHTFlowCache::export_expired(time_t ts)
 {
 	for (decltype(m_timeout_idx) i = m_timeout_idx; i < m_timeout_idx + m_line_new_idx; i++) {
-		if (!m_flow_table[i]->is_empty()
+		if (!m_flow_table[i]->isEmpty()
 			&& ts - m_flow_table[i]->timeLastUpdate.toSeconds() >= m_inactive) {
 			m_flow_table[i]->endReason = static_cast<FlowEndReason>(get_export_reason(*m_flow_table[i]));
 			m_manager.exportFlowRecord(*m_flow_table[i]);
