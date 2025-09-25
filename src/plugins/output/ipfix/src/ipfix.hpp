@@ -44,7 +44,6 @@
 #define RECONNECT_TIMEOUT 60
 #define TEMPLATE_REFRESH_TIME 600
 #define TEMPLATE_REFRESH_PACKETS 0
-#define DEFAULT_EXPORTER_ID 1
 
 namespace ipxp {
 
@@ -69,7 +68,7 @@ public:
 		, m_mtu(DEFAULT_MTU)
 		, m_udp(false)
 		, m_non_blocking_tcp(false)
-		, m_id(DEFAULT_EXPORTER_ID)
+		, m_id(OutputPlugin::DEFAULT_EXPORTER_ID)
 		, m_dir(0)
 		, m_template_refresh_time(TEMPLATE_REFRESH_TIME)
 		, m_verbose(false)

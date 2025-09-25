@@ -63,6 +63,7 @@ public:
 	Timestamp timeLastUpdate;
 
 	FlowKey flowKey;
+	DirectionalField<MACAddress> macAddress;
 
 	DirectionalField<DirectionalData> directionalData;
 
@@ -113,19 +114,19 @@ public:
 		m_flow.dst_tcp_flags = 0;*/
 	}
 
-	inline __attribute__((always_inline)) bool is_empty() const
+	constexpr bool isEmpty() const noexcept
 	{
 		return hash == 0;
 	}
 
-	inline __attribute__((always_inline)) bool belongs(uint64_t value) const
+	/*constexpr bool belongs(uint64_t value) const noexcept
 	{
 		return hash == value;
-	}
+	}*/
 
-	void create(const Packet& packet, uint64_t hash)
+	void createFrom(const Packet& packet)
 	{
-		/*m_flow.src_packets = 1;
+		m_flow.directionalData[Direction::Forward].packets = 1;
 
 		m_hash = hash;
 

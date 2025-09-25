@@ -411,6 +411,7 @@ void NHTFlowCache::export_expired(time_t ts)
 		if (!m_flow_table[i]->is_empty()
 			&& ts - m_flow_table[i]->timeLastUpdate.toSeconds() >= m_inactive) {
 			m_flow_table[i]->endReason = static_cast<FlowEndReason>(get_export_reason(*m_flow_table[i]));
+			m_manager.exportFlowRecord(*m_flow_table[i]);
 			//plugins_pre_export(m_flow_table[i]->m_flow);
 			export_flow(i);
 #ifdef FLOW_CACHE_STATS

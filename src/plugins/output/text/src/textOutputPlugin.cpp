@@ -49,35 +49,25 @@ printVectorVariant(const FieldDescriptor& field, const VectorValueGetter& varian
 
 void TextOutputPlugin::processRecord(FlowRecordUniquePtr& flowRecord)
 {
-	auto outputFields = m_fieldManager.getBiflowFields();
-	auto fn = [&](ProcessPlugin* processPlugin) {
-		// const void* pluginExportData = processPlugin->getExportData();
-		const void* pluginExportData = flowRecord->getPluginContext(0);
-
-		for (const auto& outputField : outputFields) {
-			if (!outputField.isInRecord(*flowRecord.get())) {
-				continue;
-			}
-
-			const auto& getter = outputField.getValueGetter();
-
-			std::visit(
-				[&](const auto& variant) {
-					using GetterT = std::decay_t<decltype(variant)>;
-					if constexpr (std::is_same_v<GetterT, ScalarValueGetter>) {
-						printScalarVariant(outputField, variant, pluginExportData);
-					} else if constexpr (std::is_same_v<GetterT, VectorValueGetter>) {
-						printVectorVariant(outputField, variant, pluginExportData);
-					}
-				},
-				getter);
+	std::ranges::for_each(m_fieldManager.getBiflowFields(), [&](const FieldDescriptor& fieldDescriptor) {
+		if (!fieldDescriptor.isInRecord(*flowRecord.get())) {
+			return;
 		}
-	};
 
-	for (const auto& pluginEntry : m_plugins) {
-		std::cout << "Processing " << pluginEntry.name << "\n";
-		fn(reinterpret_cast<ProcessPlugin*>(pluginEntry.plugin.get()));
-	}
+		const void* pluginExportData = flowRecord->getPluginContext(fieldDescriptor.getBitIndex());
+
+		const auto& getter = fieldDescriptor.getValueGetter();
+		std::visit(
+			[&](const auto& variant) {
+				using GetterT = std::decay_t<decltype(variant)>;
+				if constexpr (std::is_same_v<GetterT, ScalarValueGetter>) {
+					printScalarVariant(fieldDescriptor, variant, pluginExportData);
+				} else if constexpr (std::is_same_v<GetterT, VectorValueGetter>) {
+					printVectorVariant(fieldDescriptor, variant, pluginExportData);
+				}
+			},
+			getter);
+	});
 }
 
 } // namespace ipxp

@@ -142,7 +142,7 @@ public:
 		}
 	}
 
-	void exportFlowRecord(FlowRecord & flowRecord)
+	void exportFlowRecord(FlowRecord& flowRecord)
 	{
 		for (std::size_t pluginID = 0; pluginID < m_processPlugins.size(); pluginID++) {
 			const auto& pluginEntry = m_processPlugins[pluginID];

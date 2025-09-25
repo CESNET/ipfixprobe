@@ -36,7 +36,7 @@ namespace ipxp {
  * @tparam Args The types of arguments that will be passed to the plugin constructors.
  */
 template<typename Base, typename... Args>
-class IPXP_API PluginFactory {
+class PluginFactory {
 public:
 	/**
 	 * @brief Retrieves the singleton instance of `PluginFactory`.

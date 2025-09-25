@@ -31,10 +31,13 @@ public:
 
 	virtual ~OutputPlugin() = default;
 
+	constexpr static std::size_t DEFAULT_EXPORTER_ID = 1;
 protected:
+	
 	const FieldManager& m_fieldManager;
 	const std::vector<ProcessPluginEntry>& m_plugins;
 	std::size_t m_dropped = 0;
+	std::size_t m_seen = 0;
 };
 
 template<typename Base, typename... Args>

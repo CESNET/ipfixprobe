@@ -10,12 +10,10 @@ public:
 	TextOutputPlugin(const std::string& params, const FieldManager& manager, const std::vector<ProcessPluginEntry>& plugins)
 		: OutputPlugin(manager, plugins)
 	{
-		// TODO parse params
-		(void)params;
 	}
 
 	void processRecord(FlowRecordUniquePtr& flowRecord) override;
-
+	
 };
 
 } // namespace ipxp

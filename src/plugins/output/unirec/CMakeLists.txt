@@ -12,6 +12,8 @@ set_target_properties(ipfixprobe-output-unirec PROPERTIES
 
 target_include_directories(ipfixprobe-output-unirec PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/outputPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
 )
 
 target_link_libraries(ipfixprobe-output-unirec PRIVATE

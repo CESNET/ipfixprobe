@@ -32,6 +32,15 @@ struct Timestamp {
 		return ns / 1'000'000'000;
 	}
 
+	constexpr timeval toTimeval() const noexcept
+	{
+		// TODO use chrono
+		timeval tv;
+		tv.tv_sec = static_cast<time_t>(ns / 1'000'000'000);
+		tv.tv_usec = static_cast<suseconds_t>((ns % 1'000'000'000) / 1'000);
+		return tv;
+	}
+
 	constexpr bool operator<(const Timestamp& other) const noexcept
 	{
 		return ns < other.ns;
