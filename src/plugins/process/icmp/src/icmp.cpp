@@ -19,7 +19,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 
 #include "icmpData.hpp"
@@ -39,9 +39,9 @@ static const PluginManifest icmpPluginManifest = {
 		},
 };
 
-static FieldSchema createICMPSchema(FieldManager& fieldManager, FieldHandlers<ICMPFields>& handlers)
+static FieldGroup createICMPSchema(FieldManager& fieldManager, FieldHandlers<ICMPFields>& handlers)
 {
-	FieldSchema schema = fieldManager.createFieldSchema("icmp");
+	FieldGroup schema = fieldManager.createFieldGroup("icmp");
 	handlers.insert(ICMPFields::L4_ICMP_TYPE_CODE, schema.addScalarField(
 		"L4_ICMP_TYPE_CODE",
 		[](const void* context) { return static_cast<const ICMPData*>(context)->typeCode; }

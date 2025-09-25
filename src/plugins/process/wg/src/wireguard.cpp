@@ -17,7 +17,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <arpa/inet.h>
@@ -40,9 +40,9 @@ static const PluginManifest wireguardPluginManifest = {
 		},
 };
 
-static FieldSchema createWireguardSchema(FieldManager& fieldManager, FieldHandlers<WireguardFields>& handlers) noexcept
+static FieldGroup createWireguardSchema(FieldManager& fieldManager, FieldHandlers<WireguardFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("wg");
+	FieldGroup schema = fieldManager.createFieldGroup("wg");
 
 	handlers.insert(WireguardFields::WG_CONF_LEVEL, schema.addScalarField(
 		"WG_CONF_LEVEL",

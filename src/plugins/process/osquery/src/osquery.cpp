@@ -19,7 +19,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 
 #include <utils/stringViewUtils.hpp>
@@ -42,9 +42,9 @@ static const PluginManifest osqueryPluginManifest = {
 		},
 };
 
-static FieldSchema createOSQuerySchema(FieldManager& manager, FieldHandlers<OSQueryFields>& handlers) noexcept
+static FieldGroup createOSQuerySchema(FieldManager& manager, FieldHandlers<OSQueryFields>& handlers) noexcept
 {
-	FieldSchema schema = manager.createFieldSchema("osquery");
+	FieldGroup schema = manager.createFieldGroup("osquery");
 
 	handlers.insert(OSQueryFields::OSQUERY_PROGRAM_NAME, schema.addScalarField(
 		"OSQUERY_PROGRAM_NAME",

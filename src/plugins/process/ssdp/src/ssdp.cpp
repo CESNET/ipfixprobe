@@ -17,7 +17,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <readers/headerFieldReader/headerFieldReader.hpp>
@@ -37,9 +37,9 @@ static const PluginManifest ssdpPluginManifest = {
 		},
 };
 
-static FieldSchema createSSDPSchema(FieldManager& fieldManager, FieldHandlers<SSDPFields>& handlers) noexcept
+static FieldGroup createSSDPSchema(FieldManager& fieldManager, FieldHandlers<SSDPFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("ssdp");
+	FieldGroup schema = fieldManager.createFieldGroup("ssdp");
 
 	handlers.insert(SSDPFields::SSDP_LOCATION_PORT, schema.addScalarField(
 		"SSDP_LOCATION_PORT",

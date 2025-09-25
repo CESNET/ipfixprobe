@@ -19,7 +19,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <dnsParser/dnsParser.hpp>
@@ -40,9 +40,9 @@ static const PluginManifest dnsPluginManifest = {
 		},
 };
 
-static FieldSchema createPacketStatsSchema(FieldManager& fieldManager, FieldHandlers<DNSFields>& handlers)
+static FieldGroup createPacketStatsSchema(FieldManager& fieldManager, FieldHandlers<DNSFields>& handlers)
 {
-	FieldSchema schema = fieldManager.createFieldSchema("dns");
+	FieldGroup schema = fieldManager.createFieldGroup("dns");
 
 	handlers.insert(DNSFields::DNS_ID, schema.addScalarField("DNS_ID", [](const void* context) {
 		return static_cast<const DNSData*>(context)->id;

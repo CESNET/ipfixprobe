@@ -19,7 +19,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <utils/spanUtils.hpp>
@@ -40,9 +40,9 @@ static const PluginManifest passiveDNSPluginManifest = {
 		},
 };
 
-static FieldSchema createPassiveDNSSchema(FieldManager& fieldManager, FieldHandlers<PassiveDNSFields>& handlers) noexcept
+static FieldGroup createPassiveDNSSchema(FieldManager& fieldManager, FieldHandlers<PassiveDNSFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("passivedns");
+	FieldGroup schema = fieldManager.createFieldGroup("passivedns");
 
 	handlers.insert(PassiveDNSFields::DNS_ID, schema.addScalarField(
 		"DNS_ID",

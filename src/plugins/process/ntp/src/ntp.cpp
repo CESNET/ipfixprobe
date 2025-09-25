@@ -20,7 +20,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils/spanUtils.hpp>
 #include <utils/stringViewUtils.hpp>
@@ -41,9 +41,9 @@ static const PluginManifest ntpPluginManifest = {
 		},
 };
 
-static FieldSchema createNetworkTimeSchema(FieldManager& fieldManager, FieldHandlers<NetworkTimeFields>& handlers)
+static FieldGroup createNetworkTimeSchema(FieldManager& fieldManager, FieldHandlers<NetworkTimeFields>& handlers)
 {
-	FieldSchema schema = fieldManager.createFieldSchema("ntp");
+	FieldGroup schema = fieldManager.createFieldGroup("ntp");
 
 	handlers.insert(NetworkTimeFields::NTP_LEAP, schema.addScalarField(
 		"NTP_LEAP",

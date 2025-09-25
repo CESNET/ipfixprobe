@@ -17,7 +17,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
 
@@ -37,9 +37,9 @@ static const PluginManifest vlanPluginManifest = {
 		},
 };
 
-static FieldSchema createVLANSchema(FieldManager& fieldManager, FieldHandlers<VLANFields>& handlers) noexcept
+static FieldGroup createVLANSchema(FieldManager& fieldManager, FieldHandlers<VLANFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("vlan");
+	FieldGroup schema = fieldManager.createFieldGroup("vlan");
 
 	handlers.insert(VLANFields::VLAN_ID, schema.addScalarField(
 		"VLAN_ID",

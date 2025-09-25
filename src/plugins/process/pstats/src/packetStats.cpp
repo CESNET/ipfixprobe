@@ -20,7 +20,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <utils/spanUtils.hpp>
@@ -41,7 +41,7 @@ static const PluginManifest packetStatsPluginManifest = {
 
 static void createPacketStatsSchema(FieldManager& fieldManager, FieldHandlers<PacketStatsFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("pstats");
+	FieldGroup schema = fieldManager.createFieldGroup("pstats");
 
 	// TODO FIX
 	/*handlers.insert(PacketStatsFields::PPI_PKT_LENGTHS, schema.addVectorField(

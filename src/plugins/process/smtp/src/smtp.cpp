@@ -17,7 +17,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
 
@@ -41,9 +41,9 @@ static const PluginManifest smtpPluginManifest = {
 		},
 };
 
-static FieldSchema createSMTPSchema(FieldManager& fieldManager, FieldHandlers<SMTPFields>& handlers) noexcept
+static FieldGroup createSMTPSchema(FieldManager& fieldManager, FieldHandlers<SMTPFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("smtp");
+	FieldGroup schema = fieldManager.createFieldGroup("smtp");
 	
 	handlers.insert(SMTPFields::SMTP_2XX_STAT_CODE_COUNT, schema.addScalarField(
 		"SMTP_2XX_STAT_CODE_COUNT",

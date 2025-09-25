@@ -19,7 +19,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 
 #include "flowHashData.hpp"
@@ -38,9 +38,9 @@ static const PluginManifest flowhashPluginManifest = {
 		},
 };
 
-static FieldSchema createFlowHashSchema(FieldManager& fieldManager, FieldHandlers<FlowHashFields>& handlers)
+static FieldGroup createFlowHashSchema(FieldManager& fieldManager, FieldHandlers<FlowHashFields>& handlers)
 {
-	FieldSchema schema = fieldManager.createFieldSchema("flowHash");
+	FieldGroup schema = fieldManager.createFieldGroup("flowHash");
 
 	handlers.insert(FlowHashFields::FLOW_ID, schema.addScalarField(
 		"FLOW_ID",

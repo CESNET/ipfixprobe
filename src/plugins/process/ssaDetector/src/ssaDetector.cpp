@@ -17,7 +17,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
 
@@ -37,9 +37,9 @@ static const PluginManifest ssaDetectorPluginManifest = {
 		},
 };
 
-static FieldSchema createSSADetectorSchema(FieldManager& fieldManager, FieldHandlers<SSADetectorFields> handlers) noexcept
+static FieldGroup createSSADetectorSchema(FieldManager& fieldManager, FieldHandlers<SSADetectorFields> handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("ssadetector");
+	FieldGroup schema = fieldManager.createFieldGroup("ssadetector");
 
 	handlers.insert(SSADetectorFields::SSA_CONF_LEVEL, schema.addScalarField(
 		"SSA_CONF_LEVEL",

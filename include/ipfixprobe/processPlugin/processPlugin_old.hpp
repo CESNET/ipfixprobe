@@ -15,6 +15,8 @@
 #pragma once
 
 #include <cstdint>
+
+#include "packet.hpp"
 #include "fieldManager.hpp"
 #include "../api.hpp"
 
@@ -161,47 +163,13 @@ public:
 		= 0;
 
 	/**
-	 * @brief Called before the main per-packet update.
-	 *
-	 * This method is invoked for each packet of a flow **before** the standard
-	 * update phase (`onUpdate()`) is executed. It allows the plugin to perform
-	 * early decisions or actions that must happen prior to flow statistics being
-	 * updated or other plugins being called.
-	 *
-	 * Typical use cases include:
-	 *  - Requesting flow export and immediate re-insertion
-	 *    (e.g., splitting a stream into multiple flows such as individual HTTP
-	 *    requests or SIP sessions).
-	 *  - Forcing a flow flush before normal packet processing.
-	 *
-	 *
-	 * @param flowContext Context containing references to the flow and packet.
-	 * @param pluginContext Pointer to plugin-specific context memory.
-	 * @return PluginUpdateResult describing update requirements and actions.
-	 */
-	[[nodiscard]] virtual PluginUpdateResult
-	beforeUpdate(const FlowContext& flowContext, void* pluginContext)
-	{
-		// TODO
-		(void) flowContext;
-		(void) pluginContext;
-		return {
-			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-			.flowAction = FlowAction::NoAction,
-		};
-	}
-
-	/**
 	 * @brief Called to update plugin state for a constructed flow.
 	 *
-	 * This method is called for each subsequent packet of a flow after the plugin has been
-	 * constructed. Importantly, onUpdate() is **not called for the same packet** that triggered
-	 * onInit(). Instead, the first invocation of onUpdate() happens with the *next* packet of the
-	 * flow. This ensures that initialization and the first update are clearly separated.
-	 *
-	 * The plugin can use this method to process packets and update its internal state. If the
-	 * plugin no longer requires updates, it should return UpdateRequirement::NoUpdateNeeded. The
-	 * method can also request actions such as flushing or removing the plugin from the flow.
+	 * This method is called for each packet of a flow after the plugin has been constructed
+	 * (onInit returned ConstructionState::Constructed and RequiresUpdate). It allows the plugin
+	 * to process packets and update its internal state. If the plugin no longer requires updates,
+	 * it should return UpdateRequirement::NoUpdateNeeded. The method can also request actions such
+	 * as flushing or removing the plugin from the flow.
 	 *
 	 * @param flowContext Context containing references to the flow and packet.
 	 * @param pluginContext Pointer to plugin-specific context memory.
@@ -210,8 +178,12 @@ public:
 	[[nodiscard]] virtual PluginUpdateResult
 	onUpdate(const FlowContext& flowContext, void* pluginContext)
 	{
-		throw std::logic_error(
-			"Unexpected call to Base::onUpdate(). Override this method in your plugin.");
+		(void) flowContext;
+		(void) pluginContext;
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction,
+		};
 	}
 
 	/**

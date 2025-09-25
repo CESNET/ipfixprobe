@@ -20,7 +20,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 
 #include <utils/spanUtils.hpp>
@@ -43,9 +43,9 @@ static const PluginManifest ovpnPluginManifest = {
 		},
 };
 
-static FieldSchema createOpenVPNSchema(FieldManager& manager, FieldHandlers<OpenVPNFields>& handlers) noexcept
+static FieldGroup createOpenVPNSchema(FieldManager& manager, FieldHandlers<OpenVPNFields>& handlers) noexcept
 {
-	FieldSchema schema = manager.createFieldSchema("ovpn");
+	FieldGroup schema = manager.createFieldGroup("ovpn");
 
 	handlers.insert(OpenVPNFields::OVPN_CONF_LEVEL, schema.addScalarField(
 		"OVPN_CONF_LEVEL",
@@ -139,7 +139,7 @@ bool OpenVPNPlugin::updateConfidenceLevel(const Packet& packet, OpenVPNData& plu
 		&& hasTLSClientHello(payload.subspan(openvpnHeaderSize));
 
 	pluginData.processingState.processOpcode(opcode, 
-		packet.src_ip, packet.dst_ip, hasClientHello, 
+		{packet.src_ip, static_cast<IP>(packet.ip_proto)}, {packet.dst_ip, static_cast<IP>(packet.ip_proto)}, hasClientHello, 
 		isValidRTPHeader(packet), packet.payload_len_wire);
 
 	return true;

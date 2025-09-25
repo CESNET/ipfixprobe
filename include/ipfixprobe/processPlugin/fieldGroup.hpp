@@ -52,7 +52,7 @@ namespace ipxp {
  * DirectionalPair is used for fields that have a forward and a reverse component.
  * Typical example: `packets` (forward) and `packets_rev` (reverse).
  *
- * Behavior depends on flow orientation:
+ * Behavior depends on flow view:
  *
  * | Flow Type        | Forward Field       | Reverse Field       |
  * |------------------|---------------------|---------------------|
@@ -67,7 +67,7 @@ namespace ipxp {
  *
  * BiflowPair is used for fields that conceptually belong to two sides of a bidirectional flow.
  * Typical example: `src_port` (A) and `dst_port` (B).
- * Behavior depends on flow orientation:
+ * Behavior depends on flow view:
  *
  * | Flow Type        | A Field         | B Field         |
  * |------------------|-----------------|-----------------|
@@ -328,7 +328,7 @@ private:
 				std::move(accessorB));
 		}
 
-		__builtin_unreachable();
+		throw std::logic_error("Unreachable code in addPairFieldsGeneric");
 	}
 
 	std::string m_groupName;

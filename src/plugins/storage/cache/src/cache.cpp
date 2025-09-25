@@ -181,6 +181,7 @@ void NHTFlowCache::finish()
 {
 	for (decltype(m_cache_size) i = 0; i < m_cache_size; i++) {
 		if (!m_flow_table[i]->isEmpty()) {
+			//m_manager.exportFlowRecord(*m_flow_table[i]);
 			//plugins_pre_export(m_flow_table[i]->m_flow);
 			m_flow_table[i]->endReason = FlowEndReason::FLOW_END_FORCED;
 			export_flow(i);
@@ -238,8 +239,8 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 
 	prefetch_export_expired();
 
-	uint64_t hashval
-		= XXH64(m_key, m_keylen, 0); /* Calculates hash value from key created before. */
+	uint64_t hashval = m_flowKey.hash(); 
+		//= XXH64(m_key, m_keylen, 0); /* Calculates hash value from key created before. */
 
 	FlowRecord* flow; /* Pointer to flow we will be working with. */
 	bool found = false;
@@ -257,7 +258,7 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 	}
 
 	/* Find inversed flow. */
-	if (!found && !m_split_biflow) {
+	/*if (!found && !m_split_biflow) {
 		uint64_t hashval_inv = XXH64(m_key_inv, m_keylen, 0);
 		uint64_t line_index_inv = hashval_inv & m_line_mask;
 		uint64_t next_line_inv = line_index_inv + m_line_size;
@@ -270,7 +271,7 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 				break;
 			}
 		}
-	}
+	}*/
 
 	if (found) {
 		/* Existing flow record was found, put flow record at the first index of flow line. */
@@ -350,7 +351,7 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 		//}
 	} else {
 		/* Check if flow record is expired (inactive timeout). */
-		if (pkt.ts.tv_sec - flow->timeLastUpdate.toSeconds() >= m_inactive) {
+		if (pkt.ts.tv_sec - flow->timeLastUpdate.toTimeval().tv_sec >= m_inactive) {
 			//m_flow_table[flow_index]->endReason = get_export_reason(*flow); TODO
 			//plugins_pre_export(*flow);
 			export_flow(flow_index);
@@ -361,7 +362,7 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 		}
 
 		/* Check if flow record is expired (active timeout). */
-		if (pkt.ts.tv_sec - flow->timeCreation.toSeconds() >= m_active) {
+		if (pkt.ts.tv_sec - flow->timeCreation.toTimeval().tv_sec >= m_active) {
 			m_flow_table[flow_index]->endReason = FlowEndReason::FLOW_END_ACTIVE;
 			//plugins_pre_export(*flow);
 			export_flow(flow_index);
@@ -409,9 +410,9 @@ void NHTFlowCache::export_expired(time_t ts)
 {
 	for (decltype(m_timeout_idx) i = m_timeout_idx; i < m_timeout_idx + m_line_new_idx; i++) {
 		if (!m_flow_table[i]->isEmpty()
-			&& ts - m_flow_table[i]->timeLastUpdate.toSeconds() >= m_inactive) {
+			&& ts - m_flow_table[i]->timeLastUpdate.toTimeval().tv_sec >= m_inactive) {
 			m_flow_table[i]->endReason = static_cast<FlowEndReason>(get_export_reason(*m_flow_table[i]));
-			m_manager.exportFlowRecord(*m_flow_table[i]);
+			//m_manager.exportFlowRecord(*m_flow_table[i]);
 			//plugins_pre_export(m_flow_table[i]->m_flow);
 			export_flow(i);
 #ifdef FLOW_CACHE_STATS
@@ -425,53 +426,24 @@ void NHTFlowCache::export_expired(time_t ts)
 
 bool NHTFlowCache::create_hash_key(Packet& pkt)
 {
-	if (pkt.ip_version == IP::v4) {
-		struct flow_key_v4_t* key_v4 = reinterpret_cast<struct flow_key_v4_t*>(m_key);
-		struct flow_key_v4_t* key_v4_inv = reinterpret_cast<struct flow_key_v4_t*>(m_key_inv);
-
-		key_v4->proto = pkt.ip_proto;
-		key_v4->ip_version = IP::v4;
-		key_v4->src_port = pkt.src_port;
-		key_v4->dst_port = pkt.dst_port;
-		key_v4->src_ip = pkt.src_ip.v4;
-		key_v4->dst_ip = pkt.dst_ip.v4;
-		key_v4->vlan_id = pkt.vlan_id;
-
-		key_v4_inv->proto = pkt.ip_proto;
-		key_v4_inv->ip_version = IP::v4;
-		key_v4_inv->src_port = pkt.dst_port;
-		key_v4_inv->dst_port = pkt.src_port;
-		key_v4_inv->src_ip = pkt.dst_ip.v4;
-		key_v4_inv->dst_ip = pkt.src_ip.v4;
-		key_v4_inv->vlan_id = pkt.vlan_id;
-
-		m_keylen = sizeof(flow_key_v4_t);
-		return true;
-	} else if (pkt.ip_version == IP::v6) {
-		struct flow_key_v6_t* key_v6 = reinterpret_cast<struct flow_key_v6_t*>(m_key);
-		struct flow_key_v6_t* key_v6_inv = reinterpret_cast<struct flow_key_v6_t*>(m_key_inv);
-
-		key_v6->proto = pkt.ip_proto;
-		key_v6->ip_version = IP::v6;
-		key_v6->src_port = pkt.src_port;
-		key_v6->dst_port = pkt.dst_port;
-		memcpy(key_v6->src_ip, pkt.src_ip.v6, sizeof(pkt.src_ip.v6));
-		memcpy(key_v6->dst_ip, pkt.dst_ip.v6, sizeof(pkt.dst_ip.v6));
-		key_v6->vlan_id = pkt.vlan_id;
-
-		key_v6_inv->proto = pkt.ip_proto;
-		key_v6_inv->ip_version = IP::v6;
-		key_v6_inv->src_port = pkt.dst_port;
-		key_v6_inv->dst_port = pkt.src_port;
-		memcpy(key_v6_inv->src_ip, pkt.dst_ip.v6, sizeof(pkt.dst_ip.v6));
-		memcpy(key_v6_inv->dst_ip, pkt.src_ip.v6, sizeof(pkt.src_ip.v6));
-		key_v6_inv->vlan_id = pkt.vlan_id;
-
-		m_keylen = sizeof(flow_key_v6_t);
-		return true;
+	if (pkt.ip_version != IP::v4 && pkt.ip_version != IP::v6) {
+		return false;
 	}
 
-	return false;
+	m_flowKey = FlowKey{
+		.srcIp = {pkt.src_ip, static_cast<IP>(pkt.ip_proto)},
+		.dstIp = {pkt.dst_ip, static_cast<IP>(pkt.ip_proto)},
+		.srcPort = pkt.src_port,
+		.dstPort = pkt.dst_port,
+		.l4Protocol = pkt.ip_proto
+	};
+
+	if (std::tie(m_flowKey.dstPort, m_flowKey.dstIp) < std::tie(m_flowKey.srcPort, m_flowKey.srcIp)) {
+		std::swap(m_flowKey.srcPort, m_flowKey.dstPort);
+		std::swap(m_flowKey.srcIp, m_flowKey.dstIp);
+	}
+
+	return true;
 }
 
 #ifdef FLOW_CACHE_STATS

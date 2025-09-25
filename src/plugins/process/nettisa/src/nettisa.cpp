@@ -19,7 +19,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 
 namespace ipxp {
@@ -36,9 +36,9 @@ static const PluginManifest nettisaPluginManifest = {
 		},
 };
 
-static FieldSchema createNetTimeSeriesSchema(FieldManager& fieldManager, FieldHandlers<NetTimeSeriesFields>& handlers) noexcept
+static FieldGroup createNetTimeSeriesSchema(FieldManager& fieldManager, FieldHandlers<NetTimeSeriesFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("nettisa");
+	FieldGroup schema = fieldManager.createFieldGroup("nettisa");
 
 	handlers.insert(NetTimeSeriesFields::NTS_MEAN, schema.addScalarField(
 		"NTS_MEAN",

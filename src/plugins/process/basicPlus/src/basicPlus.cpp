@@ -21,7 +21,7 @@
 //#include <pluginManifest.hpp>
 //#include <pluginRegistrar.hpp>
 //#include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <tcpData.hpp>
 
@@ -43,9 +43,9 @@ static const PluginManifest basicPlusPluginManifest = {
 };
 
 
-static FieldSchema createBasicPlusSchema(FieldManager& fieldManager, FieldHandlers<BasicPlusFields>& handlers)
+static FieldGroup createBasicPlusSchema(FieldManager& fieldManager, FieldHandlers<BasicPlusFields>& handlers)
 {
-	FieldSchema schema = fieldManager.createFieldSchema("basicplus");
+	FieldGroup schema = fieldManager.createFieldGroup("basicplus");
 
 	auto [ipTTLField, ipTTLRevField] = schema.addScalarDirectionalFields(
     "IP_TTL", "IP_TTL_REV",

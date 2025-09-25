@@ -2,10 +2,16 @@
 
 #include <iostream>
 #include <cstdint>
+#include <chrono>
 
 namespace ipxp {
 
-struct Timestamp {
+class Timestamp {
+	constexpr static uint64_t NS_IN_SEC = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::seconds(1)).count();
+	constexpr static uint64_t USEC_IN_SEC = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::seconds(1)).count();
+	constexpr static uint64_t NS_IN_USEC = NS_IN_SEC / USEC_IN_SEC;
+
+public:
 	uint64_t ns;
 
 	constexpr Timestamp() noexcept
@@ -14,10 +20,8 @@ struct Timestamp {
 	}
 
 	constexpr Timestamp(const timeval tv) noexcept
-	: ns(0)
+	: ns(static_cast<uint64_t>(tv.tv_sec) * NS_IN_SEC + static_cast<uint64_t>(tv.tv_usec) * USEC_IN_SEC)
 	{
-		// TODO
-		(void)tv;
 	}
 
 	constexpr Timestamp operator-(const Timestamp& other) const noexcept
@@ -27,29 +31,16 @@ struct Timestamp {
 		return ts;
 	}
 
-	constexpr uint64_t toSeconds() const noexcept
-	{
-		return ns / 1'000'000'000;
-	}
-
 	constexpr timeval toTimeval() const noexcept
 	{
-		// TODO use chrono
-		timeval tv;
-		tv.tv_sec = static_cast<time_t>(ns / 1'000'000'000);
-		tv.tv_usec = static_cast<suseconds_t>((ns % 1'000'000'000) / 1'000);
-		return tv;
+		return {static_cast<time_t>(ns / NS_IN_SEC), static_cast<suseconds_t>((ns % NS_IN_SEC) / NS_IN_USEC)};
 	}
 
-	constexpr bool operator<(const Timestamp& other) const noexcept
+	constexpr auto operator<=>(const Timestamp& other) const noexcept
 	{
-		return ns < other.ns;
+		return ns <=> other.ns;
 	}
 
-	constexpr bool operator>(const Timestamp& other) const noexcept
-	{
-		return ns > other.ns;
-	}
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Timestamp& ts)

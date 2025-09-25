@@ -1,14 +1,14 @@
 /**
  * @file
  * @author Pavel Siska <siska@cesnet.cz>
- * @brief Type traits and helpers for FieldSchema, including scalar/vector detection and
+ * @brief Type traits and helpers for FieldGroup, including scalar/vector detection and
  * element type extraction.
  *
- * This header defines compile-time utilities used by FieldSchema to:
+ * This header defines compile-time utilities used by FieldGroup to:
  * - Determine if an accessor is scalar or vector.
  * - Extract element type from std::span or scalar type.
  *
- * @note These helpers are intended primarily for use within FieldSchema.
+ * @note These helpers are intended primarily for use within FieldGroup.
  *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */

@@ -17,7 +17,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <utils/stringViewUtils.hpp>
@@ -41,9 +41,9 @@ static const PluginManifest rtspPluginManifest = {
 		},
 };
 
-static FieldSchema createRTSPSchema(FieldManager& fieldManager, FieldHandlers<RTSPFields>& handlers) noexcept
+static FieldGroup createRTSPSchema(FieldManager& fieldManager, FieldHandlers<RTSPFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("rtsp");
+	FieldGroup schema = fieldManager.createFieldGroup("rtsp");
 
 	handlers.insert(RTSPFields::RTSP_REQUEST_METHOD, schema.addScalarField(
 		"RTSP_REQUEST_METHOD",

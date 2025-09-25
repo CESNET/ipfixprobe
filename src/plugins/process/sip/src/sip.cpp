@@ -18,7 +18,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <utils/stringUtils.hpp>
@@ -42,9 +42,9 @@ static const PluginManifest sipPluginManifest = {
 		},
 };
 
-static FieldSchema createSIPSchema(FieldManager& fieldManager, FieldHandlers<SIPFields>& handlers) noexcept
+static FieldGroup createSIPSchema(FieldManager& fieldManager, FieldHandlers<SIPFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("sip");
+	FieldGroup schema = fieldManager.createFieldGroup("sip");
 
 	handlers.insert(SIPFields::SIP_MSG_TYPE, schema.addScalarField(
 		"SIP_MSG_TYPE",

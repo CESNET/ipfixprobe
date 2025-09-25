@@ -22,7 +22,7 @@
 //#include <pluginManifest.hpp>
 //#include <pluginRegistrar.hpp>
 //#include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <dnsParser/dnsParser.hpp>
@@ -46,9 +46,9 @@ static const PluginManifest dnssdPluginManifest = {
 		},
 };
 
-static FieldSchema createDNSSDSchema(FieldManager& fieldManager, FieldHandlers<DNSSDFields>& handlers)
+static FieldGroup createDNSSDSchema(FieldManager& fieldManager, FieldHandlers<DNSSDFields>& handlers)
 {
-	FieldSchema schema = fieldManager.createFieldSchema("dnssd");
+	FieldGroup schema = fieldManager.createFieldGroup("dnssd");
 
 	handlers.insert(DNSSDFields::DNSSD_QUERIES, schema.addScalarField("DNSSD_QUERIES", [](const void* context) {
 		return toStringView(static_cast<const DNSSDData*>(context)->queries);

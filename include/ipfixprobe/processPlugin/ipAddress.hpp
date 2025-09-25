@@ -36,10 +36,12 @@ union IPAddress {
 		std::memcpy(&u8, ipv6.data(), sizeof(u8));
 	}
 
-	constexpr IPAddress(const ipaddr_t address) noexcept
+	constexpr IPAddress(const ipaddr_t address, IP version) noexcept
+	: IPAddress(address.v4)
 	{
-		// TODO
-		(void)address;
+		if (version == IP::v6) {
+			std::memcpy(&u8, address.v6, 16);
+		}
 	}
 
 	constexpr IPAddress(const IPAddress& other) noexcept
@@ -57,6 +59,14 @@ union IPAddress {
 	constexpr bool isIPv6() const noexcept
 	{
 		return !isIPv4();
+	}
+
+	//constexpr bool operator==(const IPAddress&) const noexcept = default;
+
+
+	constexpr auto operator<=>(const IPAddress& other) const noexcept
+	{
+		return u64 <=> other.u64;
 	}
 
 	constexpr bool operator==(const IPAddress& other) const noexcept
@@ -101,6 +111,11 @@ union IPAddress {
 	}
 
 };
+
+/*friend constexpr auto operator<=>(const IPAddress& lhs, const IPAddress& rhs) noexcept 
+{
+    return lhs.u64 <=> rhs.u64;
+}*/
 
 inline std::ostream& operator<<(std::ostream& os, const IPAddress& ip)
 {

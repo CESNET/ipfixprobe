@@ -23,7 +23,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <utils/stringUtils.hpp>
@@ -46,9 +46,9 @@ static const PluginManifest tlsPluginManifest = {
 		},
 };
 
-static FieldSchema createTLSSchema(FieldManager& fieldManager, FieldHandlers<TLSFields>& handlers) noexcept
+static FieldGroup createTLSSchema(FieldManager& fieldManager, FieldHandlers<TLSFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("tls");
+	FieldGroup schema = fieldManager.createFieldGroup("tls");
 
 	handlers.insert(TLSFields::TLS_SNI, schema.addScalarField(
 		"TLS_SNI",

@@ -301,6 +301,7 @@ private:
 	uint8_t m_keylen;
 	char m_key[MAX_KEY_LENGTH];
 	char m_key_inv[MAX_KEY_LENGTH];
+	FlowKey m_flowKey;
 	std::vector<FlowRecordUniquePtr> m_flow_table;
 	//FlowRecordUniquePtr* m_flow_records;
 

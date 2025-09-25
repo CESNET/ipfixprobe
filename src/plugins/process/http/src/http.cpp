@@ -17,7 +17,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <ranges>
@@ -40,9 +40,9 @@ static const PluginManifest httpPluginManifest = {
 		},
 };
 
-static FieldSchema createHTTPSchema(FieldManager& fieldManager, FieldHandlers<HTTPFields>& handlers)
+static FieldGroup createHTTPSchema(FieldManager& fieldManager, FieldHandlers<HTTPFields>& handlers)
 {
-	FieldSchema schema = fieldManager.createFieldSchema("http");
+	FieldGroup schema = fieldManager.createFieldGroup("http");
 
 	handlers.insert(HTTPFields::HTTP_REQUEST_METHOD, schema.addScalarField(
 		"HTTP_REQUEST_METHOD",

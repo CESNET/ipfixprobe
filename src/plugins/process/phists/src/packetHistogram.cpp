@@ -22,7 +22,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
 #include <utils/spanUtils.hpp>
@@ -41,9 +41,9 @@ static const PluginManifest packetHistogramPluginManifest = {
 		},
 };
 
-static FieldSchema createPacketHistogramSchema(FieldManager& fieldManager, FieldHandlers<PacketHistogramFields>& handlers) noexcept
+static FieldGroup createPacketHistogramSchema(FieldManager& fieldManager, FieldHandlers<PacketHistogramFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("phists");
+	FieldGroup schema = fieldManager.createFieldGroup("phists");
 
 	auto [forwardSizesField, reverseSizesField] = schema.addVectorDirectionalFields(
 		"S_PHISTS_SIZES", "D_PHISTS_SIZES",

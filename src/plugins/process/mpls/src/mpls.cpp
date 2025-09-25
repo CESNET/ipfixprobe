@@ -19,7 +19,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils/spanUtils.hpp>
 
@@ -39,9 +39,9 @@ static const PluginManifest mplsPluginManifest = {
 		},
 };
 
-static FieldSchema createMPLSSchema(FieldManager& fieldManager, FieldHandlers<MPLSFields>& handlers) noexcept
+static FieldGroup createMPLSSchema(FieldManager& fieldManager, FieldHandlers<MPLSFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("mpls");
+	FieldGroup schema = fieldManager.createFieldGroup("mpls");
 
 	// TODO FIX
 	/*handlers.insert(MPLSFields::MPLS_TOP_LABEL_STACK_SECTION, schema.addVectorField(

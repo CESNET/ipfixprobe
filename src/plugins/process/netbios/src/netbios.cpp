@@ -19,7 +19,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <dns-utils.hpp>
 #include <utils/spanUtils.hpp>
@@ -39,9 +39,9 @@ static const PluginManifest netbiosPluginManifest = {
 		},
 };
 
-static FieldSchema createNetBIOSSchema(FieldManager& fieldManager, FieldHandlers<NetBIOSFields>& fieldHandlers)
+static FieldGroup createNetBIOSSchema(FieldManager& fieldManager, FieldHandlers<NetBIOSFields>& fieldHandlers)
 {
-	FieldSchema schema = fieldManager.createFieldSchema("netbios");
+	FieldGroup schema = fieldManager.createFieldGroup("netbios");
 
 	fieldHandlers.insert(NetBIOSFields::NB_SUFFIX, schema.addScalarField(
 		"NB_SUFFIX",

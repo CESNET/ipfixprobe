@@ -19,7 +19,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils/spanUtils.hpp>
 
@@ -38,9 +38,9 @@ static const PluginManifest idpcontentPluginManifest = {
 		},
 };
 
-static FieldSchema createIDPContentSchema(FieldManager& fieldManager, FieldHandlers<IDPContentFields>& handlers) noexcept
+static FieldGroup createIDPContentSchema(FieldManager& fieldManager, FieldHandlers<IDPContentFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("idpcontent");
+	FieldGroup schema = fieldManager.createFieldGroup("idpcontent");
 
 	auto [contentField, contentRevField] = schema.addVectorDirectionalFields(
 		"IDP_CONTENT", "IDP_CONTENT_REV",

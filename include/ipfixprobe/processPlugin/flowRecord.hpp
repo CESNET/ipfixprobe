@@ -69,6 +69,7 @@ public:
 
 	FlowEndReason endReason;
 
+
 	// Bitset of flow fields that were specified as present
 	mutable FieldsBitset fieldsAvailable = {};
 	// Bitset of successfully constructed plugins (constructor accepted packet)
@@ -76,8 +77,8 @@ public:
 	// Bitset of plugins that still wants to process packets of the flow
 	PluginsBitset pluginsUpdate = {};
 	// Bitset of plugins that are available for the flow
-	// TODO GET BACK CONST ?
-	PluginsBitset pluginsAvailable;
+	const PluginsBitset pluginsAvailable;
+
 
 	void erase()
 	{
@@ -194,6 +195,7 @@ public:
 	// TODO PRIVATE
 	FlowRecord(PluginsBitset pluginsAvailable = {})
 		: pluginsAvailable(pluginsAvailable)
+		, pluginsUpdate(pluginsAvailable)
 	{
 	}
 

@@ -21,7 +21,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils/stringViewUtils.hpp>
 #include <utils/spanUtils.hpp>
@@ -46,9 +46,9 @@ static const PluginManifest quicPluginManifest = {
 };
 
 static
-FieldSchema createQUICSchema(FieldManager& fieldManager, FieldHandlers<QUICFields>& handlers) noexcept
+FieldGroup createQUICSchema(FieldManager& fieldManager, FieldHandlers<QUICFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("quic");
+	FieldGroup schema = fieldManager.createFieldGroup("quic");
 
 	handlers.insert(QUICFields::QUIC_SNI, schema.addScalarField(
 		"QUIC_SNI", 

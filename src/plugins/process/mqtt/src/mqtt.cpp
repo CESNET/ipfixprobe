@@ -18,7 +18,7 @@
 #include <pluginManifest.hpp>
 #include <pluginRegistrar.hpp>
 #include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils/stringViewUtils.hpp>
 #include <utils/spanUtils.hpp>
@@ -92,9 +92,9 @@ bool mqttLabelPresent(std::span<const std::byte> payload) noexcept
 	return mqttLabel.has_value() && mqttLabel == "MQTT";
 }
 
-static FieldSchema createMQTTSchema(FieldManager& fieldManager, FieldHandlers<MQTTFields>& handlers) noexcept
+static FieldGroup createMQTTSchema(FieldManager& fieldManager, FieldHandlers<MQTTFields>& handlers) noexcept
 {
-	FieldSchema schema = fieldManager.createFieldSchema("mqtt");
+	FieldGroup schema = fieldManager.createFieldGroup("mqtt");
 
 	handlers.insert(MQTTFields::MQTT_TYPE_CUMULATIVE, schema.addScalarField(
 		"MQTT_TYPE_CUMULATIVE",

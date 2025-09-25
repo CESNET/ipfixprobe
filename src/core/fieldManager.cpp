@@ -6,28 +6,29 @@
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
+#include "fieldGroup.hpp"
 #include "fieldManager.hpp"
-#include "fieldSchema.hpp"
 
 namespace ipxp {
 
-static FieldInfo makeFieldInfo(
+void FieldManager::addField(
+	std::vector<FieldDescriptor>& container,
 	std::string_view group,
 	std::string_view name,
 	std::size_t bitIndex,
 	GenericValueGetter getter)
 {
-	return {
+	container.emplace_back(FieldDescriptor(FieldInfo {
 		.group = std::string(group),
 		.name = std::string(name),
 		.bitIndex = bitIndex,
 		.getter = std::move(getter),
-	};
+	}));
 }
 
-[[nodiscard]] FieldSchema FieldManager::createFieldSchema(std::string_view groupName)
+[[nodiscard]] FieldGroup FieldManager::createFieldGroup(std::string_view groupName)
 {
-	return FieldSchema(groupName, *this);
+	return FieldGroup(groupName, *this);
 }
 
 const std::vector<FieldDescriptor>& FieldManager::getBiflowFields() const
@@ -58,12 +59,17 @@ const std::vector<FieldDescriptor>& FieldManager::getUniflowReverseFields() cons
 	const auto bitIndex = getNextBitIndex();
 	const FieldHandler fieldHandler(bitIndex);
 
-	const FieldInfo fieldInfo = makeFieldInfo(groupName, fieldName, bitIndex, getter);
+	// biflow
+	addField(m_biflowFields, groupName, fieldName, bitIndex, getter);
 
-	m_biflowFields.emplace_back(FieldDescriptor(fieldInfo));
-	m_reverseBiflowFields.emplace_back(FieldDescriptor(fieldInfo));
-	m_uniflowForwardFields.emplace_back(FieldDescriptor(fieldInfo));
-	m_uniflowReverseFields.emplace_back(FieldDescriptor(fieldInfo));
+	// reverse biflow
+	addField(m_reverseBiflowFields, groupName, fieldName, bitIndex, getter);
+
+	// forward uniflow
+	addField(m_uniflowForwardFields, groupName, fieldName, bitIndex, getter);
+
+	// reverse uniflow
+	addField(m_uniflowReverseFields, groupName, fieldName, bitIndex, getter);
 
 	return fieldHandler;
 }
@@ -81,32 +87,19 @@ const std::vector<FieldDescriptor>& FieldManager::getUniflowReverseFields() cons
 	const FieldHandler forwardFieldHandler(forwardBitIndex);
 	const FieldHandler reverseFieldHandler(reverseBitIndex);
 
-	const FieldInfo forwardFieldInfoInBiflow
-		= makeFieldInfo(groupName, forwardFieldName, forwardBitIndex, forwardGetter);
+	// biflow
+	addField(m_biflowFields, groupName, forwardFieldName, forwardBitIndex, forwardGetter);
+	addField(m_biflowFields, groupName, reverseFieldName, reverseBitIndex, reverseGetter);
 
-	const FieldInfo reverseFieldInfoInBiflow
-		= makeFieldInfo(groupName, reverseFieldName, reverseBitIndex, reverseGetter);
+	// reverse biflow
+	addField(m_reverseBiflowFields, groupName, forwardFieldName, reverseBitIndex, reverseGetter);
+	addField(m_reverseBiflowFields, groupName, reverseFieldName, forwardBitIndex, forwardGetter);
 
-	m_biflowFields.emplace_back(FieldDescriptor(forwardFieldInfoInBiflow));
-	m_biflowFields.emplace_back(FieldDescriptor(reverseFieldInfoInBiflow));
+	// forward uniflow
+	addField(m_uniflowForwardFields, groupName, forwardFieldName, forwardBitIndex, forwardGetter);
 
-	const FieldInfo forwardFieldInfoInReverseBiflow
-		= makeFieldInfo(groupName, forwardFieldName, reverseBitIndex, forwardGetter);
-
-	const FieldInfo reverseFieldInfoInReverseBiflow
-		= makeFieldInfo(groupName, reverseFieldName, forwardBitIndex, reverseGetter);
-
-	m_reverseBiflowFields.emplace_back(FieldDescriptor(forwardFieldInfoInReverseBiflow));
-	m_reverseBiflowFields.emplace_back(FieldDescriptor(reverseFieldInfoInReverseBiflow));
-
-	const FieldInfo forwardFieldInUniflow
-		= makeFieldInfo(groupName, forwardFieldName, forwardBitIndex, forwardGetter);
-
-	const FieldInfo reverseFieldInUniflow
-		= makeFieldInfo(groupName, forwardFieldName, reverseBitIndex, reverseGetter);
-
-	m_uniflowForwardFields.emplace_back(FieldDescriptor(forwardFieldInUniflow));
-	m_uniflowReverseFields.emplace_back(FieldDescriptor(reverseFieldInUniflow));
+	// reverse uniflow
+	addField(m_uniflowReverseFields, groupName, forwardFieldName, reverseBitIndex, reverseGetter);
 
 	return {forwardFieldHandler, reverseFieldHandler};
 }
@@ -124,39 +117,21 @@ const std::vector<FieldDescriptor>& FieldManager::getUniflowReverseFields() cons
 	const FieldHandler aFieldHandler(aBitIndex);
 	const FieldHandler bFieldHandler(bBitIndex);
 
-	const FieldInfo aFieldInfoInBiflow = makeFieldInfo(groupName, aFieldName, aBitIndex, aGetter);
+	// biflow
+	addField(m_biflowFields, groupName, aFieldName, aBitIndex, aGetter);
+	addField(m_biflowFields, groupName, bFieldName, bBitIndex, bGetter);
 
-	const FieldInfo bFieldInfoInBiflow = makeFieldInfo(groupName, bFieldName, bBitIndex, bGetter);
+	// reverse biflow
+	addField(m_reverseBiflowFields, groupName, aFieldName, bBitIndex, bGetter);
+	addField(m_reverseBiflowFields, groupName, bFieldName, aBitIndex, aGetter);
 
-	m_biflowFields.emplace_back(FieldDescriptor(aFieldInfoInBiflow));
-	m_biflowFields.emplace_back(FieldDescriptor(bFieldInfoInBiflow));
+	// forward uniflow
+	addField(m_uniflowForwardFields, groupName, aFieldName, aBitIndex, aGetter);
+	addField(m_uniflowForwardFields, groupName, bFieldName, bBitIndex, bGetter);
 
-	const FieldInfo aFieldInfoInReverseBiflow
-		= makeFieldInfo(groupName, aFieldName, bBitIndex, aGetter);
-
-	const FieldInfo bFieldInfoInReverseBiflow
-		= makeFieldInfo(groupName, bFieldName, aBitIndex, bGetter);
-
-	m_reverseBiflowFields.emplace_back(FieldDescriptor(aFieldInfoInReverseBiflow));
-	m_reverseBiflowFields.emplace_back(FieldDescriptor(bFieldInfoInReverseBiflow));
-
-	const FieldInfo aFieldInForwardUniflow
-		= makeFieldInfo(groupName, aFieldName, aBitIndex, aGetter);
-
-	const FieldInfo bFieldInForwardUniflow
-		= makeFieldInfo(groupName, bFieldName, bBitIndex, bGetter);
-
-	m_uniflowForwardFields.emplace_back(FieldDescriptor(aFieldInForwardUniflow));
-	m_uniflowForwardFields.emplace_back(FieldDescriptor(bFieldInForwardUniflow));
-
-	const FieldInfo aFieldInReverseUniflow
-		= makeFieldInfo(groupName, aFieldName, bBitIndex, aGetter);
-
-	const FieldInfo bFieldInReverseUniflow
-		= makeFieldInfo(groupName, bFieldName, aBitIndex, bGetter);
-
-	m_uniflowReverseFields.emplace_back(FieldDescriptor(aFieldInReverseUniflow));
-	m_uniflowReverseFields.emplace_back(FieldDescriptor(bFieldInReverseUniflow));
+	// reverse uniflow
+	addField(m_uniflowReverseFields, groupName, aFieldName, bBitIndex, bGetter);
+	addField(m_uniflowReverseFields, groupName, bFieldName, aBitIndex, aGetter);
 
 	return {aFieldHandler, bFieldHandler};
 }

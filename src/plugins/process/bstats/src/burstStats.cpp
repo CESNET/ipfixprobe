@@ -23,7 +23,7 @@
 //#include <pluginManifest.hpp>
 //#include <pluginRegistrar.hpp>
 //#include <pluginFactory.hpp>
-#include <fieldSchema.hpp>
+#include <fieldGroup.hpp>
 //#include <fieldManager.hpp>
 
 namespace ipxp {
@@ -42,9 +42,9 @@ static const PluginManifest burstStatsPluginManifest = {
 		},
 };
 
-static FieldSchema createBurstStatsSchema(FieldManager& fieldManager, FieldHandlers<BurstStatsFields>& handlers)
+static FieldGroup createBurstStatsSchema(FieldManager& fieldManager, FieldHandlers<BurstStatsFields>& handlers)
 {
-	FieldSchema schema = fieldManager.createFieldSchema("bstats");
+	FieldGroup schema = fieldManager.createFieldGroup("bstats");
 
 	auto [sourcePacketsField, destPacketsField] = schema.addVectorDirectionalFields(
 		"SBI_BRST_PACKETS", "DBI_BRST_PACKETS",

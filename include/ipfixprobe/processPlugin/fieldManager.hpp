@@ -4,7 +4,7 @@
  * @brief FieldManager manages registration and organization of FlowRecord fields.
  *
  * FieldManager is responsible for:
- * - Creating FieldSchema instances for different logical groups
+ * - Creating FieldGroup instances for different logical groups
  * - Registering scalar and directional fields
  * - Keeping track of biflow and uniflow fields
  * - Providing access to field descriptors for introspection and validation
@@ -29,7 +29,7 @@
 
 namespace ipxp {
 
-class FieldSchema;
+class FieldGroup;
 
 /**
  * @class FieldManager
@@ -41,11 +41,11 @@ class FieldSchema;
 class FieldManager {
 public:
 	/**
-	 * @brief Creates a FieldSchema for a given group name.
+	 * @brief Creates a FieldGroup for a given name.
 	 * @param groupName Logical group name (e.g., "dns", "http").
-	 * @return Newly created FieldSchema instance.
+	 * @return Newly created FieldGroup instance.
 	 */
-	[[nodiscard]] FieldSchema createFieldSchema(std::string_view groupName);
+	[[nodiscard]] FieldGroup createFieldGroup(std::string_view groupName);
 
 	/** @brief Returns all biflow fields. */
 	const std::vector<FieldDescriptor>& getBiflowFields() const;
@@ -60,8 +60,8 @@ public:
 	const std::vector<FieldDescriptor>& getUniflowReverseFields() const;
 
 private:
-	// registration of field can only be done by FieldSchema
-	friend class FieldSchema;
+	// registration of field can only be done by FieldGroup
+	friend class FieldGroup;
 
 	[[nodiscard]] FieldHandler registerField(
 		std::string_view groupName,
@@ -84,12 +84,19 @@ private:
 
 	[[nodiscard]] std::size_t getNextBitIndex() noexcept { return m_fieldIndex++; }
 
+	void addField(
+		std::vector<FieldDescriptor>& container,
+		std::string_view group,
+		std::string_view name,
+		std::size_t bitIndex,
+		GenericValueGetter getter);
+
 	std::vector<FieldDescriptor> m_biflowFields;
 	std::vector<FieldDescriptor> m_reverseBiflowFields;
 	std::vector<FieldDescriptor> m_uniflowForwardFields;
 	std::vector<FieldDescriptor> m_uniflowReverseFields;
 
-	std::atomic<std::size_t> m_fieldIndex = 0;
+	std::size_t m_fieldIndex = 0;
 };
 
 } // namespace ipxp
