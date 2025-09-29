@@ -29,7 +29,7 @@
 
 #pragma once
 
-#include "../xxhash.h"
+#include "xxhash.h"
 
 #include <cstring>
 #include <ctime>

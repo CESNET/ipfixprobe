@@ -30,7 +30,7 @@
 
 #include "fragmentationCache.hpp"
 
-#include "../xxhash.h"
+#include "xxhash.h"
 #include "timevalUtils.hpp"
 
 #include <cstring>

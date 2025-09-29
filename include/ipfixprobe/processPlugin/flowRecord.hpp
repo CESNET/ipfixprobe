@@ -5,6 +5,7 @@
 #include "directionalField.hpp"
 #include "tcpFlags.hpp"
 #include "packet.hpp"
+#include "xxhash.h"
 
 #include <array>
 #include <bitset>

@@ -14,6 +14,7 @@ add_library(ipfixprobe-core STATIC
 	pluginManager.cpp
 	pluginManager.hpp
 	fieldManager.cpp
+	xxhash.c
 )
 
 target_include_directories(ipfixprobe-core PUBLIC

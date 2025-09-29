@@ -150,6 +150,9 @@ int UnirecExporter::init_trap(std::string& ifcs, int verbosity)
 	return ifc_cnt;
 }
 
+template<typename T>
+constexpr bool always_false = false;
+
 template<typename Type>
 static ur_field_id_t defineField(std::string_view name) noexcept
 {
@@ -175,9 +178,47 @@ static ur_field_id_t defineField(std::string_view name) noexcept
 		return ur_define_field(name.data(), UR_TYPE_DOUBLE);
 	} else if constexpr (std::is_same_v<Type, std::string_view>) {
 		return ur_define_field(name.data(), UR_TYPE_STRING);
+	} else if constexpr (std::is_same_v<Type, MACAddress>) {
+		return ur_define_field(name.data(), UR_TYPE_MAC);
+	} else if constexpr (std::is_same_v<Type, IPAddress>) {
+		return ur_define_field(name.data(), UR_TYPE_IP);
+	} else if constexpr (std::is_same_v<Type, Timestamp>) {
+		return ur_define_field(name.data(), UR_TYPE_TIME);
+	} else if constexpr (std::is_same_v<Type, std::span<const std::byte>>) {
+		return ur_define_field(name.data(), UR_TYPE_BYTES);
+	} else if constexpr (std::is_same_v<Type, std::span<const std::string>>) {
+		return ur_define_field(name.data(), UR_TYPE_STRING);
+	} else if constexpr (std::is_same_v<Type, std::span<const MACAddress>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_MAC);
+	} else if constexpr (std::is_same_v<Type, std::span<const IPAddress>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_IP);
+	} else if constexpr (std::is_same_v<Type, std::span<const Timestamp>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_TIME);
+	} else if constexpr (std::is_same_v<Type, std::span<const double>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_DOUBLE);
+	} else if constexpr (std::is_same_v<Type, std::span<const float>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_FLOAT);
+	} else if constexpr (std::is_same_v<Type, std::span<const uint8_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_UINT8);
+	} else if constexpr (std::is_same_v<Type, std::span<const uint16_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_UINT16);
+	} else if constexpr (std::is_same_v<Type, std::span<const uint32_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_UINT32);
+	} else if constexpr (std::is_same_v<Type, std::span<const uint64_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_UINT64);
+	} else if constexpr (std::is_same_v<Type, std::span<const int8_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_INT8);
+	} else if constexpr (std::is_same_v<Type, std::span<const int16_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_INT16);
+	} else if constexpr (std::is_same_v<Type, std::span<const int32_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_INT32);
+	} else if constexpr (std::is_same_v<Type, std::span<const int64_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_INT64);
 	} else {
-		throw std::logic_error("unsupported field type");
+		static_assert(always_false<Type>, "Unsupported type");
 	}
+
+	__builtin_unreachable();
 } 
 
 void UnirecExporter::init(const char* params)
@@ -222,19 +263,11 @@ void UnirecExporter::init(const char* params)
 
 	std::ranges::transform(m_fieldManager.getBiflowFields(), std::back_inserter(m_field_ids),
 	[&](const FieldDescriptor& fieldDescriptor) {
-		//const auto& getter = ;
-
 		return std::visit(
 			[&](const auto& variant) {
-				//using GetterT = std::decay_t<decltype(variant)>;
 				return std::visit([&](const auto& accessor) {
 					return defineField<decltype(accessor(nullptr))>(fieldDescriptor.getName());
 				}, variant);
-				/*if constexpr (std::is_same_v<GetterT, ScalarValueGetter>) {
-					defineScalar(, variant, pluginExportData, tmplt_ptr, record_ptr);
-				} else if constexpr (std::is_same_v<GetterT, VectorValueGetter>) {
-					fillFromVectorVariant(outputField, variant, pluginExportData, tmplt_ptr, record_ptr);
-				}*/
 			}, fieldDescriptor.getValueGetter());
 	});
 }
@@ -394,7 +427,7 @@ void UnirecExporter::free_unirec_resources()
 
 /*template<typename T>
 static void
-printVector(const FieldDescriptor& field, const VectorAccessor<T>& accessor, const void* data)
+fillFromVectorVariant(const FieldDescriptor& field, const VectorAccessor<T>& accessor, const void* data)
 {
 	std::cout << "[" << field.getGroup() << "] " << field.getName() << ": [";
 
@@ -412,17 +445,46 @@ printVector(const FieldDescriptor& field, const VectorAccessor<T>& accessor, con
 void UnirecExporter::fillFromScalarVariant(const FieldDescriptor& field, const ScalarValueGetter& variant, const void* data, ur_template_t* tmplt_ptr, void* record_ptr) noexcept
 {
 	const auto visitor = [&](const auto& accessor) {
-		*reinterpret_cast<decltype(accessor(data))*>(
-			ur_get_ptr_by_id(tmplt_ptr, record_ptr, m_field_ids[field.getBitIndex()])) = accessor(data);
+		if constexpr (std::is_same_v<std::decay_t<decltype(accessor(data))>, std::string_view>) {
+			ur_set_string(tmplt_ptr, record_ptr, m_field_ids[field.getBitIndex()], accessor(data).data());
+		} else {
+			*reinterpret_cast<decltype(accessor(data))*>(
+				ur_get_ptr_by_id(tmplt_ptr, record_ptr, m_field_ids[field.getBitIndex()])) = accessor(data);
+		}
 	};
 	std::visit(visitor, variant);
 }
 
-static void
-fillFromVectorVariant(const FieldDescriptor& field, const VectorValueGetter& variant, const void* data)
+void UnirecExporter::fillFromVectorVariant(const FieldDescriptor& field, const VectorValueGetter& variant, const void* data, ur_template_t* tmplt_ptr, void* record_ptr) noexcept
 {
-	/*const auto visitor = [&](const auto& accessor) { printVector(field, accessor, data); };
-	std::visit(visitor, variant);*/
+	const auto visitor = [&](const auto& accessor) {
+		if constexpr (std::is_same_v<std::decay_t<decltype(accessor(data))>, std::span<const Timestamp>>) {
+			ur_set_var_len(tmplt_ptr, record_ptr, m_field_ids[field.getBitIndex()], accessor(data).size() * sizeof(ur_time_t));
+			auto* buffer = reinterpret_cast<ur_time_t*>(ur_get_ptr_by_id(tmplt_ptr, record_ptr, m_field_ids[field.getBitIndex()]));
+			std::ranges::transform(accessor(data), buffer, [](const Timestamp& ts) {
+				return ur_time_from_sec_usec(ts.toTimeval().tv_sec, ts.toTimeval().tv_usec);
+			});
+		} else if constexpr (std::is_same_v<std::decay_t<decltype(accessor(data))>, std::span<const std::string>>) {
+			const std::size_t totalLength = std::accumulate(accessor(data).begin(), accessor(data).end(), 0,
+				[](std::size_t sum, const std::string& str) { return sum + str.size() + sizeof(';'); });
+			ur_set_var_len(tmplt_ptr, record_ptr, m_field_ids[field.getBitIndex()], totalLength);
+			auto* buffer = reinterpret_cast<char*>(ur_get_ptr_by_id(tmplt_ptr, record_ptr, m_field_ids[field.getBitIndex()]));
+			std::ranges::for_each(accessor(data), [&buffer](const std::string& str) {
+				std::memcpy(buffer, str.data(), str.size());
+				buffer += str.size();
+				*(buffer++) = ';';
+			});
+		} /*else if constexpr (std::is_same_v<std::decay_t<decltype(accessor(data))>, std::span<const IPAddress>>) {}*/
+		else {
+			ur_set_var(
+				tmplt_ptr,
+				record_ptr,
+				m_field_ids[field.getBitIndex()],
+				accessor(data).data(),
+				accessor(data).size() * sizeof(decltype(accessor(data)[0])));
+		}
+	};
+	std::visit(visitor, variant);
 }
 
 
@@ -482,7 +544,7 @@ void UnirecExporter::processRecord(FlowRecordUniquePtr& flowRecord)
 				if constexpr (std::is_same_v<GetterT, ScalarValueGetter>) {
 					fillFromScalarVariant(fieldDescriptor, variant, pluginExportData, tmplt_ptr, record_ptr);
 				} else if constexpr (std::is_same_v<GetterT, VectorValueGetter>) {
-					//fillFromVectorVariant(outputField, variant, pluginExportData, tmplt_ptr, record_ptr);
+					fillFromVectorVariant(fieldDescriptor, variant, pluginExportData, tmplt_ptr, record_ptr);
 				}
 			},
 			getter);

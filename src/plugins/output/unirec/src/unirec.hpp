@@ -255,6 +255,7 @@ private:
 	void fill_basic_flow(const FlowRecord& flow, ur_template_t* tmplt_ptr, void* record_ptr);
 	void free_unirec_resources();
 	void fillFromScalarVariant(const FieldDescriptor& field, const ScalarValueGetter& variant, const void* data, ur_template_t* tmplt_ptr, void* record_ptr) noexcept;
+	void fillFromVectorVariant(const FieldDescriptor& field, const VectorValueGetter& variant, const void* data, ur_template_t* tmplt_ptr, void* record_ptr) noexcept;
 
 	int m_basic_idx{-1}; /**< Basic output interface number. */
 	size_t m_ext_cnt{0}; /**< Size of ifc map. */

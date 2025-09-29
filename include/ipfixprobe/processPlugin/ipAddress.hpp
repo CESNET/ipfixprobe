@@ -71,7 +71,7 @@ union IPAddress {
 
 	constexpr bool operator==(const IPAddress& other) const noexcept
 	{
-		return u8 == other.u8;
+		return u64 == other.u64;
 	}
 
 	//constexpr std::strong_ordering operator<=>(const IPAddress& other) const noexcept = default;
@@ -81,6 +81,7 @@ union IPAddress {
 		if (this != &other) {	
 			u8 = other.u8;
 		}
+
 		return *this;
 	}
 
