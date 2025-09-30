@@ -5,7 +5,7 @@ on: [workflow_call]
 jobs:
   clang-checks:
     runs-on: ubuntu-latest
-    container: oraclelinux:9
+    container: oraclelinux:10
     steps:
     - name: Check out repository code
       uses: actions/checkout@v4

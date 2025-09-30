@@ -5,13 +5,14 @@ on: [workflow_call]
 jobs:
   ipfix-elements-checks:
     runs-on: ubuntu-latest
-    container: oraclelinux:9
+    container: oraclelinux:10
     steps:
     - name: Check out repository code
       uses: actions/checkout@v4
     - name: Install dependencies
       run: |
-        dnf install -y dnf-plugins-core epel-release cpp
+        dnf install -y dnf-plugins-core cpp
+        dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm
         dnf copr enable @CESNET/NEMEA
         dnf install cesnet-ipfix-elements
     - name: Check IPFIX elements

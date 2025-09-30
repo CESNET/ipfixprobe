@@ -38,10 +38,11 @@ runs:
     - name: Install build dependencies
       shell: bash
       run: |
-        dnf config-manager --set-enabled ol9_codeready_builder
-        dnf install -y dnf-plugins-core epel-release
+        dnf config-manager --set-enabled ol10_codeready_builder
+        dnf install -y dnf-plugins-core
+        dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm
         dnf install -y make gcc-c++ cmake3 git rpm-build
-        dnf install -y fuse3-devel openssl-devel gcc-toolset-14-libatomic-devel libunwind-devel lz4-devel
+        dnf install -y fuse3-devel openssl-devel libatomic libunwind-devel lz4-devel
 
     - name: Install clang tools
       if: ${{ inputs.clang-tools == 'true' }}
