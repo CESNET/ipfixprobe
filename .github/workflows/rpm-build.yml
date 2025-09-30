@@ -32,7 +32,8 @@ jobs:
       run: |
         cd build
         cmake3 .. -DCMAKE_BUILD_TYPE=Release -DENABLE_INPUT_PCAP=ON -DENABLE_INPUT_DPDK=ON -DENABLE_INPUT_NFB=ON -DENABLE_PROCESS_EXPERIMENTAL=ON
-        make -j $(nproc) rpm
+    - name: make rpm
+      run: make -j $(nproc) rpm
     - name: make rpm-msec
       run: make -j $(nproc) rpm-msec
     - name: make rpm-nemea

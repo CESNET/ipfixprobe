@@ -15,7 +15,7 @@ jobs:
         id: os
         run: |
           osArray=()
-          osArray+=("oraclelinux:9")
+          osArray+=("oraclelinux:10")
           osArray=$(jq --compact-output --null-input '$ARGS.positional' --args -- "${osArray[@]}")
           echo "Updated os list: $osArray"
           echo "os=$osArray" >> $GITHUB_OUTPUT
