@@ -21,15 +21,10 @@ Conflicts:     ipfixprobe-nemea, ipfixprobe-msec
 Source0:       %{name}-%{version}.tar.gz
 
 BuildRoot:     %{_tmppath}/%{name}-%{version}-%{release}
-%if 0%{?rhel} == 8
+%if 0%{?rhel} < 10
 BuildRequires: gcc-toolset-14
 BuildRequires: gcc-toolset-14-gcc
 BuildRequires: gcc-toolset-14-gcc-c++
-%endif
-
-%if 0%{?rhel} >= 9
-BuildRequires: gcc >= 10
-BuildRequires: gcc-c++ >= 10
 %endif
 
 BuildRequires: make
@@ -101,7 +96,7 @@ Experimental process plugins.
 %autosetup
 
 %build
-%if 0%{?rhel} == 8
+%if 0%{?rhel} < 10
 source /opt/rh/gcc-toolset-14/enable
 %endif
 %cmake -DCMAKE_BUILD_TYPE=Release %{?with_input_pcap:-DENABLE_INPUT_PCAP=ON} %{?with_input_dpdk:-DENABLE_INPUT_DPDK=ON} %{?with_input_nfb:-DENABLE_INPUT_NFB=ON} %{?with_process_experimental: -DENABLE_PROCESS_EXPERIMENTAL=ON}
