@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "ipAddress.hpp"
+#include "xxhash.h"
 
 namespace ipxp {
 
@@ -29,7 +30,7 @@ struct FlowKey {
     constexpr inline
     std::size_t hash() const noexcept 
     {
-        return 0; //XXH3_64bits(this, sizeof(*this), 0);
+        return XXH3_64bits(this, sizeof(*this));
     }
 };
 

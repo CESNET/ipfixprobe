@@ -171,8 +171,8 @@ void NHTFlowCache::export_flow(size_t index)
 		m_flow_table[index]->directionalData[Direction::Forward].packets + m_flow_table[index]->directionalData[Direction::Reverse].packets);
 	m_flows_in_cache--;
 
-	ipx_ring_push(m_export_queue, m_flow_table[index].get());
 	std::swap(m_flow_table[index], m_flow_table[m_cache_size + m_qidx]);
+	ipx_ring_push(m_export_queue, &m_flow_table[m_cache_size + m_qidx]);
 	m_flow_table[index]->erase();
 	m_qidx = (m_qidx + 1) % m_qsize;
 }
@@ -338,9 +338,16 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 		return 0;
 	}
 
+	auto features = PacketFeatures{};
+	auto context = FlowContext {
+			.flowRecord = *flow,
+			.packet = pkt,
+			.features = features
+		};
 	if (flow->isEmpty()) {
 		m_flows_in_cache++;
 		flow->createFrom(pkt, hashval);
+		m_manager.processFlowRecord(context);
 		ret = 0; //plugins_post_create(flow->m_flow, pkt);
 
 		//if (ret & FLOW_FLUSH) {

@@ -5,6 +5,7 @@
 #include "processPlugin.hpp"
 #include "processPluginEntry.hpp"
 #include "flowRecordBuilder.hpp"
+#include "flowKey.hpp"
 #include "../pluginFactory/pluginFactory.hpp"
 #include "../api.hpp"
 
@@ -192,7 +193,7 @@ public:
 
 	std::shared_ptr<FlowRecordBuilder> rebuild()
 	{
-		auto builder = std::make_shared<FlowRecordBuilder>(m_processPlugins, FlowKey::DEFAULT_LAYOUT);
+		auto builder = std::make_shared<FlowRecordBuilder>(m_processPlugins, FlowKey::getLayout());
 		return builder;
 	}
 

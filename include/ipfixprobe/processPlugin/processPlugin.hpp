@@ -25,7 +25,7 @@ namespace ipxp {
  */
 class FlowRecord;
 class Packet;
-class PacketFeatures;
+class PacketFeatures{};
 
 /**
  * @brief Context passed to plugin methods, containing references to flow and packet.
