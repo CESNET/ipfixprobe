@@ -25,6 +25,7 @@
 #include <dnsParser/dnsParser.hpp>
 #include <utils/stringViewUtils.hpp>
 #include <utils/spanUtils.hpp>
+#include <ipfixprobe/options.hpp>
 
 namespace ipxp {
 
@@ -35,8 +36,8 @@ static const PluginManifest dnsPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("dns", "Parse DNS traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("dns", "Parse DNS traffic");
+			parser.usage(std::cout);
 		},
 };
 

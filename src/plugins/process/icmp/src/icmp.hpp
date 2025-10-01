@@ -28,7 +28,7 @@ namespace ipxp {
  * @class ICMPPlugin
  * @brief A plugin for parsing ICMP traffic and exporting typecodes.
  */
-class ICMPPlugin : public ProcessPlugin {
+class IPXP_API ICMPPlugin : public ProcessPlugin {
 public:
 
 	/**

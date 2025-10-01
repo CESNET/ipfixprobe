@@ -24,6 +24,7 @@
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <tcpData.hpp>
+#include <ipfixprobe/options.hpp>
 
 namespace ipxp {
 
@@ -34,11 +35,10 @@ static const PluginManifest basicPlusPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			std::cout << "tes666" << std::endl;
-			/*OptionsParser parser(
+			OptionsParser parser(
 				"basicplus",
 				"Extend basic fields with TTL, TCP window, options, MSS and SYN size");
-			parser.usage(std::cout);*/
+			parser.usage(std::cout);
 		},
 };
 

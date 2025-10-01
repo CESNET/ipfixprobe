@@ -20,7 +20,7 @@
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
-
+#include <ipfixprobe/options.hpp>
 #include <utils/stringViewUtils.hpp>
 #include <utils/spanUtils.hpp>
 
@@ -36,8 +36,8 @@ static const PluginManifest smtpPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("smtp", "Parse SMTP traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("smtp", "Parse SMTP traffic");
+			parser.usage(std::cout);
 		},
 };
 

@@ -6,7 +6,20 @@
 
 namespace ipxp {
 
+struct FlowKeyLayout {    
+    std::size_t size;
+    std::size_t alignment;
+};
+
 struct FlowKey {
+    constexpr static FlowKeyLayout getLayout() noexcept
+    {
+        return {
+            .size = sizeof(FlowKey),
+            .alignment = alignof(FlowKey),
+        };
+    };
+
 	IPAddress srcIp;
 	IPAddress dstIp;
 	uint16_t srcPort;
@@ -20,9 +33,8 @@ struct FlowKey {
     }
 };
 
-struct FlowKeyLayout {
-    std::size_t size;
-    std::size_t alignment;
-};
+
+
+
 
 } // namespace ipxp

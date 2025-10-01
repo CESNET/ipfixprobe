@@ -10,10 +10,13 @@
 #pragma once
 
 #include <vector>
+#include <variant>
 
 #include <directionalField.hpp>
 #include <tcpFlags.hpp>
 #include <timestamp.hpp>
+
+#include "packetStatsStorage.hpp"
 
 namespace ipxp
 {
@@ -32,35 +35,32 @@ struct PacketStatsData {
 	/// Maximum storage size.
 	constexpr static std::size_t MAX_SIZE = 30;
 
-	/// Storage for lengths of the packets.
-	std::vector<uint16_t> lengths;
-	/// Storage for TCP flags of the packets.
-	std::vector<TCPFlags> tcpFlags;
-	/// Storage for timestamps of the packets.
-	std::vector<Timestamp> timestamps;
-	/// Storage for directions of the packets.
-	std::vector<int8_t> directions;
+	std::variant<std::unique_ptr<PacketStatsStorage<INITIAL_SIZE>>, std::unique_ptr<PacketStatsStorage<MAX_SIZE>>> storage
+		= std::make_unique<PacketStatsStorage<INITIAL_SIZE>>();
 
 	/**
 	 * @brief Default constructor. Reserves initial storage space.
 	 */
-	PacketStatsData() noexcept
+	/*PacketStatsData() noexcept
 	{
 		lengths.reserve(INITIAL_SIZE);
 		tcpFlags.reserve(INITIAL_SIZE);
 		timestamps.reserve(INITIAL_SIZE);
 		directions.reserve(INITIAL_SIZE);
-	}
+	}*/
 
 	/**
 	 * @brief Reserves maximum space for storage.
 	 */
 	void reserveMaxSize() noexcept
 	{
-		lengths.reserve(MAX_SIZE);
+		auto newStorage = std::make_unique<PacketStatsStorage<MAX_SIZE>>(
+			*std::get<std::unique_ptr<PacketStatsStorage<INITIAL_SIZE>>>(storage));
+		storage = std::move(newStorage);
+		/*lengths.reserve(MAX_SIZE);
 		tcpFlags.reserve(MAX_SIZE);
 		timestamps.reserve(MAX_SIZE);
-		directions.reserve(MAX_SIZE);
+		directions.reserve(MAX_SIZE);*/
 	}
 
 	/**
@@ -71,6 +71,7 @@ struct PacketStatsData {
 		DirectionalField<uint32_t> lastAcknowledgment;
 		DirectionalField<std::size_t> lastLength;
 		DirectionalField<TCPFlags> lastFlags;
+		uint8_t currentStorageSize{0};
 	} processingState;
 };
 

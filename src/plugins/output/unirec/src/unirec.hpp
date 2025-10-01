@@ -228,7 +228,7 @@ private:
 /**
  * \brief Class for exporting flow records.
  */
-class UnirecExporter : public OutputPlugin {
+class IPXP_API UnirecExporter : public OutputPlugin {
 public:
 
 	UnirecExporter(const std::string& params, const FieldManager& manager, const std::vector<ProcessPluginEntry>& plugins)

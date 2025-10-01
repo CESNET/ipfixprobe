@@ -16,6 +16,8 @@
 #include <memory>
 #include <string>
 
+#include "../api.hpp"
+
 namespace ipxp {
 
 class ProcessPlugin;
@@ -27,7 +29,7 @@ class ProcessPlugin;
  * and runtime requirements. It contains the plugin's name, context
  * memory requirements, and activation state.
  */
-struct ProcessPluginEntry {
+struct IPXP_API ProcessPluginEntry {
 	/**< @brief Human-readable plugin name (unique identifier). */
 	std::string name;
 

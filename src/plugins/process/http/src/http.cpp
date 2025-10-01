@@ -23,8 +23,8 @@
 #include <ranges>
 #include <utils/stringViewUtils.hpp>
 #include <utils/spanUtils.hpp>
+#include <ipfixprobe/options.hpp>
 
-#include "httpParser.hpp"
 
 namespace ipxp {
 
@@ -35,8 +35,8 @@ static const PluginManifest httpPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("http", "Parse HTTP traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("http", "Parse HTTP traffic");
+			parser.usage(std::cout);
 		},
 };
 
@@ -89,28 +89,9 @@ HTTPPlugin::HTTPPlugin([[maybe_unused]]const std::string& params, FieldManager& 
 	createHTTPSchema(manager, m_fieldHandlers);
 }
 
-PluginUpdateResult HTTPPlugin::parseHTTP(
-	std::span<const std::byte> payload, FlowRecord& flowRecord, HTTPData& httpData) noexcept
+void HTTPPlugin::saveParsedValues(const HTTPParser& parser, FlowRecord& flowRecord, HTTPData& httpData) noexcept
 {
-	HTTPParser parser;
-	parser.parse(payload);
-
-	if (parser.requestParsed && httpData.requestParsed) {
-		// Must be flush and reinsert ????
-		return {
-			.updateRequirement = UpdateRequirement::RequiresUpdate,
-			.flowAction = FlowAction::Flush,
-		};
-	}
 	httpData.requestParsed |= parser.requestParsed;
-
-	if (parser.responseParsed && httpData.responseParsed) {
-		// Must be flush and reinsert ????
-		return {
-			.updateRequirement = UpdateRequirement::RequiresUpdate,
-			.flowAction = FlowAction::Flush,
-		};
-	}
 	httpData.responseParsed |= parser.responseParsed;
 
 	if (parser.method.has_value()) {
@@ -171,7 +152,36 @@ PluginUpdateResult HTTPPlugin::parseHTTP(
 		});
 		m_fieldHandlers[HTTPFields::HTTP_RESPONSE_SET_COOKIE_NAMES].setAsAvailable(flowRecord);
 	}
+}
 
+/*bool HTTPPlugin::parseHTTP(
+	std::span<const std::byte> payload, FlowRecord& flowRecord, HTTPData& httpData) noexcept
+{
+	HTTPParser parser;
+	parser.parse(payload);
+
+	if (!parser.method.has_value()) {
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::RemovePlugin,
+		};
+	}
+	
+	if (parser.requestParsed && httpData.requestParsed) {
+		// Must be flush and reinsert ????
+		return {
+			.updateRequirement = UpdateRequirement::RequiresUpdate,
+			.flowAction = FlowAction::Flush,
+		};
+	}
+
+	if (parser.responseParsed && httpData.responseParsed) {
+		// Must be flush and reinsert ????
+		return {
+			.updateRequirement = UpdateRequirement::RequiresUpdate,
+			.flowAction = FlowAction::Flush,
+		};
+	}
 
 	if (httpData.requestParsed && httpData.responseParsed) {
 		return {
@@ -184,25 +194,64 @@ PluginUpdateResult HTTPPlugin::parseHTTP(
 		.updateRequirement = UpdateRequirement::RequiresUpdate,
 		.flowAction = FlowAction::NoAction,
 	};
-}
+}*/
 
 PluginInitResult HTTPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
+	HTTPParser parser;
+	parser.parse(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len));
+	if (!parser.method.has_value()) {
+		return {
+			.constructionState = ConstructionState::NotConstructed,
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::RemovePlugin,
+		};
+	}
+
 	auto* pluginData = std::construct_at(reinterpret_cast<HTTPData*>(pluginContext));
-	auto [updateRequirement, flowAction] = parseHTTP(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, *pluginData);
+	saveParsedValues(parser, flowContext.flowRecord, *pluginData);
+	/*auto [updateRequirement, flowAction] = parseHTTP(
+		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, *pluginData);*/
 	return {
 		.constructionState = ConstructionState::Constructed,
-		.updateRequirement = updateRequirement,
-		.flowAction = flowAction,
+		.updateRequirement = UpdateRequirement::RequiresUpdate,
+		.flowAction = FlowAction::NoAction,
+	};
+}
+
+
+PluginUpdateResult HTTPPlugin::beforeUpdate(const FlowContext& flowContext, void* pluginContext)
+{
+	auto* pluginData = reinterpret_cast<HTTPData*>(pluginContext);
+	if (pluginData->requestParsed && pluginData->responseParsed) {
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction,
+		};
+	}
+
+	return {
+		.updateRequirement = UpdateRequirement::RequiresUpdate,
+		.flowAction = FlowAction::NoAction,
 	};
 }
 
 PluginUpdateResult HTTPPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = reinterpret_cast<HTTPData*>(pluginContext);
-	return parseHTTP(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, *pluginData);
+	HTTPParser parser;
+	parser.parse(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len));
+	if (pluginData->requestParsed && pluginData->responseParsed) {
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction,
+		};
+	}
+	
+	return {
+		.updateRequirement = UpdateRequirement::RequiresUpdate,
+		.flowAction = FlowAction::NoAction,
+	};
 }
 
 void HTTPPlugin::onDestroy(void* pluginContext) 

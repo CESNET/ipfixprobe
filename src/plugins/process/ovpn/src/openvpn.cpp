@@ -24,6 +24,7 @@
 #include <fieldManager.hpp>
 
 #include <utils/spanUtils.hpp>
+#include <ipfixprobe/options.hpp>
 
 #include "openvpnOpcode.hpp"
 #include "rtpHeader.hpp"
@@ -38,8 +39,8 @@ static const PluginManifest ovpnPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("ovpn", "OpenVPN detector plugin");
-			parser.usage(std::cout);*/
+			OptionsParser parser("ovpn", "OpenVPN detector plugin");
+			parser.usage(std::cout);
 		},
 };
 

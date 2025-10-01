@@ -77,7 +77,7 @@ public:
 private:
 	PluginUpdateResult parseMQTT(std::span<const std::byte> payload, FlowRecord& flowRecord, MQTTData& mqttData) noexcept;
 
-	uint32_t maxTopicsToSave{10};
+	uint32_t m_maxTopicsToSave{10};
 	FieldHandlers<MQTTFields> m_fieldHandlers;
 	
 };

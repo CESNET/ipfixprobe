@@ -25,6 +25,8 @@
 #include <utils.hpp>
 #include <utils/spanUtils.hpp>
 
+#include "packetStatsOptionsParser.hpp"
+
 namespace ipxp {
 
 static const PluginManifest packetStatsPluginManifest = {
@@ -34,8 +36,8 @@ static const PluginManifest packetStatsPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*PSTATSOptParser parser;
-			parser.usage(std::cout);*/
+			PacketStatsOptionsParser parser;
+			parser.usage(std::cout);
 		},
 };
 
@@ -148,9 +150,9 @@ bool isDuplicate(const Packet& packet, const PacketStatsData& pluginData) noexce
 			&& !isSequenceOverflowed(packet.tcp_ack, pluginData.processingState.lastAcknowledgment[packet.source_pkt]);
 
 	if (suspiciousSequence && suspiciousAcknowledgment 
+		&& pluginData.processingState.currentStorageSize != 0 
 		&& packet.payload_len == pluginData.processingState.lastLength[packet.source_pkt]
-		&& TCPFlags(packet.tcp_flags) == pluginData.processingState.lastFlags[packet.source_pkt] 
-		&& pluginData.lengths.size() != 0) {
+		&& TCPFlags(packet.tcp_flags) == pluginData.processingState.lastFlags[packet.source_pkt]) {
 		return true;
 	}
 
@@ -172,18 +174,22 @@ void PacketStatsPlugin::updatePacketsData(const Packet& packet, PacketStatsData&
 		return;
 	}
 
-	if (pluginData.lengths.size() == PacketStatsData::INITIAL_SIZE) {
+	if (pluginData.processingState.currentStorageSize == PacketStatsData::INITIAL_SIZE) {
 		pluginData.reserveMaxSize();
 	}
-	if (pluginData.lengths.size() == PacketStatsData::MAX_SIZE) {
+	if (pluginData.processingState.currentStorageSize == PacketStatsData::MAX_SIZE) {
 		return;
 	}
 	
-	const int8_t direction = packet.source_pkt ? 1 : -1;
-	pluginData.directions.push_back(direction);
-	pluginData.lengths.push_back(static_cast<uint16_t>(packet.payload_len_wire));
-	pluginData.tcpFlags.push_back(TCPFlags(packet.tcp_flags));
-	pluginData.timestamps.push_back(packet.ts);
+	std::visit([&](auto& storage) {
+			storage->set(
+				pluginData.processingState.currentStorageSize++,
+				static_cast<uint16_t>(packet.payload_len_wire),
+				TCPFlags(packet.tcp_flags),
+				packet.ts,
+				packet.source_pkt ? 1 : -1
+			);
+		}, pluginData.storage);
 }
 
 void PacketStatsPlugin::onDestroy(void* pluginContext)

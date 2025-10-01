@@ -20,6 +20,7 @@
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
+#include <ipfixprobe/options.hpp>
 
 namespace ipxp {
 
@@ -30,10 +31,10 @@ static const PluginManifest ssaDetectorPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser(
+			OptionsParser parser(
 				"ssadetector",
 				"Check traffic for SYN-SYNACK-ACK sequence to find possible network tunnels.");
-			parser.usage(std::cout);*/
+			parser.usage(std::cout);
 		},
 };
 

@@ -24,6 +24,7 @@
 #include <fieldManager.hpp>
 #include <utils/spanUtils.hpp>
 #include <utils/stringViewUtils.hpp>
+#include <ipfixprobe/options.hpp>
 
 namespace ipxp {
 
@@ -36,8 +37,8 @@ static const PluginManifest ntpPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("ntp", "Parse NTP traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("ntp", "Parse NTP traffic");
+			parser.usage(std::cout);
 		},
 };
 

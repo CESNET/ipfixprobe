@@ -24,6 +24,7 @@
 #include <dns-utils.hpp>
 #include <utils/spanUtils.hpp>
 #include <utils/stringViewUtils.hpp>
+#include <ipfixprobe/options.hpp>
 
 namespace ipxp {
 
@@ -34,8 +35,8 @@ static const PluginManifest netbiosPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("netbios", "Parse netbios traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("netbios", "Parse netbios traffic");
+			parser.usage(std::cout);
 		},
 };
 

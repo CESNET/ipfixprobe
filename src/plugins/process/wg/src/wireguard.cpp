@@ -22,6 +22,7 @@
 #include <utils.hpp>
 #include <arpa/inet.h>
 #include <utils/spanUtils.hpp>
+#include <ipfixprobe/options.hpp>
 
 #include "wireguardPacketType.hpp"
 #include "wireguardPacketSize.hpp"
@@ -35,8 +36,8 @@ static const PluginManifest wireguardPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("wg", "Parse WireGuard traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("wg", "Parse WireGuard traffic");
+			parser.usage(std::cout);
 		},
 };
 

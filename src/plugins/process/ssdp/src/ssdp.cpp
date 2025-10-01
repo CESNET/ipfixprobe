@@ -22,6 +22,7 @@
 #include <utils.hpp>
 #include <readers/headerFieldReader/headerFieldReader.hpp>
 #include <utils/stringViewUtils.hpp>
+#include <ipfixprobe/options.hpp>
 
 namespace ipxp {
 
@@ -32,8 +33,8 @@ static const PluginManifest ssdpPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("ssdp", "Parse SSDP traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("ssdp", "Parse SSDP traffic");
+			parser.usage(std::cout);
 		},
 };
 

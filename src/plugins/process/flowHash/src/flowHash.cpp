@@ -21,6 +21,7 @@
 #include <pluginFactory.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
+#include <ipfixprobe/options.hpp>
 
 #include "flowHashData.hpp"
 
@@ -33,8 +34,8 @@ static const PluginManifest flowhashPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("flowhash", "Export flow hash as flow id");
-			parser.usage(std::cout);*/
+			OptionsParser parser("flowhash", "Export flow hash as flow id");
+			parser.usage(std::cout);
 		},
 };
 

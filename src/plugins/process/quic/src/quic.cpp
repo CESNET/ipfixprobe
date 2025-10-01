@@ -25,6 +25,7 @@
 #include <fieldManager.hpp>
 #include <utils/stringViewUtils.hpp>
 #include <utils/spanUtils.hpp>
+#include <ipfixprobe/options.hpp>
 
 #include "quicHeaderView.hpp"
 #include "quicInitialHeaderView.hpp"
@@ -40,8 +41,8 @@ static const PluginManifest quicPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("quic", "Parse QUIC traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("quic", "Parse QUIC traffic");
+			parser.usage(std::cout);
 		},
 };
 
@@ -317,30 +318,15 @@ bool QUICPlugin::setConnectionIds(
 
 PluginUpdateResult QUICPlugin::parseQUIC(
 	FlowRecord& flowRecord, 
-	std::span<const std::byte> payload,
+	const QUICParser& quicParser,
 	Direction packetDirection,
 	QUICData& pluginData
 ) noexcept
 {
-	QUICParser quicParser;
-
-	const bool quicParsed = quicParser.parse(
-		payload, 
-		pluginData.processingState.initialConnectionId,
-		flowRecord.flowKey.l4Protocol
-	);
-	
 	// Regardless the result push the type cumulative
 	if (pluginData.packetTypes.size() != pluginData.packetTypes.capacity()) {
 		pluginData.packetTypes.push_back(
 			static_cast<uint8_t>(quicParser.packetTypesCumulative.raw));
-	}
-	
-	if (!quicParsed) {
-		return {
-			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-			.flowAction = FlowAction::RemovePlugin,
-		};
 	}
 
 	if (quicParser.packetTypesCumulative.bitfields.zeroRTT) {
@@ -427,9 +413,23 @@ PluginUpdateResult QUICPlugin::parseQUIC(
 
 PluginInitResult QUICPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
+	QUICParser quicParser;
+	const bool quicParsed = quicParser.parse(
+		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), 
+		//pluginData.processingState.initialConnectionId,
+		ConnectionId(), // TODO FIX
+		flowContext.flowRecord.flowKey.l4Protocol
+	);
+	if (!quicParsed) {
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::RemovePlugin,
+		};
+	}
+	
 	auto* pluginData = std::construct_at(reinterpret_cast<QUICData*>(pluginContext));
 	auto [updateRequirement, flowAction] = parseQUIC(flowContext.flowRecord, 
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), flowContext.packet.source_pkt, *pluginData);
+		quicParser, flowContext.packet.source_pkt, *pluginData);
 	return {
 		.constructionState = ConstructionState::Constructed,
 		.updateRequirement = updateRequirement,
@@ -440,8 +440,20 @@ PluginInitResult QUICPlugin::onInit(const FlowContext& flowContext, void* plugin
 PluginUpdateResult QUICPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = reinterpret_cast<QUICData*>(pluginContext);
-	return parseQUIC(flowContext.flowRecord, toSpan<const std::byte>(
-		flowContext.packet.payload, flowContext.packet.payload_len), flowContext.packet.source_pkt, *pluginData);
+	QUICParser quicParser;
+	const bool quicParsed = quicParser.parse(
+		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), 
+		pluginData->processingState.initialConnectionId,
+		flowContext.flowRecord.flowKey.l4Protocol
+	);
+	if (!quicParsed) {
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::RemovePlugin,
+		};
+	}
+
+	return parseQUIC(flowContext.flowRecord, quicParser, flowContext.packet.source_pkt, *pluginData);
 }
 
 void QUICPlugin::onDestroy(void* pluginContext)

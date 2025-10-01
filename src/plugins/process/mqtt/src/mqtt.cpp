@@ -25,6 +25,7 @@
 
 #include "variableLengthInt.hpp"
 #include "mqttTypeFlag.hpp"
+#include "mqttOptionsParser.hpp"
 
 namespace ipxp {
 
@@ -36,8 +37,8 @@ static const PluginManifest mqttPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*MQTTOptionsParser parser;
-			parser.usage(std::cout);*/
+			MQTTOptionsParser parser;
+			parser.usage(std::cout);
 		},
 };
 
@@ -132,6 +133,9 @@ static FieldGroup createMQTTSchema(FieldManager& fieldManager, FieldHandlers<MQT
 MQTTPlugin::MQTTPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
 {
 	createMQTTSchema(manager, m_fieldHandlers);
+	MQTTOptionsParser parser;
+	parser.parse(params.c_str());
+	m_maxTopicsToSave = parser.maxTopicsToSave;
 }
 
 PluginInitResult MQTTPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
@@ -242,7 +246,7 @@ PluginUpdateResult MQTTPlugin::parseMQTT(std::span<const std::byte> payload, Flo
 				};
 			}
 
-			mqttData.addTopic(*topic, maxTopicsToSave);
+			mqttData.addTopic(*topic, m_maxTopicsToSave);
 			m_fieldHandlers[MQTTFields::MQTT_TOPICS].setAsAvailable(flowRecord);
 			
 			break;

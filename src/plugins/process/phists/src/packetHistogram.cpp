@@ -27,6 +27,8 @@
 #include <utils.hpp>
 #include <utils/spanUtils.hpp>
 
+#include "packetHistogramOptionsParser.hpp"
+
 namespace ipxp {
 
 static const PluginManifest packetHistogramPluginManifest = {
@@ -36,8 +38,8 @@ static const PluginManifest packetHistogramPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*PHISTSOptParser parser;
-			parser.usage(std::cout);*/
+			PacketHistogramOptionsParser parser;
+			parser.usage(std::cout);
 		},
 };
 

@@ -27,6 +27,7 @@
 #include "quicTemporalStorage.hpp"
 #include "quicHeaderView.hpp"
 #include "quicInitialHeaderView.hpp"
+#include "quicParser.hpp"
 
 namespace ipxp {
 
@@ -86,10 +87,16 @@ public:
 private:
 	PluginUpdateResult parseQUIC(
 		FlowRecord& flowRecord, 
-		std::span<const std::byte> payload,
+		const QUICParser& quicParser,
 		Direction packetDirection,
 		QUICData& pluginData
 	) noexcept;
+	/*PluginUpdateResult parseQUIC(
+		FlowRecord& flowRecord, 
+		std::span<const std::byte> payload,
+		Direction packetDirection,
+		QUICData& pluginData
+	) noexcept;*/
 
 	constexpr
 	void tryToSetOCCIDandSCID(

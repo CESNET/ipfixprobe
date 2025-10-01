@@ -24,9 +24,9 @@
 #include <utils/stringUtils.hpp>
 #include <utils/stringViewUtils.hpp>
 #include <readers/headerFieldReader/headerFieldReader.hpp>
+#include <ipfixprobe/options.hpp>
 
 #include "sipMessageType.hpp"
-
 
 namespace ipxp {
 
@@ -37,8 +37,8 @@ static const PluginManifest sipPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("sip", "Parse SIP traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("sip", "Parse SIP traffic");
+			parser.usage(std::cout);
 		},
 };
 

@@ -32,7 +32,8 @@ struct DNSSDRecord {
     DNSName srvTarget;
     DNSName cpu;
     DNSName operatingSystem;
-    std::vector<DNSName> txtContent;
+    //std::vector<DNSName> txtContent;
+    std::string txtContent;
 
     /**
 	 * @brief Converts record to string.
@@ -40,17 +41,17 @@ struct DNSSDRecord {
 	 */
     std::string toString() const noexcept
     {
-        std::string txtContentStr(200, '\0');
+        /*std::string txtContentStr(200, '\0');
         concatenateRangeTo(txtContent |
             std::views::transform([](const DNSName& name) {
                 return name.toString();
             }), txtContentStr, ':');
-
+*/
         return std::format(
             "{};{};{};{};{};{};", requestName.toString(), 
             srvPort, srvTarget.toString(), 
             cpu.toString(), operatingSystem.toString(),
-            txtContentStr);
+            txtContent);
     }
 };
 

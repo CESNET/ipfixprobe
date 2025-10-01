@@ -21,6 +21,7 @@
 #include <pluginFactory.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
+#include <ipfixprobe/options.hpp>
 
 namespace ipxp {
 
@@ -31,8 +32,8 @@ static const PluginManifest nettisaPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("nettisa", "Parse NetTiSA flow");
-			parser.usage(std::cout);*/
+			OptionsParser parser("nettisa", "Parse NetTiSA flow");
+			parser.usage(std::cout);
 		},
 };
 

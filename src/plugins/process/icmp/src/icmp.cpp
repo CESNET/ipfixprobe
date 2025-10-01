@@ -21,6 +21,7 @@
 #include <pluginFactory.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
+#include <ipfixprobe/options.hpp>
 
 #include "icmpData.hpp"
 
@@ -34,8 +35,8 @@ static const PluginManifest icmpPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("icmp", "Parse ICMP traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("icmp", "Parse ICMP traffic");
+			parser.usage(std::cout);
 		},
 };
 

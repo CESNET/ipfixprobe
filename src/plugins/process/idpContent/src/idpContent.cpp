@@ -22,7 +22,7 @@
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils/spanUtils.hpp>
-
+#include <ipfixprobe/options.hpp>
 
 namespace ipxp {
 
@@ -33,8 +33,8 @@ static const PluginManifest idpcontentPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("idpcontent", "Parse first bytes of flow payload");
-			parser.usage(std::cout);*/
+			OptionsParser parser("idpcontent", "Parse first bytes of flow payload");
+			parser.usage(std::cout);
 		},
 };
 

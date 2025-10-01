@@ -6,10 +6,11 @@
 #include "processPluginEntry.hpp"
 #include "flowRecordBuilder.hpp"
 #include "../pluginFactory/pluginFactory.hpp"
+#include "../api.hpp"
 
 namespace ipxp {
 
-class ProcessPluginManager {
+class IPXP_API ProcessPluginManager {
 public:
 	ProcessPluginManager(FieldManager& manager)
 		: m_fieldManager(manager)
@@ -189,7 +190,11 @@ public:
 		}
 #endif
 
-	std::shared_ptr<FlowRecordBuilder> rebuild();
+	std::shared_ptr<FlowRecordBuilder> rebuild()
+	{
+		auto builder = std::make_shared<FlowRecordBuilder>(m_processPlugins, FlowKey::DEFAULT_LAYOUT);
+		return builder;
+	}
 
 	const std::vector<ProcessPluginEntry>& getEntries() { return m_processPlugins; }
 

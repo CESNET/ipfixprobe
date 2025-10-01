@@ -20,6 +20,7 @@
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils.hpp>
+#include <ipfixprobe/options.hpp>
 
 #include "vlanData.hpp"
 
@@ -32,8 +33,8 @@ static const PluginManifest vlanPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("vlan", "Parse VLAN traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("vlan", "Parse VLAN traffic");
+			parser.usage(std::cout);
 		},
 };
 

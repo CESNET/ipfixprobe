@@ -29,7 +29,7 @@ namespace ipxp {
  * @class IDPContentPlugin
  * @brief A plugin for collecting IDP content.
  */
-class IDPContentPlugin : public ProcessPlugin {
+class IPXP_API IDPContentPlugin : public ProcessPlugin {
 public:
 
 	/**

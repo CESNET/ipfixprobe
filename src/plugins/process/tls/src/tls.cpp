@@ -28,6 +28,7 @@
 #include <utils.hpp>
 #include <utils/stringUtils.hpp>
 #include <utils/spanUtils.hpp>
+#include <ipfixprobe/options.hpp>
 
 #include "ja3.hpp"
 #include "ja4.hpp"
@@ -41,8 +42,8 @@ static const PluginManifest tlsPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("tls", "Parse TLS traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("tls", "Parse TLS traffic");
+			parser.usage(std::cout);
 		},
 };
 

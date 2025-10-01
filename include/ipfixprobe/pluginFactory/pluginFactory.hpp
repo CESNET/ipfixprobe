@@ -65,8 +65,6 @@ public:
 	{
 		static_assert(std::is_base_of<Base, Derived>::value, "Derived must be a subclass of Base");
 		
-		std::cout << manifest.name << "=" << std::hex << std::size_t(this) << std::endl;
-
 		m_registeredPlugins[manifest] = createGenerators<Base, Derived, Args...>();
 	}
 

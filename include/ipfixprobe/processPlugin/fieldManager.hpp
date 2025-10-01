@@ -20,6 +20,7 @@
 #include "fieldDescriptor.hpp"
 #include "fieldGenericValueGetter.hpp"
 #include "fieldHandler.hpp"
+#include "../api.hpp"
 
 #include <atomic>
 #include <cstdint>
@@ -38,7 +39,7 @@ class FieldGroup;
  * Provides methods to register fields, directional field pairs, and biflow pairs.
  * Offers access to field descriptors grouped by biflow/uniflow and direction.
  */
-class FieldManager {
+class IPXP_API FieldManager {
 public:
 	/**
 	 * @brief Creates a FieldGroup for a given name.

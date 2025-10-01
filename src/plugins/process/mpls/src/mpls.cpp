@@ -22,6 +22,7 @@
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <utils/spanUtils.hpp>
+#include <ipfixprobe/options.hpp>
 
 #include "mplsData.hpp"
 
@@ -34,8 +35,8 @@ static const PluginManifest mplsPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("mpls", "Parse MPLS traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("mpls", "Parse MPLS traffic");
+			parser.usage(std::cout);
 		},
 };
 

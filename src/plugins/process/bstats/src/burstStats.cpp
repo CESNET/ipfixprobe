@@ -25,9 +25,9 @@
 //#include <pluginFactory.hpp>
 #include <fieldGroup.hpp>
 //#include <fieldManager.hpp>
+#include <ipfixprobe/options.hpp>
 
 namespace ipxp {
-
 
 static const PluginManifest burstStatsPluginManifest = {
 	.name = "bstats",
@@ -36,9 +36,8 @@ static const PluginManifest burstStatsPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			std::cout << "Test" << std::endl;
-			/*OptionsParser parser("bstats", "Compute packet bursts stats");
-			parser.usage(std::cout);*/
+			OptionsParser parser("bstats", "Compute packet bursts stats");
+			parser.usage(std::cout);
 		},
 };
 

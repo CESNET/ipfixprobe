@@ -25,6 +25,7 @@
 #include <utils/spanUtils.hpp>
 #include <utils/stringViewUtils.hpp>
 #include <dnsParser/dnsParser.hpp>
+#include <ipfixprobe/options.hpp>
 
 namespace ipxp {
 
@@ -35,8 +36,8 @@ static const PluginManifest passiveDNSPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("passivedns", "Parse A, AAAA and PTR records from DNS traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("passivedns", "Parse A, AAAA and PTR records from DNS traffic");
+			parser.usage(std::cout);
 		},
 };
 

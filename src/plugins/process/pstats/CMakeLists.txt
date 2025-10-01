@@ -2,7 +2,9 @@ project(ipfixprobe-process-pstats VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-
 
 add_library(ipfixprobe-process-pstats MODULE
 	src/packetStats.cpp
-	src/pstats.hpp
+	src/packetStats.hpp
+	src/packetStatsData.hpp
+	src/packetStatsStorage.hpp
 )
 
 set_target_properties(ipfixprobe-process-pstats PROPERTIES

@@ -22,6 +22,7 @@
 #include <utils.hpp>
 #include <utils/stringViewUtils.hpp>
 #include <utils/spanUtils.hpp>
+#include <ipfixprobe/options.hpp>
 
 #include "rtspExtensionReader.hpp"
 
@@ -36,8 +37,8 @@ static const PluginManifest rtspPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser("rtsp", "Parse RTSP traffic");
-			parser.usage(std::cout);*/
+			OptionsParser parser("rtsp", "Parse RTSP traffic");
+			parser.usage(std::cout);
 		},
 };
 

@@ -22,6 +22,7 @@
 
 #include "httpData.hpp"
 #include "httpFields.hpp"
+#include "httpParser.hpp"
 
 namespace ipxp {
 
@@ -51,6 +52,8 @@ public:
 	 */
 	PluginInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
 
+	PluginUpdateResult beforeUpdate(const FlowContext& flowContext, void* pluginContext) override;
+
 	/**
 	 * @brief Updates plugin data with values from new packet.
 	 *
@@ -77,7 +80,8 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	PluginUpdateResult parseHTTP(std::span<const std::byte> payload, FlowRecord& flowRecord, HTTPData& httpData) noexcept;
+	//PluginUpdateResult parseHTTP(std::span<const std::byte> payload, FlowRecord& flowRecord, HTTPData& httpData) noexcept;
+	void saveParsedValues(const HTTPParser& parser, FlowRecord& flowRecord, HTTPData& httpData) noexcept;
 
 	FieldHandlers<HTTPFields> m_fieldHandlers;
 };

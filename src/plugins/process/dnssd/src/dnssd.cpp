@@ -31,6 +31,8 @@
 #include <utils/stringUtils.hpp>
 #include <utils/spanUtils.hpp>
 
+#include "dnssdOptionsParser.hpp"
+
 namespace ipxp {
 
 static const PluginManifest dnssdPluginManifest = {
@@ -40,9 +42,8 @@ static const PluginManifest dnssdPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			std::cout << "'XXXXXXXXXXXXXXXXXXXXXXXX TEST'" << std::endl;
-			/*DNSSDOptParser parser;
-			parser.usage(std::cout);*/
+			DNSSDOptionsParser parser;
+			parser.usage(std::cout);
 		},
 };
 
@@ -126,9 +127,15 @@ bool DNSSDPlugin::parseAnswer(const DNSRecord& answer, DNSSDData& pluginData) no
 	}
 
 	if (answer.type == DNSQueryType::TXT) {
-		DNSSDRecord& record = pluginData.findOrInsert(answer.name);
 		const auto txt = std::get<DNSTXTRecord>(*answer.payload.getUnderlyingType());
-		record.txtContent.push_back(txt.content);
+		auto firstTxtKey = std::string_view(txt.content.data(), txt.content.find('='));
+		if (!m_serviceFilter->matches(toStringView(answer.name.toString()), firstTxtKey)) {
+			return true;
+		}
+
+		DNSSDRecord& record = pluginData.findOrInsert(answer.name);		
+		record.txtContent.append(txt.content);
+		record.txtContent.push_back(':');
 	}
 
 	if (answer.type == DNSQueryType::HINFO) {

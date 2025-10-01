@@ -22,6 +22,7 @@
 
 #include "dnssdData.hpp"
 #include "dnssdFields.hpp"
+#include "serviceFilter.hpp"
 
 namespace ipxp {
 
@@ -95,7 +96,9 @@ private:
 		DNSSDData& pluginData) noexcept;
 	bool parseAnswer(const DNSRecord& answer, DNSSDData& pluginData) noexcept;
 
+	//std::optional<std::string> m_configFilename;
 	FieldHandlers<DNSSDFields> m_fieldHandlers;
+	std::optional<ServiceFilter> m_serviceFilter;
 };
 
 } // namespace ipxp

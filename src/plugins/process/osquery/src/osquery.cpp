@@ -21,7 +21,7 @@
 #include <pluginFactory.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
-
+#include <ipfixprobe/options.hpp>
 #include <utils/stringViewUtils.hpp>
 
 #include "osqueryData.hpp"
@@ -35,10 +35,10 @@ static const PluginManifest osqueryPluginManifest = {
 	.apiVersion = "1.0.0",
 	.usage =
 		[]() {
-			/*OptionsParser parser(
+			OptionsParser parser(
 				"osquery",
 				"Collect information about locally outbound flows from OS");
-			parser.usage(std::cout);*/
+			parser.usage(std::cout);
 		},
 };
 
