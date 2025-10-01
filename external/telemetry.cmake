@@ -5,7 +5,7 @@
 # - telemetry::telemetry (C++ library for telemetry data collection)
 # - telemetry::appFs     (C++ library that expose telemetry data as a Fuse filesystem)
 
-set(TELEMETRY_BUILD_SHARED OFF)
+set(TELEMETRY_BUILD_SHARED ON)
 set(TELEMETRY_INSTALL_TARGETS OFF)
 set(TELEMETRY_PACKAGE_BUILDER OFF)
 set(TELEMETRY_ENABLE_TESTS OFF)
