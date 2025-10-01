@@ -27,19 +27,26 @@ BuildRequires: gcc-toolset-14-gcc-c++
 
 BuildRequires: make
 BuildRequires: cmake >= 3.12
+%if %{with unwind}
 BuildRequires: libunwind-devel
+%endif
+
 %if 0%{?rhel} <= 9
 BuildRequires: gcc-toolset-14-libatomic-devel
 %endif
 BuildRequires: pkgconfig
+%if %{with lz4}
 BuildRequires: lz4-devel
+%endif
 BuildRequires: openssl-devel
 BuildRequires: nemea-framework-devel
 BuildRequires: git
 
 Requires: libatomic
 Requires: fuse3
+%if %{with lz4}
 Requires: lz4
+%endif
 Requires: openssl
 Requires: python3
 Requires: python3-pyyaml
