@@ -1,6 +1,6 @@
 # BurstStats Plugin
 
-The **BurstStats Plugin** is a module for the IPFIXprobe exporter, designed to analyze packet burst statistics.
+The **BurstStats Plugin** extends flow records with burst packet statistics to provide analysis of bursty traffic patterns.
 
 ## Features
 
@@ -11,23 +11,28 @@ The **BurstStats Plugin** is a module for the IPFIXprobe exporter, designed to a
 
 | Field Name      | Data Type | Description                                                 |
 |-----------------|-----------|-------------------------------------------------------------|
-| SBI_BRST_PACKETS| uint32_t  | Array of packets in each burst in source-to-destination direction                  |
-| SBI_BRST_BYTES  | uint32_t  | Array of bytes in each burst in source-to-destination direction                    |
-| SBI_BRST_TIME_START | Timestamp | Array of burst start times in source-to-destination direction                   |
-| SBI_BRST_TIME_STOP  | Timestamp | Array of burst end times in source-to-destination direction                     |
-| DBI_BRST_PACKETS| uint32_t  | Array of packets in each burst in destination-to-source direction                  |
-| DBI_BRST_BYTES  | uint32_t  | Array of bytes in each burst in destination-to-source direction                    |
-| DBI_BRST_TIME_START | Timestamp | Array of burst start times in destination-to-source direction                   |
-| DBI_BRST_TIME_STOP  | Timestamp | Array of burst end times in destination-to-source direction                     |
+| `SBI_BRST_PACKETS`| `uint32_t`  | Array of packet counts in each burst (source -> destination)                  |
+| `SBI_BRST_BYTES`  | `uint32_t`  | Array of bytes in each burst in source-to-destination direction                    |
+| `SBI_BRST_TIME_START` | `Timestamp` | Array of burst start times in source-to-destination direction                   |
+| `SBI_BRST_TIME_STOP`  | `Timestamp` | Array of burst end times in source-to-destination direction                     |
+| `DBI_BRST_PACKETS`| `uint32_t`  | Array of packets in each burst in destination-to-source direction                  |
+| `DBI_BRST_BYTES`  | `uint32_t`  | Array of bytes in each burst in destination-to-source direction                    |
+| `DBI_BRST_TIME_START` | `Timestamp` | Array of burst start times in destination-to-source direction                   |
+| `DBI_BRST_TIME_STOP`  | `Timestamp` | Array of burst end times in destination-to-source direction                     |
 
 ## Usage
 
-Once enabled, the plugin will automatically process flows and add the export fields to each record.
+### YAML Configuration
 
-1. ``` make install ```.
-2. ``` ipfixprobe -p "bstats" ... " ```
-3. Extracted values are exported to the output interface.
+Add the plugin to your ipfixprobe YAML configuration:
 
-## Support
+```yaml
+process_plugins:
+  - bstats
+```
 
-For issues or feature requests, please open an issue in the [IPFIXprobe repository](https://github.com/CESNET/ipfixprobe).
+### CLI Usage
+
+You can also enable the plugin directly from the command line:
+
+```ipfixprobe -p bstats ...```
