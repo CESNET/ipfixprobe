@@ -508,7 +508,8 @@ void UnirecExporter::processRecord(FlowRecordUniquePtr& flowRecord)
 	int ext_processed_cnd = 0;
 
 	std::ranges::for_each(m_fieldManager.getBiflowFields(), [&, index = 0](const FieldDescriptor& fieldDescriptor) mutable {
-		ext_processed_cnd++; 
+		ext_processed_cnd++;
+		std::cout << "Bit index is " << fieldDescriptor.getBitIndex() << "\n";
 		const void* pluginExportData = flowRecord->getPluginContext(fieldDescriptor.getBitIndex());
 		if (!fieldDescriptor.isInRecord(*flowRecord)) {
 			return;

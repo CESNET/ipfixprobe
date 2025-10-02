@@ -14,21 +14,22 @@
 
 #pragma once
 
+#include "basicPlusData.hpp"
+#include "basicPlusFields.hpp"
+
 #include <sstream>
 #include <string>
 
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
 #include <fieldHandlersEnum.hpp>
-
-#include "basicPlusData.hpp"
-#include "basicPlusFields.hpp"
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
 /**
  * @class BasicPlusPlugin
- * @brief A plugin for collecting basic statistics about the flow: IP TTL, flags, TCP window, options, MSS and SYN length.
+ * @brief A plugin for collecting basic statistics about the flow: IP TTL, flags, TCP window,
+ * options, MSS and SYN length.
  */
 class BasicPlusPlugin : public ProcessPlugin {
 public:

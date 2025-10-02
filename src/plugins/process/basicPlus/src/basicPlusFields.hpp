@@ -11,8 +11,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @enum BasicPlusFields
@@ -33,6 +32,6 @@ enum class BasicPlusFields : std::size_t {
 	TCP_MSS_REV,
 	TCP_SYN_SIZE,
 	FIELDS_SIZE,
-};    
-    
+};
+
 } // namespace ipxp

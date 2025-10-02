@@ -16,15 +16,12 @@
 
 #include <iostream>
 
-#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
-#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
-//#include <pluginManifest.hpp>
-//#include <pluginRegistrar.hpp>
-//#include <pluginFactory.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
-#include <tcpData.hpp>
 #include <ipfixprobe/options.hpp>
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+#include <tcpData.hpp>
 
 namespace ipxp {
 
@@ -42,59 +39,83 @@ static const PluginManifest basicPlusPluginManifest = {
 		},
 };
 
-
-static FieldGroup createBasicPlusSchema(FieldManager& fieldManager, FieldHandlers<BasicPlusFields>& handlers)
+static FieldGroup
+createBasicPlusSchema(FieldManager& fieldManager, FieldHandlers<BasicPlusFields>& handlers)
 {
 	FieldGroup schema = fieldManager.createFieldGroup("basicplus");
 
 	auto [ipTTLField, ipTTLRevField] = schema.addScalarDirectionalFields(
-    "IP_TTL", "IP_TTL_REV",
-		[](const void* context) { return reinterpret_cast<const BasicPlusData*>(context)->ipTTL[Direction::Forward]; },
-		[](const void* context) { return reinterpret_cast<const BasicPlusData*>(context)->ipTTL[Direction::Reverse]; }
-	);
+		"IP_TTL",
+		"IP_TTL_REV",
+		[](const void* context) {
+			return reinterpret_cast<const BasicPlusData*>(context)->ipTTL[Direction::Forward];
+		},
+		[](const void* context) {
+			return reinterpret_cast<const BasicPlusData*>(context)->ipTTL[Direction::Reverse];
+		});
 	handlers.insert(BasicPlusFields::IP_TTL, ipTTLField);
 	handlers.insert(BasicPlusFields::IP_TTL_REV, ipTTLRevField);
 
 	auto [ipFlagField, ipFlagRevField] = schema.addScalarDirectionalFields(
-    "IP_FLG", "IP_FLG_REV",
-		[](const void* context) { return reinterpret_cast<const BasicPlusData*>(context)->ipFlag[Direction::Forward]; },
-		[](const void* context) { return reinterpret_cast<const BasicPlusData*>(context)->ipFlag[Direction::Reverse]; }
-	);
+		"IP_FLG",
+		"IP_FLG_REV",
+		[](const void* context) {
+			return reinterpret_cast<const BasicPlusData*>(context)->ipFlag[Direction::Forward];
+		},
+		[](const void* context) {
+			return reinterpret_cast<const BasicPlusData*>(context)->ipFlag[Direction::Reverse];
+		});
 	handlers.insert(BasicPlusFields::IP_FLG, ipFlagField);
 	handlers.insert(BasicPlusFields::IP_FLG_REV, ipFlagRevField);
 
 	auto [tcpWinField, tcpWinRevField] = schema.addScalarDirectionalFields(
-    "TCP_WIN", "TCP_WIN_REV",
-		[](const void* context) { return reinterpret_cast<const BasicPlusData*>(context)->tcpWindow[Direction::Forward]; },
-		[](const void* context) { return reinterpret_cast<const BasicPlusData*>(context)->tcpWindow[Direction::Reverse]; }
-	);
+		"TCP_WIN",
+		"TCP_WIN_REV",
+		[](const void* context) {
+			return reinterpret_cast<const BasicPlusData*>(context)->tcpWindow[Direction::Forward];
+		},
+		[](const void* context) {
+			return reinterpret_cast<const BasicPlusData*>(context)->tcpWindow[Direction::Reverse];
+		});
 	handlers.insert(BasicPlusFields::TCP_WIN, tcpWinField);
 	handlers.insert(BasicPlusFields::TCP_WIN_REV, tcpWinRevField);
 
 	auto [tcpOptField, tcpOptRevField] = schema.addScalarDirectionalFields(
-    "TCP_OPT", "TCP_OPT_REV",
-		[](const void* context) { return reinterpret_cast<const BasicPlusData*>(context)->tcpOption[Direction::Forward]; },
-		[](const void* context) { return reinterpret_cast<const BasicPlusData*>(context)->tcpOption[Direction::Reverse]; }
-	);
+		"TCP_OPT",
+		"TCP_OPT_REV",
+		[](const void* context) {
+			return reinterpret_cast<const BasicPlusData*>(context)->tcpOption[Direction::Forward];
+		},
+		[](const void* context) {
+			return reinterpret_cast<const BasicPlusData*>(context)->tcpOption[Direction::Reverse];
+		});
 	handlers.insert(BasicPlusFields::TCP_OPT, tcpOptField);
 	handlers.insert(BasicPlusFields::TCP_OPT_REV, tcpOptRevField);
 
 	auto [tcpMSSField, tcpMSSRevField] = schema.addScalarDirectionalFields(
-    "TCP_MSS", "TCP_MSS_REV",
-		[](const void* context) { return reinterpret_cast<const BasicPlusData*>(context)->tcpMSS[Direction::Forward]; },
-		[](const void* context) { return reinterpret_cast<const BasicPlusData*>(context)->tcpMSS[Direction::Reverse]; }
-	);
+		"TCP_MSS",
+		"TCP_MSS_REV",
+		[](const void* context) {
+			return reinterpret_cast<const BasicPlusData*>(context)->tcpMSS[Direction::Forward];
+		},
+		[](const void* context) {
+			return reinterpret_cast<const BasicPlusData*>(context)->tcpMSS[Direction::Reverse];
+		});
 	handlers.insert(BasicPlusFields::TCP_MSS, tcpMSSField);
 	handlers.insert(BasicPlusFields::TCP_MSS_REV, tcpMSSRevField);
 
-	handlers.insert(BasicPlusFields::TCP_SYN_SIZE, schema.addScalarField("TCP_SYN_SIZE", [](const void* context) {
-		return static_cast<const BasicPlusData*>(context)->tcpSynSize;
-	}));
+	handlers.insert(
+		BasicPlusFields::TCP_SYN_SIZE,
+		schema.addScalarField("TCP_SYN_SIZE", [](const void* context) {
+			return static_cast<const BasicPlusData*>(context)->tcpSynSize;
+		}));
 
 	return schema;
 }
 
-BasicPlusPlugin::BasicPlusPlugin([[maybe_unused]]const std::string& params, FieldManager& fieldManager)
+BasicPlusPlugin::BasicPlusPlugin(
+	[[maybe_unused]] const std::string& params,
+	FieldManager& fieldManager)
 {
 	createBasicPlusSchema(fieldManager, m_fieldHandlers);
 }
@@ -142,8 +163,8 @@ PluginInitResult BasicPlusPlugin::onInit(const FlowContext& flowContext, void* p
 PluginUpdateResult BasicPlusPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = reinterpret_cast<BasicPlusData*>(pluginContext);
-	
-	pluginData->ipTTL[flowContext.packet.source_pkt] 
+
+	pluginData->ipTTL[flowContext.packet.source_pkt]
 		= std::min(pluginData->ipTTL[flowContext.packet.source_pkt], flowContext.packet.ip_ttl);
 
 	constexpr std::size_t TCP = 6;
@@ -184,7 +205,7 @@ PluginUpdateResult BasicPlusPlugin::onUpdate(const FlowContext& flowContext, voi
 	};
 }
 
-void BasicPlusPlugin::onDestroy(void* pluginContext) 
+void BasicPlusPlugin::onDestroy(void* pluginContext)
 {
 	std::destroy_at(reinterpret_cast<BasicPlusData*>(pluginContext));
 }
@@ -197,6 +218,7 @@ PluginDataMemoryLayout BasicPlusPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<BasicPlusPlugin, ProcessPluginFactory> basicPlusRegistrar(basicPlusPluginManifest);
+static const PluginRegistrar<BasicPlusPlugin, ProcessPluginFactory>
+	basicPlusRegistrar(basicPlusPluginManifest);
 
 } // namespace ipxp
