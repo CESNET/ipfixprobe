@@ -1,37 +1,41 @@
 # BasicPlus Plugin
 
-The **BasicPlus Plugin** is a module for the IPFIXprobe exporter, designed to extend flow records with additional basic network information.
+The **BasicPlus** plugin extends flow records with additional basic network information to provide richer visibility into network flows.
 
 ## Features
 
-- Extends basic flow export data. 
-- Extracts and exports additional fields from network flows.
-
+- Extends standard flow export data with additional fields.  
+- Extracts and exports key network-level fields for both directions of a flow.  
 
 ## Output Fields
 
-| Field Name      | Data Type | Description                                                 |
-|-----------------|-----------|-------------------------------------------------------------|
-| IP_TTL          | uint8_t   | IP time-to-live in source-to-destination direction          |
-| IP_TTL_REV      | uint8_t   | IP time-to-live in destination-to-source direction          |
-| IP_FLG          | uint8_t   | IP flags in source-to-destination direction                 |
-| IP_FLG_REV      | uint8_t   | IP flags in destination-to-source direction                 |
-| TCP_WIN         | uint16_t  | TCP window size in source-to-destination direction          |
-| TCP_WIN_REV     | uint16_t  | TCP window size in destination-to-source direction          |
-| TCP_OPT         | uint64_t   | TCP options in source-to-destination direction              |
-| TCP_OPT_REV     | uint64_t   | TCP options in destination-to-source direction              |
-| TCP_MSS         | uint32_t  | TCP maximum segment size in source-to-destination direction |
-| TCP_MSS_REV     | uint32_t  | TCP maximum segment size in destination-to-source direction |
-| TCP_SYN_SIZE    | uint16_t  | TCP syn packet size (only one in bidirectional flow)        |
+| Field Name    | Data Type | Description |
+|---------------|-----------|-------------|
+| `IP_TTL`      | `uint8_t` | IP time-to-live (source → destination) |
+| `IP_TTL_REV`  | `uint8_t` | IP time-to-live (destination → source) |
+| `IP_FLG`      | `uint8_t` | IP flags (source → destination) |
+| `IP_FLG_REV`  | `uint8_t` | IP flags (destination → source) |
+| `TCP_WIN`     | `uint16_t`| TCP window size (source → destination) |
+| `TCP_WIN_REV` | `uint16_t`| TCP window size (destination → source) |
+| `TCP_OPT`     | `uint64_t`| TCP options (source → destination) |
+| `TCP_OPT_REV` | `uint64_t`| TCP options (destination → source) |
+| `TCP_MSS`     | `uint32_t`| TCP maximum segment size (source → destination) |
+| `TCP_MSS_REV` | `uint32_t`| TCP maximum segment size (destination → source) |
+| `TCP_SYN_SIZE`| `uint16_t`| TCP SYN packet size (only one per bidirectional flow) |
 
 ## Usage
 
-Once enabled, the plugin will automatically process flows and add the export fields to each record.
+### YAML Configuration
 
-1. ``` make install ```.
-2. ``` ipfixprobe -p "basicplus" ... " ```
-3. Extracted values are exported to the output interface.
+Add the plugin to your ipfixprobe YAML configuration:
 
-## Support
+```yaml
+process_plugins:
+  - basicplus
+```
 
-For issues or feature requests, please open an issue in the [IPFIXprobe repository](https://github.com/CESNET/ipfixprobe).
+### CLI Usage
+
+You can also enable the plugin directly from the command line:
+
+```ipfixprobe -p basicplus ...```

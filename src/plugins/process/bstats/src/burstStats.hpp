@@ -8,20 +8,20 @@
  *
  * Provides a plugin that extracts packet burst statistics of flows,
  * stores them in per-flow plugin data, and exposes fields via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
+#include "burst.hpp"
+#include "burstStatsFields.hpp"
+
 #include <sstream>
 #include <string>
-#include <processPlugin.hpp>
-//#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
 
-#include "burstStatsFields.hpp"
-#include "burst.hpp"
+#include <fieldHandlersEnum.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -31,7 +31,6 @@ namespace ipxp {
  */
 class BurstStatsPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the BurstStats plugin.
 	 *
@@ -71,7 +70,7 @@ public:
 	 *
 	 * @param flowRecord The flow record containing aggregated flow data.
 	 * @param pluginContext Pointer to `BurstStatsData`.
-	 * @return RemovePlugin if packet count is less than `MINIMAL_PACKETS_COUNT`, 
+	 * @return RemovePlugin if packet count is less than `MINIMAL_PACKETS_COUNT`,
 	 * else no action is required.
 	 */
 	PluginExportResult onExport(const FlowRecord& flowRecord, void* pluginContext) override;
@@ -89,10 +88,11 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	constexpr static std::size_t MINIMAL_PACKETS_COUNT = 3; ///< Minimal number of packets to consider the flow valid.
+	constexpr static std::size_t MINIMAL_PACKETS_COUNT
+		= 3; ///< Minimal number of packets to consider the flow valid.
 
 	void updateBursts(Burst& burst, const Packet& packet) noexcept;
-	void makeAllFieldsUnavailable(FlowRecord& flowRecord) noexcept; 
+	void makeAllFieldsUnavailable(FlowRecord& flowRecord) noexcept;
 
 	FieldHandlers<BurstStatsFields> m_fieldHandlers;
 };

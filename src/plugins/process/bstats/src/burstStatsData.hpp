@@ -9,17 +9,16 @@
 
 #pragma once
 
+#include "burst.hpp"
+
 #include <array>
-#include <boost/container/static_vector.hpp>
 #include <optional>
 #include <span>
 
+#include <boost/container/static_vector.hpp>
 #include <timestamp.hpp>
 
-#include "burst.hpp"
-
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @class BurstStatsData
@@ -29,14 +28,13 @@ namespace ipxp
  */
 class BurstStatsData {
 	static constexpr std::size_t MAX_BURST_COUNT = 15;
-	
+
 	DirectionalField<boost::container::static_vector<uint32_t, MAX_BURST_COUNT>> packets;
 	DirectionalField<boost::container::static_vector<uint32_t, MAX_BURST_COUNT>> bytes;
 	DirectionalField<boost::container::static_vector<Timestamp, MAX_BURST_COUNT>> start;
 	DirectionalField<boost::container::static_vector<Timestamp, MAX_BURST_COUNT>> end;
 
 public:
-
 	/**
 	 * @brief Returns a span over the packets for the given direction.
 	 *
@@ -47,7 +45,7 @@ public:
 	{
 		return {packets[direction].data(), static_cast<std::size_t>(packets[direction].size())};
 	}
-	
+
 	/**
 	 * @brief Returns a span over the bytes for the given direction.
 	 *
@@ -56,7 +54,9 @@ public:
 	 */
 	std::span<const uint32_t> getBytes(const Direction direction) const noexcept
 	{
-		return std::span<const uint32_t>(bytes[direction].data(), static_cast<std::size_t>(bytes[direction].size()));
+		return std::span<const uint32_t>(
+			bytes[direction].data(),
+			static_cast<std::size_t>(bytes[direction].size()));
 	}
 
 	/**
@@ -67,7 +67,9 @@ public:
 	 */
 	std::span<const Timestamp> getStartTimestamps(const Direction direction) const noexcept
 	{
-		return std::span<const Timestamp>(start[direction].data(), static_cast<std::size_t>(start[direction].size()));
+		return std::span<const Timestamp>(
+			start[direction].data(),
+			static_cast<std::size_t>(start[direction].size()));
 	}
 
 	/**
@@ -78,7 +80,9 @@ public:
 	 */
 	std::span<const Timestamp> getEndTimestamps(const Direction direction) const noexcept
 	{
-		return std::span<const Timestamp>(end[direction].data(), static_cast<std::size_t>(end[direction].size()));
+		return std::span<const Timestamp>(
+			end[direction].data(),
+			static_cast<std::size_t>(end[direction].size()));
 	}
 
 	/**
@@ -92,12 +96,11 @@ public:
 		if (packets[direction].empty()) {
 			return std::nullopt;
 		}
-		return std::make_optional<Burst>({
-			packets[direction].back(),
-			bytes[direction].back(),
-			start[direction].back(),
-			end[direction].back()
-		});
+		return std::make_optional<Burst>(
+			{packets[direction].back(),
+			 bytes[direction].back(),
+			 start[direction].back(),
+			 end[direction].back()});
 	}
 
 	/**
@@ -119,7 +122,6 @@ public:
 
 		return back(direction);
 	}
-};  
+};
 
 } // namespace ipxp
-

@@ -8,24 +8,19 @@
  *
  * Provides a plugin that extracts packet burst statistics of flows,
  * stores them in per-flow plugin data, and exposes fields via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "burstStats.hpp"
+
 #include "burstStatsData.hpp"
 
 #include <iostream>
 
-//#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
-#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
-
-//#include <pluginManifest.hpp>
-//#include <pluginRegistrar.hpp>
-//#include <pluginFactory.hpp>
 #include <fieldGroup.hpp>
-//#include <fieldManager.hpp>
 #include <ipfixprobe/options.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
 
 namespace ipxp {
 
@@ -41,47 +36,69 @@ static const PluginManifest burstStatsPluginManifest = {
 		},
 };
 
-static FieldGroup createBurstStatsSchema(FieldManager& fieldManager, FieldHandlers<BurstStatsFields>& handlers)
+static FieldGroup
+createBurstStatsSchema(FieldManager& fieldManager, FieldHandlers<BurstStatsFields>& handlers)
 {
 	FieldGroup schema = fieldManager.createFieldGroup("bstats");
 
 	auto [sourcePacketsField, destPacketsField] = schema.addVectorDirectionalFields(
-		"SBI_BRST_PACKETS", "DBI_BRST_PACKETS",
-		[](const void* context) { return reinterpret_cast<const BurstStatsData*>(context)->getPackets(Direction::Forward); },
-		[](const void* context) { return reinterpret_cast<const BurstStatsData*>(context)->getPackets(Direction::Reverse); }
-	);
+		"SBI_BRST_PACKETS",
+		"DBI_BRST_PACKETS",
+		[](const void* context) {
+			return reinterpret_cast<const BurstStatsData*>(context)->getPackets(Direction::Forward);
+		},
+		[](const void* context) {
+			return reinterpret_cast<const BurstStatsData*>(context)->getPackets(Direction::Reverse);
+		});
 	handlers.insert(BurstStatsFields::SBI_BRST_PACKETS, sourcePacketsField);
 	handlers.insert(BurstStatsFields::DBI_BRST_PACKETS, destPacketsField);
 
 	auto [sourceBytesField, destBytesField] = schema.addVectorDirectionalFields(
-		"SBI_BRST_BYTES", "DBI_BRST_BYTES",
-		[](const void* context) { return reinterpret_cast<const BurstStatsData*>(context)->getBytes(Direction::Forward); },
-		[](const void* context) { return reinterpret_cast<const BurstStatsData*>(context)->getBytes(Direction::Reverse); }
-	);
+		"SBI_BRST_BYTES",
+		"DBI_BRST_BYTES",
+		[](const void* context) {
+			return reinterpret_cast<const BurstStatsData*>(context)->getBytes(Direction::Forward);
+		},
+		[](const void* context) {
+			return reinterpret_cast<const BurstStatsData*>(context)->getBytes(Direction::Reverse);
+		});
 	handlers.insert(BurstStatsFields::SBI_BRST_BYTES, sourceBytesField);
 	handlers.insert(BurstStatsFields::DBI_BRST_BYTES, destBytesField);
 
-
 	auto [sourceTimeStartField, destTimeStartField] = schema.addVectorDirectionalFields(
-		"SBI_BRST_TIME_START", "DBI_BRST_TIME_START",
-		[](const void* context) { return reinterpret_cast<const BurstStatsData*>(context)->getStartTimestamps(Direction::Forward); },
-		[](const void* context) { return reinterpret_cast<const BurstStatsData*>(context)->getStartTimestamps(Direction::Reverse); }
-	);
+		"SBI_BRST_TIME_START",
+		"DBI_BRST_TIME_START",
+		[](const void* context) {
+			return reinterpret_cast<const BurstStatsData*>(context)->getStartTimestamps(
+				Direction::Forward);
+		},
+		[](const void* context) {
+			return reinterpret_cast<const BurstStatsData*>(context)->getStartTimestamps(
+				Direction::Reverse);
+		});
 	handlers.insert(BurstStatsFields::SBI_BRST_TIME_START, sourceTimeStartField);
 	handlers.insert(BurstStatsFields::DBI_BRST_TIME_START, destTimeStartField);
 
 	auto [sourceTimeStopField, destTimeStopField] = schema.addVectorDirectionalFields(
-		"SBI_BRST_TIME_STOP", "DBI_BRST_TIME_STOP",
-		[](const void* context) { return reinterpret_cast<const BurstStatsData*>(context)->getEndTimestamps(Direction::Forward); },
-		[](const void* context) { return reinterpret_cast<const BurstStatsData*>(context)->getEndTimestamps(Direction::Reverse); }
-	);
+		"SBI_BRST_TIME_STOP",
+		"DBI_BRST_TIME_STOP",
+		[](const void* context) {
+			return reinterpret_cast<const BurstStatsData*>(context)->getEndTimestamps(
+				Direction::Forward);
+		},
+		[](const void* context) {
+			return reinterpret_cast<const BurstStatsData*>(context)->getEndTimestamps(
+				Direction::Reverse);
+		});
 	handlers.insert(BurstStatsFields::SBI_BRST_TIME_STOP, sourceTimeStopField);
 	handlers.insert(BurstStatsFields::DBI_BRST_TIME_STOP, destTimeStopField);
 
 	return schema;
 }
 
-BurstStatsPlugin::BurstStatsPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+BurstStatsPlugin::BurstStatsPlugin(
+	[[maybe_unused]] const std::string& params,
+	FieldManager& manager)
 {
 	createBurstStatsSchema(manager, m_fieldHandlers);
 }
@@ -89,7 +106,7 @@ BurstStatsPlugin::BurstStatsPlugin([[maybe_unused]]const std::string& params, Fi
 PluginInitResult BurstStatsPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = std::construct_at(reinterpret_cast<BurstStatsData*>(pluginContext));
-	
+
 	std::optional<Burst> burst = pluginData->push(Direction::Forward);
 	updateBursts(*burst, flowContext.packet);
 
@@ -103,7 +120,7 @@ PluginInitResult BurstStatsPlugin::onInit(const FlowContext& flowContext, void* 
 void BurstStatsPlugin::updateBursts(Burst& burst, const Packet& packet) noexcept
 {
 	burst.packets++;
-	burst.bytes += packet.ip_payload_len;	
+	burst.bytes += packet.ip_payload_len;
 	burst.end.get() = packet.ts;
 	if (burst.packets == 1) {
 		burst.start.get() = packet.ts;
@@ -133,11 +150,12 @@ PluginUpdateResult BurstStatsPlugin::onUpdate(const FlowContext& flowContext, vo
 	};
 }
 
-PluginExportResult BurstStatsPlugin::onExport(const FlowRecord& flowRecord, [[maybe_unused]] void* pluginContext)
+PluginExportResult
+BurstStatsPlugin::onExport(const FlowRecord& flowRecord, [[maybe_unused]] void* pluginContext)
 {
-	const uint32_t packetsTotal
-		= static_cast<uint32_t>(
-			flowRecord.directionalData[Direction::Forward].packets + flowRecord.directionalData[Direction::Reverse].packets);
+	const uint32_t packetsTotal = static_cast<uint32_t>(
+		flowRecord.directionalData[Direction::Forward].packets
+		+ flowRecord.directionalData[Direction::Reverse].packets);
 	if (packetsTotal <= MINIMAL_PACKETS_COUNT) {
 		return {
 			.flowAction = FlowAction::RemovePlugin,
@@ -171,6 +189,7 @@ PluginDataMemoryLayout BurstStatsPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<BurstStatsPlugin, ProcessPluginFactory> burstStatsRegistrar(burstStatsPluginManifest);
+static const PluginRegistrar<BurstStatsPlugin, ProcessPluginFactory>
+	burstStatsRegistrar(burstStatsPluginManifest);
 
 } // namespace ipxp
