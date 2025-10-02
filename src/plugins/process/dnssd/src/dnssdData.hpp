@@ -9,12 +9,11 @@
 
 #pragma once
 
-#include <boost/static_string.hpp>
-
 #include "dnssdRecord.hpp"
 
-namespace ipxp
-{
+#include <boost/static_string.hpp>
+
+namespace ipxp {
 
 /**
  * @struct DNSSDData
@@ -46,7 +45,6 @@ struct DNSSDData {
 		requests.emplace_back(name);
 		return requests.back();
 	}
-};  
+};
 
 } // namespace ipxp
-

@@ -9,50 +9,52 @@
 
 #pragma once
 
-#include <string_view>
-#include <vector>
 #include <format>
 #include <sstream>
+#include <string_view>
+#include <vector>
 
-#include <dnsParser/dnsRecord.hpp>
 #include <dnsParser/dnsName.hpp>
+#include <dnsParser/dnsRecord.hpp>
 #include <utils/stringUtils.hpp>
 
-namespace ipxp
-{
-   
+namespace ipxp {
+
 /**
  * @struct DNSSDRecord
  * @brief Struct representing DNS-SD request and response to it.
  */
 struct DNSSDRecord {
-    DNSName requestName;
+	DNSName requestName;
 
-    uint16_t srvPort;
-    DNSName srvTarget;
-    DNSName cpu;
-    DNSName operatingSystem;
-    //std::vector<DNSName> txtContent;
-    std::string txtContent;
+	uint16_t srvPort;
+	DNSName srvTarget;
+	DNSName cpu;
+	DNSName operatingSystem;
+	// std::vector<DNSName> txtContent;
+	std::string txtContent;
 
-    /**
+	/**
 	 * @brief Converts record to string.
 	 * @return String representation of the record.
 	 */
-    std::string toString() const noexcept
-    {
-        /*std::string txtContentStr(200, '\0');
-        concatenateRangeTo(txtContent |
-            std::views::transform([](const DNSName& name) {
-                return name.toString();
-            }), txtContentStr, ':');
+	std::string toString() const noexcept
+	{
+		/*std::string txtContentStr(200, '\0');
+		concatenateRangeTo(txtContent |
+			std::views::transform([](const DNSName& name) {
+				return name.toString();
+			}), txtContentStr, ':');
 */
-        return std::format(
-            "{};{};{};{};{};{};", requestName.toString(), 
-            srvPort, srvTarget.toString(), 
-            cpu.toString(), operatingSystem.toString(),
-            txtContent);
-    }
+		return std::format(
+			"{};{};{};{};{};{};",
+			requestName.toString(),
+			srvPort,
+			srvTarget.toString(),
+			cpu.toString(),
+			operatingSystem.toString(),
+			txtContent);
+	}
 };
 
 } // namespace ipxp

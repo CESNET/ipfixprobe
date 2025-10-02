@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <optional>
+#include <string>
 #include <variant>
 
 #include <ipfixprobe/options.hpp>
@@ -10,9 +10,9 @@ namespace ipxp {
 
 class DNSSDOptionsParser : public OptionsParser {
 public:
-	class ProcessAllTxtRecords{};
+	class ProcessAllTxtRecords {};
 	using TxtProcessingMode = std::optional<std::variant<ProcessAllTxtRecords, std::string>>;
-	TxtProcessingMode mode{std::nullopt};
+	TxtProcessingMode mode {std::nullopt};
 
 	DNSSDOptionsParser()
 		: OptionsParser("dnssd", "Processing plugin for parsing DNS service discovery packets")
@@ -27,13 +27,12 @@ public:
 				if (value != nullptr) {
 					mode = std::string(value);
 				} else {
-					mode = ProcessAllTxtRecords{};
+					mode = ProcessAllTxtRecords {};
 				}
 				return true;
 			},
 			OptionFlags::OptionalArgument);
 	}
 };
-
 
 } // namespace ipxp

@@ -14,24 +14,20 @@
 
 #include "dnssd.hpp"
 
+#include "dnssdOptionsParser.hpp"
+
 #include <iostream>
 
-#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
-#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
-
-//#include <pluginManifest.hpp>
-//#include <pluginRegistrar.hpp>
-//#include <pluginFactory.hpp>
-#include <fieldGroup.hpp>
-#include <fieldManager.hpp>
-#include <utils.hpp>
 #include <dnsParser/dnsParser.hpp>
 #include <dnsParser/dnsQueryType.hpp>
-#include <utils/stringViewUtils.hpp>
-#include <utils/stringUtils.hpp>
+#include <fieldGroup.hpp>
+#include <fieldManager.hpp>
+#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
+#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+#include <utils.hpp>
 #include <utils/spanUtils.hpp>
-
-#include "dnssdOptionsParser.hpp"
+#include <utils/stringUtils.hpp>
+#include <utils/stringViewUtils.hpp>
 
 namespace ipxp {
 
@@ -47,22 +43,27 @@ static const PluginManifest dnssdPluginManifest = {
 		},
 };
 
-static FieldGroup createDNSSDSchema(FieldManager& fieldManager, FieldHandlers<DNSSDFields>& handlers)
+static FieldGroup
+createDNSSDSchema(FieldManager& fieldManager, FieldHandlers<DNSSDFields>& handlers)
 {
 	FieldGroup schema = fieldManager.createFieldGroup("dnssd");
 
-	handlers.insert(DNSSDFields::DNSSD_QUERIES, schema.addScalarField("DNSSD_QUERIES", [](const void* context) {
-		return toStringView(static_cast<const DNSSDData*>(context)->queries);
-	}));
+	handlers.insert(
+		DNSSDFields::DNSSD_QUERIES,
+		schema.addScalarField("DNSSD_QUERIES", [](const void* context) {
+			return toStringView(static_cast<const DNSSDData*>(context)->queries);
+		}));
 
-	handlers.insert(DNSSDFields::DNSSD_RESPONSES, schema.addScalarField("DNSSD_RESPONSES", [](const void* context) {
-		return toStringView(static_cast<const DNSSDData*>(context)->responses);
-	}));
+	handlers.insert(
+		DNSSDFields::DNSSD_RESPONSES,
+		schema.addScalarField("DNSSD_RESPONSES", [](const void* context) {
+			return toStringView(static_cast<const DNSSDData*>(context)->responses);
+		}));
 
 	return schema;
 }
 
-DNSSDPlugin::DNSSDPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+DNSSDPlugin::DNSSDPlugin([[maybe_unused]] const std::string& params, FieldManager& manager)
 {
 	createDNSSDSchema(manager, m_fieldHandlers);
 }
@@ -70,8 +71,7 @@ DNSSDPlugin::DNSSDPlugin([[maybe_unused]]const std::string& params, FieldManager
 PluginInitResult DNSSDPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	constexpr uint16_t DNSSD_PORT = 5353;
-	if (flowContext.packet.src_port != DNSSD_PORT && 
-		flowContext.packet.dst_port != DNSSD_PORT) {
+	if (flowContext.packet.src_port != DNSSD_PORT && flowContext.packet.dst_port != DNSSD_PORT) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -83,7 +83,10 @@ PluginInitResult DNSSDPlugin::onInit(const FlowContext& flowContext, void* plugi
 	// TODO USE VALUES FROM DISSECTOR
 	constexpr std::size_t TCP = 6;
 	const bool isDNSoverTCP = (flowContext.packet.ip_proto == TCP);
-	if (!parseDNSSD(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), isDNSoverTCP, *pluginData)) {
+	if (!parseDNSSD(
+			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+			isDNSoverTCP,
+			*pluginData)) {
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -104,7 +107,10 @@ PluginUpdateResult DNSSDPlugin::onUpdate(const FlowContext& flowContext, void* p
 	// TODO USE VALUES FROM DISSECTOR
 	constexpr std::size_t TCP = 6;
 	const bool isDNSoverTCP = (flowContext.packet.ip_proto == TCP);
-	if (!parseDNSSD(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), isDNSoverTCP, *pluginData)) {
+	if (!parseDNSSD(
+			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+			isDNSoverTCP,
+			*pluginData)) {
 		return {
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
 			.flowAction = FlowAction::RemovePlugin,
@@ -133,7 +139,7 @@ bool DNSSDPlugin::parseAnswer(const DNSRecord& answer, DNSSDData& pluginData) no
 			return true;
 		}
 
-		DNSSDRecord& record = pluginData.findOrInsert(answer.name);		
+		DNSSDRecord& record = pluginData.findOrInsert(answer.name);
 		record.txtContent.append(txt.content);
 		record.txtContent.push_back(':');
 	}
@@ -149,25 +155,22 @@ bool DNSSDPlugin::parseAnswer(const DNSRecord& answer, DNSSDData& pluginData) no
 }
 
 bool DNSSDPlugin::parseDNSSD(
-	std::span<const std::byte> payload, 
+	std::span<const std::byte> payload,
 	const bool isDNSOverTCP,
 	DNSSDData& pluginData) noexcept
 {
 	DNSParser parser;
 
-	std::function<bool(const DNSQuestion& query)>
-	queryParser = [&](const DNSQuestion& query) {
+	std::function<bool(const DNSQuestion& query)> queryParser = [&](const DNSQuestion& query) {
 		pluginData.findOrInsert(query.name);
 		return false;
 	};
 
-	auto answerParser = [&](const DNSRecord& answer) {
-		return parseAnswer(answer, pluginData);
-	};
+	auto answerParser = [&](const DNSRecord& answer) { return parseAnswer(answer, pluginData); };
 
-	const bool parsed = parser.parse(
-		payload, isDNSOverTCP, queryParser, answerParser,
-		answerParser, answerParser);
+	const bool parsed
+		= parser
+			  .parse(payload, isDNSOverTCP, queryParser, answerParser, answerParser, answerParser);
 	if (!parsed) {
 		return false;
 	}
@@ -185,13 +188,18 @@ PluginExportResult DNSSDPlugin::onExport(const FlowRecord& flowRecord, void* plu
 		};
 	}
 
-	concatenateRangeTo(pluginData.requests | std::views::transform([](const DNSSDRecord& record) {
-		return record.requestName.toString();
-	}), pluginData.queries, ';');
-	concatenateRangeTo(pluginData.requests | std::views::transform([](const DNSSDRecord& record) {
-		return record.toString();
-	}), pluginData.responses, ';');
-	
+	concatenateRangeTo(
+		pluginData.requests | std::views::transform([](const DNSSDRecord& record) {
+			return record.requestName.toString();
+		}),
+		pluginData.queries,
+		';');
+	concatenateRangeTo(
+		pluginData.requests
+			| std::views::transform([](const DNSSDRecord& record) { return record.toString(); }),
+		pluginData.responses,
+		';');
+
 	m_fieldHandlers[DNSSDFields::DNSSD_QUERIES].setAsAvailable(flowRecord);
 	m_fieldHandlers[DNSSDFields::DNSSD_RESPONSES].setAsAvailable(flowRecord);
 
@@ -200,7 +208,7 @@ PluginExportResult DNSSDPlugin::onExport(const FlowRecord& flowRecord, void* plu
 	};
 }
 
-void DNSSDPlugin::onDestroy(void* pluginContext) 
+void DNSSDPlugin::onDestroy(void* pluginContext)
 {
 	std::destroy_at(reinterpret_cast<DNSSDData*>(pluginContext));
 }
@@ -213,6 +221,9 @@ PluginDataMemoryLayout DNSSDPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<DNSSDPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> dnssdRegistrar(dnssdPluginManifest);
+static const PluginRegistrar<
+	DNSSDPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+	dnssdRegistrar(dnssdPluginManifest);
 
 } // namespace ipxp

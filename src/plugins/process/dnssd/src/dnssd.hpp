@@ -14,15 +14,16 @@
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "dnssdData.hpp"
 #include "dnssdFields.hpp"
 #include "serviceFilter.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -32,7 +33,6 @@ namespace ipxp {
  */
 class DNSSDPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the DNSSD plugin.
 	 *
@@ -91,12 +91,12 @@ public:
 
 private:
 	bool parseDNSSD(
-		std::span<const std::byte> payload, 
+		std::span<const std::byte> payload,
 		const bool isDNSoverTCP,
 		DNSSDData& pluginData) noexcept;
 	bool parseAnswer(const DNSRecord& answer, DNSSDData& pluginData) noexcept;
 
-	//std::optional<std::string> m_configFilename;
+	// std::optional<std::string> m_configFilename;
 	FieldHandlers<DNSSDFields> m_fieldHandlers;
 	std::optional<ServiceFilter> m_serviceFilter;
 };

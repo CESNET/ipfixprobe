@@ -11,8 +11,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @enum DNSSDFields
@@ -24,6 +23,6 @@ enum class DNSSDFields : std::size_t {
 	DNSSD_QUERIES = 0,
 	DNSSD_RESPONSES,
 	FIELDS_SIZE,
-};    
-    
+};
+
 } // namespace ipxp
