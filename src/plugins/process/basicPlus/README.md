@@ -18,10 +18,10 @@ The **BasicPlus Plugin** is a module for the IPFIXprobe exporter, designed to ex
 | IP_FLG_REV      | uint8_t   | IP flags in destination-to-source direction                 |
 | TCP_WIN         | uint16_t  | TCP window size in source-to-destination direction          |
 | TCP_WIN_REV     | uint16_t  | TCP window size in destination-to-source direction          |
-| TCP_OPT         | uint8_t   | TCP options in source-to-destination direction              |
-| TCP_OPT_REV     | uint8_t   | TCP options in destination-to-source direction              |
-| TCP_MSS         | uint16_t  | TCP maximum segment size in source-to-destination direction |
-| TCP_MSS_REV     | uint16_t  | TCP maximum segment size in destination-to-source direction |
+| TCP_OPT         | uint64_t   | TCP options in source-to-destination direction              |
+| TCP_OPT_REV     | uint64_t   | TCP options in destination-to-source direction              |
+| TCP_MSS         | uint32_t  | TCP maximum segment size in source-to-destination direction |
+| TCP_MSS_REV     | uint32_t  | TCP maximum segment size in destination-to-source direction |
 | TCP_SYN_SIZE    | uint16_t  | TCP syn packet size (only one in bidirectional flow)        |
 
 ## Usage
