@@ -14,19 +14,18 @@
 
 #include "icmp.hpp"
 
+#include "icmpData.hpp"
+
 #include <iostream>
 
-#include <pluginManifest.hpp>
-#include <pluginRegistrar.hpp>
-#include <pluginFactory.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <ipfixprobe/options.hpp>
-
-#include "icmpData.hpp"
+#include <pluginFactory.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
 
 namespace ipxp {
-
 
 static const PluginManifest icmpPluginManifest = {
 	.name = "icmp",
@@ -43,15 +42,16 @@ static const PluginManifest icmpPluginManifest = {
 static FieldGroup createICMPSchema(FieldManager& fieldManager, FieldHandlers<ICMPFields>& handlers)
 {
 	FieldGroup schema = fieldManager.createFieldGroup("icmp");
-	handlers.insert(ICMPFields::L4_ICMP_TYPE_CODE, schema.addScalarField(
-		"L4_ICMP_TYPE_CODE",
-		[](const void* context) { return static_cast<const ICMPData*>(context)->typeCode; }
-	));
+	handlers.insert(
+		ICMPFields::L4_ICMP_TYPE_CODE,
+		schema.addScalarField("L4_ICMP_TYPE_CODE", [](const void* context) {
+			return static_cast<const ICMPData*>(context)->typeCode;
+		}));
 
 	return schema;
 }
 
-ICMPPlugin::ICMPPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+ICMPPlugin::ICMPPlugin([[maybe_unused]] const std::string& params, FieldManager& manager)
 {
 	createICMPSchema(manager, m_fieldHandlers);
 }
@@ -79,7 +79,7 @@ PluginInitResult ICMPPlugin::onInit(const FlowContext& flowContext, void* plugin
 
 	// the type and code are the first two bytes, type on MSB and code on LSB
 	// in the network byte order
-	std::construct_at(reinterpret_cast<ICMPData*>(pluginContext))->typeCode 
+	std::construct_at(reinterpret_cast<ICMPData*>(pluginContext))->typeCode
 		= *reinterpret_cast<const uint16_t*>(flowContext.packet.payload);
 	m_fieldHandlers[ICMPFields::L4_ICMP_TYPE_CODE].setAsAvailable(flowContext.flowRecord);
 
@@ -103,7 +103,9 @@ PluginDataMemoryLayout ICMPPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<ICMPPlugin, 
-	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> icmpRegistrar(icmpPluginManifest);
+static const PluginRegistrar<
+	ICMPPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+	icmpRegistrar(icmpPluginManifest);
 
 } // namespace ipxp

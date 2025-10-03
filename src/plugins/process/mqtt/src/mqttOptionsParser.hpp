@@ -7,7 +7,7 @@ namespace ipxp {
 class MQTTOptionsParser : public OptionsParser {
 public:
 	uint32_t maxTopicsToSave; ///< Maximal count of topics from Publish packet header to store
-									///< for each flow
+							  ///< for each flow
 
 	MQTTOptionsParser()
 		: OptionsParser("mqtt", "Parse MQTT traffic")
@@ -30,6 +30,5 @@ public:
 			OptionFlags::RequiredArgument);
 	}
 };
-
 
 } // namespace ipxp

@@ -11,8 +11,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @enum MQTTFields
@@ -21,14 +20,14 @@ namespace ipxp
  * These enum values are used to index field handlers for this plugin.
  */
 enum class MQTTFields : std::size_t {
-	MQTT_TYPE_CUMULATIVE = 0, 
-	MQTT_VERSION, 
-	MQTT_CONNECTION_FLAGS, 
-	MQTT_KEEP_ALIVE, 
-	MQTT_CONNECTION_RETURN_CODE, 
+	MQTT_TYPE_CUMULATIVE = 0,
+	MQTT_VERSION,
+	MQTT_CONNECTION_FLAGS,
+	MQTT_KEEP_ALIVE,
+	MQTT_CONNECTION_RETURN_CODE,
 	MQTT_PUBLISH_FLAGS,
 	MQTT_TOPICS,
 	FIELDS_SIZE,
-};    
-    
+};
+
 } // namespace ipxp

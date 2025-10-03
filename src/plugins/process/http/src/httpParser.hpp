@@ -36,10 +36,10 @@ public:
 	 */
 	bool parse(std::span<const std::byte> payload) noexcept;
 
-    bool requestParsed{false};
-    bool responseParsed{false};
+	bool requestParsed {false};
+	bool responseParsed {false};
 
-    std::optional<std::string_view> method;
+	std::optional<std::string_view> method;
 	std::optional<std::string_view> uri;
 	std::optional<std::string_view> host;
 	std::optional<std::string_view> userAgent;
@@ -52,8 +52,8 @@ public:
 private:
 	bool parseRequestHeaders(std::string_view payload) noexcept;
 	constexpr bool parseRequest(std::string_view payload) noexcept;
-    bool parseResponseHeaders(std::string_view payload) noexcept;
-    constexpr bool parseResponse(std::string_view payload) noexcept;
+	bool parseResponseHeaders(std::string_view payload) noexcept;
+	constexpr bool parseResponse(std::string_view payload) noexcept;
 };
 
 } // namespace ipxp

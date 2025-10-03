@@ -14,13 +14,14 @@
 
 #pragma once
 
+#include "icmpFields.hpp"
+
 #include <sstream>
 #include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
 
-#include "icmpFields.hpp"
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -28,9 +29,8 @@ namespace ipxp {
  * @class ICMPPlugin
  * @brief A plugin for parsing ICMP traffic and exporting typecodes.
  */
-class IPXP_API ICMPPlugin : public ProcessPlugin {
+class ICMPPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the ICMP plugin.
 	 *
@@ -42,7 +42,8 @@ public:
 	/**
 	 * @brief Initializes plugin data for a new flow.
 	 *
-	 * Constructs `ICMPData` in `pluginContext` and sets typecode if flow is ICMP and parsed successfully.
+	 * Constructs `ICMPData` in `pluginContext` and sets typecode if flow is ICMP and parsed
+	 * successfully.
 	 *
 	 * @param flowContext Contextual information about the flow to fill new record.
 	 * @param pluginContext Pointer to pre-allocated memory to create record.

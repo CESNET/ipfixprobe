@@ -11,16 +11,14 @@
 
 #include <cstdint>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @struct MPLSData
  * @brief Class representing MPLS export data. Contains the top label for MPLS packets.
  */
 struct MPLSData {
-	uint32_t topLabel;	
-};  
+	uint32_t topLabel;
+};
 
 } // namespace ipxp
-

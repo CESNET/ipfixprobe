@@ -11,8 +11,7 @@
 
 #include <boost/static_string.hpp>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @struct HTTPData
@@ -45,9 +44,8 @@ struct HTTPData {
 
 	uint16_t statusCode;
 
-	bool requestParsed{false};
-	bool responseParsed{false};
+	bool requestParsed {false};
+	bool responseParsed {false};
 };
 
 } // namespace ipxp
-

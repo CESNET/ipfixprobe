@@ -8,20 +8,21 @@
  *
  * Provides a plugin that exports packet payloads as IDP content,
  * stores them in per-flow plugin data, and exposes fields via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
+#include "idpContentData.hpp"
+#include "idpContentFields.hpp"
+
 #include <sstream>
 #include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
 
-#include "idpContentFields.hpp"
-#include "idpContentData.hpp"
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -29,9 +30,8 @@ namespace ipxp {
  * @class IDPContentPlugin
  * @brief A plugin for collecting IDP content.
  */
-class IPXP_API IDPContentPlugin : public ProcessPlugin {
+class IDPContentPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the IDPContent plugin.
 	 *
@@ -77,7 +77,10 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	UpdateRequirement updateContent(FlowRecord& flowRecord, const Packet& packet, IDPContentData& exportData) noexcept;
+	UpdateRequirement updateContent(
+		FlowRecord& flowRecord,
+		const Packet& packet,
+		IDPContentData& exportData) noexcept;
 
 	FieldHandlers<IDPContentFields> m_fieldHandlers;
 };

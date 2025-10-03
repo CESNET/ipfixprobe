@@ -10,14 +10,13 @@
 #pragma once
 
 #include <array>
-#include <boost/static_string.hpp>
 #include <optional>
 #include <span>
 
+#include <boost/static_string.hpp>
 #include <utils/stringUtils.hpp>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @class MQTTData
@@ -38,7 +37,7 @@ public:
 
 	// CONNACK
 	bool sessionPresentFlag; ///< Session present bit from last connack flags. First bit of
-							   ///< type_cumulative
+							 ///< type_cumulative
 	uint8_t connectionReturnCode; ///< Value of last connection return code from CONNACK header
 
 	// PUBLISH
@@ -60,10 +59,9 @@ public:
 		pushBackWithDelimiter(topic, topics, '#');
 		topicCount++;
 	}
-	
+
 private:
 	uint32_t topicCount = 0;
 };
 
 } // namespace ipxp
-

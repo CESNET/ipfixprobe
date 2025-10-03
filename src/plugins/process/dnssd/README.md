@@ -16,17 +16,8 @@ The **DNSSD Plugin** extends flow records with DNS-SD (DNS Service Discovery) qu
 
 | Field Name      | Data Type | Description                                                 |
 |-----------------|-----------|----------------------------------------|
-| `DNS_ID`| `uint16_t`  | Unique identifier of the processed DNS query |
-| `DNS_ANSWERS`| `uint16_t`  | Number of answers in the processed DNS response |
-| `DNS_RCODE`| `uint8_t`  | Response code of the processed DNS response |
-| `DNS_QTYPE`| `uint16_t`  | Type of the DNS query |
-| `DNS_CLASS`| `uint16_t`  | Class of the DNS query |
-| `DNS_NAME`| `string`  | Domain name in the DNS query |
-| `DNS_RR_TTL`| `uint32_t`  | Time-to-live of the first DNS response |
-| `DNS_RLENGTH`| `uint16_t`  | Length of the first DNS response |
-| `DNS_RDATA`| `bytes`  | Data of the first DNS response |
-| `DNS_PSIZE`| `uint16_t`  | Length of the first DNS additional record from response |
-| `DNS_DO`| `uint8_t`  | DNSSEC OK flag of the first DNS additional record from response |
+| `DNSSD_QUERIES`| `string`  | Concatenated list of requested services | 
+| `DNSSD_RESPONSES`| `string`  | Concatenated list of processed DNS responses: name, src port, cpu, operating system, TXT record content |
 
 ## Usage
 
@@ -36,11 +27,13 @@ Add the plugin to your ipfixprobe YAML configuration:
 
 ```yaml
 process_plugins:
-  - dns
+  - dnssd
 ```
 
 ### CLI Usage
 
 You can also enable the plugin directly from the command line:
 
-```ipfixprobe -p dns ...```
+```ipfixprobe -p dnssd ...```
+```ipfixprobe -p "dnssd;txt" ...```
+```ipfixprobe -p "dnssd;txt=<path_to_file>" ...```

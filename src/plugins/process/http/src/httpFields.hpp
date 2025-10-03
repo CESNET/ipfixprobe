@@ -11,8 +11,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @enum HTTPFields
@@ -31,6 +30,6 @@ enum class HTTPFields : std::size_t {
 	HTTP_RESPONSE_SERVER,
 	HTTP_RESPONSE_SET_COOKIE_NAMES,
 	FIELDS_SIZE,
-};    
-    
+};
+
 } // namespace ipxp

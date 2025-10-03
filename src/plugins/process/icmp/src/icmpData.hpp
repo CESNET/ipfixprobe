@@ -11,8 +11,7 @@
 
 #include <cstdint>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @struct ICMPData
@@ -20,7 +19,6 @@ namespace ipxp
  */
 struct ICMPData {
 	uint16_t typeCode;
-};  
+};
 
 } // namespace ipxp
-

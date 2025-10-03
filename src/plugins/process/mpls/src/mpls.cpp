@@ -8,23 +8,23 @@
  *
  * Provides a plugin that extracts MPLS top label from packets,
  * stores them in per-flow plugin data, and exposes that field via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "mpls.hpp"
 
+#include "mplsData.hpp"
+
 #include <iostream>
 
-#include <pluginManifest.hpp>
-#include <pluginRegistrar.hpp>
-#include <pluginFactory.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
-#include <utils/spanUtils.hpp>
 #include <ipfixprobe/options.hpp>
-
-#include "mplsData.hpp"
+#include <pluginFactory.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
+#include <utils/spanUtils.hpp>
 
 namespace ipxp {
 
@@ -40,7 +40,8 @@ static const PluginManifest mplsPluginManifest = {
 		},
 };
 
-static FieldGroup createMPLSSchema(FieldManager& fieldManager, FieldHandlers<MPLSFields>& handlers) noexcept
+static FieldGroup
+createMPLSSchema(FieldManager& fieldManager, FieldHandlers<MPLSFields>& handlers) noexcept
 {
 	FieldGroup schema = fieldManager.createFieldGroup("mpls");
 
@@ -55,7 +56,7 @@ static FieldGroup createMPLSSchema(FieldManager& fieldManager, FieldHandlers<MPL
 	return schema;
 }
 
-MPLSPlugin::MPLSPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+MPLSPlugin::MPLSPlugin([[maybe_unused]] const std::string& params, FieldManager& manager)
 {
 	createMPLSSchema(manager, m_fieldHandlers);
 }
@@ -70,8 +71,10 @@ PluginInitResult MPLSPlugin::onInit(const FlowContext& flowContext, void* plugin
 		};
 	}
 
-	std::construct_at(reinterpret_cast<MPLSData*>(pluginContext))->topLabel = flowContext.packet.mplsTop;
-	m_fieldHandlers[MPLSFields::MPLS_TOP_LABEL_STACK_SECTION].setAsAvailable(flowContext.flowRecord);
+	std::construct_at(reinterpret_cast<MPLSData*>(pluginContext))->topLabel
+		= flowContext.packet.mplsTop;
+	m_fieldHandlers[MPLSFields::MPLS_TOP_LABEL_STACK_SECTION].setAsAvailable(
+		flowContext.flowRecord);
 	return {
 		.constructionState = ConstructionState::Constructed,
 		.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -92,6 +95,9 @@ PluginDataMemoryLayout MPLSPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<MPLSPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>> mplsRegistrar(mplsPluginManifest);
+static const PluginRegistrar<
+	MPLSPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+	mplsRegistrar(mplsPluginManifest);
 
 } // namespace ipxp

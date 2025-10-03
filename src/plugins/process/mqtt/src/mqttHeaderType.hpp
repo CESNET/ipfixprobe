@@ -17,10 +17,10 @@ namespace ipxp {
  * @brief Enumerates the header types of MQTT that will be parsed.
  */
 enum class MQTTHeaderType : uint8_t {
-    CONNECT = 1,
-    CONNECT_ACK,
-    PUBLISH,
-    DISCONNECT = 14,
+	CONNECT = 1,
+	CONNECT_ACK,
+	PUBLISH,
+	DISCONNECT = 14,
 };
 
-} // namespace ipxp 
+} // namespace ipxp

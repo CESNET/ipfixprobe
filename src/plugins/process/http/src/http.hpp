@@ -14,15 +14,16 @@
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "httpData.hpp"
 #include "httpFields.hpp"
 #include "httpParser.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -32,7 +33,6 @@ namespace ipxp {
  */
 class HTTPPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the HTTP plugin.
 	 *
@@ -58,12 +58,14 @@ public:
 	 * @brief Updates plugin data with values from new packet.
 	 *
 	 * Inserts parsed HTTP data into `HTTPData`.
-	 * If packet is an HTTP request and request was already seen, the flow is flushed with reinsert. 
-	 * If packet is an HTTP response and response was already seen, the flow is flushed with reinsert. 
+	 * If packet is an HTTP request and request was already seen, the flow is flushed with reinsert.
+	 * If packet is an HTTP response and response was already seen, the flow is flushed with
+	 * reinsert.
 	 *
 	 * @param flowContext Contextual information about the flow to be updated.
 	 * @param pluginContext Pointer to `HTTPData`.
-	 * @return Result of the update, does not require new packets if request and response are already parsed.
+	 * @return Result of the update, does not require new packets if request and response are
+	 * already parsed.
 	 */
 	PluginUpdateResult onUpdate(const FlowContext& flowContext, void* pluginContext) override;
 
@@ -80,8 +82,10 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	//PluginUpdateResult parseHTTP(std::span<const std::byte> payload, FlowRecord& flowRecord, HTTPData& httpData) noexcept;
-	void saveParsedValues(const HTTPParser& parser, FlowRecord& flowRecord, HTTPData& httpData) noexcept;
+	// PluginUpdateResult parseHTTP(std::span<const std::byte> payload, FlowRecord& flowRecord,
+	// HTTPData& httpData) noexcept;
+	void
+	saveParsedValues(const HTTPParser& parser, FlowRecord& flowRecord, HTTPData& httpData) noexcept;
 
 	FieldHandlers<HTTPFields> m_fieldHandlers;
 };

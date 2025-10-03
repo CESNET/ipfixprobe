@@ -13,68 +13,59 @@
 #include "httpParser.hpp"
 
 #include <algorithm>
+#include <charconv>
 #include <functional>
 #include <unordered_map>
-#include <charconv>
 
-#include <utils/stringViewUtils.hpp>
-#include <utils/spanUtils.hpp>
 #include <readers/headerFieldReader/headerFieldReader.hpp>
+#include <utils/spanUtils.hpp>
+#include <utils/stringViewUtils.hpp>
 
 namespace ipxp {
 
-constexpr static 
-std::string_view removeLeadingWhitespaces(std::string_view label) noexcept
+constexpr static std::string_view removeLeadingWhitespaces(std::string_view label) noexcept
 {
 	const size_t firstNonWhitespace = label.find_first_not_of(' ');
 	return label.substr(firstNonWhitespace);
 }
 
-
-constexpr static 
-bool isValidHTTPMethod(std::string_view payload) noexcept
+constexpr static bool isValidHTTPMethod(std::string_view payload) noexcept
 {
 	constexpr std::array<std::string_view, 9> validMethods
 		= {"GET", "POST", "HEAD", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH"};
 
-	return std::ranges::any_of(validMethods, 
-        [payload](const std::string_view& method) {
-            return payload.starts_with(method);
-	    });
+	return std::ranges::any_of(validMethods, [payload](const std::string_view& method) {
+		return payload.starts_with(method);
+	});
 }
 
-constexpr static 
-bool hasHTTPVersionInRequest(std::string_view payload) noexcept
+constexpr static bool hasHTTPVersionInRequest(std::string_view payload) noexcept
 {
 	constexpr std::string_view httpLabel = "HTTP";
 
-    auto spaces = payload | std::views::filter([](const char c) { return c == ' '; });
+	auto spaces = payload | std::views::filter([](const char c) { return c == ' '; });
 
-    auto httpLabelBegin = std::ranges::next(spaces.begin(), 2);
-    auto httpLabelEnd = std::ranges::next(spaces.begin(), 3);
-    if (httpLabelBegin == spaces.end() || httpLabelEnd == spaces.end()) {
-        return false;
-    }
+	auto httpLabelBegin = std::ranges::next(spaces.begin(), 2);
+	auto httpLabelEnd = std::ranges::next(spaces.begin(), 3);
+	if (httpLabelBegin == spaces.end() || httpLabelEnd == spaces.end()) {
+		return false;
+	}
 
-    return std::string_view(
-        &*std::next(httpLabelBegin), &*httpLabelEnd) == httpLabel;
+	return std::string_view(&*std::next(httpLabelBegin), &*httpLabelEnd) == httpLabel;
 }
 
-constexpr static 
-bool isRequest(std::string_view payload) noexcept
+constexpr static bool isRequest(std::string_view payload) noexcept
 {
 	return isValidHTTPMethod(payload) || hasHTTPVersionInRequest(payload);
 }
 
-constexpr static 
-bool hasHttpVersionInResponse(std::string_view payload) noexcept
+constexpr static bool hasHttpVersionInResponse(std::string_view payload) noexcept
 {
 	constexpr std::string_view httpLabel = "HTTP";
-    return payload.starts_with(httpLabel);
+	return payload.starts_with(httpLabel);
 }
 
-constexpr static 
-bool isResponse(std::string_view payload) noexcept
+constexpr static bool isResponse(std::string_view payload) noexcept
 {
 	return hasHttpVersionInResponse(payload);
 }
@@ -96,47 +87,42 @@ bool HTTPParser::parse(std::span<const std::byte> payload) noexcept
 
 bool HTTPParser::parseRequestHeaders(std::string_view payload) noexcept
 {
-    HeaderFieldReader reader;
-    for (const auto& [key, value] : reader.getRange(payload)) {
-        if (key == "Host") {
-            host = value;
-        }
-        if (key == "User-Agent") {
-            userAgent = value;
-        }
-        if (key == "Referer") {
-            referer = value;
-        }
-    }
+	HeaderFieldReader reader;
+	for (const auto& [key, value] : reader.getRange(payload)) {
+		if (key == "Host") {
+			host = value;
+		}
+		if (key == "User-Agent") {
+			userAgent = value;
+		}
+		if (key == "Referer") {
+			referer = value;
+		}
+	}
 
-    return reader.parsedSuccessfully();
+	return reader.parsedSuccessfully();
 }
 
-constexpr
-bool HTTPParser::parseRequest(std::string_view payload) noexcept
+constexpr bool HTTPParser::parseRequest(std::string_view payload) noexcept
 {
 	const std::size_t methodEnd = payload.find(' ');
 	if (methodEnd == std::string_view::npos) {
 		return false;
 	}
-    auto methodBegin = std::ranges::find_if(payload,  
-        [](const unsigned char c) { return !std::isspace(c); });
-    const std::size_t methodBeginPos 
-        = std::distance(payload.begin(), methodBegin);
-	method = std::string_view(
-        payload.substr(methodBeginPos, methodEnd - methodBeginPos));
+	auto methodBegin
+		= std::ranges::find_if(payload, [](const unsigned char c) { return !std::isspace(c); });
+	const std::size_t methodBeginPos = std::distance(payload.begin(), methodBegin);
+	method = std::string_view(payload.substr(methodBeginPos, methodEnd - methodBeginPos));
 
 	const std::size_t uriEnd = payload.find(' ', methodEnd + 1);
 	if (uriEnd == std::string_view::npos) {
 		return false;
 	}
-    auto uriBegin = std::ranges::find_if(
-        payload.substr(methodEnd + 1), 
-        [](const unsigned char c) { return !std::isspace(c); });
-    const std::size_t uriBeginPos 
-        = std::distance(payload.begin(), uriBegin);
-	uri = std::string_view(
-        payload.substr(uriBeginPos, uriEnd - uriBeginPos));
+	auto uriBegin = std::ranges::find_if(payload.substr(methodEnd + 1), [](const unsigned char c) {
+		return !std::isspace(c);
+	});
+	const std::size_t uriBeginPos = std::distance(payload.begin(), uriBegin);
+	uri = std::string_view(payload.substr(uriBeginPos, uriEnd - uriBeginPos));
 
 	const std::size_t httpVersionEnd = payload.find('\n', uriEnd + 1);
 	if (httpVersionEnd == std::string_view::npos) {
@@ -148,46 +134,44 @@ bool HTTPParser::parseRequest(std::string_view payload) noexcept
 
 bool HTTPParser::parseResponseHeaders(std::string_view payload) noexcept
 {
-    HeaderFieldReader reader;
-    for (const auto& [key, value] : reader.getRange(payload)) {
-        if (key == "Content-Type") {
-            contentType = value;
-        }
-        if (key == "Server") {
-            server = value;
-        }
-        if (key == "Set-Cookie") {
-            if (!cookies.has_value()) {
-                cookies.emplace();
-            }
-            std::ranges::copy(splitToVector(value) | 
-                std::views::transform(removeLeadingWhitespaces) |
-                std::views::take(cookies->capacity() - cookies->size()),
-                std::back_inserter(*cookies));
-        }
-    }
+	HeaderFieldReader reader;
+	for (const auto& [key, value] : reader.getRange(payload)) {
+		if (key == "Content-Type") {
+			contentType = value;
+		}
+		if (key == "Server") {
+			server = value;
+		}
+		if (key == "Set-Cookie") {
+			if (!cookies.has_value()) {
+				cookies.emplace();
+			}
+			std::ranges::copy(
+				splitToVector(value) | std::views::transform(removeLeadingWhitespaces)
+					| std::views::take(cookies->capacity() - cookies->size()),
+				std::back_inserter(*cookies));
+		}
+	}
 
-    return reader.parsedSuccessfully();
+	return reader.parsedSuccessfully();
 }
 
-constexpr
-bool HTTPParser::parseResponse(std::string_view payload) noexcept
+constexpr bool HTTPParser::parseResponse(std::string_view payload) noexcept
 {
-    auto spaces = payload | std::views::filter([](const char c) { return c == ' '; });
+	auto spaces = payload | std::views::filter([](const char c) { return c == ' '; });
 
-    auto statusCodeBegin = std::next(spaces.begin(), 1);
-    auto statusCodeEnd = std::next(spaces.begin(), 2);
-    if (statusCodeBegin == spaces.end() || statusCodeEnd == spaces.end()) {
-        return false;
-    }
-    const auto [_, errorCode] 
-        = std::from_chars(&*statusCodeBegin, &*statusCodeEnd, *statusCode);
-    if (errorCode != std::errc()) {
-        return false;
-    }
+	auto statusCodeBegin = std::next(spaces.begin(), 1);
+	auto statusCodeEnd = std::next(spaces.begin(), 2);
+	if (statusCodeBegin == spaces.end() || statusCodeEnd == spaces.end()) {
+		return false;
+	}
+	const auto [_, errorCode] = std::from_chars(&*statusCodeBegin, &*statusCodeEnd, *statusCode);
+	if (errorCode != std::errc()) {
+		return false;
+	}
 
-	const size_t statusMessageEnd = payload.find(
-        '\n', std::distance(spaces.begin(), statusCodeEnd)  + 1);
+	const size_t statusMessageEnd
+		= payload.find('\n', std::distance(spaces.begin(), statusCodeEnd) + 1);
 	if (statusMessageEnd == std::string_view::npos) {
 		return false;
 	}

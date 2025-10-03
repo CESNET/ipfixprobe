@@ -7,20 +7,21 @@
  *
  * Provides a plugin that extracts MQTT fields from packets,
  * stores them in per-flow plugin data, and exposes fields via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "mqttData.hpp"
 #include "mqttFields.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -30,7 +31,6 @@ namespace ipxp {
  */
 class MQTTPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the MQTT plugin.
 	 *
@@ -75,11 +75,13 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	PluginUpdateResult parseMQTT(std::span<const std::byte> payload, FlowRecord& flowRecord, MQTTData& mqttData) noexcept;
+	PluginUpdateResult parseMQTT(
+		std::span<const std::byte> payload,
+		FlowRecord& flowRecord,
+		MQTTData& mqttData) noexcept;
 
-	uint32_t m_maxTopicsToSave{10};
+	uint32_t m_maxTopicsToSave {10};
 	FieldHandlers<MQTTFields> m_fieldHandlers;
-	
 };
 
 } // namespace ipxp

@@ -14,17 +14,17 @@
 
 #include "http.hpp"
 
-#include <pluginManifest.hpp>
-#include <pluginRegistrar.hpp>
-#include <pluginFactory.hpp>
+#include <ranges>
+
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
-#include <utils.hpp>
-#include <ranges>
-#include <utils/stringViewUtils.hpp>
-#include <utils/spanUtils.hpp>
 #include <ipfixprobe/options.hpp>
-
+#include <pluginFactory.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
+#include <utils.hpp>
+#include <utils/spanUtils.hpp>
+#include <utils/stringViewUtils.hpp>
 
 namespace ipxp {
 
@@ -44,84 +44,96 @@ static FieldGroup createHTTPSchema(FieldManager& fieldManager, FieldHandlers<HTT
 {
 	FieldGroup schema = fieldManager.createFieldGroup("http");
 
-	handlers.insert(HTTPFields::HTTP_REQUEST_METHOD, schema.addScalarField(
-		"HTTP_REQUEST_METHOD",
-		[](const void* context) { return toStringView(reinterpret_cast<const HTTPData*>(context)->method); }
-	));
-	handlers.insert(HTTPFields::HTTP_REQUEST_HOST, schema.addScalarField(
-		"HTTP_REQUEST_HOST",
-		[](const void* context) { return toStringView(reinterpret_cast<const HTTPData*>(context)->host); }
-	));
-	handlers.insert(HTTPFields::HTTP_REQUEST_URL, schema.addScalarField(
-		"HTTP_REQUEST_URL",
-		[](const void* context) { return toStringView(reinterpret_cast<const HTTPData*>(context)->uri); }
-	));
-	handlers.insert(HTTPFields::HTTP_REQUEST_AGENT, schema.addScalarField(
-		"HTTP_REQUEST_AGENT",
-		[](const void* context) { return toStringView(reinterpret_cast<const HTTPData*>(context)->userAgent); }
-	));
-	handlers.insert(HTTPFields::HTTP_REQUEST_REFERER, schema.addScalarField(
-		"HTTP_REQUEST_REFERER",
-		[](const void* context) { return toStringView(reinterpret_cast<const HTTPData*>(context)->referer); }
-	));
-	handlers.insert(HTTPFields::HTTP_RESPONSE_STATUS_CODE, schema.addScalarField(
-		"HTTP_RESPONSE_STATUS_CODE",
-		[](const void* context) { return reinterpret_cast<const HTTPData*>(context)->statusCode; }
-	));
-	handlers.insert(HTTPFields::HTTP_RESPONSE_CONTENT_TYPE, schema.addScalarField(
-		"HTTP_RESPONSE_CONTENT_TYPE",
-		[](const void* context) { return toStringView(reinterpret_cast<const HTTPData*>(context)->contentType); }
-	));
-	handlers.insert(HTTPFields::HTTP_RESPONSE_SERVER, schema.addScalarField(
-		"HTTP_RESPONSE_SERVER",
-		[](const void* context) { return toStringView(reinterpret_cast<const HTTPData*>(context)->server); }
-	));
-	handlers.insert(HTTPFields::HTTP_RESPONSE_SET_COOKIE_NAMES, schema.addScalarField(
-		"HTTP_RESPONSE_SET_COOKIE_NAMES",
-		[](const void* context) { return toStringView(reinterpret_cast<const HTTPData*>(context)->cookies); }
-	));
+	handlers.insert(
+		HTTPFields::HTTP_REQUEST_METHOD,
+		schema.addScalarField("HTTP_REQUEST_METHOD", [](const void* context) {
+			return toStringView(reinterpret_cast<const HTTPData*>(context)->method);
+		}));
+	handlers.insert(
+		HTTPFields::HTTP_REQUEST_HOST,
+		schema.addScalarField("HTTP_REQUEST_HOST", [](const void* context) {
+			return toStringView(reinterpret_cast<const HTTPData*>(context)->host);
+		}));
+	handlers.insert(
+		HTTPFields::HTTP_REQUEST_URL,
+		schema.addScalarField("HTTP_REQUEST_URL", [](const void* context) {
+			return toStringView(reinterpret_cast<const HTTPData*>(context)->uri);
+		}));
+	handlers.insert(
+		HTTPFields::HTTP_REQUEST_AGENT,
+		schema.addScalarField("HTTP_REQUEST_AGENT", [](const void* context) {
+			return toStringView(reinterpret_cast<const HTTPData*>(context)->userAgent);
+		}));
+	handlers.insert(
+		HTTPFields::HTTP_REQUEST_REFERER,
+		schema.addScalarField("HTTP_REQUEST_REFERER", [](const void* context) {
+			return toStringView(reinterpret_cast<const HTTPData*>(context)->referer);
+		}));
+	handlers.insert(
+		HTTPFields::HTTP_RESPONSE_STATUS_CODE,
+		schema.addScalarField("HTTP_RESPONSE_STATUS_CODE", [](const void* context) {
+			return reinterpret_cast<const HTTPData*>(context)->statusCode;
+		}));
+	handlers.insert(
+		HTTPFields::HTTP_RESPONSE_CONTENT_TYPE,
+		schema.addScalarField("HTTP_RESPONSE_CONTENT_TYPE", [](const void* context) {
+			return toStringView(reinterpret_cast<const HTTPData*>(context)->contentType);
+		}));
+	handlers.insert(
+		HTTPFields::HTTP_RESPONSE_SERVER,
+		schema.addScalarField("HTTP_RESPONSE_SERVER", [](const void* context) {
+			return toStringView(reinterpret_cast<const HTTPData*>(context)->server);
+		}));
+	handlers.insert(
+		HTTPFields::HTTP_RESPONSE_SET_COOKIE_NAMES,
+		schema.addScalarField("HTTP_RESPONSE_SET_COOKIE_NAMES", [](const void* context) {
+			return toStringView(reinterpret_cast<const HTTPData*>(context)->cookies);
+		}));
 
 	return schema;
 }
 
-HTTPPlugin::HTTPPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+HTTPPlugin::HTTPPlugin([[maybe_unused]] const std::string& params, FieldManager& manager)
 {
 	createHTTPSchema(manager, m_fieldHandlers);
 }
 
-void HTTPPlugin::saveParsedValues(const HTTPParser& parser, FlowRecord& flowRecord, HTTPData& httpData) noexcept
+void HTTPPlugin::saveParsedValues(
+	const HTTPParser& parser,
+	FlowRecord& flowRecord,
+	HTTPData& httpData) noexcept
 {
 	httpData.requestParsed |= parser.requestParsed;
 	httpData.responseParsed |= parser.responseParsed;
 
 	if (parser.method.has_value()) {
-		std::ranges::copy(*parser.method |
-			std::views::take(httpData.method.capacity()),
-		std::back_inserter(httpData.method));
+		std::ranges::copy(
+			*parser.method | std::views::take(httpData.method.capacity()),
+			std::back_inserter(httpData.method));
 		m_fieldHandlers[HTTPFields::HTTP_REQUEST_METHOD].setAsAvailable(flowRecord);
 	}
 	if (parser.uri.has_value()) {
-		std::ranges::copy(*parser.uri |
-			std::views::take(httpData.uri.capacity()),
-		std::back_inserter(httpData.uri));
+		std::ranges::copy(
+			*parser.uri | std::views::take(httpData.uri.capacity()),
+			std::back_inserter(httpData.uri));
 		m_fieldHandlers[HTTPFields::HTTP_REQUEST_URL].setAsAvailable(flowRecord);
 	}
 	if (parser.host.has_value()) {
-		std::ranges::copy(*parser.host |
-			std::views::take(httpData.host.capacity()),
-		std::back_inserter(httpData.host));
+		std::ranges::copy(
+			*parser.host | std::views::take(httpData.host.capacity()),
+			std::back_inserter(httpData.host));
 		m_fieldHandlers[HTTPFields::HTTP_REQUEST_HOST].setAsAvailable(flowRecord);
 	}
 	if (parser.userAgent.has_value()) {
-		std::ranges::copy(*parser.userAgent |
-			std::views::take(httpData.userAgent.capacity()),
-		std::back_inserter(httpData.userAgent));
+		std::ranges::copy(
+			*parser.userAgent | std::views::take(httpData.userAgent.capacity()),
+			std::back_inserter(httpData.userAgent));
 		m_fieldHandlers[HTTPFields::HTTP_REQUEST_AGENT].setAsAvailable(flowRecord);
 	}
 	if (parser.referer.has_value()) {
-		std::ranges::copy(*parser.referer |
-			std::views::take(httpData.referer.capacity()),
-		std::back_inserter(httpData.referer));
+		std::ranges::copy(
+			*parser.referer | std::views::take(httpData.referer.capacity()),
+			std::back_inserter(httpData.referer));
 		m_fieldHandlers[HTTPFields::HTTP_REQUEST_REFERER].setAsAvailable(flowRecord);
 	}
 	if (parser.statusCode.has_value()) {
@@ -129,23 +141,22 @@ void HTTPPlugin::saveParsedValues(const HTTPParser& parser, FlowRecord& flowReco
 		m_fieldHandlers[HTTPFields::HTTP_RESPONSE_STATUS_CODE].setAsAvailable(flowRecord);
 	}
 	if (parser.contentType.has_value()) {
-		std::ranges::copy(*parser.contentType |
-			std::views::take(httpData.contentType.capacity()),
-		std::back_inserter(httpData.contentType));
+		std::ranges::copy(
+			*parser.contentType | std::views::take(httpData.contentType.capacity()),
+			std::back_inserter(httpData.contentType));
 		m_fieldHandlers[HTTPFields::HTTP_RESPONSE_CONTENT_TYPE].setAsAvailable(flowRecord);
 	}
 	if (parser.server.has_value()) {
-		std::ranges::copy(*parser.server |
-			std::views::take(httpData.server.capacity()),
-		std::back_inserter(httpData.server));
+		std::ranges::copy(
+			*parser.server | std::views::take(httpData.server.capacity()),
+			std::back_inserter(httpData.server));
 		m_fieldHandlers[HTTPFields::HTTP_RESPONSE_SERVER].setAsAvailable(flowRecord);
 	}
 	if (parser.cookies.has_value()) {
 		std::ranges::for_each(*parser.cookies, [&](std::string_view cookie) {
-			std::ranges::copy(cookie |
-				std::views::take(
-					httpData.cookies.capacity() - httpData.cookies.size()),
-			std::back_inserter(httpData.cookies));
+			std::ranges::copy(
+				cookie | std::views::take(httpData.cookies.capacity() - httpData.cookies.size()),
+				std::back_inserter(httpData.cookies));
 			if (httpData.cookies.size() != httpData.cookies.capacity()) {
 				httpData.cookies.push_back(';');
 			}
@@ -166,7 +177,7 @@ void HTTPPlugin::saveParsedValues(const HTTPParser& parser, FlowRecord& flowReco
 			.flowAction = FlowAction::RemovePlugin,
 		};
 	}
-	
+
 	if (parser.requestParsed && httpData.requestParsed) {
 		// Must be flush and reinsert ????
 		return {
@@ -199,7 +210,8 @@ void HTTPPlugin::saveParsedValues(const HTTPParser& parser, FlowRecord& flowReco
 PluginInitResult HTTPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	HTTPParser parser;
-	parser.parse(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len));
+	parser.parse(
+		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len));
 	if (!parser.method.has_value()) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
@@ -211,14 +223,14 @@ PluginInitResult HTTPPlugin::onInit(const FlowContext& flowContext, void* plugin
 	auto* pluginData = std::construct_at(reinterpret_cast<HTTPData*>(pluginContext));
 	saveParsedValues(parser, flowContext.flowRecord, *pluginData);
 	/*auto [updateRequirement, flowAction] = parseHTTP(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, *pluginData);*/
+		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+	   flowContext.flowRecord, *pluginData);*/
 	return {
 		.constructionState = ConstructionState::Constructed,
 		.updateRequirement = UpdateRequirement::RequiresUpdate,
 		.flowAction = FlowAction::NoAction,
 	};
 }
-
 
 PluginUpdateResult HTTPPlugin::beforeUpdate(const FlowContext& flowContext, void* pluginContext)
 {
@@ -240,21 +252,22 @@ PluginUpdateResult HTTPPlugin::onUpdate(const FlowContext& flowContext, void* pl
 {
 	auto* pluginData = reinterpret_cast<HTTPData*>(pluginContext);
 	HTTPParser parser;
-	parser.parse(toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len));
+	parser.parse(
+		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len));
 	if (pluginData->requestParsed && pluginData->responseParsed) {
 		return {
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
 			.flowAction = FlowAction::NoAction,
 		};
 	}
-	
+
 	return {
 		.updateRequirement = UpdateRequirement::RequiresUpdate,
 		.flowAction = FlowAction::NoAction,
 	};
 }
 
-void HTTPPlugin::onDestroy(void* pluginContext) 
+void HTTPPlugin::onDestroy(void* pluginContext)
 {
 	std::destroy_at(reinterpret_cast<HTTPData*>(pluginContext));
 }
@@ -267,7 +280,9 @@ PluginDataMemoryLayout HTTPPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<HTTPPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+static const PluginRegistrar<
+	HTTPPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	httpPluginRegistrar(httpPluginManifest);
 
 } // namespace ipxp

@@ -8,19 +8,20 @@
  *
  * Provides a plugin that extracts MPLS top label from packets,
  * stores them in per-flow plugin data, and exposes that field via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
+#include "mplsFields.hpp"
+
 #include <sstream>
 #include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
 
-#include "mplsFields.hpp"
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -30,7 +31,6 @@ namespace ipxp {
  */
 class MPLSPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the MPLS plugin.
 	 *

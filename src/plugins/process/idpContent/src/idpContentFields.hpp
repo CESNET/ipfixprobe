@@ -11,8 +11,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @enum IDPContentFields
@@ -24,6 +23,6 @@ enum class IDPContentFields : std::size_t {
 	IDP_CONTENT = 0,
 	IDP_CONTENT_REV,
 	FIELDS_SIZE,
-};    
-    
+};
+
 } // namespace ipxp
