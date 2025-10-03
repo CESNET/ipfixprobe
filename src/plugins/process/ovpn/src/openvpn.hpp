@@ -9,21 +9,22 @@
  *
  * Provides a plugin that calculates confidence level that given flow is OpenVPN,
  * stores it in per-flow plugin data, and exposes that field via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "openvpnData.hpp"
 #include "openvpnFields.hpp"
 #include "openvpnProcessingState.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -33,7 +34,6 @@ namespace ipxp {
  */
 class OpenVPNPlugin : public ProcessPlugin {
 public:
-	
 	/**
 	 * @class OpenVPNPlugin
 	 * @brief A plugin for parsing OpenVPN traffic.

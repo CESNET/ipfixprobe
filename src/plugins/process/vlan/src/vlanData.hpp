@@ -2,12 +2,10 @@
 
 #include <cstdint>
 
-namespace ipxp
-{
+namespace ipxp {
 
 struct VLANData {
 	uint16_t vlanId;
-};  
+};
 
 } // namespace ipxp
-

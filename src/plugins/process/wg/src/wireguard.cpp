@@ -12,20 +12,20 @@
 
 #include "wireguard.hpp"
 
+#include "wireguardPacketSize.hpp"
+#include "wireguardPacketType.hpp"
+
 #include <iostream>
 
-#include <pluginManifest.hpp>
-#include <pluginRegistrar.hpp>
-#include <pluginFactory.hpp>
+#include <arpa/inet.h>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
-#include <utils.hpp>
-#include <arpa/inet.h>
-#include <utils/spanUtils.hpp>
 #include <ipfixprobe/options.hpp>
-
-#include "wireguardPacketType.hpp"
-#include "wireguardPacketSize.hpp"
+#include <pluginFactory.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
+#include <utils.hpp>
+#include <utils/spanUtils.hpp>
 
 namespace ipxp {
 
@@ -41,28 +41,33 @@ static const PluginManifest wireguardPluginManifest = {
 		},
 };
 
-static FieldGroup createWireguardSchema(FieldManager& fieldManager, FieldHandlers<WireguardFields>& handlers) noexcept
+static FieldGroup
+createWireguardSchema(FieldManager& fieldManager, FieldHandlers<WireguardFields>& handlers) noexcept
 {
 	FieldGroup schema = fieldManager.createFieldGroup("wg");
 
-	handlers.insert(WireguardFields::WG_CONF_LEVEL, schema.addScalarField(
-		"WG_CONF_LEVEL",
-		[](const void* context) { return reinterpret_cast<const WireguardData*>(context)->confidence; }
-	));
+	handlers.insert(
+		WireguardFields::WG_CONF_LEVEL,
+		schema.addScalarField("WG_CONF_LEVEL", [](const void* context) {
+			return reinterpret_cast<const WireguardData*>(context)->confidence;
+		}));
 
 	auto [srcPeerHandler, dstPeerHandler] = schema.addScalarBiflowFields(
 		"WG_SRC_PEER",
 		"WG_DST_PEER",
-		[](const void* context) { return *reinterpret_cast<const WireguardData*>(context)->peer[Direction::Forward]; },
-		[](const void* context) { return *reinterpret_cast<const WireguardData*>(context)->peer[Direction::Reverse]; }
-	);
+		[](const void* context) {
+			return *reinterpret_cast<const WireguardData*>(context)->peer[Direction::Forward];
+		},
+		[](const void* context) {
+			return *reinterpret_cast<const WireguardData*>(context)->peer[Direction::Reverse];
+		});
 	handlers.insert(WireguardFields::WG_SRC_PEER, srcPeerHandler);
 	handlers.insert(WireguardFields::WG_DST_PEER, dstPeerHandler);
-	
+
 	return schema;
 }
 
-WireguardPlugin::WireguardPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+WireguardPlugin::WireguardPlugin([[maybe_unused]] const std::string& params, FieldManager& manager)
 {
 	createWireguardSchema(manager, m_fieldHandlers);
 }
@@ -80,8 +85,11 @@ PluginInitResult WireguardPlugin::onInit(const FlowContext& flowContext, void* p
 	}
 
 	auto* pluginData = std::construct_at(reinterpret_cast<WireguardData*>(pluginContext));
-	auto [updateRequirement, flowAction] = parseWireguard(toSpan<const std::byte>(
-		flowContext.packet.payload, flowContext.packet.payload_len), flowContext.packet.source_pkt, *pluginData, flowContext.flowRecord);
+	auto [updateRequirement, flowAction] = parseWireguard(
+		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+		flowContext.packet.source_pkt,
+		*pluginData,
+		flowContext.flowRecord);
 	return {
 		.constructionState = ConstructionState::Constructed,
 		.updateRequirement = updateRequirement,
@@ -92,19 +100,20 @@ PluginInitResult WireguardPlugin::onInit(const FlowContext& flowContext, void* p
 PluginUpdateResult WireguardPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = reinterpret_cast<WireguardData*>(pluginContext);
-	return parseWireguard(toSpan<const std::byte>(
-		flowContext.packet.payload, flowContext.packet.payload_len), flowContext.packet.source_pkt, *pluginData, flowContext.flowRecord);
+	return parseWireguard(
+		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+		flowContext.packet.source_pkt,
+		*pluginData,
+		flowContext.flowRecord);
 }
 
-constexpr static
-bool isValidPacketType(const WireguardPacketType type) noexcept
+constexpr static bool isValidPacketType(const WireguardPacketType type) noexcept
 {
-	return type >= WireguardPacketType::HANDSHAKE_INIT &&
-		type <= WireguardPacketType::TRANSPORT_DATA;
+	return type >= WireguardPacketType::HANDSHAKE_INIT
+		&& type <= WireguardPacketType::TRANSPORT_DATA;
 }
 
-constexpr static
-std::size_t getPacketSize(const WireguardPacketType type) noexcept
+constexpr static std::size_t getPacketSize(const WireguardPacketType type) noexcept
 {
 	switch (type) {
 	case WireguardPacketType::HANDSHAKE_INIT:
@@ -120,19 +129,20 @@ std::size_t getPacketSize(const WireguardPacketType type) noexcept
 	__builtin_unreachable();
 }
 
-constexpr static
-bool checkReservedBytes(std::span<const std::byte> payload) noexcept
+constexpr static bool checkReservedBytes(std::span<const std::byte> payload) noexcept
 {
-	return payload[1] == std::byte{0x0} && payload[2] == std::byte{0x0} && payload[3] == std::byte{0x0};
+	return payload[1] == std::byte {0x0} && payload[2] == std::byte {0x0}
+	&& payload[3] == std::byte {0x0};
 }
 
-constexpr static
-bool checkPacketSize(
-	const WireguardPacketType type, const std::size_t size) noexcept
+constexpr static bool
+checkPacketSize(const WireguardPacketType type, const std::size_t size) noexcept
 {
 	switch (type) {
-	case WireguardPacketType::HANDSHAKE_INIT: [[fallthrough]];
-	case WireguardPacketType::HANDSHAKE_RESPONSE: [[fallthrough]];
+	case WireguardPacketType::HANDSHAKE_INIT:
+		[[fallthrough]];
+	case WireguardPacketType::HANDSHAKE_RESPONSE:
+		[[fallthrough]];
 	case WireguardPacketType::COOCKIE_REPLY:
 		return size == getPacketSize(type);
 	case WireguardPacketType::TRANSPORT_DATA:
@@ -143,17 +153,20 @@ bool checkPacketSize(
 }
 
 PluginUpdateResult WireguardPlugin::parseWireguard(
-	std::span<const std::byte> payload, const Direction direction, WireguardData& pluginData, FlowRecord& flowRecord) noexcept
+	std::span<const std::byte> payload,
+	const Direction direction,
+	WireguardData& pluginData,
+	FlowRecord& flowRecord) noexcept
 {
 	const auto type = static_cast<WireguardPacketType>(payload[0]);
 	if (!isValidPacketType(type) || checkPacketSize(type, payload.size())) {
 		pluginData.confidence = 0;
 		m_fieldHandlers[WireguardFields::WG_CONF_LEVEL].setAsAvailable(flowRecord);
-		
+
 		return {
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
 			.flowAction = FlowAction::NoAction,
-		}; 
+		};
 	}
 
 	if (!checkReservedBytes(payload)) {
@@ -167,8 +180,8 @@ PluginUpdateResult WireguardPlugin::parseWireguard(
 	}
 
 	constexpr std::size_t senderIndexOffset = 4;
-	const uint32_t senderIndex = ntohl(
-				*reinterpret_cast<const uint32_t*>(payload.data() + senderIndexOffset));
+	const uint32_t senderIndex
+		= ntohl(*reinterpret_cast<const uint32_t*>(payload.data() + senderIndexOffset));
 
 	switch (type) {
 	case WireguardPacketType::HANDSHAKE_INIT: {
@@ -177,8 +190,7 @@ PluginUpdateResult WireguardPlugin::parseWireguard(
 
 		const std::optional<uint32_t> savedPeer = pluginData.peer[direction];
 
-		if (savedPeer.has_value() && 
-			senderIndex != *savedPeer) {
+		if (savedPeer.has_value() && senderIndex != *savedPeer) {
 			// TODO FLUSH AND REINSERT
 			return {
 				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -193,7 +205,7 @@ PluginUpdateResult WireguardPlugin::parseWireguard(
 		pluginData.peer[direction] = senderIndex;
 
 		constexpr std::size_t dstPeerOffset = 8;
-		pluginData.peer[static_cast<Direction>(!direction)] 
+		pluginData.peer[static_cast<Direction>(!direction)]
 			= ntohl(*reinterpret_cast<const uint32_t*>(payload.data() + dstPeerOffset));
 
 		m_fieldHandlers[WireguardFields::WG_SRC_PEER].setAsAvailable(flowRecord);
@@ -201,16 +213,15 @@ PluginUpdateResult WireguardPlugin::parseWireguard(
 
 		break;
 	}
-	case WireguardPacketType::COOCKIE_REPLY: [[fallthrough]];
+	case WireguardPacketType::COOCKIE_REPLY:
+		[[fallthrough]];
 	case WireguardPacketType::TRANSPORT_DATA:
-		constexpr auto mapping = std::to_array({
-			WireguardFields::WG_SRC_PEER,
-			WireguardFields::WG_DST_PEER
-		});
+		constexpr auto mapping
+			= std::to_array({WireguardFields::WG_SRC_PEER, WireguardFields::WG_DST_PEER});
 
 		pluginData.peer[direction] = senderIndex;
 		m_fieldHandlers[mapping[direction]].setAsAvailable(flowRecord);
-		
+
 		break;
 	}
 
@@ -219,9 +230,12 @@ PluginUpdateResult WireguardPlugin::parseWireguard(
 	//   Can happen when transaction ID is >= 1 and <= 4, the query is non-recursive
 	//   and other flags are zeros, too.
 	//   2B transaction ID, 2B flags, 2B questions count, 2B answers count
-	constexpr std::array<std::byte, 4> dnsQueryMask{std::byte{0x00}, std::byte{0x01}, std::byte{0x00}, std::byte{0x00}};
-	const bool matchesMask 
-		= std::ranges::equal(dnsQueryMask, payload.subspan(senderIndexOffset));
+	constexpr std::array<std::byte, 4> dnsQueryMask {
+		std::byte {0x00},
+		std::byte {0x01},
+		std::byte {0x00},
+		std::byte {0x00}};
+	const bool matchesMask = std::ranges::equal(dnsQueryMask, payload.subspan(senderIndexOffset));
 	if (matchesMask) {
 		pluginData.confidence = 1;
 		m_fieldHandlers[WireguardFields::WG_CONF_LEVEL].setAsAvailable(flowRecord);
@@ -253,7 +267,9 @@ PluginDataMemoryLayout WireguardPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<WireguardPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+static const PluginRegistrar<
+	WireguardPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	wireguardRegistrar(wireguardPluginManifest);
 
 } // namespace ipxp

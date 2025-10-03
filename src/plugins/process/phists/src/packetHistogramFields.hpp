@@ -11,8 +11,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @enum PacketHistogramFields
@@ -26,6 +25,6 @@ enum class PacketHistogramFields : std::size_t {
 	D_PHISTS_SIZES,
 	D_PHISTS_IPT,
 	FIELDS_SIZE,
-};    
-    
+};
+
 } // namespace ipxp

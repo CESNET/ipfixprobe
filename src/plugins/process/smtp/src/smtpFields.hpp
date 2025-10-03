@@ -2,8 +2,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 enum class SMTPFields : std::size_t {
 	SMTP_2XX_STAT_CODE_COUNT = 0,
@@ -18,6 +17,6 @@ enum class SMTPFields : std::size_t {
 	SMTP_FIRST_RECIPIENT,
 	SMTP_FIRST_SENDER,
 	FIELDS_SIZE,
-};    
-    
+};
+
 } // namespace ipxp

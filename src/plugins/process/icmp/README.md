@@ -4,9 +4,9 @@ Plugin extracts and exports ICMP type and code if present.
 
 ## Output Fields
 
-| Field Name      | Data Type | Description                                                 |
-|-----------------|-----------|----------------------------------------|
-| `L4_ICMP_TYPE_CODE`     | `uint16_t` | ICMP type in first byte and code in the second byte |
+| Field Name          | Data Type  | Description                                         |
+| ------------------- | ---------- | --------------------------------------------------- |
+| `L4_ICMP_TYPE_CODE` | `uint16_t` | ICMP type in first byte and code in the second byte |
 
 ## Usage
 
@@ -23,6 +23,4 @@ process_plugins:
 
 You can also enable the plugin directly from the command line:
 
-```ipfixprobe -p icmp ...```
-
-
+`ipfixprobe -p icmp ...`

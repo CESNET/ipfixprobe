@@ -12,17 +12,17 @@
 
 #include "vlan.hpp"
 
+#include "vlanData.hpp"
+
 #include <iostream>
 
-#include <pluginManifest.hpp>
-#include <pluginRegistrar.hpp>
-#include <pluginFactory.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
-#include <utils.hpp>
 #include <ipfixprobe/options.hpp>
-
-#include "vlanData.hpp"
+#include <pluginFactory.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
+#include <utils.hpp>
 
 namespace ipxp {
 
@@ -38,26 +38,26 @@ static const PluginManifest vlanPluginManifest = {
 		},
 };
 
-static FieldGroup createVLANSchema(FieldManager& fieldManager, FieldHandlers<VLANFields>& handlers) noexcept
+static FieldGroup
+createVLANSchema(FieldManager& fieldManager, FieldHandlers<VLANFields>& handlers) noexcept
 {
 	FieldGroup schema = fieldManager.createFieldGroup("vlan");
 
-	handlers.insert(VLANFields::VLAN_ID, schema.addScalarField(
-		"VLAN_ID",
-		[](const void* context) { return reinterpret_cast<const VLANData*>(context)->vlanId; }
-	));
+	handlers.insert(VLANFields::VLAN_ID, schema.addScalarField("VLAN_ID", [](const void* context) {
+		return reinterpret_cast<const VLANData*>(context)->vlanId;
+	}));
 
 	return schema;
 }
 
-VLANPlugin::VLANPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+VLANPlugin::VLANPlugin([[maybe_unused]] const std::string& params, FieldManager& manager)
 {
 	createVLANSchema(manager, m_fieldHandlers);
 }
 
-PluginInitResult VLANPlugin::onInit(const FlowContext& flowContext, void* pluginContext) 
+PluginInitResult VLANPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	std::construct_at(reinterpret_cast<VLANData*>(pluginContext))->vlanId 
+	std::construct_at(reinterpret_cast<VLANData*>(pluginContext))->vlanId
 		= flowContext.packet.vlan_id;
 	m_fieldHandlers[VLANFields::VLAN_ID].setAsAvailable(flowContext.flowRecord);
 
@@ -81,7 +81,9 @@ PluginDataMemoryLayout VLANPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<VLANPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+static const PluginRegistrar<
+	VLANPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	vlanRegistrar(vlanPluginManifest);
 
 } // namespace ipxp

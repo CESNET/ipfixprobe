@@ -12,20 +12,20 @@
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "ssdpData.hpp"
 #include "ssdpFields.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
 class SSDPPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the SSDP plugin and initializes field handlers.
 	 * @param params String with plugin-specific parameters for configuration(currently unused).
@@ -72,14 +72,18 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
+	constexpr void
+	parseSSDP(std::string_view payload, SSDPData& pluginData, FlowRecord& flowRecord) noexcept;
 
-	constexpr void parseSSDP(
-		std::string_view payload, SSDPData& pluginData, FlowRecord& flowRecord) noexcept;
-
-	void parseSSDPMSearch(std::string_view headerFields, SSDPData& pluginData, FlowRecord& flowRecord) noexcept;
+	void parseSSDPMSearch(
+		std::string_view headerFields,
+		SSDPData& pluginData,
+		FlowRecord& flowRecord) noexcept;
 
 	void parseSSDPNotify(
-		std::string_view headerFields, SSDPData& pluginData, FlowRecord& flowRecord) noexcept;
+		std::string_view headerFields,
+		SSDPData& pluginData,
+		FlowRecord& flowRecord) noexcept;
 
 	FieldHandlers<SSDPFields> m_fieldHandlers;
 };

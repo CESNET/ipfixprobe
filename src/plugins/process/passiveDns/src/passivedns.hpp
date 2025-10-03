@@ -8,20 +8,21 @@
  *
  * Provides a plugin that parses DNS A, AAAA, PTR responses,
  * stores them in per-flow plugin data, and exposes fields via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "passivednsData.hpp"
 #include "passivednsFields.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -31,7 +32,6 @@ namespace ipxp {
  */
 class PassiveDNSPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the PassiveDNS plugin.
 	 *
@@ -81,6 +81,10 @@ private:
 		std::span<const std::byte> payload,
 		FlowRecord& flowRecord,
 		const uint8_t l4Protocol,
+		PassiveDNSData& pluginData) noexcept;
+	bool parseAnswer(
+		const DNSRecord& record,
+		FlowRecord& flowRecord,
 		PassiveDNSData& pluginData) noexcept;
 
 	FieldHandlers<PassiveDNSFields> m_fieldHandlers;

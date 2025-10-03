@@ -2,8 +2,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 enum class TLSFields : std::size_t {
 	TLS_SNI = 0,
@@ -14,6 +13,6 @@ enum class TLSFields : std::size_t {
 	TLS_EXT_TYPE,
 	TLS_EXT_LEN,
 	FIELDS_SIZE,
-};    
-    
+};
+
 } // namespace ipxp

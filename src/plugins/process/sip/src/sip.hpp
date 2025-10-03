@@ -5,28 +5,28 @@
  * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Provides a plugin that calculates packet statistics as flags, acknowledgments, and sequences within flows,
- * stores it in per-flow plugin data, and exposes that field via FieldManager.
- * 
+ * Provides a plugin that calculates packet statistics as flags, acknowledgments, and sequences
+ * within flows, stores it in per-flow plugin data, and exposes that field via FieldManager.
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "sipData.hpp"
 #include "sipFields.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
 class SIPPlugin : public ProcessPlugin {
 public:
-	
 	/**
 	 * @brief Constructs the SIP plugin and initializes field handlers.
 	 * @param params String with plugin-specific parameters for configuration(currently unused).
@@ -47,12 +47,11 @@ public:
 	 */
 	PluginInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
 
-
 	/**
 	 * @brief Reinserts flow if message code is detected.
 	 *
 	 * If no message code is detected, the plugin data remains unchanged.
-	 * 
+	 *
 	 * @param flowContext Contextual information about the flow to be updated.
 	 * @param pluginContext Pointer to `SIPData`.
 	 * @return Result of the update.
@@ -72,7 +71,8 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	constexpr bool parseSIPData(std::string_view payload, SIPData& pluginData, FlowRecord& flowRecord) noexcept;
+	constexpr bool
+	parseSIPData(std::string_view payload, SIPData& pluginData, FlowRecord& flowRecord) noexcept;
 
 	FieldHandlers<SIPFields> m_fieldHandlers;
 };

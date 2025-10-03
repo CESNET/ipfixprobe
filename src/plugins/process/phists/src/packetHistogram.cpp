@@ -8,26 +8,26 @@
  *
  * Provides a plugin that creates histograms based on packet sizes and inter-arrival times,
  * stores them in per-flow plugin data, and exposes fields via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "packetHistogram.hpp"
 
-#include <iostream>
+#include "packetHistogramOptionsParser.hpp"
+
+#include <algorithm>
 #include <array>
 #include <bit>
-#include <algorithm>
+#include <iostream>
 
-#include <pluginManifest.hpp>
-#include <pluginRegistrar.hpp>
-#include <pluginFactory.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
+#include <pluginFactory.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
 #include <utils.hpp>
 #include <utils/spanUtils.hpp>
-
-#include "packetHistogramOptionsParser.hpp"
 
 namespace ipxp {
 
@@ -43,53 +43,56 @@ static const PluginManifest packetHistogramPluginManifest = {
 		},
 };
 
-static FieldGroup createPacketHistogramSchema(FieldManager& fieldManager, FieldHandlers<PacketHistogramFields>& handlers) noexcept
+static FieldGroup createPacketHistogramSchema(
+	FieldManager& fieldManager,
+	FieldHandlers<PacketHistogramFields>& handlers) noexcept
 {
 	FieldGroup schema = fieldManager.createFieldGroup("phists");
 
 	auto [forwardSizesField, reverseSizesField] = schema.addVectorDirectionalFields(
-		"S_PHISTS_SIZES", "D_PHISTS_SIZES",
-		[] (const void* context) { 
+		"S_PHISTS_SIZES",
+		"D_PHISTS_SIZES",
+		[](const void* context) {
 			return toSpan<const uint16_t>(reinterpret_cast<const PacketHistogramData*>(context)
-				->packetLengths[Direction::Forward]); 
+											  ->packetLengths[Direction::Forward]);
 		},
-		[] (const void* context) { 
+		[](const void* context) {
 			return toSpan<const uint16_t>(reinterpret_cast<const PacketHistogramData*>(context)
-				->packetLengths[Direction::Reverse]); 
-		}
-	);
+											  ->packetLengths[Direction::Reverse]);
+		});
 	handlers.insert(PacketHistogramFields::S_PHISTS_SIZES, forwardSizesField);
 	handlers.insert(PacketHistogramFields::D_PHISTS_SIZES, reverseSizesField);
 
 	auto [forwardIPTField, reverseIPTField] = schema.addVectorDirectionalFields(
-		"S_PHISTS_IPT", "D_PHISTS_IPT",
-		[] (const void* context) {
+		"S_PHISTS_IPT",
+		"D_PHISTS_IPT",
+		[](const void* context) {
 			return toSpan<const Timestamp>(reinterpret_cast<const PacketHistogramData*>(context)
-				->packetTimediffs[Direction::Forward]);
+											   ->packetTimediffs[Direction::Forward]);
 		},
-		[] (const void* context) {
+		[](const void* context) {
 			return toSpan<const Timestamp>(reinterpret_cast<const PacketHistogramData*>(context)
-				->packetTimediffs[Direction::Reverse]);
-		}
-	);
+											   ->packetTimediffs[Direction::Reverse]);
+		});
 	handlers.insert(PacketHistogramFields::S_PHISTS_IPT, forwardIPTField);
 	handlers.insert(PacketHistogramFields::D_PHISTS_IPT, reverseIPTField);
 
 	return schema;
 }
 
-PacketHistogramPlugin::PacketHistogramPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+PacketHistogramPlugin::PacketHistogramPlugin(
+	[[maybe_unused]] const std::string& params,
+	FieldManager& manager)
 {
 	createPacketHistogramSchema(manager, m_fieldHandlers);
 }
 
-constexpr static
-uint32_t fastlog2(const uint32_t value)
+constexpr static uint32_t fastlog2(const uint32_t value)
 {
 	constexpr auto lookup
-	= std::to_array<uint32_t>({0, 9,  1,  10, 13, 21, 2,  29, 11, 14, 16, 18, 22, 25, 3, 30,
-	   8, 12, 20, 28, 15, 17, 24, 7,  19, 27, 23, 6,  26, 5,  4, 31});
-	
+		= std::to_array<uint32_t>({0, 9,  1,  10, 13, 21, 2,  29, 11, 14, 16, 18, 22, 25, 3, 30,
+								   8, 12, 20, 28, 15, 17, 24, 7,  19, 27, 23, 6,  26, 5,  4, 31});
+
 	// Set all bits after highest to 1
 	const uint32_t filledValue = std::bit_ceil(value) - 1;
 
@@ -98,7 +101,7 @@ uint32_t fastlog2(const uint32_t value)
 
 constexpr static void incrementWithoutOverflow(uint32_t& valueToIncrement) noexcept
 {
-	uint32_t valueBeforeIncrement{valueToIncrement};
+	uint32_t valueBeforeIncrement {valueToIncrement};
 	if (__builtin_add_overflow(valueBeforeIncrement, 1, &valueToIncrement)) {
 		// overflow occurred
 		valueToIncrement = valueBeforeIncrement;
@@ -115,20 +118,25 @@ constexpr static void incrementWithoutOverflow(uint32_t& valueToIncrement) noexc
  * 512-1023 7. bin
  * 1024 >   8. bin
  */
-constexpr static
-void updateHistogram(const uint32_t value, 
+constexpr static void updateHistogram(
+	const uint32_t value,
 	std::array<uint32_t, PacketHistogramData::HISTOGRAM_SIZE>& histogram) noexcept
 {
 	// first bin starts on 2^4, -1 for indexing from 0
 	constexpr std::size_t firstBinOffset = 3;
-	const std::size_t binIndex 
-		= std::clamp<uint32_t>(fastlog2(value), firstBinOffset, 
-			histogram.size() - 1 + firstBinOffset) - firstBinOffset;
+	const std::size_t binIndex = std::clamp<uint32_t>(
+									 fastlog2(value),
+									 firstBinOffset,
+									 histogram.size() - 1 + firstBinOffset)
+		- firstBinOffset;
 	incrementWithoutOverflow(histogram[binIndex]);
 }
 
 void PacketHistogramPlugin::updateExportData(
-	const std::size_t realPacketLength, const Timestamp packetTimestamp, const Direction direction, PacketHistogramData& pluginData) noexcept
+	const std::size_t realPacketLength,
+	const Timestamp packetTimestamp,
+	const Direction direction,
+	PacketHistogramData& pluginData) noexcept
 {
 	if (realPacketLength == 0 && !m_countEmptyPackets) {
 		return;
@@ -137,19 +145,27 @@ void PacketHistogramPlugin::updateExportData(
 	updateHistogram(static_cast<uint32_t>(realPacketLength), pluginData.packetLengths[direction]);
 
 	if (!pluginData.processingState.lastTimestamps[direction].has_value()) {
-		pluginData.processingState.lastTimestamps[direction] = static_cast<uint32_t>(packetTimestamp.ns);
+		pluginData.processingState.lastTimestamps[direction]
+			= static_cast<uint32_t>(packetTimestamp.ns);
 		return;
 	}
 
-	const int64_t timediff = std::max<int64_t>(0, (packetTimestamp.ns - *pluginData.processingState.lastTimestamps[direction]));
-	pluginData.processingState.lastTimestamps[direction] = static_cast<uint32_t>(packetTimestamp.ns);
+	const int64_t timediff = std::max<int64_t>(
+		0,
+		(packetTimestamp.ns - *pluginData.processingState.lastTimestamps[direction]));
+	pluginData.processingState.lastTimestamps[direction]
+		= static_cast<uint32_t>(packetTimestamp.ns);
 	updateHistogram(static_cast<uint32_t>(timediff), pluginData.packetTimediffs[direction]);
 }
 
 PluginInitResult PacketHistogramPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = std::construct_at(reinterpret_cast<PacketHistogramData*>(pluginContext));
-	updateExportData(flowContext.packet.payload_len_wire, flowContext.packet.ts, Direction::Forward, *pluginData);
+	updateExportData(
+		flowContext.packet.payload_len_wire,
+		flowContext.packet.ts,
+		Direction::Forward,
+		*pluginData);
 
 	return {
 		.constructionState = ConstructionState::Constructed,
@@ -158,10 +174,15 @@ PluginInitResult PacketHistogramPlugin::onInit(const FlowContext& flowContext, v
 	};
 }
 
-PluginUpdateResult PacketHistogramPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
+PluginUpdateResult
+PacketHistogramPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = reinterpret_cast<PacketHistogramData*>(pluginContext);
-	updateExportData(flowContext.packet.payload_len_wire, flowContext.packet.ts, flowContext.packet.source_pkt, *pluginData);
+	updateExportData(
+		flowContext.packet.payload_len_wire,
+		flowContext.packet.ts,
+		flowContext.packet.source_pkt,
+		*pluginData);
 
 	return {
 		.updateRequirement = UpdateRequirement::RequiresUpdate,
@@ -169,12 +190,13 @@ PluginUpdateResult PacketHistogramPlugin::onUpdate(const FlowContext& flowContex
 	};
 }
 
-PluginExportResult PacketHistogramPlugin::onExport(const FlowRecord& flowRecord, [[maybe_unused]] void* pluginContext)
+PluginExportResult
+PacketHistogramPlugin::onExport(const FlowRecord& flowRecord, [[maybe_unused]] void* pluginContext)
 {
-	const std::size_t packetsTotal = 
-		flowRecord.directionalData[Direction::Forward].packets + flowRecord.directionalData[Direction::Reverse].packets;
-	const TCPFlags tcpFlags = 
-		flowRecord.directionalData[Direction::Forward].tcpFlags | flowRecord.directionalData[Direction::Reverse].tcpFlags;
+	const std::size_t packetsTotal = flowRecord.directionalData[Direction::Forward].packets
+		+ flowRecord.directionalData[Direction::Reverse].packets;
+	const TCPFlags tcpFlags = flowRecord.directionalData[Direction::Forward].tcpFlags
+		| flowRecord.directionalData[Direction::Reverse].tcpFlags;
 
 	// do not export phists for single packets flows, usually port scans
 	constexpr std::size_t MIN_FLOW_LENGTH = 1;
@@ -207,7 +229,9 @@ PluginDataMemoryLayout PacketHistogramPlugin::getDataMemoryLayout() const noexce
 	};
 }
 
-static const PluginRegistrar<PacketHistogramPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+static const PluginRegistrar<
+	PacketHistogramPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	packetHistogramRegistrar(packetHistogramPluginManifest);
 
 } // namespace ipxp

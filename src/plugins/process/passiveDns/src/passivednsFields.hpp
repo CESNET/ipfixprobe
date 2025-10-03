@@ -11,8 +11,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @enum PassiveDNSFields
@@ -27,6 +26,6 @@ enum class PassiveDNSFields : std::size_t {
 	DNS_RR_TTL,
 	DNS_IP,
 	FIELDS_SIZE,
-};    
-    
+};
+
 } // namespace ipxp

@@ -9,40 +9,38 @@
 
 #pragma once
 
-#include <array>
-#include <optional>
-#include <span>
-#include <boost/static_string.hpp>
-#include <boost/container/static_vector.hpp>
-#include <vector>
-
 #include "quicConnectionId.hpp"
 #include "quicTemporalStorage.hpp"
 
-namespace ipxp
-{
+#include <array>
+#include <optional>
+#include <span>
+#include <vector>
+
+#include <boost/container/static_vector.hpp>
+#include <boost/static_string.hpp>
+
+namespace ipxp {
 
 /**
  * @struct QUICData
  * @brief Contains parsed QUIC values for export and processing state required to decrypt payloads.
  */
 struct QUICData {
-
-
 	constexpr static std::size_t BUFFER_SIZE = 255;
-	using ServerName = boost::static_string<BUFFER_SIZE>; 
+	using ServerName = boost::static_string<BUFFER_SIZE>;
 	ServerName serverName;
 
-	using UserAgent = boost::static_string<BUFFER_SIZE>; 
+	using UserAgent = boost::static_string<BUFFER_SIZE>;
 	UserAgent userAgent;
-	
+
 	constexpr static std::size_t MAX_PACKETS = 30;
 	boost::container::static_vector<uint8_t, MAX_PACKETS> packetTypes;
 
 	constexpr static std::size_t MAX_TLS_EXTENSIONS = 30;
 	boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> tlsExtensionTypes;
 	boost::container::static_vector<uint16_t, MAX_TLS_EXTENSIONS> tlsExtensionLengths;
-	
+
 	constexpr static std::size_t MAX_TLS_PAYLOAD_TO_SAVE = 1500;
 	std::vector<std::byte> extensionsPayload;
 
@@ -64,7 +62,6 @@ struct QUICData {
 		std::size_t retryPacketCount = 0;
 		ConnectionId initialConnectionId;
 	} processingState;
-};  
+};
 
 } // namespace ipxp
-

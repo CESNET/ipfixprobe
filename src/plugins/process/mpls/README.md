@@ -4,9 +4,9 @@ Plugin extracts and exports MPLS top label if present.
 
 ## Output Fields
 
-| Field Name      | Data Type | Description                                                 |
-|-----------------|-----------|----------------------------------------|
-| `MPLS_TOP_LABEL_STACK_SECTION`     | `uint32_t` | MPLS top label from the packet |
+| Field Name                     | Data Type  | Description                    |
+| ------------------------------ | ---------- | ------------------------------ |
+| `MPLS_TOP_LABEL_STACK_SECTION` | `uint32_t` | MPLS top label from the packet |
 
 ## Usage
 
@@ -23,4 +23,4 @@ process_plugins:
 
 You can also enable the plugin directly from the command line:
 
-```ipfixprobe -p mpls ...```
+`ipfixprobe -p mpls ...`

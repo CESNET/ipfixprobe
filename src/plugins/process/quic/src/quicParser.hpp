@@ -12,14 +12,15 @@
 
 #pragma once
 
-#include <span>
-#include <optional>
-#include <tlsParser/tlsParser.hpp>
-
+#include "quicConnectionId.hpp"
+#include "quicDirection.hpp"
 #include "quicInitialHeaderView.hpp"
 #include "quicTypesCumulative.hpp"
-#include "quicDirection.hpp"
-#include "quicConnectionId.hpp"
+
+#include <optional>
+#include <span>
+
+#include <tlsParser/tlsParser.hpp>
 
 /*#define HASH_SHA2_256_LENGTH 32
 #define TLS13_AEAD_NONCE_LENGTH 12
@@ -56,7 +57,6 @@
 
 namespace ipxp {
 
-
 /*
 typedef struct __attribute__((packed)) quic_scidlen {
 	uint8_t scid_len;
@@ -75,7 +75,7 @@ public:
 	std::optional<QUICInitialHeaderView> initialHeaderView;
 	std::optional<QUICHeaderView> headerView;
 	std::optional<uint16_t> serverPort;
-	QUICTypesCumulative packetTypesCumulative{};
+	QUICTypesCumulative packetTypesCumulative {};
 	std::optional<QUICDirection> quicDirection;
 	QUICHeaderView::PacketType mostSignificantPacketType;
 	uint32_t version;
@@ -85,19 +85,15 @@ public:
 	bool parse(
 		std::span<const std::byte> payload,
 		const ConnectionId& initialConnectionId,
-		const uint8_t l4Protocol
-	) noexcept;
+		const uint8_t l4Protocol) noexcept;
 
 private:
+	constexpr std::optional<std::size_t> parseRetry(std::span<const std::byte> payload) noexcept;
 
-	constexpr std::optional<std::size_t> parseRetry(
-		std::span<const std::byte> payload) noexcept;
+	constexpr std::optional<std::size_t> parseZeroRTT(std::span<const std::byte> payload) noexcept;
 
-	constexpr std::optional<std::size_t> parseZeroRTT(
-		std::span<const std::byte> payload) noexcept;
-
-	constexpr std::optional<std::size_t> parseHandshake(
-		std::span<const std::byte> payload) noexcept;
+	constexpr std::optional<std::size_t>
+	parseHandshake(std::span<const std::byte> payload) noexcept;
 
 	std::optional<std::size_t> parseInitial(
 		std::span<const std::byte> payload,
@@ -105,8 +101,7 @@ private:
 		std::span<const uint8_t> initialDCID,
 		const std::byte headerForm,
 		std::span<const std::byte> salt,
-		const QUICVersion version
-	) noexcept;
+		const QUICVersion version) noexcept;
 	/*
 	enum HKDF_LENGTHS {
 		quic_key_hkdf_v1
@@ -242,7 +237,7 @@ public:
 	};
 	enum QUIC_CONSTANTS { QUIC_UNUSED_VARIABLE_LENGTH_INT = 0xFFFFFFFFFFFFFFFF };
 
-	
+
 
 	QUICParser();
 	void quic_get_zero_rtt(uint8_t& zero_rtt_toset);

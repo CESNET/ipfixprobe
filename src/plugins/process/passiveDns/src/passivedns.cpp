@@ -12,20 +12,20 @@
 
 #include "passivedns.hpp"
 
-#include <iostream>
 #include <cctype>
-#include <arpa/inet.h>
+#include <iostream>
 
-#include <pluginManifest.hpp>
-#include <pluginRegistrar.hpp>
-#include <pluginFactory.hpp>
+#include <arpa/inet.h>
+#include <dnsParser/dnsParser.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
+#include <ipfixprobe/options.hpp>
+#include <pluginFactory.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
 #include <utils.hpp>
 #include <utils/spanUtils.hpp>
 #include <utils/stringViewUtils.hpp>
-#include <dnsParser/dnsParser.hpp>
-#include <ipfixprobe/options.hpp>
 
 namespace ipxp {
 
@@ -41,35 +41,44 @@ static const PluginManifest passiveDNSPluginManifest = {
 		},
 };
 
-static FieldGroup createPassiveDNSSchema(FieldManager& fieldManager, FieldHandlers<PassiveDNSFields>& handlers) noexcept
+static FieldGroup createPassiveDNSSchema(
+	FieldManager& fieldManager,
+	FieldHandlers<PassiveDNSFields>& handlers) noexcept
 {
 	FieldGroup schema = fieldManager.createFieldGroup("passivedns");
 
-	handlers.insert(PassiveDNSFields::DNS_ID, schema.addScalarField(
-		"DNS_ID",
-		[] (const void* context) { return static_cast<const PassiveDNSData*>(context)->id; }
-	));
-	handlers.insert(PassiveDNSFields::DNS_ATYPE, schema.addScalarField(
-		"DNS_ATYPE",
-		[] (const void* context) { return static_cast<uint16_t>(static_cast<const PassiveDNSData*>(context)->type); }
-	));
-	handlers.insert(PassiveDNSFields::DNS_NAME, schema.addScalarField(
-		"DNS_NAME",
-		[] (const void* context) { return toStringView(static_cast<const PassiveDNSData*>(context)->name); }
-	));
-	handlers.insert(PassiveDNSFields::DNS_RR_TTL, schema.addScalarField(
-		"DNS_RR_TTL",
-		[] (const void* context) { return static_cast<const PassiveDNSData*>(context)->timeToLive; }
-	));
-	handlers.insert(PassiveDNSFields::DNS_IP, schema.addScalarField(
-		"DNS_IP",
-		[] (const void* context) { return static_cast<const PassiveDNSData*>(context)->ip; }
-	));
+	handlers.insert(
+		PassiveDNSFields::DNS_ID,
+		schema.addScalarField("DNS_ID", [](const void* context) {
+			return static_cast<const PassiveDNSData*>(context)->id;
+		}));
+	handlers.insert(
+		PassiveDNSFields::DNS_ATYPE,
+		schema.addScalarField("DNS_ATYPE", [](const void* context) {
+			return static_cast<uint16_t>(static_cast<const PassiveDNSData*>(context)->type);
+		}));
+	handlers.insert(
+		PassiveDNSFields::DNS_NAME,
+		schema.addScalarField("DNS_NAME", [](const void* context) {
+			return toStringView(static_cast<const PassiveDNSData*>(context)->name);
+		}));
+	handlers.insert(
+		PassiveDNSFields::DNS_RR_TTL,
+		schema.addScalarField("DNS_RR_TTL", [](const void* context) {
+			return static_cast<const PassiveDNSData*>(context)->timeToLive;
+		}));
+	handlers.insert(
+		PassiveDNSFields::DNS_IP,
+		schema.addScalarField("DNS_IP", [](const void* context) {
+			return static_cast<const PassiveDNSData*>(context)->ip;
+		}));
 
 	return schema;
 }
 
-PassiveDNSPlugin::PassiveDNSPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+PassiveDNSPlugin::PassiveDNSPlugin(
+	[[maybe_unused]] const std::string& params,
+	FieldManager& manager)
 {
 	createPassiveDNSSchema(manager, m_fieldHandlers);
 }
@@ -78,8 +87,7 @@ PluginInitResult PassiveDNSPlugin::onInit(const FlowContext& flowContext, void* 
 {
 	// TODO DISSCECTOR VALUE
 	constexpr std::size_t DNS_PORT = 53;
-	if (flowContext.packet.src_port != DNS_PORT && 
-		flowContext.packet.dst_port != DNS_PORT) {
+	if (flowContext.packet.src_port != DNS_PORT && flowContext.packet.dst_port != DNS_PORT) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -89,8 +97,11 @@ PluginInitResult PassiveDNSPlugin::onInit(const FlowContext& flowContext, void* 
 
 	auto* pluginData = std::construct_at(reinterpret_cast<PassiveDNSData*>(pluginContext));
 	if (flowContext.packet.src_port == DNS_PORT) {
-		parseDNS(toSpan<const std::byte>(
-			flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, flowContext.packet.ip_proto, *pluginData);
+		parseDNS(
+			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+			flowContext.flowRecord,
+			flowContext.packet.ip_proto,
+			*pluginData);
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -111,8 +122,11 @@ PluginUpdateResult PassiveDNSPlugin::onUpdate(const FlowContext& flowContext, vo
 	// TODO DISSCECTOR VALUE
 	constexpr std::size_t DNS_PORT = 53;
 	if (flowContext.packet.src_port == DNS_PORT) {
-		parseDNS(toSpan<const std::byte>(
-			flowContext.packet.payload, flowContext.packet.payload_len), flowContext.flowRecord, flowContext.packet.ip_proto, *pluginData);
+		parseDNS(
+			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+			flowContext.flowRecord,
+			flowContext.packet.ip_proto,
+			*pluginData);
 		return {
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
 			.flowAction = FlowAction::Flush,
@@ -125,11 +139,11 @@ PluginUpdateResult PassiveDNSPlugin::onUpdate(const FlowContext& flowContext, vo
 	};
 }
 
-constexpr static
-std::optional<IPAddress> getIPFromPTR(std::string ipAsString) noexcept
+constexpr static std::optional<IPAddress> getIPFromPTR(std::string ipAsString) noexcept
 {
-	std::ranges::transform(ipAsString, ipAsString.begin(),
-		[](unsigned char c){ return std::tolower(c); });
+	std::ranges::transform(ipAsString, ipAsString.begin(), [](unsigned char c) {
+		return std::tolower(c);
+	});
 	if (!ipAsString.empty() && ipAsString.back() == '.') {
 		ipAsString.pop_back();
 	}
@@ -150,13 +164,21 @@ std::optional<IPAddress> getIPFromPTR(std::string ipAsString) noexcept
 		IPAddress ip;
 
 		if (std::from_chars(
-				ipAsString.data(), 
-				ipAsString.data() + ipAsString.size()/2, ip.u64[0], 16).ec != std::errc()) {
+				ipAsString.data(),
+				ipAsString.data() + ipAsString.size() / 2,
+				ip.u64[0],
+				16)
+				.ec
+			!= std::errc()) {
 			return std::nullopt;
 		}
 		if (std::from_chars(
-				ipAsString.data() + ipAsString.size()/2, 
-				ipAsString.data() + ipAsString.size(), ip.u64[1], 16).ec != std::errc()) {
+				ipAsString.data() + ipAsString.size() / 2,
+				ipAsString.data() + ipAsString.size(),
+				ip.u64[1],
+				16)
+				.ec
+			!= std::errc()) {
 			return std::nullopt;
 		}
 
@@ -166,70 +188,66 @@ std::optional<IPAddress> getIPFromPTR(std::string ipAsString) noexcept
 	return std::nullopt;
 }
 
+bool PassiveDNSPlugin::parseAnswer(
+	const DNSRecord& record,
+	FlowRecord& flowRecord,
+	PassiveDNSData& pluginData) noexcept
+{
+	if (record.type == DNSQueryType::A || record.type == DNSQueryType::AAAA
+		|| record.type == DNSQueryType::PTR) {
+		pluginData.name.clear();
+		std::ranges::copy(
+			record.name.toString() | std::views::take(pluginData.name.capacity()),
+			std::back_inserter(pluginData.name));
+		m_fieldHandlers[PassiveDNSFields::DNS_NAME].setAsAvailable(flowRecord);
+
+		pluginData.timeToLive = record.timeToLive;
+		m_fieldHandlers[PassiveDNSFields::DNS_RR_TTL].setAsAvailable(flowRecord);
+
+		pluginData.type = record.type;
+		m_fieldHandlers[PassiveDNSFields::DNS_ATYPE].setAsAvailable(flowRecord);
+	}
+
+	if (record.type == DNSQueryType::A) {
+		const auto aRecord = std::get<DNSARecord>(*record.payload.getUnderlyingType());
+		pluginData.ip = aRecord.address;
+		m_fieldHandlers[PassiveDNSFields::DNS_IP].setAsAvailable(flowRecord);
+	}
+
+	if (record.type == DNSQueryType::AAAA) {
+		const auto aaaaRecord = std::get<DNSAAAARecord>(*record.payload.getUnderlyingType());
+		pluginData.ip = aaaaRecord.address;
+		m_fieldHandlers[PassiveDNSFields::DNS_IP].setAsAvailable(flowRecord);
+	}
+
+	if (record.type == DNSQueryType::PTR) {
+		const std::optional<IPAddress> ip = getIPFromPTR(record.name.toString());
+		if (!ip.has_value()) {
+			return false;
+		}
+
+		pluginData.ip = *ip;
+		m_fieldHandlers[PassiveDNSFields::DNS_IP].setAsAvailable(flowRecord);
+	}
+
+	return false;
+}
+
 void PassiveDNSPlugin::parseDNS(
-	std::span<const std::byte> payload, 
-	FlowRecord& flowRecord, 
+	std::span<const std::byte> payload,
+	FlowRecord& flowRecord,
 	const uint8_t l4Protocol,
 	PassiveDNSData& pluginData) noexcept
 {
-	// TODO Make lambas regular functions and set empty parsers as default parser arguements
-	constexpr auto queryParser = [](const DNSQuestion&){
-		return false;
-	};
+	constexpr auto queryParser = [](const DNSQuestion&) { return false; };
 
-	auto answerParser = [&](const DNSRecord& record){
-		if (record.type == DNSQueryType::A ||
-			record.type == DNSQueryType::AAAA ||
-			record.type == DNSQueryType::PTR) {
-
-			pluginData.name.clear();
-			std::ranges::copy(record.name.toString() |
-				std::views::take(pluginData.name.capacity()),
-				std::back_inserter(pluginData.name));
-			m_fieldHandlers[PassiveDNSFields::DNS_NAME].setAsAvailable(flowRecord);
-
-			pluginData.timeToLive = record.timeToLive;
-			m_fieldHandlers[PassiveDNSFields::DNS_RR_TTL].setAsAvailable(flowRecord);
-
-			pluginData.type = record.type;
-			m_fieldHandlers[PassiveDNSFields::DNS_ATYPE].setAsAvailable(flowRecord);
-		}
-
-		if (record.type == DNSQueryType::A) {
-			const auto aRecord = std::get<DNSARecord>(*record.payload.getUnderlyingType());
-			pluginData.ip = aRecord.address;
-			m_fieldHandlers[PassiveDNSFields::DNS_IP].setAsAvailable(flowRecord);
-		}
-
-		if (record.type == DNSQueryType::AAAA) {
-			const auto aaaaRecord = std::get<DNSAAAARecord>(*record.payload.getUnderlyingType());
-			pluginData.ip = aaaaRecord.address;
-			m_fieldHandlers[PassiveDNSFields::DNS_IP].setAsAvailable(flowRecord);
-		}
-
-		if (record.type == DNSQueryType::PTR) {
-			const std::optional<IPAddress> ip = getIPFromPTR(
-				record.name.toString());
-			if (!ip.has_value()) {
-				return false;
-			}
-
-			pluginData.ip = *ip;
-			m_fieldHandlers[PassiveDNSFields::DNS_IP].setAsAvailable(flowRecord);
-		}
-
-		return false;
-	};
-
-	constexpr auto emptyParser = [](const DNSRecord&){
-		return false;
-	};
+	auto answerParser
+		= [&](const DNSRecord& record) { return parseAnswer(record, flowRecord, pluginData); };
 
 	constexpr bool TCP = 6;
 	const bool isDNSOverTCP = l4Protocol == TCP;
 	DNSParser parser;
-	if (!parser.parse(payload, isDNSOverTCP, 
-		queryParser, answerParser, emptyParser, emptyParser)) {
+	if (!parser.parse(payload, isDNSOverTCP, queryParser, answerParser)) {
 		return;
 	}
 
@@ -250,7 +268,9 @@ PluginDataMemoryLayout PassiveDNSPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<PassiveDNSPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+static const PluginRegistrar<
+	PassiveDNSPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	passiveDNSRegistrar(passiveDNSPluginManifest);
 
 } // namespace ipxp

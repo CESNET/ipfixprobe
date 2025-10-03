@@ -12,20 +12,20 @@
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "wireguardData.hpp"
 #include "wireguardFields.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
 class WireguardPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the Wireguard plugin and initializes field handlers.
 	 * @param params String with plugin-specific parameters for configuration(currently unused).
@@ -75,9 +75,11 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-
 	PluginUpdateResult parseWireguard(
-		std::span<const std::byte> payload, const Direction direction, WireguardData& pluginData, FlowRecord& flowRecord) noexcept;
+		std::span<const std::byte> payload,
+		const Direction direction,
+		WireguardData& pluginData,
+		FlowRecord& flowRecord) noexcept;
 
 	FieldHandlers<WireguardFields> m_fieldHandlers;
 };

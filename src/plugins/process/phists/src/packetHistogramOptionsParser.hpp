@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ipfixprobe/options.hpp>   
+#include <ipfixprobe/options.hpp>
 
 namespace ipxp {
 
@@ -25,6 +25,5 @@ public:
 			OptionFlags::NoArgument);
 	}
 };
-
 
 } // namespace ipxp

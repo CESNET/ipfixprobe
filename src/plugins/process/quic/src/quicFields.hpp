@@ -11,8 +11,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @enum QUICFields
@@ -39,6 +38,6 @@ enum class QUICFields : std::size_t {
 	QUIC_TLS_EXT_LEN,
 	QUIC_TLS_EXT,
 	FIELDS_SIZE,
-};    
-    
+};
+
 } // namespace ipxp

@@ -9,12 +9,11 @@
 
 #pragma once
 
-#include <ipAddress.hpp>
-
 #include "openvpnOpcode.hpp"
 
-namespace ipxp
-{
+#include <ipAddress.hpp>
+
+namespace ipxp {
 
 /**
  * @class OpenVPNProcessingState
@@ -22,40 +21,45 @@ namespace ipxp
  */
 class OpenVPNProcessingState {
 public:
+	enum class State {
+		INVALID,
+		RESET_CLIENT,
+		RESET_SERVER,
+		ACK,
+		CLIENT_HELLO,
+		SERVER_HELLO,
+		CONTROL_ACK,
+		DATA
+	};
 
-    enum class State {
-        INVALID,
-        RESET_CLIENT,
-        RESET_SERVER,
-        ACK,
-        CLIENT_HELLO,
-        SERVER_HELLO,
-        CONTROL_ACK,
-        DATA
-    };
+	void processOpcode(
+		const OpenVPNOpcode opcode,
+		const IPAddress& srcIp,
+		const IPAddress& dstIp,
+		const bool hasTLSClientHello,
+		const bool isValidRTPHeader,
+		const std::size_t packetLength) noexcept;
 
-    void processOpcode(const OpenVPNOpcode opcode, 
-        const IPAddress& srcIp, const IPAddress& dstIp, 
-        const bool hasTLSClientHello, const bool isValidRTPHeader, 
-        const std::size_t packetLength) noexcept;
-
-    std::optional<uint8_t> getCurrentConfidenceLevel(const std::size_t packetsTotal) const noexcept;
+	std::optional<uint8_t> getCurrentConfidenceLevel(const std::size_t packetsTotal) const noexcept;
 
 private:
-    constexpr static std::size_t MINIMAL_DATA_PACKET_SIZE = 500;
-    constexpr static std::size_t INVALID_PACKET_THRESHOLD = 4;
+	constexpr static std::size_t MINIMAL_DATA_PACKET_SIZE = 500;
+	constexpr static std::size_t INVALID_PACKET_THRESHOLD = 4;
 
-    void processHardResetFromClient(const IPAddress& srcIp) noexcept;
-    void processHardResetFromServer(const IPAddress& dstIp) noexcept;
-    void processControl(const IPAddress& srcIp, const IPAddress& dstIp, const bool hasTLSClientHello) noexcept;
-    void processAck(const IPAddress& srcIp) noexcept;
-    void processData(const std::size_t packetLength, const bool isValidRTPHeader) noexcept;
+	void processHardResetFromClient(const IPAddress& srcIp) noexcept;
+	void processHardResetFromServer(const IPAddress& dstIp) noexcept;
+	void processControl(
+		const IPAddress& srcIp,
+		const IPAddress& dstIp,
+		const bool hasTLSClientHello) noexcept;
+	void processAck(const IPAddress& srcIp) noexcept;
+	void processData(const std::size_t packetLength, const bool isValidRTPHeader) noexcept;
 
-    State m_state{State::INVALID};
-    std::size_t m_largePacketCount{0};
-    std::size_t m_dataPacketCount{0};
-    std::size_t m_invalidPacketCount{0};
-    IPAddress m_clientIp;
+	State m_state {State::INVALID};
+	std::size_t m_largePacketCount {0};
+	std::size_t m_dataPacketCount {0};
+	std::size_t m_invalidPacketCount {0};
+	IPAddress m_clientIp;
 };
 
 } // namespace ipxp

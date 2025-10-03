@@ -14,16 +14,16 @@
 
 #pragma once
 
-#include <string>
-#include <span>
-
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <tlsParser/tlsParser.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "tlsData.hpp"
 #include "tlsFields.hpp"
+
+#include <span>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
+#include <tlsParser/tlsParser.hpp>
 
 namespace ipxp {
 
@@ -32,7 +32,6 @@ namespace ipxp {
  */
 class TLSPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * \brief Constructs the TLS plugin and initializes field handlers.
 	 * \param params String with plugin-specific parameters for configuration(currently unused).
@@ -80,15 +79,28 @@ public:
 
 private:
 	bool parseTLS(
-		std::span<const std::byte> payload, const uint8_t l4Protocol, TLSData& pluginData, FlowRecord& flowRecord) noexcept;
-	
+		std::span<const std::byte> payload,
+		const uint8_t l4Protocol,
+		TLSData& pluginData,
+		FlowRecord& flowRecord) noexcept;
+
 	void saveJA3(const TLSParser& parser, TLSData& pluginData, FlowRecord& flowRecord) noexcept;
 
-	void saveJA4(const TLSParser& parser, const uint8_t l4Protocol, TLSData& pluginData, FlowRecord& flowRecord) noexcept;
+	void saveJA4(
+		const TLSParser& parser,
+		const uint8_t l4Protocol,
+		TLSData& pluginData,
+		FlowRecord& flowRecord) noexcept;
 
-	bool parseClientHelloExtensions(TLSParser& parser, TLSData& pluginData, FlowRecord& flowRecord) noexcept;
+	bool parseClientHelloExtensions(
+		TLSParser& parser,
+		TLSData& pluginData,
+		FlowRecord& flowRecord) noexcept;
 
-	bool parseServerHelloExtensions(TLSParser& parser, TLSData& pluginData, FlowRecord& flowRecord) noexcept;
+	bool parseServerHelloExtensions(
+		TLSParser& parser,
+		TLSData& pluginData,
+		FlowRecord& flowRecord) noexcept;
 
 	FieldHandlers<TLSFields> m_fieldHandlers;
 };

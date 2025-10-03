@@ -7,25 +7,25 @@
  * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Provides a plugin that calculates packet statistics as flags, acknowledgments, and sequences within flows,
- * stores it in per-flow plugin data, and exposes that field via FieldManager.
- * 
+ * Provides a plugin that calculates packet statistics as flags, acknowledgments, and sequences
+ * within flows, stores it in per-flow plugin data, and exposes that field via FieldManager.
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "packetStats.hpp"
 
+#include "packetStatsOptionsParser.hpp"
+
 #include <iostream>
 
-#include <pluginManifest.hpp>
-#include <pluginRegistrar.hpp>
-#include <pluginFactory.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
+#include <pluginFactory.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
 #include <utils.hpp>
 #include <utils/spanUtils.hpp>
-
-#include "packetStatsOptionsParser.hpp"
 
 namespace ipxp {
 
@@ -41,7 +41,9 @@ static const PluginManifest packetStatsPluginManifest = {
 		},
 };
 
-static void createPacketStatsSchema(FieldManager& fieldManager, FieldHandlers<PacketStatsFields>& handlers) noexcept
+static void createPacketStatsSchema(
+	FieldManager& fieldManager,
+	FieldHandlers<PacketStatsFields>& handlers) noexcept
 {
 	FieldGroup schema = fieldManager.createFieldGroup("pstats");
 
@@ -49,26 +51,32 @@ static void createPacketStatsSchema(FieldManager& fieldManager, FieldHandlers<Pa
 	/*handlers.insert(PacketStatsFields::PPI_PKT_LENGTHS, schema.addVectorField(
 		"PPI_PKT_LENGTHS",
 		[](const void* context) {
-			return toSpan<const uint16_t>(reinterpret_cast<const PacketStatsData*>(context)->lengths);
+			return toSpan<const uint16_t>(reinterpret_cast<const
+	PacketStatsData*>(context)->lengths);
 		}));
 	handlers.insert(PacketStatsFields::PPI_PKT_FLAGS, schema.addVectorField(
 		"PPI_PKT_FLAGS",
 		[](const void* context) {
-			return toSpan<const uint8_t>(reinterpret_cast<const PacketStatsData*>(context)->tcpFlags);
+			return toSpan<const uint8_t>(reinterpret_cast<const
+	PacketStatsData*>(context)->tcpFlags);
 	}));
 	handlers.insert(PacketStatsFields::PPI_PKT_DIRECTIONS, schema.addVectorField(
 		"PPI_PKT_DIRECTIONS",
-		[](const void* context) { 
-			return toSpan<const uint8_t>(reinterpret_cast<const PacketStatsData*>(context)->directions);
+		[](const void* context) {
+			return toSpan<const uint8_t>(reinterpret_cast<const
+	PacketStatsData*>(context)->directions);
 	}));
 	handlers.insert(PacketStatsFields::PPI_PKT_TIMES, schema.addVectorField(
 		"PPI_PKT_TIMES",
 		[](const void* context) {
-			return toSpan<const Timestamp>(reinterpret_cast<const PacketStatsData*>(context)->timestamps);
+			return toSpan<const Timestamp>(reinterpret_cast<const
+	PacketStatsData*>(context)->timestamps);
 	}));*/
 }
 
-PacketStatsPlugin::PacketStatsPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+PacketStatsPlugin::PacketStatsPlugin(
+	[[maybe_unused]] const std::string& params,
+	FieldManager& manager)
 {
 	createPacketStatsSchema(manager, m_fieldHandlers);
 }
@@ -96,15 +104,15 @@ PluginUpdateResult PacketStatsPlugin::onUpdate(const FlowContext& flowContext, v
 	};
 }
 
-PluginExportResult PacketStatsPlugin::onExport(const FlowRecord& flowRecord, [[maybe_unused]] void* pluginContext)
+PluginExportResult
+PacketStatsPlugin::onExport(const FlowRecord& flowRecord, [[maybe_unused]] void* pluginContext)
 {
-	const std::size_t packetsTotal 
-		= flowRecord.directionalData[Direction::Forward].packets + 
-		flowRecord.directionalData[Direction::Reverse].packets;
-	
-	const TCPFlags flags = flowRecord.directionalData[Direction::Forward].tcpFlags | 
-		flowRecord.directionalData[Direction::Reverse].tcpFlags;
-	
+	const std::size_t packetsTotal = flowRecord.directionalData[Direction::Forward].packets
+		+ flowRecord.directionalData[Direction::Reverse].packets;
+
+	const TCPFlags flags = flowRecord.directionalData[Direction::Forward].tcpFlags
+		| flowRecord.directionalData[Direction::Reverse].tcpFlags;
+
 	if (packetsTotal <= MIN_FLOW_LENGTH && flags.bitfields.synchronize) {
 		return {
 			.flowAction = FlowAction::RemovePlugin,
@@ -121,18 +129,15 @@ PluginExportResult PacketStatsPlugin::onExport(const FlowRecord& flowRecord, [[m
 	};
 }
 
-constexpr static
-bool isSequenceOverflowed(const uint32_t currentValue, const uint32_t prevValue)
+constexpr static bool isSequenceOverflowed(const uint32_t currentValue, const uint32_t prevValue)
 {
-	constexpr int64_t MAX_DIFF = static_cast<int64_t>(
-		static_cast<double>(std::numeric_limits<uint32_t>::max()) / 100);
+	constexpr int64_t MAX_DIFF
+		= static_cast<int64_t>(static_cast<double>(std::numeric_limits<uint32_t>::max()) / 100);
 
-	return static_cast<int64_t>(prevValue) 
-		- static_cast<int64_t>(currentValue) > MAX_DIFF;
+	return static_cast<int64_t>(prevValue) - static_cast<int64_t>(currentValue) > MAX_DIFF;
 }
 
-static
-bool isDuplicate(const Packet& packet, const PacketStatsData& pluginData) noexcept
+static bool isDuplicate(const Packet& packet, const PacketStatsData& pluginData) noexcept
 {
 	constexpr std::size_t TCP = 6;
 	if (packet.ip_proto != TCP) {
@@ -140,17 +145,19 @@ bool isDuplicate(const Packet& packet, const PacketStatsData& pluginData) noexce
 	}
 
 	// Current seq <= previous ack?
-	const bool suspiciousSequence 
-		= packet.tcp_seq <= pluginData.processingState.lastSequence[packet.source_pkt]
-			&& !isSequenceOverflowed(packet.tcp_seq, pluginData.processingState.lastSequence[packet.source_pkt]);
+	const bool suspiciousSequence = packet.tcp_seq
+			<= pluginData.processingState.lastSequence[packet.source_pkt]
+		&& !isSequenceOverflowed(packet.tcp_seq,
+								 pluginData.processingState.lastSequence[packet.source_pkt]);
 
 	// Current ack <= previous ack?
-	const bool suspiciousAcknowledgment 
-		= packet.tcp_ack <= pluginData.processingState.lastAcknowledgment[packet.source_pkt]
-			&& !isSequenceOverflowed(packet.tcp_ack, pluginData.processingState.lastAcknowledgment[packet.source_pkt]);
+	const bool suspiciousAcknowledgment = packet.tcp_ack
+			<= pluginData.processingState.lastAcknowledgment[packet.source_pkt]
+		&& !isSequenceOverflowed(packet.tcp_ack,
+								 pluginData.processingState.lastAcknowledgment[packet.source_pkt]);
 
-	if (suspiciousSequence && suspiciousAcknowledgment 
-		&& pluginData.processingState.currentStorageSize != 0 
+	if (suspiciousSequence && suspiciousAcknowledgment
+		&& pluginData.processingState.currentStorageSize != 0
 		&& packet.payload_len == pluginData.processingState.lastLength[packet.source_pkt]
 		&& TCPFlags(packet.tcp_flags) == pluginData.processingState.lastFlags[packet.source_pkt]) {
 		return true;
@@ -159,7 +166,9 @@ bool isDuplicate(const Packet& packet, const PacketStatsData& pluginData) noexce
 	return false;
 }
 
-void PacketStatsPlugin::updatePacketsData(const Packet& packet, PacketStatsData& pluginData) noexcept
+void PacketStatsPlugin::updatePacketsData(
+	const Packet& packet,
+	PacketStatsData& pluginData) noexcept
 {
 	if (m_skipDuplicates && isDuplicate(packet, pluginData)) {
 		return;
@@ -180,16 +189,17 @@ void PacketStatsPlugin::updatePacketsData(const Packet& packet, PacketStatsData&
 	if (pluginData.processingState.currentStorageSize == PacketStatsData::MAX_SIZE) {
 		return;
 	}
-	
-	std::visit([&](auto& storage) {
+
+	std::visit(
+		[&](auto& storage) {
 			storage->set(
 				pluginData.processingState.currentStorageSize++,
 				static_cast<uint16_t>(packet.payload_len_wire),
 				TCPFlags(packet.tcp_flags),
 				packet.ts,
-				packet.source_pkt ? 1 : -1
-			);
-		}, pluginData.storage);
+				packet.source_pkt ? 1 : -1);
+		},
+		pluginData.storage);
 }
 
 void PacketStatsPlugin::onDestroy(void* pluginContext)
@@ -205,7 +215,9 @@ PluginDataMemoryLayout PacketStatsPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<PacketStatsPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+static const PluginRegistrar<
+	PacketStatsPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	packetStatsRegistrar(packetStatsPluginManifest);
 
 } // namespace ipxp

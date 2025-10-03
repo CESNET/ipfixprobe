@@ -12,19 +12,19 @@
 
 #pragma once
 
+#include "vlanFields.hpp"
+
 #include <sstream>
 #include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
 
-#include "vlanFields.hpp"
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
 class VLANPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the VLAN plugin and initializes field handlers.
 	 * @param params String with plugin-specific parameters for configuration(currently unused).
@@ -35,9 +35,9 @@ public:
 	/**
 	 * @brief Initializes plugin data for a new flow.
 	 *
-	 * Constructs `VLANExport` in `pluginContext` and sets VLAN value. 
-	 * 
-	 * 0 VLAN value means no VLAN tag present. 
+	 * Constructs `VLANExport` in `pluginContext` and sets VLAN value.
+	 *
+	 * 0 VLAN value means no VLAN tag present.
 	 *
 	 * @param flowContext Contextual information about the flow to fill new record.
 	 * @param pluginContext Pointer to pre-allocated memory to create record.

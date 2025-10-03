@@ -7,23 +7,21 @@
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
-
 #pragma once
 
 #include <cstdint>
 
 #include <directionalField.hpp>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @enum QUICDirection
  * @brief Direction of QUIC packet i.e. client-to-server or server-to-client.
  */
 enum class QUICDirection : uint8_t {
-    CLIENT_TO_SERVER,
-    SERVER_TO_CLIENT,
+	CLIENT_TO_SERVER,
+	SERVER_TO_CLIENT,
 };
 
 } // namespace ipxp

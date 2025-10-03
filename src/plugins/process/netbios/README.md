@@ -9,10 +9,10 @@ This plugin provides in-depth analysis of NetBIOS traffic by capturing and expor
 
 ## Output Fields
 
-| Field Name      | Data Type | Description                                                 |
-|-----------------|-----------|-------------------------------------------------------------|
-| `NB_NAME`       | `string`  | NetBIOS name extracted from the packet                     |
-| `NB_SUFFIX`    | `char`    | NetBIOS suffix extracted from the packet                   |
+| Field Name  | Data Type | Description                              |
+| ----------- | --------- | ---------------------------------------- |
+| `NB_NAME`   | `string`  | NetBIOS name extracted from the packet   |
+| `NB_SUFFIX` | `char`    | NetBIOS suffix extracted from the packet |
 
 ## Usage
 
@@ -29,5 +29,4 @@ process_plugins:
 
 You can also enable the plugin directly from the command line:
 
-```ipfixprobe -p netbios ...```
-
+`ipfixprobe -p netbios ...`

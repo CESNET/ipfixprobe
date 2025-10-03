@@ -11,8 +11,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @enum PacketStatsFields
@@ -26,6 +25,6 @@ enum class PacketStatsFields : std::size_t {
 	PPI_PKT_FLAGS,
 	PPI_PKT_DIRECTIONS,
 	FIELDS_SIZE,
-};    
-    
+};
+
 } // namespace ipxp

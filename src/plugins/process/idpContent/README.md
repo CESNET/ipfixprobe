@@ -8,10 +8,10 @@ Plugin captures and exports the payloads of the first packets.
 
 ## Output Fields
 
-| Field Name      | Data Type | Description                                                 |
-|-----------------|-----------|----------------------------------------|
-| `IDP_CONTENT`| `bytes`  | Payload of first packet (source → destination) |
-| `IDP_CONTENT_REV`| `bytes`  | Payload of first packet (destination → source) | 
+| Field Name        | Data Type | Description                                    |
+| ----------------- | --------- | ---------------------------------------------- |
+| `IDP_CONTENT`     | `bytes`   | Payload of first packet (source → destination) |
+| `IDP_CONTENT_REV` | `bytes`   | Payload of first packet (destination → source) |
 
 ## Usage
 
@@ -28,5 +28,4 @@ process_plugins:
 
 You can also enable the plugin directly from the command line:
 
-```ipfixprobe -p idpcontent ...```
-
+`ipfixprobe -p idpcontent ...`

@@ -9,17 +9,16 @@
 
 #pragma once
 
+#include "openvpnProcessingState.hpp"
+
 #include <array>
-#include <boost/container/static_vector.hpp>
 #include <optional>
 #include <span>
 
+#include <boost/container/static_vector.hpp>
 #include <ipAddress.hpp>
 
-#include "openvpnProcessingState.hpp"
-
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @struct OpenVPNData
@@ -29,7 +28,6 @@ struct OpenVPNData {
 	uint8_t vpnConfidence;
 
 	OpenVPNProcessingState processingState;
-};  
+};
 
 } // namespace ipxp
-

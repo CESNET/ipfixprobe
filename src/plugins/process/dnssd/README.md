@@ -8,10 +8,9 @@ The **DNSSD Plugin** extends flow records with DNS-SD (DNS Service Discovery) qu
 
 ## Parameters
 
-| Long name                                                                                                                        | Short name | Type           | Default      | Description                                           |
-| -------------------------------------------------------------------------------------------------------------------------------- | ---------- | -------------- | ------------ | ----------------------------------------------------- |
-| `txt`                                                                                                                            | `t`        | `Path to file` | **Disabled** | If no file provided, processes all DNSSD TXT records. |
-| If a file is provided, only processes TXT records listed in the file. Whitelist format is `service.domain,txt_key1,txt_key2,...` |
+| Long name | Short name | Type           | Default      | Description                                                                                                                                                                            |
+| --------- | ---------- | -------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `txt`     | `t`        | `Path to file` | **Disabled** | If no file provided, processes all DNSSD TXT records. If a file is provided, only processes TXT records listed in the file. Whitelist format is `service.domain,txt_key1,txt_key2,...` |
 
 ## Output Fields
 

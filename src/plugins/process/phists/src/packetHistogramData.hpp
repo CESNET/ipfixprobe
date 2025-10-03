@@ -13,23 +13,21 @@
 
 #include <directionalField.hpp>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @struct PacketHistogramData
- * @brief Struct representing flow packet histogram statistics based on lengths and inter-arrival times.
+ * @brief Struct representing flow packet histogram statistics based on lengths and inter-arrival
+ * times.
  */
 struct PacketHistogramData {
-    constexpr static std::size_t HISTOGRAM_SIZE = 8;
+	constexpr static std::size_t HISTOGRAM_SIZE = 8;
 	DirectionalField<std::array<uint32_t, HISTOGRAM_SIZE>> packetLengths;
 	DirectionalField<std::array<uint32_t, HISTOGRAM_SIZE>> packetTimediffs;
 
 	struct {
 		DirectionalField<std::optional<uint32_t>> lastTimestamps;
 	} processingState;
-
-};  
+};
 
 } // namespace ipxp
-

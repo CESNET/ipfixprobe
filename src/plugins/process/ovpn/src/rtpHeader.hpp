@@ -11,9 +11,8 @@
 
 #include <cstdint>
 
-namespace ipxp
-{
-    
+namespace ipxp {
+
 struct RTPHeader {
 #if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
 	uint16_t csrcCount : 4;

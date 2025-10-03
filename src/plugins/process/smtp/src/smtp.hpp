@@ -12,14 +12,15 @@
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "smtpData.hpp"
 #include "smtpFields.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -74,15 +75,19 @@ public:
 	 */
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
-	private:
-	constexpr
-	bool parseResponse(std::string_view payload, SMTPData& pluginData, FlowRecord& flowRecord) noexcept;
-	
-	constexpr
-	bool parseCommand(std::string_view payload, SMTPData& pluginData, FlowRecord& flowRecord) noexcept;
+private:
+	constexpr bool
+	parseResponse(std::string_view payload, SMTPData& pluginData, FlowRecord& flowRecord) noexcept;
+
+	constexpr bool
+	parseCommand(std::string_view payload, SMTPData& pluginData, FlowRecord& flowRecord) noexcept;
 
 	constexpr PluginUpdateResult updateSMTPData(
-	std::span<const std::byte> payload, const uint16_t srcPort, const uint16_t dstPort, SMTPData& pluginData, FlowRecord& flowRecord) noexcept;
+		std::span<const std::byte> payload,
+		const uint16_t srcPort,
+		const uint16_t dstPort,
+		SMTPData& pluginData,
+		FlowRecord& flowRecord) noexcept;
 
 	FieldHandlers<SMTPFields> m_fieldHandlers;
 };

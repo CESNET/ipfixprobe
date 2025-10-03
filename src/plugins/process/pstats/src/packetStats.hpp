@@ -7,23 +7,23 @@
  * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Provides a plugin that calculates packet statistics as flags, acknowledgments, and sequences within flows,
- * stores it in per-flow plugin data, and exposes that field via FieldManager.
- * 
+ * Provides a plugin that calculates packet statistics as flags, acknowledgments, and sequences
+ * within flows, stores it in per-flow plugin data, and exposes that field via FieldManager.
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "packetStatsData.hpp"
 #include "packetStatsFields.hpp"
 
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -31,14 +31,13 @@ namespace ipxp {
  * @class PacketStatsPlugin
  * @brief A plugin for processing and collecting statistics about packets within flows.
  *
- * Collects packet lengths, TCP flags, acknowledgments, sequences untill 
+ * Collects packet lengths, TCP flags, acknowledgments, sequences untill
  * the storage is filled.
  *
  * @note Duplicate and empty packets can be optionally skipped.
  */
 class PacketStatsPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the PacketStatsPlugin and initializes field handlers.
 	 * @param params String with plugin-specific parameters for configuration(currently unused).
@@ -61,7 +60,7 @@ public:
 	/**
 	 * @brief Updates plugin data with values from new packet.
 	 *
-	 * Inserts TCP acknowledgment, sequence, length and flags into `PacketStatsData` 
+	 * Inserts TCP acknowledgment, sequence, length and flags into `PacketStatsData`
 	 * from `pluginContext`.
 	 *
 	 * @param flowContext Contextual information about the flow to be updated.
@@ -96,22 +95,22 @@ public:
 
 private:
 	/**
-	* @brief Minimum number of packets required for a flow to be considered valid.
- 	*/
+	 * @brief Minimum number of packets required for a flow to be considered valid.
+	 */
 	constexpr static std::size_t MIN_FLOW_LENGTH = 1;
-	
+
 	void updatePacketsData(const Packet& packet, PacketStatsData& pluginData) noexcept;
 
 	/**
-	* @brief Skip packets that repeat ack or seq of last TCP fragment with
-	* same length and flags if set.
- 	*/
-	const bool m_skipDuplicates{true};
+	 * @brief Skip packets that repeat ack or seq of last TCP fragment with
+	 * same length and flags if set.
+	 */
+	const bool m_skipDuplicates {true};
 
 	/**
-	* @brief Skips empty packets if set.
- 	*/
-	const bool m_countEmptyPackets{false};
+	 * @brief Skips empty packets if set.
+	 */
+	const bool m_countEmptyPackets {false};
 
 	FieldHandlers<PacketStatsFields> m_fieldHandlers;
 };

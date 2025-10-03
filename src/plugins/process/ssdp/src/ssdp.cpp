@@ -14,15 +14,15 @@
 
 #include <iostream>
 
-#include <pluginManifest.hpp>
-#include <pluginRegistrar.hpp>
-#include <pluginFactory.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
-#include <utils.hpp>
-#include <readers/headerFieldReader/headerFieldReader.hpp>
-#include <utils/stringViewUtils.hpp>
 #include <ipfixprobe/options.hpp>
+#include <pluginFactory.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
+#include <readers/headerFieldReader/headerFieldReader.hpp>
+#include <utils.hpp>
+#include <utils/stringViewUtils.hpp>
 
 namespace ipxp {
 
@@ -38,55 +38,54 @@ static const PluginManifest ssdpPluginManifest = {
 		},
 };
 
-static FieldGroup createSSDPSchema(FieldManager& fieldManager, FieldHandlers<SSDPFields>& handlers) noexcept
+static FieldGroup
+createSSDPSchema(FieldManager& fieldManager, FieldHandlers<SSDPFields>& handlers) noexcept
 {
 	FieldGroup schema = fieldManager.createFieldGroup("ssdp");
 
-	handlers.insert(SSDPFields::SSDP_LOCATION_PORT, schema.addScalarField(
-		"SSDP_LOCATION_PORT",
-		[](const void* context) { return reinterpret_cast<const SSDPData*>(context)->port; }
-	));
-	handlers.insert(SSDPFields::SSDP_NT, schema.addScalarField(
-		"SSDP_NT",
-		[](const void* context) { return toStringView(reinterpret_cast<const SSDPData*>(context)->notificationType); }
-	));
-	handlers.insert(SSDPFields::SSDP_SERVER, schema.addScalarField(
-		"SSDP_SERVER",
-		[](const void* context) { return toStringView(reinterpret_cast<const SSDPData*>(context)->server); }
-	));
-	handlers.insert(SSDPFields::SSDP_ST, schema.addScalarField(
-		"SSDP_ST",
-		[](const void* context) { return toStringView(reinterpret_cast<const SSDPData*>(context)->searchTarget); }
-	));
-	handlers.insert(SSDPFields::SSDP_USER_AGENT, schema.addScalarField(
-		"SSDP_USER_AGENT",
-		[](const void* context) { return toStringView(reinterpret_cast<const SSDPData*>(context)->userAgent); }
-	));
-	
+	handlers.insert(
+		SSDPFields::SSDP_LOCATION_PORT,
+		schema.addScalarField("SSDP_LOCATION_PORT", [](const void* context) {
+			return reinterpret_cast<const SSDPData*>(context)->port;
+		}));
+	handlers.insert(SSDPFields::SSDP_NT, schema.addScalarField("SSDP_NT", [](const void* context) {
+		return toStringView(reinterpret_cast<const SSDPData*>(context)->notificationType);
+	}));
+	handlers.insert(
+		SSDPFields::SSDP_SERVER,
+		schema.addScalarField("SSDP_SERVER", [](const void* context) {
+			return toStringView(reinterpret_cast<const SSDPData*>(context)->server);
+		}));
+	handlers.insert(SSDPFields::SSDP_ST, schema.addScalarField("SSDP_ST", [](const void* context) {
+		return toStringView(reinterpret_cast<const SSDPData*>(context)->searchTarget);
+	}));
+	handlers.insert(
+		SSDPFields::SSDP_USER_AGENT,
+		schema.addScalarField("SSDP_USER_AGENT", [](const void* context) {
+			return toStringView(reinterpret_cast<const SSDPData*>(context)->userAgent);
+		}));
+
 	return schema;
 }
 
-SSDPPlugin::SSDPPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+SSDPPlugin::SSDPPlugin([[maybe_unused]] const std::string& params, FieldManager& manager)
 {
 	createSSDPSchema(manager, m_fieldHandlers);
 }
 
-constexpr static
-void getURN(std::string_view value, auto&& output) noexcept
+constexpr static void getURN(std::string_view value, auto&& output) noexcept
 {
 	const std::vector<std::string_view> tokens = splitToVector(value);
 	if (tokens.size() < 2 || tokens[0] != "urn") {
 		return;
 	}
 
-	std::ranges::copy(tokens[1] |
-		std::views::take(
-			output.capacity() - output.size()),
+	std::ranges::copy(
+		tokens[1] | std::views::take(output.capacity() - output.size()),
 		std::back_inserter(output));
 }
 
-constexpr static
-std::optional<uint16_t> parseLocationPort(std::string_view value) noexcept
+constexpr static std::optional<uint16_t> parseLocationPort(std::string_view value) noexcept
 {
 	const std::size_t protocolPos = value.find("://");
 	if (protocolPos == std::string_view::npos) {
@@ -108,19 +107,20 @@ std::optional<uint16_t> parseLocationPort(std::string_view value) noexcept
 }
 
 void SSDPPlugin::parseSSDPNotify(
-	std::string_view headerFields, SSDPData& pluginData, FlowRecord& flowRecord) noexcept
+	std::string_view headerFields,
+	SSDPData& pluginData,
+	FlowRecord& flowRecord) noexcept
 {
 	HeaderFieldReader reader;
 
-	for(const auto& [key, value] : reader.getRange(headerFields)) {
+	for (const auto& [key, value] : reader.getRange(headerFields)) {
 		if (key == "NT") {
 			getURN(value, pluginData.notificationType);
 			m_fieldHandlers[SSDPFields::SSDP_NT].setAsAvailable(flowRecord);
 		}
 
 		if (key == "LOCATION") {
-			const std::optional<uint16_t> port = 
-				parseLocationPort(value);
+			const std::optional<uint16_t> port = parseLocationPort(value);
 			if (port.has_value()) {
 				pluginData.port = *port;
 				m_fieldHandlers[SSDPFields::SSDP_LOCATION_PORT].setAsAvailable(flowRecord);
@@ -128,35 +128,42 @@ void SSDPPlugin::parseSSDPNotify(
 		}
 
 		if (key == "SERVER") {
-			std::ranges::copy(value |
-				std::views::take(pluginData.server.capacity() - pluginData.server.size()),
+			std::ranges::copy(
+				value | std::views::take(pluginData.server.capacity() - pluginData.server.size()),
 				std::back_inserter(pluginData.server));
 			m_fieldHandlers[SSDPFields::SSDP_SERVER].setAsAvailable(flowRecord);
 		}
 	}
 }
 
-void SSDPPlugin::parseSSDPMSearch(std::string_view headerFields, SSDPData& pluginData, FlowRecord& flowRecord) noexcept
+void SSDPPlugin::parseSSDPMSearch(
+	std::string_view headerFields,
+	SSDPData& pluginData,
+	FlowRecord& flowRecord) noexcept
 {
 	HeaderFieldReader reader;
 
-	for(const auto& [key, value] : reader.getRange(headerFields)) {
+	for (const auto& [key, value] : reader.getRange(headerFields)) {
 		if (key == "ST") {
 			getURN(value, pluginData.searchTarget);
 			m_fieldHandlers[SSDPFields::SSDP_ST].setAsAvailable(flowRecord);
 		}
 
 		if (key == "USER_AGENT") {
-			std::ranges::copy(value |
-				std::views::take(pluginData.userAgent.capacity() - pluginData.userAgent.size()),
+			std::ranges::copy(
+				value
+					| std::views::take(
+						pluginData.userAgent.capacity() - pluginData.userAgent.size()),
 				std::back_inserter(pluginData.userAgent));
 			m_fieldHandlers[SSDPFields::SSDP_USER_AGENT].setAsAvailable(flowRecord);
 		}
 	}
 }
 
-constexpr
-void SSDPPlugin::parseSSDP(std::string_view payload, SSDPData& pluginData, FlowRecord& flowRecord) noexcept
+constexpr void SSDPPlugin::parseSSDP(
+	std::string_view payload,
+	SSDPData& pluginData,
+	FlowRecord& flowRecord) noexcept
 {
 	if (payload.empty()) {
 		return;
@@ -172,7 +179,7 @@ void SSDPPlugin::parseSSDP(std::string_view payload, SSDPData& pluginData, FlowR
 	if (toStringView(payload).starts_with("NOTIFY")) {
 		parseSSDPNotify(headerFields, pluginData, flowRecord);
 	}
-	
+
 	if (toStringView(payload).starts_with("M-SEARCH")) {
 		parseSSDPMSearch(headerFields, pluginData, flowRecord);
 	}
@@ -190,8 +197,10 @@ PluginInitResult SSDPPlugin::onInit(const FlowContext& flowContext, void* plugin
 	}
 
 	auto* pluginData = std::construct_at(reinterpret_cast<SSDPData*>(pluginContext));
-	parseSSDP(toStringView(
-		flowContext.packet.payload, flowContext.packet.payload_len), *pluginData, flowContext.flowRecord);
+	parseSSDP(
+		toStringView(flowContext.packet.payload, flowContext.packet.payload_len),
+		*pluginData,
+		flowContext.flowRecord);
 
 	return {
 		.constructionState = ConstructionState::Constructed,
@@ -205,8 +214,10 @@ PluginUpdateResult SSDPPlugin::onUpdate(const FlowContext& flowContext, void* pl
 	auto* pluginData = reinterpret_cast<SSDPData*>(pluginContext);
 	constexpr std::size_t SSDP_PORT = 1900;
 	if (flowContext.packet.dst_port == SSDP_PORT) {
-		parseSSDP(toStringView(
-			flowContext.packet.payload, flowContext.packet.payload_len), *pluginData, flowContext.flowRecord);
+		parseSSDP(
+			toStringView(flowContext.packet.payload, flowContext.packet.payload_len),
+			*pluginData,
+			flowContext.flowRecord);
 	}
 
 	return {
@@ -228,7 +239,9 @@ PluginDataMemoryLayout SSDPPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<SSDPPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+static const PluginRegistrar<
+	SSDPPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	ssdpRegistrar(ssdpPluginManifest);
 
 } // namespace ipxp

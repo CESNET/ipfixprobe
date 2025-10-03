@@ -2,8 +2,7 @@
 
 #include <boost/static_string.hpp>
 
-namespace ipxp
-{
+namespace ipxp {
 
 struct SMTPData {
 	constexpr static std::size_t MAX_STRING_LENGTH = 255;
@@ -21,9 +20,8 @@ struct SMTPData {
 	boost::static_string<MAX_STRING_LENGTH> firstRecipient;
 
 	struct {
-		bool isDataTransfer{false};
+		bool isDataTransfer {false};
 	} processingState;
-};  
+};
 
 } // namespace ipxp
-

@@ -3,6 +3,7 @@
  * @brief Plugin for parsing basicplus traffic.
  * @author Jiri Havranek <havranek@cesnet.cz>
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
  * Copyright (c) 2025 CESNET
@@ -12,19 +13,19 @@
 
 #include "rtsp.hpp"
 
+#include "rtspExtensionReader.hpp"
+
 #include <iostream>
 
-#include <pluginManifest.hpp>
-#include <pluginRegistrar.hpp>
-#include <pluginFactory.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
-#include <utils.hpp>
-#include <utils/stringViewUtils.hpp>
-#include <utils/spanUtils.hpp>
 #include <ipfixprobe/options.hpp>
-
-#include "rtspExtensionReader.hpp"
+#include <pluginFactory.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
+#include <utils.hpp>
+#include <utils/spanUtils.hpp>
+#include <utils/stringViewUtils.hpp>
 
 using namespace std::literals::string_view_literals;
 
@@ -42,45 +43,51 @@ static const PluginManifest rtspPluginManifest = {
 		},
 };
 
-static FieldGroup createRTSPSchema(FieldManager& fieldManager, FieldHandlers<RTSPFields>& handlers) noexcept
+static FieldGroup
+createRTSPSchema(FieldManager& fieldManager, FieldHandlers<RTSPFields>& handlers) noexcept
 {
 	FieldGroup schema = fieldManager.createFieldGroup("rtsp");
 
-	handlers.insert(RTSPFields::RTSP_REQUEST_METHOD, schema.addScalarField(
-		"RTSP_REQUEST_METHOD",
-		[](const void* context) { return toStringView(static_cast<const RTSPData*>(context)->method); }
-	));
-	handlers.insert(RTSPFields::RTSP_REQUEST_AGENT, schema.addScalarField(
-		"RTSP_REQUEST_AGENT",
-		[](const void* context) { return toStringView(static_cast<const RTSPData*>(context)->userAgent); }
-	));
-	handlers.insert(RTSPFields::RTSP_REQUEST_URI, schema.addScalarField(
-		"RTSP_REQUEST_URI",
-		[](const void* context) { return toStringView(static_cast<const RTSPData*>(context)->uri); }
-	));
-	handlers.insert(RTSPFields::RTSP_RESPONSE_STATUS_CODE, schema.addScalarField(
-		"RTSP_RESPONSE_STATUS_CODE",
-		[](const void* context) { return static_cast<const RTSPData*>(context)->code; }
-	));
-	handlers.insert(RTSPFields::RTSP_RESPONSE_SERVER, schema.addScalarField(
-		"RTSP_RESPONSE_SERVER",
-		[](const void* context) { return toStringView(static_cast<const RTSPData*>(context)->server); }
-	));
-	handlers.insert(RTSPFields::RTSP_RESPONSE_CONTENT_TYPE, schema.addScalarField(
-		"RTSP_RESPONSE_CONTENT_TYPE",
-		[](const void* context) { return toStringView(static_cast<const RTSPData*>(context)->contentType); }
-	));
+	handlers.insert(
+		RTSPFields::RTSP_REQUEST_METHOD,
+		schema.addScalarField("RTSP_REQUEST_METHOD", [](const void* context) {
+			return toStringView(static_cast<const RTSPData*>(context)->method);
+		}));
+	handlers.insert(
+		RTSPFields::RTSP_REQUEST_AGENT,
+		schema.addScalarField("RTSP_REQUEST_AGENT", [](const void* context) {
+			return toStringView(static_cast<const RTSPData*>(context)->userAgent);
+		}));
+	handlers.insert(
+		RTSPFields::RTSP_REQUEST_URI,
+		schema.addScalarField("RTSP_REQUEST_URI", [](const void* context) {
+			return toStringView(static_cast<const RTSPData*>(context)->uri);
+		}));
+	handlers.insert(
+		RTSPFields::RTSP_RESPONSE_STATUS_CODE,
+		schema.addScalarField("RTSP_RESPONSE_STATUS_CODE", [](const void* context) {
+			return static_cast<const RTSPData*>(context)->code;
+		}));
+	handlers.insert(
+		RTSPFields::RTSP_RESPONSE_SERVER,
+		schema.addScalarField("RTSP_RESPONSE_SERVER", [](const void* context) {
+			return toStringView(static_cast<const RTSPData*>(context)->server);
+		}));
+	handlers.insert(
+		RTSPFields::RTSP_RESPONSE_CONTENT_TYPE,
+		schema.addScalarField("RTSP_RESPONSE_CONTENT_TYPE", [](const void* context) {
+			return toStringView(static_cast<const RTSPData*>(context)->contentType);
+		}));
 
 	return schema;
 }
 
-RTSPPlugin::RTSPPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+RTSPPlugin::RTSPPlugin([[maybe_unused]] const std::string& params, FieldManager& manager)
 {
 	createRTSPSchema(manager, m_fieldHandlers);
 }
 
-constexpr 
-bool RTSPPlugin::parseRequest(std::string_view payload, RTSPData& pluginData) noexcept
+constexpr bool RTSPPlugin::parseRequest(std::string_view payload, RTSPData& pluginData) noexcept
 {
 	/* Request line:
 	 *
@@ -108,17 +115,14 @@ bool RTSPPlugin::parseRequest(std::string_view payload, RTSPData& pluginData) no
 		return false;
 	}
 
-
-	std::string_view method 
-		= payload.substr(0, uriBegin).substr(0, pluginData.method.capacity());
+	std::string_view method = payload.substr(0, uriBegin).substr(0, pluginData.method.capacity());
 	pluginData.method.assign(method.begin(), method.end());
 
-	std::string_view uri = payload.substr(
-		uriBegin + 1, uriEnd - uriBegin - 1).substr(0, pluginData.uri.capacity());
+	std::string_view uri
+		= payload.substr(uriBegin + 1, uriEnd - uriBegin - 1).substr(0, pluginData.uri.capacity());
 	pluginData.uri.assign(uri.begin(), uri.end());
 
-	const std::size_t requestLineEnd 
-		= payload.find('\n', uriEnd + 1);
+	const std::size_t requestLineEnd = payload.find('\n', uriEnd + 1);
 	if (requestLineEnd == std::string_view::npos) {
 		return false;
 	}
@@ -139,11 +143,13 @@ bool RTSPPlugin::parseRequest(std::string_view payload, RTSPData& pluginData) no
 
 	/* Process headers. */
 	RTSPExtensionReader reader;
-	std::ranges::for_each(reader.getRange(payload.substr(requestFieldBegin)),
+	std::ranges::for_each(
+		reader.getRange(payload.substr(requestFieldBegin)),
 		[&](const Extension& extension) {
 			if (extension.key == "User-Agent") {
 				std::string_view userAgent = extension.value.substr(
-						0, pluginData.userAgent.capacity() - pluginData.userAgent.size());
+					0,
+					pluginData.userAgent.capacity() - pluginData.userAgent.size());
 				pluginData.userAgent.assign(userAgent.begin(), userAgent.end());
 			}
 		});
@@ -153,26 +159,36 @@ bool RTSPPlugin::parseRequest(std::string_view payload, RTSPData& pluginData) no
 	return true;
 }
 
-constexpr static
-bool isRequest(std::string_view payload) noexcept
+constexpr static bool isRequest(std::string_view payload) noexcept
 {
-	constexpr auto rtspMethods = std::to_array<std::string_view>({
-		"GET ", "POST", "PUT ", "HEAD", "DELE", "TRAC", "OPTI", "CONN", "PATC",
-		"DESC", "SETU", "PLAY", "PAUS", "TEAR", "RECO", "ANNO"});
-	return payload.size() >= 4 && std::ranges::any_of(rtspMethods,
-		[&](std::string_view method) {
-			return payload.starts_with(method);
-		});
+	constexpr auto rtspMethods = std::to_array<std::string_view>(
+		{"GET ",
+		 "POST",
+		 "PUT ",
+		 "HEAD",
+		 "DELE",
+		 "TRAC",
+		 "OPTI",
+		 "CONN",
+		 "PATC",
+		 "DESC",
+		 "SETU",
+		 "PLAY",
+		 "PAUS",
+		 "TEAR",
+		 "RECO",
+		 "ANNO"});
+	return payload.size() >= 4 && std::ranges::any_of(rtspMethods, [&](std::string_view method) {
+			   return payload.starts_with(method);
+		   });
 }
 
-constexpr static
-bool isResponse(std::string_view payload) noexcept
+constexpr static bool isResponse(std::string_view payload) noexcept
 {
 	return payload.starts_with("RTSP");
 }
 
-constexpr
-bool RTSPPlugin::parseResponse(std::string_view payload, RTSPData& pluginData) noexcept
+constexpr bool RTSPPlugin::parseResponse(std::string_view payload, RTSPData& pluginData) noexcept
 {
 	/* Response line:
 	 *
@@ -200,30 +216,26 @@ bool RTSPPlugin::parseResponse(std::string_view payload, RTSPData& pluginData) n
 	}
 
 	/* Copy and check RTSP response code. */
-	if (std::from_chars(
-			payload.data() + statusBegin, 
-			payload.data() + statusEnd, 
-			pluginData.code).ec == std::errc()) {
+	if (std::from_chars(payload.data() + statusBegin, payload.data() + statusEnd, pluginData.code)
+			.ec
+		== std::errc()) {
 		return false;
 	}
 
 	const std::size_t lineEnd = payload.find('\n', statusEnd + 1);
 	if (lineEnd == std::string_view::npos) {
-		return false;	
+		return false;
 	}
 
 	RTSPExtensionReader reader;
-	std::ranges::for_each(reader.getRange(payload.substr(lineEnd + 1)),
+	std::ranges::for_each(
+		reader.getRange(payload.substr(lineEnd + 1)),
 		[&](const Extension& extension) {
 			if (extension.key == "Content-Type") {
-				pluginData.contentType.assign(
-					extension.value.begin(),
-					extension.value.end());
+				pluginData.contentType.assign(extension.value.begin(), extension.value.end());
 			}
 			if (extension.key == "Server") {
-				pluginData.server.assign(
-					extension.value.begin(),
-					extension.value.end());
+				pluginData.server.assign(extension.value.begin(), extension.value.end());
 			}
 		});
 
@@ -232,24 +244,21 @@ bool RTSPPlugin::parseResponse(std::string_view payload, RTSPData& pluginData) n
 	return true;
 }
 
-constexpr
-PluginUpdateResult RTSPPlugin::updateExportData(std::span<const std::byte> payload, RTSPData& pluginData) noexcept
+constexpr PluginUpdateResult
+RTSPPlugin::updateExportData(std::span<const std::byte> payload, RTSPData& pluginData) noexcept
 {
-	std::string_view payloadView = {
-		reinterpret_cast<const char*>(payload.data()), payload.size()};
+	std::string_view payloadView = {reinterpret_cast<const char*>(payload.data()), payload.size()};
 	if (isRequest(payloadView)) {
 		if (pluginData.processingState.requestParsed) {
 			// TODO Flush and reinsert
 			return {
 				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-				.flowAction = FlowAction::NoAction
-			};
+				.flowAction = FlowAction::NoAction};
 		}
 		if (!parseRequest(payloadView, pluginData)) {
 			return {
 				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-				.flowAction = FlowAction::NoAction
-			};
+				.flowAction = FlowAction::NoAction};
 		}
 	}
 
@@ -258,28 +267,26 @@ PluginUpdateResult RTSPPlugin::updateExportData(std::span<const std::byte> paylo
 			// TODO Flush and reinsert
 			return {
 				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-				.flowAction = FlowAction::NoAction
-			};
+				.flowAction = FlowAction::NoAction};
 		}
 		if (!parseResponse(payloadView, pluginData)) {
 			return {
 				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-				.flowAction = FlowAction::NoAction
-			};
+				.flowAction = FlowAction::NoAction};
 		}
 	}
 
 	return {
 		.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-		.flowAction = FlowAction::NoAction
-	};
+		.flowAction = FlowAction::NoAction};
 }
 
 PluginInitResult RTSPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = std::construct_at(reinterpret_cast<RTSPData*>(pluginContext));
-	auto [updateRequirement, flowAction] = updateExportData(toSpan<const std::byte>(
-		flowContext.packet.payload, flowContext.packet.payload_len), *pluginData);
+	auto [updateRequirement, flowAction] = updateExportData(
+		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+		*pluginData);
 
 	return {
 		.constructionState = ConstructionState::Constructed,
@@ -291,8 +298,9 @@ PluginInitResult RTSPPlugin::onInit(const FlowContext& flowContext, void* plugin
 PluginUpdateResult RTSPPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = reinterpret_cast<RTSPData*>(pluginContext);
-	return updateExportData(toSpan<const std::byte>(
-		flowContext.packet.payload, flowContext.packet.payload_len), *pluginData);
+	return updateExportData(
+		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+		*pluginData);
 }
 
 void RTSPPlugin::onDestroy(void* pluginContext)
@@ -308,7 +316,9 @@ PluginDataMemoryLayout RTSPPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<RTSPPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+static const PluginRegistrar<
+	RTSPPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	rtspRegistrar(rtspPluginManifest);
 
 } // namespace ipxp

@@ -11,8 +11,7 @@
 
 #include <boost/static_string.hpp>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @struct RTSPData
@@ -33,10 +32,9 @@ struct RTSPData {
 	uint16_t code;
 
 	struct {
-		bool requestParsed{false};
-		bool responseParsed{false};
+		bool requestParsed {false};
+		bool responseParsed {false};
 	} processingState;
-};  
+};
 
 } // namespace ipxp
-

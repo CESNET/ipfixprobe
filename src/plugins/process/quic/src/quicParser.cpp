@@ -12,23 +12,23 @@
 
 #include "quicParser.hpp"
 
-#include <algorithm>
-#include <cstddef>
-#include <span>
-#include <arpa/inet.h> 
-#include <array>
-#include <limits>
-
-#include "quicVersion.hpp"
-#include "quicHeaderView.hpp"
-#include "quicVariableInt.hpp"
-#include "quicSalt.hpp"
 #include "quicConnectionId.hpp"
+#include "quicHeaderView.hpp"
+#include "quicSalt.hpp"
+#include "quicVariableInt.hpp"
+#include "quicVersion.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <limits>
+#include <span>
+
+#include <arpa/inet.h>
 
 namespace ipxp {
 
-constexpr 
-std::optional<std::size_t>
+constexpr std::optional<std::size_t>
 QUICParser::parseRetry(std::span<const std::byte> payload) noexcept
 {
 	/*const std::optional<VariableLengthInt> token
@@ -48,12 +48,10 @@ QUICParser::parseRetry(std::span<const std::byte> payload) noexcept
 	return IntegrityTagSize;
 }
 
-constexpr
-std::optional<std::size_t> QUICParser::parseZeroRTT(
-	std::span<const std::byte> payload) noexcept
+constexpr std::optional<std::size_t>
+QUICParser::parseZeroRTT(std::span<const std::byte> payload) noexcept
 {
-	const std::optional<VariableLengthInt> restPayloadLength
-		= readQUICVariableLengthInt(payload);
+	const std::optional<VariableLengthInt> restPayloadLength = readQUICVariableLengthInt(payload);
 	if (!restPayloadLength.has_value()) {
 		return std::nullopt;
 	}
@@ -68,12 +66,10 @@ std::optional<std::size_t> QUICParser::parseZeroRTT(
 	return restPayloadLength->value + restPayloadLength->length;
 }
 
-constexpr
-std::optional<std::size_t> QUICParser::parseHandshake(
-	std::span<const std::byte> payload) noexcept
+constexpr std::optional<std::size_t>
+QUICParser::parseHandshake(std::span<const std::byte> payload) noexcept
 {
-	const std::optional<VariableLengthInt> restPayloadLength
-		= readQUICVariableLengthInt(payload);
+	const std::optional<VariableLengthInt> restPayloadLength = readQUICVariableLengthInt(payload);
 	if (!restPayloadLength.has_value()) {
 		return std::nullopt;
 	}
@@ -95,21 +91,11 @@ std::optional<std::size_t> QUICParser::parseInitial(
 	std::span<const std::byte> salt,
 	const QUICVersion version) noexcept
 {
-	initialHeaderView = QUICInitialHeaderView::createFrom(
-		payload,
-		headerForm,
-		salt,
-		currentDCID,
-		version
-	);
+	initialHeaderView
+		= QUICInitialHeaderView::createFrom(payload, headerForm, salt, currentDCID, version);
 	if (!initialHeaderView.has_value()) {
-		initialHeaderView = QUICInitialHeaderView::createFrom(
-			payload,
-			headerForm,
-			salt,
-			initialDCID,
-			version
-		);
+		initialHeaderView
+			= QUICInitialHeaderView::createFrom(payload, headerForm, salt, initialDCID, version);
 		if (!initialHeaderView.has_value()) {
 			return std::nullopt;
 		}
@@ -130,29 +116,23 @@ std::optional<std::size_t> QUICParser::parseInitial(
 bool QUICParser::parse(
 	std::span<const std::byte> payload,
 	const ConnectionId& initialConnectionId,
-	const uint8_t l4Protocol
-) noexcept
+	const uint8_t l4Protocol) noexcept
 {
 	// Handle coalesced packets
 	// 7 because (1B QUIC LH, 4B Version, 1 B SCID LEN, 1B DCID LEN)
 	constexpr std::size_t MIN_PACKET_SIZE = 8;
 	for (std::optional<std::size_t> secondaryHeaderSize = std::nullopt;
-		payload.size() >= MIN_PACKET_SIZE;
-		payload = payload.subspan(*secondaryHeaderSize)) {
-
+		 payload.size() >= MIN_PACKET_SIZE;
+		 payload = payload.subspan(*secondaryHeaderSize)) {
 		// TODO CHECK IF SUBSPAN NOT STARTS AFTER SPAN END
 		const std::optional<QUICHeaderView> headerView
-			= QUICHeaderView::createFrom(
-				payload,
-				l4Protocol
-			);
+			= QUICHeaderView::createFrom(payload, l4Protocol);
 		if (!headerView.has_value()) {
 			break;
 		}
 		payload = payload.subspan(headerView->getLength());
 
-		const QUICHeaderView::PacketType packetType 
-			= headerView->getPacketType();
+		const QUICHeaderView::PacketType packetType = headerView->getPacketType();
 		switch (packetType) {
 		case QUICHeaderView::PacketType::ZERO_RTT: {
 			secondaryHeaderSize = parseZeroRTT(payload);
@@ -163,7 +143,7 @@ bool QUICParser::parse(
 			break;
 		}
 		case QUICHeaderView::PacketType::INITIAL: {
-			const std::optional<std::span<const std::byte>> salt 
+			const std::optional<std::span<const std::byte>> salt
 				= QUICSalt::createFor(*headerView->version);
 			if (!salt.has_value()) {
 				return false;
@@ -174,8 +154,7 @@ bool QUICParser::parse(
 				toSpan<const uint8_t>(initialConnectionId),
 				headerView->headerForm,
 				*salt,
-				*headerView->version
-			);
+				*headerView->version);
 			break;
 		}
 		case QUICHeaderView::PacketType::RETRY: {
@@ -207,13 +186,13 @@ std::optional<QUICHeaderData> parseHeader(std::span<const std::byte> header) noe
 {
 	QUICHeaderData headerData;
 
-	const std::optional<FirstQUICHeader> firstHeader 
+	const std::optional<FirstQUICHeader> firstHeader
 		= FirstQUICHeader::createFromPayload(payload);
 	if (!firstHeader.has_value()) {
 		return std::nullopt;
 	}
 
-	const std::optional<std::span<const std::uint8_t, 20>> salt 
+	const std::optional<std::span<const std::uint8_t, 20>> salt
 		= getSalt(firstHeader->getVersion());
 	if (!salt.has_value()) {
 		// Error, version not supported;

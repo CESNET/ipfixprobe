@@ -11,8 +11,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @enum RTSPFields
@@ -28,6 +27,6 @@ enum class RTSPFields : std::size_t {
 	RTSP_RESPONSE_SERVER,
 	RTSP_RESPONSE_CONTENT_TYPE,
 	FIELDS_SIZE,
-};    
-    
+};
+
 } // namespace ipxp

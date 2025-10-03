@@ -8,32 +8,32 @@
  *
  * Provides a plugin that creates histograms based on packet sizes and inter-arrival times,
  * stores them in per-flow plugin data, and exposes fields via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "packetHistogramData.hpp"
 #include "packetHistogramFields.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
 /**
  * @class PacketHistogramPlugin
  * @brief A plugin for collecting and exporting packet histogram statistics.
- * 
+ *
  * Empty packets can optionally be omitted from statistics.
  */
 class PacketHistogramPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the PacketHistogram plugin.
 	 *
@@ -91,9 +91,12 @@ public:
 
 private:
 	void updateExportData(
-		const std::size_t realPacketLength, const Timestamp packetTimestamp, const Direction direction, PacketHistogramData& pluginData) noexcept;
+		const std::size_t realPacketLength,
+		const Timestamp packetTimestamp,
+		const Direction direction,
+		PacketHistogramData& pluginData) noexcept;
 
-	bool m_countEmptyPackets{false};
+	bool m_countEmptyPackets {false};
 
 	FieldHandlers<PacketHistogramFields> m_fieldHandlers;
 };

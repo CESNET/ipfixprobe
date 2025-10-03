@@ -8,33 +8,33 @@
  *
  * Provides a plugin that parses RTSP traffic,
  * stores it in per-flow plugin data, and exposes that field via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "rtspData.hpp"
 #include "rtspFields.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
 /**
  * @class RTSPPlugin
  * @brief A plugin for processing RTSP traffic and exporting values.
- * 
+ *
  * Collects request method, user agent, URI, response status code, server and content type.
- * 
+ *
  */
 class RTSPPlugin : public ProcessPlugin {
 public:
-	
 	/**
 	 * @brief Constructs the RTSP plugin and initializes field handlers.
 	 * @param params String with plugin-specific parameters for configuration(currently unused).
@@ -58,9 +58,9 @@ public:
 	/**
 	 * @brief Updates plugin data with values from new packet.
 	 *
-	 * Updates `RTSPData` with parsed RTSP values. 
-	 * Skip consequent packets if RTSP parsing fails or both request and response are already parsed.
-	 * Flushes with reinsert if request has been parsed and incoming packet is request.
+	 * Updates `RTSPData` with parsed RTSP values.
+	 * Skip consequent packets if RTSP parsing fails or both request and response are already
+	 * parsed. Flushes with reinsert if request has been parsed and incoming packet is request.
 	 * Flushes with reinsert if response has been parsed and incoming packet is response.
 	 *
 	 * @param flowContext Contextual information about the flow to be updated.
@@ -84,7 +84,8 @@ public:
 private:
 	constexpr bool parseRequest(std::string_view payload, RTSPData& pluginData) noexcept;
 	constexpr bool parseResponse(std::string_view payload, RTSPData& pluginData) noexcept;
-	constexpr PluginUpdateResult updateExportData(std::span<const std::byte> payload, RTSPData& pluginData) noexcept;
+	constexpr PluginUpdateResult
+	updateExportData(std::span<const std::byte> payload, RTSPData& pluginData) noexcept;
 
 	FieldHandlers<RTSPFields> m_fieldHandlers;
 };

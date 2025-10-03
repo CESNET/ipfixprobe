@@ -12,17 +12,17 @@
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <boost/container/static_vector.hpp>
-
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
+#include "packetStorage.hpp"
 #include "ssaDetectorData.hpp"
 #include "ssaDetectorFields.hpp"
-#include "packetStorage.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <boost/container/static_vector.hpp>
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -49,7 +49,8 @@ public:
 	/**
 	 * @brief Updates plugin data with values from new packet.
 	 *
-	 * Searches for packets that could be TCP syn-synack-ack transitions and add them to `SSADetectorData`
+	 * Searches for packets that could be TCP syn-synack-ack transitions and add them to
+	 * `SSADetectorData`
 	 *
 	 * @param flowContext Contextual information about the flow to be updated.
 	 * @param pluginContext Pointer to `SSADetectorData`.
@@ -60,8 +61,8 @@ public:
 	/**
 	 * @brief Prepares export data.
 	 *
-	 * Decides whether the flow is tunnel or not based on the number of detected SYN-SYNACK-ACK sequences.
-	 * If the confidence is too low, the plugin is removed.
+	 * Decides whether the flow is tunnel or not based on the number of detected SYN-SYNACK-ACK
+	 * sequences. If the confidence is too low, the plugin is removed.
 	 *
 	 * @param flowRecord The flow record containing aggregated flow data.
 	 * @param pluginContext Pointer to `SSADetectorData`.
@@ -90,9 +91,8 @@ private:
 		const std::size_t length,
 		const Timestamp timestamp,
 		const Direction direction,
-		SSADetectorData& pluginData
-	) noexcept;
-	
+		SSADetectorData& pluginData) noexcept;
+
 	FieldHandlers<SSADetectorFields> m_fieldHandlers;
 };
 
