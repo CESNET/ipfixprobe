@@ -13,14 +13,14 @@
 
 #include <timestamp.hpp>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @struct NetTimeSeriesData
  * @brief Struct representing flow time series statistics.
  *
- * Contains various export statistics calculated from packet lengths over time and current processing state.
+ * Contains various export statistics calculated from packet lengths over time and current
+ * processing state.
  */
 struct NetTimeSeriesData {
 	float mean;
@@ -42,7 +42,6 @@ struct NetTimeSeriesData {
 		Timestamp prevTime;
 		uint64_t sumPayload;
 	} processingState;
-};  
+};
 
 } // namespace ipxp
-

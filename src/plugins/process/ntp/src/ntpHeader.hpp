@@ -11,25 +11,25 @@
 
 #include <cstdint>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @union NetworkTimeHeader
  * @brief Union representing NTP header.
  */
 union NetworkTimeHeader {
+	NetworkTimeHeader(const uint8_t raw) noexcept
+		: raw(raw)
+	{
+	}
 
-    NetworkTimeHeader(const uint8_t raw) noexcept
-    : raw(raw) {}
-    
-    struct {
-        uint8_t leap : 2;
-        uint8_t version : 2;
-        uint8_t mode : 2;
-    } bitfields;
+	struct {
+		uint8_t leap : 2;
+		uint8_t version : 2;
+		uint8_t mode : 2;
+	} bitfields;
 
-    uint8_t raw;
+	uint8_t raw;
 };
 
 static_assert(sizeof(NetworkTimeHeader) == 1, "Unexpected NetworkTimeHeaer size");

@@ -11,8 +11,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @enum NetworkTimeFields
@@ -35,6 +34,6 @@ enum class NetworkTimeFields : std::size_t {
 	NTP_RECV,
 	NTP_SENT,
 	FIELDS_SIZE,
-};    
-    
+};
+
 } // namespace ipxp

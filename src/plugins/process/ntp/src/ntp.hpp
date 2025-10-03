@@ -7,21 +7,22 @@
  *
  * Provides a plugin that parses NTP packets and extracts relevant fields,
  * stores them in per-flow plugin data, and exposes fields via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "ntpData.hpp"
 #include "ntpFields.hpp"
 #include "ntpHeader.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -31,7 +32,6 @@ namespace ipxp {
  */
 class NetworkTimePlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the NetworkTime plugin.
 	 *
@@ -43,7 +43,7 @@ public:
 	/**
 	 * @brief Initializes plugin data for a new flow.
 	 *
-	 * Constructs `NetworkTimePlugin` in `pluginContext` and initializes it 
+	 * Constructs `NetworkTimePlugin` in `pluginContext` and initializes it
 	 * with parsed NTP values of the first packet.
 	 * Removes plugin data if NTP parsing fails.
 	 * Immediately flushes the flow if parsed successfully.
@@ -68,7 +68,10 @@ public:
 
 private:
 	void makeAllFieldsAvailable(FlowRecord& flowRecord) noexcept;
-	bool parseNTP(FlowRecord& flowRecord, std::span<const std::byte> payload, NetworkTimeData& pluginData) noexcept;
+	bool parseNTP(
+		FlowRecord& flowRecord,
+		std::span<const std::byte> payload,
+		NetworkTimeData& pluginData) noexcept;
 
 	FieldHandlers<NetworkTimeFields> m_fieldHandlers;
 };

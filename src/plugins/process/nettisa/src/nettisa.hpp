@@ -7,20 +7,21 @@
  *
  * Provides a plugin that extracts advanced statistics based on packet lengths,
  * stores them in per-flow plugin data, and exposes fields via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "nettisaData.hpp"
 #include "nettisaFields.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -30,7 +31,6 @@ namespace ipxp {
  */
 class NetTimeSeriesPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the NetTimeSeries plugin.
 	 *
@@ -85,13 +85,15 @@ public:
 	 * @return Memory layout description for the plugin data.
 	 */
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
-	
+
 private:
 	void makeAllFieldsAvailable(const FlowRecord& flowRecord) noexcept;
-	void updateNetTimeSeries(FlowRecord& flowRecord, const Packet& packet, NetTimeSeriesData& pluginData) noexcept;
+	void updateNetTimeSeries(
+		FlowRecord& flowRecord,
+		const Packet& packet,
+		NetTimeSeriesData& pluginData) noexcept;
 
 	FieldHandlers<NetTimeSeriesFields> m_fieldHandlers;
-	
 };
 
 } // namespace ipxp

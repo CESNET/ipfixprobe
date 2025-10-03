@@ -11,8 +11,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @enum NetTimeSeriesFields
@@ -27,14 +26,14 @@ enum class NetTimeSeriesFields : std::size_t {
 	NTS_STDEV,
 	NTS_KURTOSIS,
 	NTS_ROOT_MEAN_SQUARE,
-	NTS_AVERAGE_DISPERSION,                                                                         
+	NTS_AVERAGE_DISPERSION,
 	NTS_MEAN_SCALED_TIME,
 	NTS_MEAN_DIFFTIMES,
 	NTS_MIN_DIFFTIMES,
 	NTS_MAX_DIFFTIMES,
-	NTS_TIME_DISTRIBUTION,                                                                                
+	NTS_TIME_DISTRIBUTION,
 	NTS_SWITCHING_RATIO,
 	FIELDS_SIZE
-};    
-    
+};
+
 } // namespace ipxp

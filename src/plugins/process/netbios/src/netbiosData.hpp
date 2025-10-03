@@ -11,8 +11,7 @@
 
 #include <string>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @struct NetBIOSData
@@ -21,7 +20,6 @@ namespace ipxp
 struct NetBIOSData {
 	std::string name;
 	char suffix;
-};  
+};
 
 } // namespace ipxp
-

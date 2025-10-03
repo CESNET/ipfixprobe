@@ -11,8 +11,7 @@
 
 #include <cstddef>
 
-namespace ipxp
-{
+namespace ipxp {
 
 /**
  * @enum NetBIOSFields
@@ -24,6 +23,6 @@ enum class NetBIOSFields : std::size_t {
 	NB_NAME = 0,
 	NB_SUFFIX,
 	FIELDS_SIZE,
-};    
-    
+};
+
 } // namespace ipxp

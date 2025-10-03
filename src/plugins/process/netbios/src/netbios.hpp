@@ -7,20 +7,21 @@
  *
  * Provides a plugin that extracts NetBIOS suffix and name from packets,
  * stores them in per-flow plugin data, and exposes fields via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <processPlugin.hpp>
-#include <fieldManager.hpp>
-#include <fieldHandlersEnum.hpp>
-
 #include "netbiosData.hpp"
 #include "netbiosFields.hpp"
+
+#include <sstream>
+#include <string>
+
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -30,7 +31,6 @@ namespace ipxp {
  */
 class NetBIOSPlugin : public ProcessPlugin {
 public:
-
 	/**
 	 * @brief Constructs the NetBIOS plugin.
 	 *
@@ -38,7 +38,6 @@ public:
 	 * @param fieldManager Reference to the FieldManager for field registration.
 	 */
 	NetBIOSPlugin(const std::string& params, FieldManager& manager);
-
 
 	/**
 	 * @brief Initializes plugin data for a new flow.
@@ -66,8 +65,11 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	void parseNetBIOS(FlowRecord& flowRecord, std::span<const std::byte> payload, NetBIOSData& pluginData) noexcept;
-	
+	void parseNetBIOS(
+		FlowRecord& flowRecord,
+		std::span<const std::byte> payload,
+		NetBIOSData& pluginData) noexcept;
+
 	FieldHandlers<NetBIOSFields> m_fieldHandlers;
 };
 

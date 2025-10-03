@@ -7,24 +7,24 @@
  *
  * Provides a plugin that extracts NetBIOS suffix and name from packets,
  * stores them in per-flow plugin data, and exposes fields via FieldManager.
- * 
+ *
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "netbios.hpp"
 
-#include <iostream>
 #include <cmath>
+#include <iostream>
 
-#include <pluginManifest.hpp>
-#include <pluginRegistrar.hpp>
-#include <pluginFactory.hpp>
+#include <dns-utils.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
-#include <dns-utils.hpp>
+#include <ipfixprobe/options.hpp>
+#include <pluginFactory.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
 #include <utils/spanUtils.hpp>
 #include <utils/stringViewUtils.hpp>
-#include <ipfixprobe/options.hpp>
 
 namespace ipxp {
 
@@ -40,24 +40,27 @@ static const PluginManifest netbiosPluginManifest = {
 		},
 };
 
-static FieldGroup createNetBIOSSchema(FieldManager& fieldManager, FieldHandlers<NetBIOSFields>& fieldHandlers)
+static FieldGroup
+createNetBIOSSchema(FieldManager& fieldManager, FieldHandlers<NetBIOSFields>& fieldHandlers)
 {
 	FieldGroup schema = fieldManager.createFieldGroup("netbios");
 
-	fieldHandlers.insert(NetBIOSFields::NB_SUFFIX, schema.addScalarField(
-		"NB_SUFFIX",
-		[] (const void* context) { return static_cast<uint8_t>(static_cast<const NetBIOSData*>(context)->suffix); }
-	));
+	fieldHandlers.insert(
+		NetBIOSFields::NB_SUFFIX,
+		schema.addScalarField("NB_SUFFIX", [](const void* context) {
+			return static_cast<uint8_t>(static_cast<const NetBIOSData*>(context)->suffix);
+		}));
 
-	fieldHandlers.insert(NetBIOSFields::NB_NAME, schema.addScalarField(
-		"NB_NAME",
-		[] (const void* context) { return toStringView(static_cast<const NetBIOSData*>(context)->name); }
-	));
+	fieldHandlers.insert(
+		NetBIOSFields::NB_NAME,
+		schema.addScalarField("NB_NAME", [](const void* context) {
+			return toStringView(static_cast<const NetBIOSData*>(context)->name);
+		}));
 
 	return schema;
 }
 
-NetBIOSPlugin::NetBIOSPlugin([[maybe_unused]]const std::string& params, FieldManager& manager)
+NetBIOSPlugin::NetBIOSPlugin([[maybe_unused]] const std::string& params, FieldManager& manager)
 {
 	createNetBIOSSchema(manager, m_fieldHandlers);
 }
@@ -65,9 +68,13 @@ NetBIOSPlugin::NetBIOSPlugin([[maybe_unused]]const std::string& params, FieldMan
 PluginInitResult NetBIOSPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	constexpr uint8_t NETBIOS_PORT = 137;
-	if (flowContext.packet.src_port == NETBIOS_PORT || flowContext.packet.dst_port == NETBIOS_PORT) {
+	if (flowContext.packet.src_port == NETBIOS_PORT
+		|| flowContext.packet.dst_port == NETBIOS_PORT) {
 		auto* pluginData = std::construct_at(reinterpret_cast<NetBIOSData*>(pluginContext));
-		parseNetBIOS(flowContext.flowRecord, toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len), *pluginData);
+		parseNetBIOS(
+			flowContext.flowRecord,
+			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+			*pluginData);
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -82,19 +89,21 @@ PluginInitResult NetBIOSPlugin::onInit(const FlowContext& flowContext, void* plu
 	};
 }
 
-constexpr static
-char compressCharPair(const char first, const char second)
+constexpr static char compressCharPair(const char first, const char second)
 {
 	return static_cast<char>(((first - 'A') << 4) | (second - 'A'));
 }
 
-void NetBIOSPlugin::parseNetBIOS(FlowRecord& flowRecord, std::span<const std::byte> payload, NetBIOSData& pluginData) noexcept
+void NetBIOSPlugin::parseNetBIOS(
+	FlowRecord& flowRecord,
+	std::span<const std::byte> payload,
+	NetBIOSData& pluginData) noexcept
 {
 	if (payload.size() < sizeof(dns_hdr) || !pluginData.name.empty()) {
 		return;
 	}
 
-	const std::size_t queryCount 
+	const std::size_t queryCount
 		= reinterpret_cast<const dns_hdr*>(payload.data())->question_rec_cnt;
 	if (queryCount == 0) {
 		return;
@@ -107,8 +116,8 @@ void NetBIOSPlugin::parseNetBIOS(FlowRecord& flowRecord, std::span<const std::by
 	}
 
 	auto nameIt = reinterpret_cast<const std::pair<char, char>*>(payload.data());
-	for (; reinterpret_cast<const std::byte*>(nameIt) 
-			!= payload.data() + payload.size() - 2; nameIt++) {
+	for (; reinterpret_cast<const std::byte*>(nameIt) != payload.data() + payload.size() - 2;
+		 nameIt++) {
 		pluginData.name.push_back(compressCharPair(nameIt->first, nameIt->second));
 	}
 	m_fieldHandlers[NetBIOSFields::NB_NAME].setAsAvailable(flowRecord);
@@ -130,7 +139,9 @@ PluginDataMemoryLayout NetBIOSPlugin::getDataMemoryLayout() const noexcept
 	};
 }
 
-static const PluginRegistrar<NetBIOSPlugin, PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+static const PluginRegistrar<
+	NetBIOSPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	netbiosRegistrar(netbiosPluginManifest);
 
 } // namespace ipxp

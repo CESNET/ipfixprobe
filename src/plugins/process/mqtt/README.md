@@ -16,25 +16,18 @@ The **MQTT Plugin** extends flow records with MQTT (Message Queuing Telemetry Tr
 
 ## Output Fields
 
-	MQTT_TYPE_CUMULATIVE = 0,
-	MQTT_VERSION,
-	MQTT_CONNECTION_FLAGS,
-	MQTT_KEEP_ALIVE,
-	MQTT_CONNECTION_RETURN_CODE,
-	MQTT_PUBLISH_FLAGS,
-	MQTT_TOPICS,
-
-
 | Field Name      | Data Type | Description                                                 |
 |-----------------|-----------|----------------------------------------|
-| `MQQT_TYPE_CUMULATIVE`| `uint16_t`  | Bitfield of messages that were detected during the communication.
-DISCONNECT \| PINGRESP(1b) \| PINGREQ(1b) \| UNSUBACK(1b) \| UNSUBSCRIBE(1b) /|
-	SUBACK(1b) | SUBSCRIBE(1b) | PUBCOMP(1b) | PUBREL(1b) | PUBREC(1b) | PUBACK(1b) | PUBLISH(1b) |
-	CONNACK(1b) | CONNECT(1b) | session present(1b) | 
-| `MQTT_VERSION`| `uint8_t`  |  |
-| `MQTT_CONNECTION_FLAGS`| `uint8_t`  |  |
-| `MQTT_KEEP_ALIVE`| `uint8_t`  |  |
-| `MQTT_VERSION`| `uint8_t`  |  |
+| `MQQT_TYPE_CUMULATIVE`| `uint16_t`  | Bitfield of messages that were detected during the communication. Each value takes 1 bit. 
+DISCONNECT \| PINGRESP \| PINGREQ \| UNSUBACK \| UNSUBSCRIBE \|
+	SUBACK \| SUBSCRIBE \| PUBCOMP \| PUBREL \| PUBREC \| PUBACK \| PUBLISH \|
+	CONNACK \| CONNECT \| session present flag from *connection* message\|
+| `MQTT_VERSION`| `uint8_t`  | Identifies the MQTT version being used. |
+| `MQTT_CONNECTION_FLAGS`| `uint8_t`  | Flags of *connection* message. |
+| `MQTT_KEEP_ALIVE`| `uint16_t`  | MQTT connection keep alive |
+| `MQTT_CONNECTION_RETURN_CODE`| `uint8_t`  | Return code value from *connack* message. |
+| `MQTT_PUBLISH_FLAGS`| `uint8_t`  | Cumulative of *publish* message flags. |
+| `MQTT_TOPICS`| `string`  | Concatenation of **topiccount** topics from *publish* messages. |
 
 ## Usage
 
@@ -44,13 +37,12 @@ Add the plugin to your ipfixprobe YAML configuration:
 
 ```yaml
 process_plugins:
-  - dnssd
+  - mqtt 
 ```
 
 ### CLI Usage
 
 You can also enable the plugin directly from the command line:
 
-```ipfixprobe -p dnssd ...```
-```ipfixprobe -p "dnssd;txt" ...```
-```ipfixprobe -p "dnssd;txt=<path_to_file>" ...```
+```ipfixprobe -p mqtt ...```
+```ipfixprobe -p "mqtt;tc=<topic_count>" ...```
