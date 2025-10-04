@@ -1,9 +1,22 @@
+/**
+ * @file
+ * @brief Export data of SMTP plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <boost/static_string.hpp>
 
 namespace ipxp {
 
+/**
+ * @struct SMTPData
+ * @brief Stores parsed SMTP data that will be exported.
+ */
 struct SMTPData {
 	constexpr static std::size_t MAX_STRING_LENGTH = 255;
 

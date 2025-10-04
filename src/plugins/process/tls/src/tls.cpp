@@ -6,10 +6,12 @@
  * @author Andrej Lukacovic lukacan1@fit.cvut.cz
  * @author Jonas Mücke <jonas.muecke@tu-dresden.de>
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that parses TLS traffic,
+ * stores it in per-flow plugin data, and exposes that field via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 #include "tls.hpp"
 

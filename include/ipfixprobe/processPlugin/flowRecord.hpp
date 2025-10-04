@@ -1,10 +1,11 @@
 #pragma once
 
-#include "timestamp.hpp"
-#include "flowKey.hpp"
 #include "directionalField.hpp"
-#include "tcpFlags.hpp"
+#include "flowKey.hpp"
+#include "macAddress.hpp"
 #include "packet.hpp"
+#include "tcpFlags.hpp"
+#include "timestamp.hpp"
 #include "xxhash.h"
 
 #include <array>
@@ -70,7 +71,6 @@ public:
 
 	FlowEndReason endReason;
 
-
 	// Bitset of flow fields that were specified as present
 	mutable FieldsBitset fieldsAvailable = {};
 	// Bitset of successfully constructed plugins (constructor accepted packet)
@@ -80,13 +80,12 @@ public:
 	// Bitset of plugins that are available for the flow
 	const PluginsBitset pluginsAvailable;
 
-
 	void erase()
 	{
 		hash = 0;
 		timeCreation = timeLastUpdate = {};
 		flowKey = {};
-		//directionalData = {};
+		// directionalData = {};
 
 		/*memset(&m_flow.time_first, 0, sizeof(m_flow.time_first));
 		memset(&m_flow.time_last, 0, sizeof(m_flow.time_last));
@@ -116,10 +115,7 @@ public:
 		m_flow.dst_tcp_flags = 0;*/
 	}
 
-	constexpr bool isEmpty() const noexcept
-	{
-		return hash == 0;
-	}
+	constexpr bool isEmpty() const noexcept { return hash == 0; }
 
 	/*constexpr bool belongs(uint64_t value) const noexcept
 	{
@@ -132,7 +128,6 @@ public:
 		directionalData[Direction::Forward].packets = 1;
 		directionalData[Direction::Forward].bytes = packet.ip_len;
 
-		
 		flowKey.srcPort = packet.src_port;
 		flowKey.dstPort = packet.dst_port;
 		flowKey.l4Protocol = packet.ip_proto;
@@ -142,21 +137,21 @@ public:
 		timeCreation = packet.ts;
 		timeLastUpdate = packet.ts;
 
-		macAddress[Direction::Forward] 
-			= std::span<const std::byte, 6>(
-				reinterpret_cast<const std::byte*>(packet.src_mac), 6);
-		macAddress[Direction::Reverse] 
-			= std::span<const std::byte, 6>(
-				reinterpret_cast<const std::byte*>(packet.dst_mac), 6);
+		macAddress[Direction::Forward]
+			= std::span<const std::byte, 6>(reinterpret_cast<const std::byte*>(packet.src_mac), 6);
+		macAddress[Direction::Reverse]
+			= std::span<const std::byte, 6>(reinterpret_cast<const std::byte*>(packet.dst_mac), 6);
 
 		if (packet.ip_version == IP::v4) {
 			flowKey.srcIp = packet.src_ip.v4;
 			flowKey.dstIp = packet.dst_ip.v4;
 		} else if (packet.ip_version == IP::v6) {
 			flowKey.srcIp = std::span<const std::byte, 16>(
-				reinterpret_cast<const std::byte*>(packet.src_ip.v6), 16);
+				reinterpret_cast<const std::byte*>(packet.src_ip.v6),
+				16);
 			flowKey.dstIp = std::span<const std::byte, 16>(
-				reinterpret_cast<const std::byte*>(packet.dst_ip.v6), 16);
+				reinterpret_cast<const std::byte*>(packet.dst_ip.v6),
+				16);
 		}
 	}
 

@@ -25,6 +25,14 @@
 
 namespace ipxp {
 
+/**
+ * @class SIPPlugin
+ * @brief A plugin for processing SIP traffic and exporting values.
+ *
+ * Collects and exports message type, status code, call ID, calling party, called party,
+ * via, user agent, command sequence, and request URI.
+ *
+ */
 class SIPPlugin : public ProcessPlugin {
 public:
 	/**

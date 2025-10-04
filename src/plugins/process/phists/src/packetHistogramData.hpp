@@ -10,6 +10,7 @@
 #pragma once
 
 #include <array>
+#include <optional>
 
 #include <directionalField.hpp>
 

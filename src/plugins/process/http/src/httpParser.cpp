@@ -42,16 +42,7 @@ constexpr static bool isValidHTTPMethod(std::string_view payload) noexcept
 constexpr static bool hasHTTPVersionInRequest(std::string_view payload) noexcept
 {
 	constexpr std::string_view httpLabel = "HTTP";
-
-	auto spaces = payload | std::views::filter([](const char c) { return c == ' '; });
-
-	auto httpLabelBegin = std::ranges::next(spaces.begin(), 2);
-	auto httpLabelEnd = std::ranges::next(spaces.begin(), 3);
-	if (httpLabelBegin == spaces.end() || httpLabelEnd == spaces.end()) {
-		return false;
-	}
-
-	return std::string_view(&*std::next(httpLabelBegin), &*httpLabelEnd) == httpLabel;
+	return payload.contains(httpLabel);
 }
 
 constexpr static bool isRequest(std::string_view payload) noexcept
@@ -62,6 +53,7 @@ constexpr static bool isRequest(std::string_view payload) noexcept
 constexpr static bool hasHttpVersionInResponse(std::string_view payload) noexcept
 {
 	constexpr std::string_view httpLabel = "HTTP";
+
 	return payload.starts_with(httpLabel);
 }
 
@@ -109,20 +101,16 @@ constexpr bool HTTPParser::parseRequest(std::string_view payload) noexcept
 	if (methodEnd == std::string_view::npos) {
 		return false;
 	}
-	auto methodBegin
-		= std::ranges::find_if(payload, [](const unsigned char c) { return !std::isspace(c); });
-	const std::size_t methodBeginPos = std::distance(payload.begin(), methodBegin);
-	method = std::string_view(payload.substr(methodBeginPos, methodEnd - methodBeginPos));
+
+	auto methodBegin = payload.find_first_not_of(' ');
+	method = payload.substr(methodBegin, methodEnd - methodBegin);
 
 	const std::size_t uriEnd = payload.find(' ', methodEnd + 1);
 	if (uriEnd == std::string_view::npos) {
 		return false;
 	}
-	auto uriBegin = std::ranges::find_if(payload.substr(methodEnd + 1), [](const unsigned char c) {
-		return !std::isspace(c);
-	});
-	const std::size_t uriBeginPos = std::distance(payload.begin(), uriBegin);
-	uri = std::string_view(payload.substr(uriBeginPos, uriEnd - uriBeginPos));
+	auto uriBegin = payload.substr(methodEnd + 1).find_first_not_of(' ');
+	uri = payload.substr(uriBegin, uriEnd - uriBegin);
 
 	const std::size_t httpVersionEnd = payload.find('\n', uriEnd + 1);
 	if (httpVersionEnd == std::string_view::npos) {
@@ -147,7 +135,9 @@ bool HTTPParser::parseResponseHeaders(std::string_view payload) noexcept
 				cookies.emplace();
 			}
 			std::ranges::copy(
-				splitToVector(value) | std::views::transform(removeLeadingWhitespaces)
+				value | std::views::split(' ') | std::views::transform([](auto&& rng) {
+					return std::string_view(&*rng.begin(), std::ranges::distance(rng));
+				}) | std::views::transform(removeLeadingWhitespaces)
 					| std::views::take(cookies->capacity() - cookies->size()),
 				std::back_inserter(*cookies));
 		}
@@ -158,25 +148,24 @@ bool HTTPParser::parseResponseHeaders(std::string_view payload) noexcept
 
 constexpr bool HTTPParser::parseResponse(std::string_view payload) noexcept
 {
-	auto spaces = payload | std::views::filter([](const char c) { return c == ' '; });
-
-	auto statusCodeBegin = std::next(spaces.begin(), 1);
-	auto statusCodeEnd = std::next(spaces.begin(), 2);
-	if (statusCodeBegin == spaces.end() || statusCodeEnd == spaces.end()) {
-		return false;
-	}
-	const auto [_, errorCode] = std::from_chars(&*statusCodeBegin, &*statusCodeEnd, *statusCode);
-	if (errorCode != std::errc()) {
+	auto firstLine = payload.substr(0, payload.find('\n'));
+	if (firstLine.length() == payload.length()) {
 		return false;
 	}
 
-	const size_t statusMessageEnd
-		= payload.find('\n', std::distance(spaces.begin(), statusCodeEnd) + 1);
-	if (statusMessageEnd == std::string_view::npos) {
+	const std::size_t statusCodeBegin = firstLine.find(' ');
+	const std::size_t statusCodeEnd = firstLine.find(' ', statusCodeBegin + 1);
+	if (statusCodeBegin == std::string_view::npos || statusCodeEnd == std::string_view::npos
+		|| std::from_chars(
+			   firstLine.data() + statusCodeBegin + 1,
+			   firstLine.data() + statusCodeEnd,
+			   *statusCode)
+				.ec
+			!= std::errc()) {
 		return false;
 	}
 
-	return parseResponseHeaders(payload.substr(statusMessageEnd + 1));
+	return parseResponseHeaders(payload.substr(firstLine.size() + 1));
 }
 
 } // namespace ipxp

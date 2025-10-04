@@ -1,9 +1,22 @@
+/**
+ * @file
+ * @brief Export data of SIP plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <boost/static_string.hpp>
 
 namespace ipxp {
 
+/**
+ * @struct SIPData
+ * @brief Stores parsed SIP data that will be exported.
+ */
 struct SIPData {
 	constexpr static std::size_t MAX_SIZE = 128;
 

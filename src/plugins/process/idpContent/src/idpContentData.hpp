@@ -14,6 +14,7 @@
 #include <span>
 
 #include <boost/container/static_vector.hpp>
+#include <directionalField.hpp>
 
 namespace ipxp {
 

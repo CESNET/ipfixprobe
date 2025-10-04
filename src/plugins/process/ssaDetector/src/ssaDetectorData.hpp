@@ -4,6 +4,8 @@
 
 #include <cstdint>
 
+#include <boost/container/static_vector.hpp>
+
 namespace ipxp {
 
 struct SSADetectorData {

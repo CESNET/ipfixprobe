@@ -1,13 +1,14 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
- * @author Pavel Siska <siska@cesnet.cz>
+ * @brief Plugin for parsing sip traffic.
+ * @author Tomas Jansky <janskto1@fit.cvut.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that calculates packet statistics as flags, acknowledgments, and sequences
+ * within flows, stores it in per-flow plugin data, and exposes that field via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "sip.hpp"
@@ -186,7 +187,8 @@ constexpr bool SIPPlugin::parseSIPData(
 		return false;
 	}
 
-	const std::vector<std::string_view> tokens = splitToVector(payload.substr(headerEnd), ' ');
+	const auto tokens = payload.substr(headerEnd) | std::views::split(' ')
+		| std::ranges::to<std::vector<std::string_view>>();
 
 	if (pluginData.messageType <= 10) {
 		/* Note: First SIP request line has syntax:

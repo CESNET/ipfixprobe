@@ -20,6 +20,7 @@
 #include <sstream>
 #include <string>
 
+#include <dnsParser/dnsRecord.hpp>
 #include <fieldHandlersEnum.hpp>
 #include <fieldManager.hpp>
 #include <processPlugin.hpp>

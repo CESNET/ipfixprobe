@@ -1,9 +1,22 @@
+/**
+ * @file
+ * @brief Definition of SMTP commands.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <cstdint>
 
 namespace ipxp {
 
+/**
+ * @enum SMTPCommand
+ * @brief Enumerates SMTP commands used in command flags.
+ */
 enum SMTPCommand : uint16_t {
 	EHLO = 0x0001,
 	HELO = 0x0002,

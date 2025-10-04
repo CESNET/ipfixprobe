@@ -1,9 +1,24 @@
+/**
+ * @file
+ * @brief Definition of SMTP fields.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <cstddef>
 
 namespace ipxp {
 
+/**
+ * @enum SMTPFields
+ * @brief Enumerates the fields exported by the SMTP plugin.
+ *
+ * These enum values are used to index field handlers for this plugin.
+ */
 enum class SMTPFields : std::size_t {
 	SMTP_2XX_STAT_CODE_COUNT = 0,
 	SMTP_3XX_STAT_CODE_COUNT,

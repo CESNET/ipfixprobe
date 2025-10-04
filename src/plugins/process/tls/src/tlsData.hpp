@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Export data of TLS plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <array>
@@ -6,9 +15,14 @@
 
 #include <boost/container/static_vector.hpp>
 #include <boost/static_string/static_string.hpp>
+#include <tlsParser/tlsParser.hpp>
 
 namespace ipxp {
 
+/**
+ * \struct TLSData
+ * \brief Stores parsed TLS data that will be exported.
+ */
 struct TLSData {
 	constexpr static std::size_t BUFFER_SIZE = 255;
 	constexpr static std::size_t JA3_SIZE = 16;

@@ -1,9 +1,22 @@
+/**
+ * @file
+ * @brief Export data of SSDP plugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <boost/static_string.hpp>
 
 namespace ipxp {
 
+/**
+ * @struct SSDPData
+ * @brief Stores parsed SSDP data that will be exported.
+ */
 struct SSDPData {
 	constexpr static std::size_t MAX_URN_LENGTH = 511;
 	boost::static_string<MAX_URN_LENGTH> notificationType;

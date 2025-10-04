@@ -1,9 +1,22 @@
+/**
+ * @file
+ * @brief Definition of SIP message types.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include <cstdint>
 
 namespace ipxp {
 
+/**
+ * @enum SIPMessageType
+ * @brief Enumerates SIP message types that we are interested in.
+ */
 enum class SIPMessageType : uint16_t {
 	INVITE = 1,
 	ACK = 2,

@@ -1,14 +1,15 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
+ * @brief Plugin for parsing RTSP traffic.
  * @author Jiri Havranek <havranek@cesnet.cz>
  * @author Pavel Siska <siska@cesnet.cz>
  * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that parses RTSP traffic,
+ * stores it in per-flow plugin data, and exposes that field via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "rtsp.hpp"

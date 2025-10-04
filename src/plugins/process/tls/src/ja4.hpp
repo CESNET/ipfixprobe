@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief JA4 fingerprint generation for TLS ClientHello messages.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * Provides a class that generates JA4 fingerprints for TLS ClientHello messages.
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include "sha256.hpp"
@@ -143,6 +154,14 @@ static std::string_view getTruncatedExtensionsHash(
 	return getTruncatedHashHex(toStringView(finalString));
 }
 
+/**
+ * @class JA4
+ * @brief Generates JA4 fingerprint for TLS ClientHello messages.
+ *
+ * The JA4 class constructs a JA4 fingerprint string based on the provided
+ * TLS ClientHello parameters, including protocol type, version, server names,
+ * ALPNs, cipher suites, extension types, signature algorithms, and supported versions.
+ */
 class JA4 {
 public:
 	JA4(const uint8_t l4Protocol,

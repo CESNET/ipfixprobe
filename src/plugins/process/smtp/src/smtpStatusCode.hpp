@@ -1,9 +1,21 @@
+/**
+ * @file
+ * @brief Definition of SMTP status codes.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
 #pragma once
 
 #include <cstddef>
 
 namespace ipxp {
 
+/**
+ * @enum SMTPStatusCode
+ * @brief Enumerates SMTP status codes used in status code cumulative.
+ */
 enum SMTPStatusCode : std::size_t {
 	STATUS_CODE_211 = 0x00000001,
 	STATUS_CODE_214 = 0x00000002,
