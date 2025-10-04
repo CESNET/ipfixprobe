@@ -52,20 +52,27 @@ public:
 	 */
 	PluginInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
 
+	/**
+	 * @brief Called before the main per-packet update.
+	 *
+	 * If both request and response are already parsed, no further updates are needed.
+	 * If a new request or response is parsed and the respective one was already seen,
+	 * the flow is flushed and then reinserted.
+	 *
+	 * @param flowContext Contextual information about the flow to be updated.
+	 * @param pluginContext Pointer to `HTTPData`.
+	 * @return Result of the pre-update check.
+	 */
 	PluginUpdateResult beforeUpdate(const FlowContext& flowContext, void* pluginContext) override;
 
 	/**
 	 * @brief Updates plugin data with values from new packet.
 	 *
 	 * Inserts parsed HTTP data into `HTTPData`.
-	 * If packet is an HTTP request and request was already seen, the flow is flushed with reinsert.
-	 * If packet is an HTTP response and response was already seen, the flow is flushed with
-	 * reinsert.
 	 *
 	 * @param flowContext Contextual information about the flow to be updated.
 	 * @param pluginContext Pointer to `HTTPData`.
-	 * @return Result of the update, does not require new packets if request and response are
-	 * already parsed.
+	 * @return Result of the update..
 	 */
 	PluginUpdateResult onUpdate(const FlowContext& flowContext, void* pluginContext) override;
 
@@ -82,8 +89,6 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	// PluginUpdateResult parseHTTP(std::span<const std::byte> payload, FlowRecord& flowRecord,
-	// HTTPData& httpData) noexcept;
 	void
 	saveParsedValues(const HTTPParser& parser, FlowRecord& flowRecord, HTTPData& httpData) noexcept;
 

@@ -245,35 +245,18 @@ constexpr bool RTSPPlugin::parseResponse(std::string_view payload, RTSPData& plu
 }
 
 constexpr PluginUpdateResult
-RTSPPlugin::updateExportData(std::span<const std::byte> payload, RTSPData& pluginData) noexcept
+RTSPPlugin::updateExportData(std::string_view payload, RTSPData& pluginData) noexcept
 {
-	std::string_view payloadView = {reinterpret_cast<const char*>(payload.data()), payload.size()};
-	if (isRequest(payloadView)) {
-		if (pluginData.processingState.requestParsed) {
-			// TODO Flush and reinsert
-			return {
-				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-				.flowAction = FlowAction::NoAction};
-		}
-		if (!parseRequest(payloadView, pluginData)) {
-			return {
-				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-				.flowAction = FlowAction::NoAction};
-		}
+	if (isRequest(payload) && !parseRequest(payload, pluginData)) {
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction};
 	}
 
-	if (isResponse(payloadView)) {
-		if (pluginData.processingState.responseParsed) {
-			// TODO Flush and reinsert
-			return {
-				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-				.flowAction = FlowAction::NoAction};
-		}
-		if (!parseResponse(payloadView, pluginData)) {
-			return {
-				.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-				.flowAction = FlowAction::NoAction};
-		}
+	if (isResponse(payload) && !parseResponse(payload, pluginData)) {
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction};
 	}
 
 	return {
@@ -283,10 +266,19 @@ RTSPPlugin::updateExportData(std::span<const std::byte> payload, RTSPData& plugi
 
 PluginInitResult RTSPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
+	std::string_view payloadView
+		= {reinterpret_cast<const char*>(flowContext.packet.payload),
+		   flowContext.packet.payload_len};
+	if (!isRequest(payloadView) && !isResponse(payloadView)) {
+		return {
+			.constructionState = ConstructionState::NotConstructed,
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction,
+		};
+	}
+
 	auto* pluginData = std::construct_at(reinterpret_cast<RTSPData*>(pluginContext));
-	auto [updateRequirement, flowAction] = updateExportData(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
-		*pluginData);
+	auto [updateRequirement, flowAction] = updateExportData(payloadView, *pluginData);
 
 	return {
 		.constructionState = ConstructionState::Constructed,
@@ -295,11 +287,36 @@ PluginInitResult RTSPPlugin::onInit(const FlowContext& flowContext, void* plugin
 	};
 }
 
+PluginUpdateResult RTSPPlugin::beforeUpdate(const FlowContext& flowContext, void* pluginContext)
+{
+	auto pluginData = *reinterpret_cast<RTSPData*>(pluginContext);
+	std::string_view payload
+		= {reinterpret_cast<const char*>(flowContext.packet.payload),
+		   flowContext.packet.payload_len};
+
+	if (isRequest(payload) && pluginData.processingState.requestParsed) {
+		return {
+			.updateRequirement = UpdateRequirement::RequiresUpdate,
+			.flowAction = FlowAction::Flush};
+	}
+
+	if (isResponse(payload) && pluginData.processingState.responseParsed) {
+		return {
+			.updateRequirement = UpdateRequirement::RequiresUpdate,
+			.flowAction = FlowAction::Flush};
+	}
+
+	return {
+		.updateRequirement = UpdateRequirement::RequiresUpdate,
+		.flowAction = FlowAction::NoAction,
+	};
+}
+
 PluginUpdateResult RTSPPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = reinterpret_cast<RTSPData*>(pluginContext);
 	return updateExportData(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+		toStringView(flowContext.packet.payload, flowContext.packet.payload_len),
 		*pluginData);
 }
 

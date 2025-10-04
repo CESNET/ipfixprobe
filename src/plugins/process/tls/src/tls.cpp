@@ -93,12 +93,19 @@ TLSPlugin::TLSPlugin([[maybe_unused]] const std::string& params, FieldManager& m
 
 PluginInitResult TLSPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
+	auto payload
+		= toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len);
+	TLSParser parser;
+	if (!parser.parseHello(payload)) {
+		return {
+			.constructionState = ConstructionState::NotConstructed,
+			.updateRequirement = UpdateRequirement::RequiresUpdate,
+			.flowAction = FlowAction::NoAction,
+		};
+	}
+
 	auto* pluginData = std::construct_at(reinterpret_cast<TLSData*>(pluginContext));
-	parseTLS(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
-		flowContext.packet.ip_proto,
-		*pluginData,
-		flowContext.flowRecord);
+	parseTLS(payload, flowContext.packet.ip_proto, *pluginData, flowContext.flowRecord);
 
 	return {
 		.constructionState = ConstructionState::Constructed,

@@ -45,13 +45,14 @@ createMPLSSchema(FieldManager& fieldManager, FieldHandlers<MPLSFields>& handlers
 {
 	FieldGroup schema = fieldManager.createFieldGroup("mpls");
 
-	// TODO FIX
-	/*handlers.insert(MPLSFields::MPLS_TOP_LABEL_STACK_SECTION, schema.addVectorField(
-		"MPLS_TOP_LABEL_STACK_SECTION",
-		[](const void* context) { return toSpan<const std::byte>(reinterpret_cast<const uint8_t*>(
-				&reinterpret_cast<const MPLSData*>(context)->topLabel),
-				sizeof(uint32_t)); }
-	));*/
+	handlers.insert(
+		MPLSFields::MPLS_TOP_LABEL_STACK_SECTION,
+		schema.addVectorField("MPLS_TOP_LABEL_STACK_SECTION", [](const void* context) {
+			return toSpan<const std::byte>(
+				reinterpret_cast<const std::byte*>(
+					&reinterpret_cast<const MPLSData*>(context)->topLabel),
+				sizeof(uint32_t));
+		}));
 
 	return schema;
 }

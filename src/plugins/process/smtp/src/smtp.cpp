@@ -377,14 +377,19 @@ constexpr PluginUpdateResult SMTPPlugin::updateSMTPData(
 		};
 	}
 
-	return {
-		.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-		.flowAction = FlowAction::NoAction,
-	};
+	std::unreachable();
 }
 
 PluginInitResult SMTPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
+	constexpr uint16_t SMTP_PORT = 25;
+	if (flowContext.packet.src_port != SMTP_PORT && flowContext.packet.dst_port != SMTP_PORT) {
+		return {
+			.constructionState = ConstructionState::NotConstructed,
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction,
+		};
+	}
 	auto* pluginData = std::construct_at(reinterpret_cast<SMTPData*>(pluginContext));
 	auto [updateRequirement, flowAction] = updateSMTPData(
 		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),

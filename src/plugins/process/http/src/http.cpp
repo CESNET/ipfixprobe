@@ -165,48 +165,6 @@ void HTTPPlugin::saveParsedValues(
 	}
 }
 
-/*bool HTTPPlugin::parseHTTP(
-	std::span<const std::byte> payload, FlowRecord& flowRecord, HTTPData& httpData) noexcept
-{
-	HTTPParser parser;
-	parser.parse(payload);
-
-	if (!parser.method.has_value()) {
-		return {
-			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-			.flowAction = FlowAction::RemovePlugin,
-		};
-	}
-
-	if (parser.requestParsed && httpData.requestParsed) {
-		// Must be flush and reinsert ????
-		return {
-			.updateRequirement = UpdateRequirement::RequiresUpdate,
-			.flowAction = FlowAction::Flush,
-		};
-	}
-
-	if (parser.responseParsed && httpData.responseParsed) {
-		// Must be flush and reinsert ????
-		return {
-			.updateRequirement = UpdateRequirement::RequiresUpdate,
-			.flowAction = FlowAction::Flush,
-		};
-	}
-
-	if (httpData.requestParsed && httpData.responseParsed) {
-		return {
-			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-			.flowAction = FlowAction::NoAction,
-		};
-	}
-
-	return {
-		.updateRequirement = UpdateRequirement::RequiresUpdate,
-		.flowAction = FlowAction::NoAction,
-	};
-}*/
-
 PluginInitResult HTTPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	HTTPParser parser;
@@ -222,9 +180,7 @@ PluginInitResult HTTPPlugin::onInit(const FlowContext& flowContext, void* plugin
 
 	auto* pluginData = std::construct_at(reinterpret_cast<HTTPData*>(pluginContext));
 	saveParsedValues(parser, flowContext.flowRecord, *pluginData);
-	/*auto [updateRequirement, flowAction] = parseHTTP(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
-	   flowContext.flowRecord, *pluginData);*/
+
 	return {
 		.constructionState = ConstructionState::Constructed,
 		.updateRequirement = UpdateRequirement::RequiresUpdate,
@@ -242,6 +198,23 @@ PluginUpdateResult HTTPPlugin::beforeUpdate(const FlowContext& flowContext, void
 		};
 	}
 
+	HTTPParser parser;
+	parser.parse(
+		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len));
+	if (parser.requestParsed && pluginData->requestParsed) {
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::Flush,
+		};
+	}
+
+	if (parser.responseParsed && pluginData->responseParsed) {
+		return {
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::Flush,
+		};
+	}
+
 	return {
 		.updateRequirement = UpdateRequirement::RequiresUpdate,
 		.flowAction = FlowAction::NoAction,
@@ -254,12 +227,7 @@ PluginUpdateResult HTTPPlugin::onUpdate(const FlowContext& flowContext, void* pl
 	HTTPParser parser;
 	parser.parse(
 		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len));
-	if (pluginData->requestParsed && pluginData->responseParsed) {
-		return {
-			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
-			.flowAction = FlowAction::NoAction,
-		};
-	}
+	saveParsedValues(parser, flowContext.flowRecord, *pluginData);
 
 	return {
 		.updateRequirement = UpdateRequirement::RequiresUpdate,

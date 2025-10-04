@@ -56,13 +56,23 @@ public:
 	PluginInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
 
 	/**
+	 * @brief Called before the main per-packet update.
+	 *
+	 * If a new request or response is parsed and the respective one was already seen,
+	 * the flow is flushed and then reinserted.
+	 *
+	 * @param flowContext Contextual information about the flow to be updated.
+	 * @param pluginContext Pointer to `RTSPData`.
+	 * @return Result of the pre-update.
+	 */
+	PluginUpdateResult beforeUpdate(const FlowContext& flowContext, void* pluginContext) override;
+
+	/**
 	 * @brief Updates plugin data with values from new packet.
 	 *
 	 * Updates `RTSPData` with parsed RTSP values.
 	 * Skip consequent packets if RTSP parsing fails or both request and response are already
-	 * parsed. Flushes with reinsert if request has been parsed and incoming packet is request.
-	 * Flushes with reinsert if response has been parsed and incoming packet is response.
-	 *
+	 * parsed.
 	 * @param flowContext Contextual information about the flow to be updated.
 	 * @param pluginContext Pointer to `RTSPData`.
 	 * @return Result of the update.
@@ -85,7 +95,7 @@ private:
 	constexpr bool parseRequest(std::string_view payload, RTSPData& pluginData) noexcept;
 	constexpr bool parseResponse(std::string_view payload, RTSPData& pluginData) noexcept;
 	constexpr PluginUpdateResult
-	updateExportData(std::span<const std::byte> payload, RTSPData& pluginData) noexcept;
+	updateExportData(std::string_view payload, RTSPData& pluginData) noexcept;
 
 	FieldHandlers<RTSPFields> m_fieldHandlers;
 };
