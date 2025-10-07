@@ -543,9 +543,12 @@ int QUICPlugin::add_quic(Flow& rec, const Packet& pkt)
 	}
 	// Correct if QUIC has already been detected
 	if (!new_qptr && (ret == QUIC_NOT_DETECTED)) {
-		return QUIC_DETECTED;
+		return 0;
 	}
-	return ret;
+	if (ret == FLOW_FLUSH) {
+		return FLOW_FLUSH;
+	}
+	return 0;
 }
 
 void QUICPlugin::finish(bool print_stats)
