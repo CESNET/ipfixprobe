@@ -23,10 +23,7 @@ set_target_properties(ipfixprobe-storage-cache PROPERTIES
 
 target_include_directories(ipfixprobe-storage-cache PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
-)
-
-target_link_libraries(ipfixprobe-storage-cache PRIVATE
-	telemetry::telemetry
+	${telemetry_SOURCE_DIR}/include
 )
 
 install(TARGETS ipfixprobe-storage-cache

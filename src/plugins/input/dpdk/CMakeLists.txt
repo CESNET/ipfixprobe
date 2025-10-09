@@ -26,13 +26,13 @@ target_include_directories(ipfixprobe-input-dpdk PRIVATE
 	${DPDK_INCLUDE_DIRS}
 	${CMAKE_SOURCE_DIR}/include/
 	${CMAKE_SOURCE_DIR}/src/plugins/input/parser
+	${telemetry_SOURCE_DIR}/include
 )
 
 target_compile_options(ipfixprobe-input-dpdk PRIVATE ${DPDK_CFLAGS_OTHER})
 target_compile_options(ipfixprobe-input-dpdk PRIVATE -Wno-volatile -Wno-pedantic)
 
 target_link_libraries(ipfixprobe-input-dpdk PRIVATE
-	telemetry::telemetry
 	${DPDK_LIBRARIES}
 )
 

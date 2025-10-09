@@ -18,12 +18,12 @@ set_target_properties(ipfixprobe-input-nfb PROPERTIES
 target_include_directories(ipfixprobe-input-nfb PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
 	${CMAKE_SOURCE_DIR}/src/plugins/input/parser
+	${telemetry_SOURCE_DIR}/include
 )
 
 target_link_libraries(ipfixprobe-input-nfb PRIVATE
 	nfb::nfb
 	numa::numa
-	telemetry::telemetry
 )
 
 install(TARGETS ipfixprobe-input-nfb
