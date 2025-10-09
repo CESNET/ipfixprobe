@@ -15,6 +15,7 @@ target_include_directories(ipfixprobe-input-pcap PRIVATE
 	${PCAP_INCLUDE_DIRS}
 	${CMAKE_SOURCE_DIR}/include/
 	${CMAKE_SOURCE_DIR}/src/plugins/input/parser
+	${telemetry_SOURCE_DIR}/include
 )
 
 target_compile_definitions(ipfixprobe-input-pcap PRIVATE
@@ -23,7 +24,6 @@ target_compile_definitions(ipfixprobe-input-pcap PRIVATE
 
 target_link_libraries(ipfixprobe-input-pcap PRIVATE
 	${PCAP_LIBRARIES}
-	telemetry::telemetry
 )
 
 install(TARGETS ipfixprobe-input-pcap

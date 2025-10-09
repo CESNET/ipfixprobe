@@ -15,10 +15,7 @@ set_target_properties(ipfixprobe-input-raw PROPERTIES
 target_include_directories(ipfixprobe-input-raw PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
 	${CMAKE_SOURCE_DIR}/src/plugins/input/parser
-)
-
-target_link_libraries(ipfixprobe-input-raw PRIVATE
-	telemetry::telemetry
+	${telemetry_SOURCE_DIR}/include
 )
 
 install(TARGETS ipfixprobe-input-raw
