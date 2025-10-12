@@ -86,16 +86,20 @@ QUICParser::parseHandshake(std::span<const std::byte> payload) noexcept
 std::optional<std::size_t> QUICParser::parseInitial(
 	std::span<const std::byte> payload,
 	std::span<const uint8_t> currentDCID,
-	std::span<const uint8_t> initialDCID,
+	const std::optional<ConnectionId>& initialDCID,
 	const std::byte headerForm,
 	std::span<const std::byte> salt,
 	const QUICVersion version) noexcept
 {
 	initialHeaderView
 		= QUICInitialHeaderView::createFrom(payload, headerForm, salt, currentDCID, version);
-	if (!initialHeaderView.has_value()) {
-		initialHeaderView
-			= QUICInitialHeaderView::createFrom(payload, headerForm, salt, initialDCID, version);
+	if (!initialHeaderView.has_value() && initialDCID.has_value()) {
+		initialHeaderView = QUICInitialHeaderView::createFrom(
+			payload,
+			headerForm,
+			salt,
+			toSpan<const uint8_t>(*initialDCID),
+			version);
 		if (!initialHeaderView.has_value()) {
 			return std::nullopt;
 		}
@@ -115,7 +119,7 @@ std::optional<std::size_t> QUICParser::parseInitial(
 
 bool QUICParser::parse(
 	std::span<const std::byte> payload,
-	const ConnectionId& initialConnectionId,
+	const std::optional<ConnectionId>& initialConnectionId,
 	const uint8_t l4Protocol) noexcept
 {
 	// Handle coalesced packets
@@ -151,7 +155,7 @@ bool QUICParser::parse(
 			secondaryHeaderSize = parseInitial(
 				payload,
 				headerView->destinationConnectionId,
-				toSpan<const uint8_t>(initialConnectionId),
+				initialConnectionId,
 				headerView->headerForm,
 				*salt,
 				*headerView->version);

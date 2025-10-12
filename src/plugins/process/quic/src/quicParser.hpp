@@ -84,7 +84,7 @@ public:
 
 	bool parse(
 		std::span<const std::byte> payload,
-		const ConnectionId& initialConnectionId,
+		const std::optional<ConnectionId>& initialConnectionId,
 		const uint8_t l4Protocol) noexcept;
 
 private:
@@ -97,8 +97,8 @@ private:
 
 	std::optional<std::size_t> parseInitial(
 		std::span<const std::byte> payload,
-		std::span<const uint8_t> currentDCID,
-		std::span<const uint8_t> initialDCID,
+		const std::span<const uint8_t> currentDCID,
+		const std::optional<ConnectionId>& initialDCID,
 		const std::byte headerForm,
 		std::span<const std::byte> salt,
 		const QUICVersion version) noexcept;

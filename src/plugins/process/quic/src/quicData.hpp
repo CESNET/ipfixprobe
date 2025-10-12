@@ -60,7 +60,7 @@ struct QUICData {
 	struct {
 		QUICTemporalStorage temporalCIDStorage;
 		std::size_t retryPacketCount = 0;
-		ConnectionId initialConnectionId;
+		std::optional<ConnectionId> initialConnectionId;
 	} processingState;
 };
 

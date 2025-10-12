@@ -190,7 +190,8 @@ void QUICPlugin::processInitial(
 	const QUICInitialHeaderView& initialHeaderView,
 	QUICData& pluginData) noexcept
 {
-	pluginData.processingState.initialConnectionId.assign(
+	pluginData.processingState.initialConnectionId = ConnectionId();
+	pluginData.processingState.initialConnectionId->assign(
 		initialHeaderView.destinationConnectionId.begin(),
 		initialHeaderView.destinationConnectionId.end());
 	if (quicDirection.has_value()
@@ -268,7 +269,8 @@ constexpr void QUICPlugin::parseRetry(
 	 */
 	// Additionally set token len
 	pluginData.retrySourceId.assign(sourceConnectionId.begin(), sourceConnectionId.end());
-	pluginData.processingState.initialConnectionId.assign(
+	pluginData.processingState.initialConnectionId = ConnectionId();
+	pluginData.processingState.initialConnectionId->assign(
 		destinationConnectionId.begin(),
 		destinationConnectionId.end());
 	pluginData.quicTokenLength = 16; // ?????????
@@ -406,8 +408,7 @@ PluginInitResult QUICPlugin::onInit(const FlowContext& flowContext, void* plugin
 	QUICParser quicParser;
 	const bool quicParsed = quicParser.parse(
 		getPayload(flowContext.packet),
-		// pluginData.processingState.initialConnectionId,
-		ConnectionId(), // TODO FIX
+		std::nullopt,
 		flowContext.flowRecord.flowKey.l4Protocol);
 	if (!quicParsed) {
 		return {
