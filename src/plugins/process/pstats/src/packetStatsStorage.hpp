@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <amon/types/Timestamp.hpp>
 #include <boost/container/static_vector.hpp>
 #include <tcpFlags.hpp>
 #include <timestamp.hpp>
@@ -29,7 +30,7 @@ struct PacketStatsStorage {
 	set(const uint8_t pos,
 		const uint16_t length,
 		const TCPFlags flags,
-		const Timestamp timestamp,
+		const amon::types::Timestamp timestamp,
 		const int8_t direction) noexcept
 	{
 		lengths[pos] = length;
@@ -45,7 +46,7 @@ struct PacketStatsStorage {
 	std::array<TCPFlags, Size> tcpFlags;
 
 	/// Storage for timestamps of the packets.
-	std::array<Timestamp, Size> timestamps;
+	std::array<amon::types::Timestamp, Size> timestamps;
 
 	/// Storage for directions of the packets.
 	std::array<int8_t, Size> directions;

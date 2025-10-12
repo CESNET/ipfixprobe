@@ -84,7 +84,7 @@ PacketStatsPlugin::PacketStatsPlugin(
 PluginInitResult PacketStatsPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = std::construct_at(reinterpret_cast<PacketStatsData*>(pluginContext));
-	updatePacketsData(flowContext.packet, *pluginData);
+	updatePacketsData(flowContext.packet, flowContext.features, *pluginData);
 
 	return {
 		.constructionState = ConstructionState::Constructed,
@@ -96,7 +96,7 @@ PluginInitResult PacketStatsPlugin::onInit(const FlowContext& flowContext, void*
 PluginUpdateResult PacketStatsPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = reinterpret_cast<PacketStatsData*>(pluginContext);
-	updatePacketsData(flowContext.packet, *pluginData);
+	updatePacketsData(flowContext.packet, flowContext.features, *pluginData);
 
 	return {
 		.updateRequirement = UpdateRequirement::RequiresUpdate,
@@ -137,29 +137,32 @@ constexpr static bool isSequenceOverflowed(const uint32_t currentValue, const ui
 	return static_cast<int64_t>(prevValue) - static_cast<int64_t>(currentValue) > MAX_DIFF;
 }
 
-static bool isDuplicate(const Packet& packet, const PacketStatsData& pluginData) noexcept
+static bool isDuplicate(
+	const amon::Packet& packet,
+	const PacketFeatures& features,
+	const PacketStatsData& pluginData) noexcept
 {
-	constexpr std::size_t TCP = 6;
-	if (packet.ip_proto != TCP) {
+	if (features.tcp.has_value()) {
 		return false;
 	}
 
 	// Current seq <= previous ack?
-	const bool suspiciousSequence = packet.tcp_seq
-			<= pluginData.processingState.lastSequence[packet.source_pkt]
-		&& !isSequenceOverflowed(packet.tcp_seq,
-								 pluginData.processingState.lastSequence[packet.source_pkt]);
+	const bool suspiciousSequence = features.tcpSequence
+			<= pluginData.processingState.lastSequence[features.direction]
+		&& !isSequenceOverflowed(features.tcpSequence,
+								 pluginData.processingState.lastSequence[features.direction]);
 
 	// Current ack <= previous ack?
-	const bool suspiciousAcknowledgment = packet.tcp_ack
-			<= pluginData.processingState.lastAcknowledgment[packet.source_pkt]
-		&& !isSequenceOverflowed(packet.tcp_ack,
-								 pluginData.processingState.lastAcknowledgment[packet.source_pkt]);
+	const bool suspiciousAcknowledgment = features.tcpAcknowledgment
+			<= pluginData.processingState.lastAcknowledgment[features.direction]
+		&& !isSequenceOverflowed(features.tcpAcknowledgment,
+								 pluginData.processingState.lastAcknowledgment[features.direction]);
 
 	if (suspiciousSequence && suspiciousAcknowledgment
 		&& pluginData.processingState.currentStorageSize != 0
-		&& packet.payload_len == pluginData.processingState.lastLength[packet.source_pkt]
-		&& TCPFlags(packet.tcp_flags) == pluginData.processingState.lastFlags[packet.source_pkt]) {
+		&& features.ipPayloadLength == pluginData.processingState.lastLength[features.direction]
+		&& TCPFlags(features.tcp->flags())
+			== pluginData.processingState.lastFlags[features.direction]) {
 		return true;
 	}
 
@@ -167,19 +170,20 @@ static bool isDuplicate(const Packet& packet, const PacketStatsData& pluginData)
 }
 
 void PacketStatsPlugin::updatePacketsData(
-	const Packet& packet,
+	const amon::Packet& packet,
+	const PacketFeatures& features,
 	PacketStatsData& pluginData) noexcept
 {
-	if (m_skipDuplicates && isDuplicate(packet, pluginData)) {
+	if (m_skipDuplicates && isDuplicate(packet, features, pluginData)) {
 		return;
 	}
 
-	pluginData.processingState.lastSequence[packet.source_pkt] = packet.tcp_seq;
-	pluginData.processingState.lastAcknowledgment[packet.source_pkt] = packet.tcp_ack;
-	pluginData.processingState.lastLength[packet.source_pkt] = packet.payload_len;
-	pluginData.processingState.lastFlags[packet.source_pkt] = TCPFlags(packet.tcp_flags);
+	pluginData.processingState.lastSequence[features.direction] = features.tcpSequence;
+	pluginData.processingState.lastAcknowledgment[features.direction] = features.tcpAcknowledgment;
+	pluginData.processingState.lastLength[features.direction] = features.ipPayloadLength;
+	pluginData.processingState.lastFlags[features.direction] = TCPFlags(features.tcp->flags());
 
-	if (packet.packet_len == 0 && !m_countEmptyPackets) {
+	if (features.ipPayloadLength == 0 && !m_countEmptyPackets) {
 		return;
 	}
 
@@ -194,10 +198,10 @@ void PacketStatsPlugin::updatePacketsData(
 		[&](auto& storage) {
 			storage->set(
 				pluginData.processingState.currentStorageSize++,
-				static_cast<uint16_t>(packet.payload_len_wire),
-				TCPFlags(packet.tcp_flags),
-				packet.ts,
-				packet.source_pkt ? 1 : -1);
+				static_cast<uint16_t>(features.ipPayloadLength),
+				TCPFlags(features.tcp->flags()),
+				packet.timestamp,
+				features.direction ? 1 : -1);
 		},
 		pluginData.storage);
 }

@@ -405,7 +405,7 @@ PluginInitResult QUICPlugin::onInit(const FlowContext& flowContext, void* plugin
 {
 	QUICParser quicParser;
 	const bool quicParsed = quicParser.parse(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+		getPayload(flowContext.packet),
 		// pluginData.processingState.initialConnectionId,
 		ConnectionId(), // TODO FIX
 		flowContext.flowRecord.flowKey.l4Protocol);
@@ -417,8 +417,11 @@ PluginInitResult QUICPlugin::onInit(const FlowContext& flowContext, void* plugin
 	}
 
 	auto* pluginData = std::construct_at(reinterpret_cast<QUICData*>(pluginContext));
-	auto [updateRequirement, flowAction]
-		= parseQUIC(flowContext.flowRecord, quicParser, flowContext.packet.source_pkt, *pluginData);
+	auto [updateRequirement, flowAction] = parseQUIC(
+		flowContext.flowRecord,
+		quicParser,
+		flowContext.features.direction,
+		*pluginData);
 	return {
 		.constructionState = ConstructionState::Constructed,
 		.updateRequirement = updateRequirement,
@@ -431,7 +434,7 @@ PluginUpdateResult QUICPlugin::onUpdate(const FlowContext& flowContext, void* pl
 	auto* pluginData = reinterpret_cast<QUICData*>(pluginContext);
 	QUICParser quicParser;
 	const bool quicParsed = quicParser.parse(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+		getPayload(flowContext.packet),
 		pluginData->processingState.initialConnectionId,
 		flowContext.flowRecord.flowKey.l4Protocol);
 	if (!quicParsed) {
@@ -444,7 +447,7 @@ PluginUpdateResult QUICPlugin::onUpdate(const FlowContext& flowContext, void* pl
 	return parseQUIC(
 		flowContext.flowRecord,
 		quicParser,
-		flowContext.packet.source_pkt,
+		flowContext.features.direction,
 		*pluginData);
 }
 

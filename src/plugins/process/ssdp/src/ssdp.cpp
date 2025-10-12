@@ -190,7 +190,7 @@ constexpr void SSDPPlugin::parseSSDP(
 PluginInitResult SSDPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	constexpr std::size_t SSDP_PORT = 1900;
-	if (flowContext.packet.dst_port != SSDP_PORT) {
+	if (flowContext.flowRecord.flowKey.dstPort != SSDP_PORT) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -199,10 +199,7 @@ PluginInitResult SSDPPlugin::onInit(const FlowContext& flowContext, void* plugin
 	}
 
 	auto* pluginData = std::construct_at(reinterpret_cast<SSDPData*>(pluginContext));
-	parseSSDP(
-		toStringView(flowContext.packet.payload, flowContext.packet.payload_len),
-		*pluginData,
-		flowContext.flowRecord);
+	parseSSDP(toStringView(getPayload(flowContext.packet)), *pluginData, flowContext.flowRecord);
 
 	return {
 		.constructionState = ConstructionState::Constructed,
@@ -215,9 +212,10 @@ PluginUpdateResult SSDPPlugin::onUpdate(const FlowContext& flowContext, void* pl
 {
 	auto* pluginData = reinterpret_cast<SSDPData*>(pluginContext);
 	constexpr std::size_t SSDP_PORT = 1900;
-	if (flowContext.packet.dst_port == SSDP_PORT) {
+	if (flowContext.features.direction ? flowContext.flowRecord.flowKey.dstPort == SSDP_PORT
+									   : flowContext.flowRecord.flowKey.srcPort == SSDP_PORT) {
 		parseSSDP(
-			toStringView(flowContext.packet.payload, flowContext.packet.payload_len),
+			toStringView(getPayload(flowContext.packet)),
 			*pluginData,
 			flowContext.flowRecord);
 	}

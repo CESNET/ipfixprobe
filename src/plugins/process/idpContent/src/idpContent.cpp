@@ -70,27 +70,28 @@ IDPContentPlugin::IDPContentPlugin(
 
 UpdateRequirement IDPContentPlugin::updateContent(
 	FlowRecord& flowRecord,
-	const Packet& packet,
+	const amon::Packet& packet,
+	const PacketFeatures& features,
 	IDPContentData& pluginData) noexcept
 {
 	// Check zero-packets and be sure, that the exported content is from both directions
-	if (pluginData.directionalContent[packet.source_pkt].has_value()) {
-		return pluginData.directionalContent[static_cast<Direction>(!packet.source_pkt)].has_value()
+	if (pluginData.directionalContent[features.direction].has_value()) {
+		return pluginData.directionalContent[!features.direction].has_value()
 			? UpdateRequirement::NoUpdateNeeded
 			: UpdateRequirement::RequiresUpdate;
 	}
 
-	if (packet.payload_len == 0) {
+	if (features.ipPayloadLength == 0) {
 		return UpdateRequirement::RequiresUpdate;
 	}
 
 	const std::size_t sizeToSave
-		= std::min<size_t>(IDPContentData::MAX_CONTENT_LENGTH, packet.payload_len);
-	pluginData.directionalContent[packet.source_pkt] = std::make_optional<IDPContentData::Content>(
-		reinterpret_cast<const std::byte*>(packet.payload),
-		reinterpret_cast<const std::byte*>(packet.payload) + sizeToSave);
+		= std::min<size_t>(IDPContentData::MAX_CONTENT_LENGTH, features.ipPayloadLength);
+	std::span<const std::byte> payload = getPayload(packet);
+	pluginData.directionalContent[features.direction]
+		= std::make_optional<IDPContentData::Content>(payload.data(), payload.data() + sizeToSave);
 	m_fieldHandlers
-		[packet.source_pkt ? IDPContentFields::IDP_CONTENT : IDPContentFields::IDP_CONTENT_REV]
+		[features.direction ? IDPContentFields::IDP_CONTENT : IDPContentFields::IDP_CONTENT_REV]
 			.setAsAvailable(flowRecord);
 
 	return UpdateRequirement::RequiresUpdate;
@@ -99,8 +100,11 @@ UpdateRequirement IDPContentPlugin::updateContent(
 PluginInitResult IDPContentPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = std::construct_at(reinterpret_cast<IDPContentData*>(pluginContext));
-	UpdateRequirement updateRequirement
-		= updateContent(flowContext.flowRecord, flowContext.packet, *pluginData);
+	UpdateRequirement updateRequirement = updateContent(
+		flowContext.flowRecord,
+		flowContext.packet,
+		flowContext.features,
+		*pluginData);
 	return {
 		.constructionState = ConstructionState::Constructed,
 		.updateRequirement = updateRequirement,
@@ -111,8 +115,11 @@ PluginInitResult IDPContentPlugin::onInit(const FlowContext& flowContext, void* 
 PluginUpdateResult IDPContentPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = reinterpret_cast<IDPContentData*>(pluginContext);
-	UpdateRequirement updateRequirement
-		= updateContent(flowContext.flowRecord, flowContext.packet, *pluginData);
+	UpdateRequirement updateRequirement = updateContent(
+		flowContext.flowRecord,
+		flowContext.packet,
+		flowContext.features,
+		*pluginData);
 	return {
 		.updateRequirement = updateRequirement,
 		.flowAction = FlowAction::NoAction,

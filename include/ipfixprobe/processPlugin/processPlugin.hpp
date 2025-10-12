@@ -14,9 +14,15 @@
 
 #pragma once
 
-#include <cstdint>
-#include "fieldManager.hpp"
 #include "../api.hpp"
+#include "fieldManager.hpp"
+#include "tcpOptions.hpp"
+
+#include <cstdint>
+#include <optional>
+
+#include <amon/Packet.hpp>
+#include <amon/layers/TCP.hpp>
 
 namespace ipxp {
 
@@ -24,8 +30,25 @@ namespace ipxp {
  * @brief Forward declarations for packet processing classes.
  */
 class FlowRecord;
-class Packet;
-class PacketFeatures{};
+// class Packet;
+struct PacketFeatures {
+	Direction direction;
+
+	std::optional<amon::layers::TCPView> tcp;
+	std::optional<TCPOptions> tcpOptions;
+	uint16_t ipPayloadLength {0};
+
+	// TODO TCP view does not provide seq/ack getters
+	uint32_t tcpSequence {0};
+	uint32_t tcpAcknowledgment {0};
+};
+
+// TODO remove?
+constexpr std::span<const std::byte> getPayload(const amon::Packet& packet) noexcept
+{
+	return packet.data.subspan(
+		std::get<amon::PacketLayer>(packet.layers[*packet.layout.l7]).offset);
+}
 
 /**
  * @brief Context passed to plugin methods, containing references to flow and packet.
@@ -37,7 +60,7 @@ struct FlowContext {
 	/**< Reference to the flow record being processed. */
 	FlowRecord& flowRecord;
 	/**< Reference to the current packet being processed. */
-	Packet& packet;
+	amon::Packet& packet;
 	/**< Reference to extracted features of the current packet. */
 	PacketFeatures& features;
 };

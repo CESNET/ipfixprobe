@@ -18,6 +18,8 @@
 
 #include <iostream>
 
+#include <amon/layers/ICMP.hpp>
+#include <amon/layers/ICMPv6.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <ipfixprobe/options.hpp>
@@ -62,14 +64,15 @@ PluginInitResult ICMPPlugin::onInit(const FlowContext& flowContext, void* plugin
 	constexpr uint16_t ICMP_PROTO = 1;
 	constexpr uint16_t ICMPV6_PROTO = 58;
 
-	if (flowContext.packet.ip_proto != ICMP_PROTO && flowContext.packet.ip_proto != ICMPV6_PROTO) {
+	if (flowContext.packet.getLayerView<amon::layers::ICMPView>().has_value()
+		&& flowContext.packet.getLayerView<amon::layers::ICMPv6View>().has_value()) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
 			.flowAction = FlowAction::RemovePlugin,
 		};
 	}
-	if (flowContext.packet.payload_len < sizeof(ICMPData::typeCode)) {
+	if (flowContext.features.ipPayloadLength < sizeof(ICMPData::typeCode)) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::RequiresUpdate,
@@ -80,7 +83,7 @@ PluginInitResult ICMPPlugin::onInit(const FlowContext& flowContext, void* plugin
 	// the type and code are the first two bytes, type on MSB and code on LSB
 	// in the network byte order
 	std::construct_at(reinterpret_cast<ICMPData*>(pluginContext))->typeCode
-		= *reinterpret_cast<const uint16_t*>(flowContext.packet.payload);
+		= *reinterpret_cast<const uint16_t*>(getPayload(flowContext.packet).data());
 	m_fieldHandlers[ICMPFields::L4_ICMP_TYPE_CODE].setAsAvailable(flowContext.flowRecord);
 
 	return {

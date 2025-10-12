@@ -68,13 +68,10 @@ NetBIOSPlugin::NetBIOSPlugin([[maybe_unused]] const std::string& params, FieldMa
 PluginInitResult NetBIOSPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	constexpr uint8_t NETBIOS_PORT = 137;
-	if (flowContext.packet.src_port == NETBIOS_PORT
-		|| flowContext.packet.dst_port == NETBIOS_PORT) {
+	if (flowContext.flowRecord.flowKey.srcPort == NETBIOS_PORT
+		|| flowContext.flowRecord.flowKey.dstPort == NETBIOS_PORT) {
 		auto* pluginData = std::construct_at(reinterpret_cast<NetBIOSData*>(pluginContext));
-		parseNetBIOS(
-			flowContext.flowRecord,
-			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
-			*pluginData);
+		parseNetBIOS(flowContext.flowRecord, getPayload(flowContext.packet), *pluginData);
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,

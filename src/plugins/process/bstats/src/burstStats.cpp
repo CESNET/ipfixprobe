@@ -65,7 +65,7 @@ createBurstStatsSchema(FieldManager& fieldManager, FieldHandlers<BurstStatsField
 	handlers.insert(BurstStatsFields::SBI_BRST_BYTES, sourceBytesField);
 	handlers.insert(BurstStatsFields::DBI_BRST_BYTES, destBytesField);
 
-	auto [sourceTimeStartField, destTimeStartField] = schema.addVectorDirectionalFields(
+	/*auto [sourceTimeStartField, destTimeStartField] = schema.addVectorDirectionalFields(
 		"SBI_BRST_TIME_START",
 		"DBI_BRST_TIME_START",
 		[](const void* context) {
@@ -92,7 +92,7 @@ createBurstStatsSchema(FieldManager& fieldManager, FieldHandlers<BurstStatsField
 		});
 	handlers.insert(BurstStatsFields::SBI_BRST_TIME_STOP, sourceTimeStopField);
 	handlers.insert(BurstStatsFields::DBI_BRST_TIME_STOP, destTimeStopField);
-
+*/
 	return schema;
 }
 
@@ -108,7 +108,7 @@ PluginInitResult BurstStatsPlugin::onInit(const FlowContext& flowContext, void* 
 	auto* pluginData = std::construct_at(reinterpret_cast<BurstStatsData*>(pluginContext));
 
 	std::optional<Burst> burst = pluginData->push(Direction::Forward);
-	updateBursts(*burst, flowContext.packet);
+	updateBursts(*burst, flowContext.packet, flowContext.features);
 
 	return {
 		.constructionState = ConstructionState::Constructed,
@@ -117,13 +117,16 @@ PluginInitResult BurstStatsPlugin::onInit(const FlowContext& flowContext, void* 
 	};
 }
 
-void BurstStatsPlugin::updateBursts(Burst& burst, const Packet& packet) noexcept
+void BurstStatsPlugin::updateBursts(
+	Burst& burst,
+	const amon::Packet& packet,
+	const PacketFeatures& features) noexcept
 {
 	burst.packets++;
-	burst.bytes += packet.ip_payload_len;
-	burst.end.get() = packet.ts;
+	burst.bytes += features.ipPayloadLength;
+	burst.end.get() = packet.timestamp;
 	if (burst.packets == 1) {
-		burst.start.get() = packet.ts;
+		burst.start.get() = packet.timestamp;
 	}
 }
 
@@ -131,9 +134,9 @@ PluginUpdateResult BurstStatsPlugin::onUpdate(const FlowContext& flowContext, vo
 {
 	auto* pluginData = reinterpret_cast<BurstStatsData*>(pluginContext);
 
-	std::optional<Burst> burst = pluginData->back(flowContext.packet.source_pkt);
-	if (!burst.has_value() || !burst->belongs(flowContext.packet.ts)) {
-		burst = pluginData->push(flowContext.packet.source_pkt);
+	std::optional<Burst> burst = pluginData->back(flowContext.features.direction);
+	if (!burst.has_value() || !burst->belongs(flowContext.packet.timestamp)) {
+		burst = pluginData->push(flowContext.features.direction);
 	}
 	if (!burst.has_value()) {
 		return {
@@ -142,7 +145,7 @@ PluginUpdateResult BurstStatsPlugin::onUpdate(const FlowContext& flowContext, vo
 		};
 	}
 
-	updateBursts(*burst, flowContext.packet);
+	updateBursts(*burst, flowContext.packet, flowContext.features);
 
 	return {
 		.updateRequirement = UpdateRequirement::RequiresUpdate,

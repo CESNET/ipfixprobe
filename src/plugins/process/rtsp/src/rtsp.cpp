@@ -316,9 +316,7 @@ PluginUpdateResult RTSPPlugin::beforeUpdate(const FlowContext& flowContext, void
 PluginUpdateResult RTSPPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = reinterpret_cast<RTSPData*>(pluginContext);
-	return updateExportData(
-		toStringView(flowContext.packet.payload, flowContext.packet.payload_len),
-		*pluginData);
+	return updateExportData(toStringView(getPayload(flowContext.packet)), *pluginData);
 }
 
 void RTSPPlugin::onDestroy(void* pluginContext)

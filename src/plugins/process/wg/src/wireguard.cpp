@@ -76,9 +76,7 @@ WireguardPlugin::WireguardPlugin([[maybe_unused]] const std::string& params, Fie
 
 PluginInitResult WireguardPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	// TODO DISSECTOR VALUE
-	constexpr uint8_t UDP = 17;
-	if (flowContext.packet.ip_proto != UDP) {
+	if (!flowContext.packet.getLayerView<amon::layers::UDPView>().has_value()) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -88,8 +86,8 @@ PluginInitResult WireguardPlugin::onInit(const FlowContext& flowContext, void* p
 
 	auto* pluginData = std::construct_at(reinterpret_cast<WireguardData*>(pluginContext));
 	auto [updateRequirement, flowAction] = parseWireguard(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
-		flowContext.packet.source_pkt,
+		getPayload(flowContext.packet),
+		flowContext.features.direction,
 		*pluginData,
 		flowContext.flowRecord);
 	return {
@@ -103,8 +101,8 @@ PluginUpdateResult WireguardPlugin::onUpdate(const FlowContext& flowContext, voi
 {
 	auto* pluginData = reinterpret_cast<WireguardData*>(pluginContext);
 	return parseWireguard(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
-		flowContext.packet.source_pkt,
+		getPayload(flowContext.packet),
+		flowContext.features.direction,
 		*pluginData,
 		flowContext.flowRecord);
 }

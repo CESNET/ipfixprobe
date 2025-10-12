@@ -14,6 +14,8 @@
 
 #include "basicPlus.hpp"
 
+#include "tcpOptions.hpp"
+
 #include <iostream>
 
 #include <fieldGroup.hpp>
@@ -38,6 +40,8 @@ static const PluginManifest basicPlusPluginManifest = {
 			parser.usage(std::cout);
 		},
 };
+
+#undef IP_TTL
 
 static FieldGroup
 createBasicPlusSchema(FieldManager& fieldManager, FieldHandlers<BasicPlusFields>& handlers)
@@ -120,18 +124,31 @@ BasicPlusPlugin::BasicPlusPlugin(
 	createBasicPlusSchema(fieldManager, m_fieldHandlers);
 }
 
+uint8_t getTTL(const amon::Packet& packet) noexcept
+{
+	if (auto ipv4 = packet.getLayerView<amon::IPv4View>()) {
+		return ipv4->ttl();
+	} else if (auto ipv6 = packet.getLayerView<amon::IPv6View>()) {
+		return ipv6->hopLimit();
+	}
+
+	std::unreachable();
+}
+
 PluginInitResult BasicPlusPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = std::construct_at(reinterpret_cast<BasicPlusData*>(pluginContext));
 
-	pluginData->ipTTL[Direction::Forward] = flowContext.packet.ip_ttl;
+	pluginData->ipTTL[Direction::Forward] = getTTL(flowContext.packet);
 	m_fieldHandlers[BasicPlusFields::IP_TTL].setAsAvailable(flowContext.flowRecord);
 
-	pluginData->ipFlag[Direction::Forward] = flowContext.packet.ip_flags;
-	m_fieldHandlers[BasicPlusFields::IP_FLG].setAsAvailable(flowContext.flowRecord);
+	if (auto ipv4 = flowContext.packet.getLayerView<amon::layers::IPv4View>(); ipv4.has_value()) {
+		pluginData->ipFlag[Direction::Forward] = ipv4->ipFlags();
+		m_fieldHandlers[BasicPlusFields::IP_FLG].setAsAvailable(flowContext.flowRecord);
+	}
 
 	constexpr std::size_t TCP = 6;
-	if (flowContext.packet.ip_proto != TCP) {
+	if (flowContext.flowRecord.flowKey.l4Protocol != TCP) {
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = UpdateRequirement::RequiresUpdate,
@@ -139,17 +156,35 @@ PluginInitResult BasicPlusPlugin::onInit(const FlowContext& flowContext, void* p
 		};
 	}
 
-	pluginData->tcpWindow[Direction::Forward] = flowContext.packet.tcp_window;
+	if (!flowContext.features.tcp.has_value()) {
+		return {
+			.constructionState = ConstructionState::Constructed,
+			.updateRequirement = UpdateRequirement::RequiresUpdate,
+			.flowAction = FlowAction::NoAction,
+		};
+	}
+
+	pluginData->tcpWindow[Direction::Forward] = flowContext.features.tcp->window();
 	m_fieldHandlers[BasicPlusFields::TCP_WIN].setAsAvailable(flowContext.flowRecord);
 
-	pluginData->tcpOption[Direction::Forward] = flowContext.packet.tcp_options;
+	if (flowContext.features.tcpOptions.has_value()) {
+		return {
+			.constructionState = ConstructionState::Constructed,
+			.updateRequirement = UpdateRequirement::RequiresUpdate,
+			.flowAction = FlowAction::NoAction,
+		};
+	}
+
+	pluginData->tcpOption[Direction::Forward] = flowContext.features.tcpOptions->ipfixCumulative;
 	m_fieldHandlers[BasicPlusFields::TCP_OPT].setAsAvailable(flowContext.flowRecord);
 
-	pluginData->tcpMSS[Direction::Forward] = flowContext.packet.tcp_mss;
-	m_fieldHandlers[BasicPlusFields::TCP_MSS].setAsAvailable(flowContext.flowRecord);
+	if (!flowContext.features.tcpOptions->mss.has_value()) {
+		pluginData->tcpMSS[Direction::Forward] = *flowContext.features.tcpOptions->mss;
+		m_fieldHandlers[BasicPlusFields::TCP_MSS].setAsAvailable(flowContext.flowRecord);
+	}
 
-	if (TCPFlags(flowContext.packet.tcp_flags).bitfields.synchronize) { // check if SYN packet
-		pluginData->tcpSynSize = flowContext.packet.ip_len;
+	if (TCPFlags(flowContext.features.tcp->flags()).bitfields.synchronize) { // check if SYN packet
+		pluginData->tcpSynSize = flowContext.flowRecord.directionalData[Direction::Forward].bytes;
 		m_fieldHandlers[BasicPlusFields::TCP_SYN_SIZE].setAsAvailable(flowContext.flowRecord);
 	}
 
@@ -164,40 +199,50 @@ PluginUpdateResult BasicPlusPlugin::onUpdate(const FlowContext& flowContext, voi
 {
 	auto* pluginData = reinterpret_cast<BasicPlusData*>(pluginContext);
 
-	pluginData->ipTTL[flowContext.packet.source_pkt]
-		= std::min(pluginData->ipTTL[flowContext.packet.source_pkt], flowContext.packet.ip_ttl);
+	const uint8_t ttl = getTTL(flowContext.packet);
+	pluginData->ipTTL[flowContext.features.direction]
+		= std::min(pluginData->ipTTL[flowContext.features.direction], ttl);
 
-	constexpr std::size_t TCP = 6;
-	if (flowContext.packet.ip_proto != TCP) {
+	if (!flowContext.features.tcp.has_value()) {
 		return {
 			.updateRequirement = UpdateRequirement::RequiresUpdate,
 			.flowAction = FlowAction::NoAction,
 		};
 	}
 
-	pluginData->tcpOption[flowContext.packet.source_pkt] |= flowContext.packet.tcp_options;
+	if (flowContext.features.tcpOptions.has_value()) {
+		pluginData->tcpOption[flowContext.features.direction]
+			|= flowContext.features.tcpOptions->ipfixCumulative;
+	}
 
-	if (flowContext.packet.source_pkt == Direction::Forward) {
+	if (flowContext.features.direction == Direction::Forward) {
 		return {
 			.updateRequirement = UpdateRequirement::RequiresUpdate,
 			.flowAction = FlowAction::NoAction,
 		};
 	}
 
-	pluginData->ipTTL[Direction::Reverse] = flowContext.packet.ip_ttl;
+	pluginData->ipTTL[Direction::Reverse] = ttl;
 	m_fieldHandlers[BasicPlusFields::IP_TTL_REV].setAsAvailable(flowContext.flowRecord);
 
-	pluginData->ipFlag[Direction::Reverse] = flowContext.packet.ip_flags;
-	m_fieldHandlers[BasicPlusFields::IP_FLG_REV].setAsAvailable(flowContext.flowRecord);
+	if (auto ipv4 = flowContext.packet.getLayerView<amon::layers::IPv4View>(); ipv4.has_value()) {
+		pluginData->ipFlag[Direction::Reverse] = ipv4->ipFlags();
+		m_fieldHandlers[BasicPlusFields::IP_FLG_REV].setAsAvailable(flowContext.flowRecord);
+	}
 
-	pluginData->tcpWindow[Direction::Reverse] = flowContext.packet.tcp_window;
+	pluginData->tcpWindow[Direction::Reverse] = flowContext.features.tcp->window();
 	m_fieldHandlers[BasicPlusFields::TCP_WIN_REV].setAsAvailable(flowContext.flowRecord);
 
-	pluginData->tcpOption[Direction::Reverse] = flowContext.packet.tcp_options;
-	m_fieldHandlers[BasicPlusFields::TCP_OPT_REV].setAsAvailable(flowContext.flowRecord);
+	if (flowContext.features.tcpOptions.has_value()) {
+		pluginData->tcpOption[Direction::Reverse]
+			= flowContext.features.tcpOptions->ipfixCumulative;
+		m_fieldHandlers[BasicPlusFields::TCP_OPT_REV].setAsAvailable(flowContext.flowRecord);
 
-	pluginData->tcpMSS[Direction::Reverse] = flowContext.packet.tcp_mss;
-	m_fieldHandlers[BasicPlusFields::TCP_MSS_REV].setAsAvailable(flowContext.flowRecord);
+		if (flowContext.features.tcpOptions->mss.has_value()) {
+			pluginData->tcpMSS[Direction::Reverse] = *flowContext.features.tcpOptions->mss;
+			m_fieldHandlers[BasicPlusFields::TCP_MSS_REV].setAsAvailable(flowContext.flowRecord);
+		}
+	}
 
 	return {
 		.updateRequirement = UpdateRequirement::NoUpdateNeeded,

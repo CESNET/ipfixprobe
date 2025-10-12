@@ -89,7 +89,7 @@ public:
 private:
 	constexpr void updatePacketsData(
 		const std::size_t length,
-		const Timestamp timestamp,
+		const amon::types::Timestamp timestamp,
 		const Direction direction,
 		SSADetectorData& pluginData) noexcept;
 

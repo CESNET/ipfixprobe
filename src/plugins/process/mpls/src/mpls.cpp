@@ -18,6 +18,7 @@
 
 #include <iostream>
 
+#include <amon/layers/MPLS.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <ipfixprobe/options.hpp>
@@ -64,7 +65,8 @@ MPLSPlugin::MPLSPlugin([[maybe_unused]] const std::string& params, FieldManager&
 
 PluginInitResult MPLSPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	if (!flowContext.packet.mplsTop != 0) {
+	auto mplsView = flowContext.packet.getLayerView<amon::layers::MPLSView>();
+	if (!mplsView.has_value()) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -72,8 +74,7 @@ PluginInitResult MPLSPlugin::onInit(const FlowContext& flowContext, void* plugin
 		};
 	}
 
-	std::construct_at(reinterpret_cast<MPLSData*>(pluginContext))->topLabel
-		= flowContext.packet.mplsTop;
+	std::construct_at(reinterpret_cast<MPLSData*>(pluginContext))->topLabel = mplsView->label();
 	m_fieldHandlers[MPLSFields::MPLS_TOP_LABEL_STACK_SECTION].setAsAvailable(
 		flowContext.flowRecord);
 	return {

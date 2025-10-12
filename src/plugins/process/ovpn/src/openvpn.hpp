@@ -87,7 +87,11 @@ public:
 	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	bool updateConfidenceLevel(const Packet& packet, OpenVPNData& pluginData) noexcept;
+	bool updateConfidenceLevel(
+		const amon::Packet& packet,
+		const FlowRecord& flowRecord,
+		const PacketFeatures& features,
+		OpenVPNData& pluginData) noexcept;
 
 	FieldHandlers<OpenVPNFields> m_fieldHandlers;
 };

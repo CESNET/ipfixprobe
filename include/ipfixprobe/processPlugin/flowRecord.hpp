@@ -3,7 +3,6 @@
 #include "directionalField.hpp"
 #include "flowKey.hpp"
 #include "macAddress.hpp"
-#include "packet.hpp"
 #include "tcpFlags.hpp"
 #include "timestamp.hpp"
 #include "xxhash.h"
@@ -18,6 +17,13 @@
 #include <limits>
 #include <memory>
 #include <span>
+
+#include <amon/Packet.hpp>
+#include <amon/layers/Ethernet.hpp>
+#include <amon/layers/IPv4.hpp>
+#include <amon/layers/IPv6.hpp>
+#include <amon/layers/TCP.hpp>
+#include <amon/layers/UDP.hpp>
 
 namespace ipxp {
 
@@ -61,11 +67,11 @@ class FlowRecord {
 public:
 	uint64_t hash;
 
-	Timestamp timeCreation;
-	Timestamp timeLastUpdate;
+	amon::types::Timestamp timeCreation;
+	amon::types::Timestamp timeLastUpdate;
 
 	FlowKey flowKey;
-	DirectionalField<MACAddress> macAddress;
+	DirectionalField<amon::types::MACAddress> macAddress;
 
 	DirectionalField<DirectionalData> directionalData;
 
@@ -123,39 +129,66 @@ public:
 	}*/
 
 	// TODO remove hashval
-	void createFrom(const Packet& packet, uint64_t hashval)
+	void createFrom(const amon::Packet& packet, uint64_t hashval)
 	{
 		directionalData[Direction::Forward].packets = 1;
-		directionalData[Direction::Forward].bytes = packet.ip_len;
 
-		flowKey.srcPort = packet.src_port;
-		flowKey.dstPort = packet.dst_port;
-		flowKey.l4Protocol = packet.ip_proto;
+		const std::optional<amon::EthernetView> ethernetView
+			= packet.getLayerView<amon::EthernetView>();
+		if (!ethernetView.has_value()) {
+			return;
+		}
+
+		macAddress = {ethernetView->src(), ethernetView->dst()};
+
+		if (const std::optional<amon::layers::IPv4View> ipv4View
+			= packet.getLayerView<amon::layers::IPv4View>();
+			ipv4View.has_value()) {
+			flowKey.srcIp = ipv4View->srcIP();
+			flowKey.dstIp = ipv4View->dstIP();
+			flowKey.l4Protocol = ipv4View->protocol();
+			directionalData[Direction::Forward].bytes = ipv4View->totalLength();
+		} else if (const std::optional<amon::IPv6View> ipv6View
+				   = packet.getLayerView<amon::IPv6View>();
+				   ipv6View.has_value()) {
+			flowKey.srcIp = ipv6View->srcIP();
+			flowKey.dstIp = ipv6View->dstIP();
+			flowKey.l4Protocol = ipv6View->nextHeader();
+			directionalData[Direction::Forward].bytes = ipv6View->payloadLength();
+		} else {
+			return;
+		}
 
 		hash = hashval;
 
-		timeCreation = packet.ts;
-		timeLastUpdate = packet.ts;
+		timeCreation = packet.timestamp;
+		timeLastUpdate = packet.timestamp;
 
-		macAddress[Direction::Forward]
+		if (const std::optional<amon::TCPView> tcpView = packet.getLayerView<amon::TCPView>();
+			tcpView.has_value()) {
+			flowKey.srcPort = tcpView->srcPort();
+			flowKey.dstPort = tcpView->dstPort();
+			directionalData[Direction::Forward].bytes += tcpView->headerLength();
+			directionalData[Direction::Forward].tcpFlags = tcpView->flags();
+		} else if (const std::optional<amon::UDPView> udpView
+				   = packet.getLayerView<amon::UDPView>();
+				   udpView.has_value()) {
+			flowKey.srcPort = udpView->srcPort();
+			flowKey.dstPort = udpView->dstPort();
+			directionalData[Direction::Forward].bytes += udpView->headerLength();
+		} else {
+			flowKey.srcPort = 0;
+			flowKey.dstPort = 0;
+		}
+
+		/*macAddress[Direction::Forward]
 			= std::span<const std::byte, 6>(reinterpret_cast<const std::byte*>(packet.src_mac), 6);
 		macAddress[Direction::Reverse]
 			= std::span<const std::byte, 6>(reinterpret_cast<const std::byte*>(packet.dst_mac), 6);
-
-		if (packet.ip_version == IP::v4) {
-			flowKey.srcIp = packet.src_ip.v4;
-			flowKey.dstIp = packet.dst_ip.v4;
-		} else if (packet.ip_version == IP::v6) {
-			flowKey.srcIp = std::span<const std::byte, 16>(
-				reinterpret_cast<const std::byte*>(packet.src_ip.v6),
-				16);
-			flowKey.dstIp = std::span<const std::byte, 16>(
-				reinterpret_cast<const std::byte*>(packet.dst_ip.v6),
-				16);
-		}
+*/
 	}
 
-	void update(const Packet& packet, bool src)
+	void update(const amon::Packet& packet, bool src)
 	{
 		/*m_flow.time_last = pkt.ts;
 		if (src) {

@@ -92,7 +92,7 @@ public:
 private:
 	void updateExportData(
 		const std::size_t realPacketLength,
-		const Timestamp packetTimestamp,
+		const amon::types::Timestamp packetTimestamp,
 		const Direction direction,
 		PacketHistogramData& pluginData) noexcept;
 

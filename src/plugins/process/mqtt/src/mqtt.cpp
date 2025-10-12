@@ -142,13 +142,11 @@ MQTTPlugin::MQTTPlugin([[maybe_unused]] const std::string& params, FieldManager&
 
 PluginInitResult MQTTPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	if (mqttLabelPresent(
-			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len))) {
+	std::span<const std::byte> payload = getPayload(flowContext.packet);
+	if (mqttLabelPresent(payload)) {
 		auto* pluginData = std::construct_at(reinterpret_cast<MQTTData*>(pluginContext));
-		auto [updateRequirement, flowAction] = parseMQTT(
-			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
-			flowContext.flowRecord,
-			*pluginData);
+		auto [updateRequirement, flowAction]
+			= parseMQTT(payload, flowContext.flowRecord, *pluginData);
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = updateRequirement,
@@ -274,7 +272,7 @@ PluginUpdateResult MQTTPlugin::parseMQTT(
 PluginUpdateResult MQTTPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	return parseMQTT(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+		getPayload(flowContext.packet),
 		flowContext.flowRecord,
 		*reinterpret_cast<MQTTData*>(pluginContext));
 }

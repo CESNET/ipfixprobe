@@ -61,7 +61,7 @@ SSADetectorPlugin::SSADetectorPlugin(
 
 constexpr void SSADetectorPlugin::updatePacketsData(
 	const std::size_t length,
-	const Timestamp timestamp,
+	const amon::types::Timestamp timestamp,
 	const Direction direction,
 	SSADetectorData& pluginData) noexcept
 {
@@ -117,9 +117,9 @@ PluginInitResult SSADetectorPlugin::onInit(const FlowContext& flowContext, void*
 
 	auto* pluginData = std::construct_at(reinterpret_cast<SSADetectorData*>(pluginContext));
 	updatePacketsData(
-		flowContext.packet.payload_len,
-		flowContext.packet.ts,
-		flowContext.packet.source_pkt,
+		flowContext.features.ipPayloadLength,
+		flowContext.packet.timestamp,
+		flowContext.features.direction,
 		*pluginData);
 
 	return {
@@ -133,9 +133,9 @@ PluginUpdateResult SSADetectorPlugin::onUpdate(const FlowContext& flowContext, v
 {
 	auto* pluginData = reinterpret_cast<SSADetectorData*>(pluginContext);
 	updatePacketsData(
-		flowContext.packet.payload_len,
-		flowContext.packet.ts,
-		flowContext.packet.source_pkt,
+		flowContext.features.ipPayloadLength,
+		flowContext.packet.timestamp,
+		flowContext.features.direction,
 		*pluginData);
 	return {
 		.updateRequirement = UpdateRequirement::RequiresUpdate,

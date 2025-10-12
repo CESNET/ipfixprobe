@@ -14,6 +14,7 @@ set_target_properties(ipfixprobe-process-nettisa PROPERTIES
 
 target_include_directories(ipfixprobe-process-nettisa PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 target_link_libraries(ipfixprobe-process-nettisa PRIVATE

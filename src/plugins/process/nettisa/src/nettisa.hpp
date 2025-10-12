@@ -90,7 +90,7 @@ private:
 	void makeAllFieldsAvailable(const FlowRecord& flowRecord) noexcept;
 	void updateNetTimeSeries(
 		FlowRecord& flowRecord,
-		const Packet& packet,
+		const amon::Packet& packet,
 		NetTimeSeriesData& pluginData) noexcept;
 
 	FieldHandlers<NetTimeSeriesFields> m_fieldHandlers;

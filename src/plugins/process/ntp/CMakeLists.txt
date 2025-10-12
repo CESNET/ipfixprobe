@@ -15,6 +15,7 @@ set_target_properties(ipfixprobe-process-ntp PROPERTIES
 
 target_include_directories(ipfixprobe-process-ntp PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 if(ENABLE_NEMEA)

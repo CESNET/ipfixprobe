@@ -27,7 +27,7 @@ struct PacketHistogramData {
 	DirectionalField<std::array<uint32_t, HISTOGRAM_SIZE>> packetTimediffs;
 
 	struct {
-		DirectionalField<std::optional<uint32_t>> lastTimestamps;
+		DirectionalField<std::optional<uint64_t>> lastTimestamps;
 	} processingState;
 };
 

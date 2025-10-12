@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <vector>
 
+#include <amon/types/Timestamp.hpp>
 #include <directionalField.hpp>
 #include <timestamp.hpp>
 
@@ -22,8 +23,10 @@ public:
 		return length >= MIN_PACKET_SIZE && length <= MAX_PACKET_SIZE;
 	}
 
-	constexpr void
-	insert(const std::size_t length, const Timestamp timestamp, const Direction direction) noexcept
+	constexpr void insert(
+		const std::size_t length,
+		const amon::types::Timestamp timestamp,
+		const Direction direction) noexcept
 	{
 		timestamps.resize(length - MIN_PACKET_SIZE);
 		timestamps[length - MIN_PACKET_SIZE][direction] = timestamp;
@@ -32,15 +35,16 @@ public:
 	constexpr bool hasSimilarPacketsRecently(
 		const std::size_t length,
 		const std::size_t maxSizeDiff,
-		const Timestamp now,
+		const amon::types::Timestamp now,
 		const Direction direction) noexcept
 	{
 		const std::size_t endIndex = length - MIN_PACKET_SIZE;
 		const std::size_t startIndex = endIndex > maxSizeDiff ? endIndex - maxSizeDiff : 0;
 
 		for (std::size_t i = startIndex; i <= endIndex; ++i) {
-			if (now > timestamps[i][direction]
-				&& (now - timestamps[i][direction]).ns < MAX_PACKET_TIMEDIFF_NS) {
+			if (now.nanoseconds() > timestamps[i][direction].nanoseconds()
+				&& (now.nanoseconds() - timestamps[i][direction].nanoseconds())
+					< MAX_PACKET_TIMEDIFF_NS) {
 				return true;
 			}
 		}
@@ -51,7 +55,7 @@ public:
 	void clear() noexcept { timestamps.clear(); }
 
 private:
-	std::vector<DirectionalField<Timestamp>> timestamps;
+	std::vector<DirectionalField<amon::types::Timestamp>> timestamps;
 };
 
 } // namespace ipxp

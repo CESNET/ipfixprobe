@@ -155,7 +155,7 @@ NetTimeSeriesPlugin::onUpdate(const FlowContext& flowContext, void* pluginContex
 
 void NetTimeSeriesPlugin::updateNetTimeSeries(
 	FlowRecord& flowRecord,
-	const Packet& packet,
+	const amon::Packet& packet,
 	NetTimeSeriesData& pluginData) noexcept
 {
 	const float variationFromMean = static_cast<float>(packet.payload_len_wire) - pluginData.mean;

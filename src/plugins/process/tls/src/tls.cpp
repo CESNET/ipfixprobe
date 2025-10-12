@@ -95,8 +95,7 @@ TLSPlugin::TLSPlugin([[maybe_unused]] const std::string& params, FieldManager& m
 
 PluginInitResult TLSPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	auto payload
-		= toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len);
+	auto payload = getPayload(flowContext.packet);
 	TLSParser parser;
 	if (!parser.parseHello(payload)) {
 		return {
@@ -107,7 +106,11 @@ PluginInitResult TLSPlugin::onInit(const FlowContext& flowContext, void* pluginC
 	}
 
 	auto* pluginData = std::construct_at(reinterpret_cast<TLSData*>(pluginContext));
-	parseTLS(payload, flowContext.packet.ip_proto, *pluginData, flowContext.flowRecord);
+	parseTLS(
+		payload,
+		flowContext.flowRecord.flowKey.l4Protocol,
+		*pluginData,
+		flowContext.flowRecord);
 
 	return {
 		.constructionState = ConstructionState::Constructed,
@@ -121,8 +124,8 @@ PluginUpdateResult TLSPlugin::onUpdate(const FlowContext& flowContext, void* plu
 	auto* pluginData = reinterpret_cast<TLSData*>(pluginContext);
 	if (!pluginData->processingState.serverHelloParsed) {
 		parseTLS(
-			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
-			flowContext.packet.ip_proto,
+			getPayload(flowContext.packet),
+			flowContext.flowRecord.flowKey.l4Protocol,
 			*pluginData,
 			flowContext.flowRecord);
 	}

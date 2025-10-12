@@ -168,8 +168,7 @@ void HTTPPlugin::saveParsedValues(
 PluginInitResult HTTPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	HTTPParser parser;
-	parser.parse(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len));
+	parser.parse(getPayload(flowContext.packet));
 	if (!parser.method.has_value()) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
@@ -199,8 +198,7 @@ PluginUpdateResult HTTPPlugin::beforeUpdate(const FlowContext& flowContext, void
 	}
 
 	HTTPParser parser;
-	parser.parse(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len));
+	parser.parse(getPayload(flowContext.packet));
 	if (parser.requestParsed && pluginData->requestParsed) {
 		return {
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -225,8 +223,7 @@ PluginUpdateResult HTTPPlugin::onUpdate(const FlowContext& flowContext, void* pl
 {
 	auto* pluginData = reinterpret_cast<HTTPData*>(pluginContext);
 	HTTPParser parser;
-	parser.parse(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len));
+	parser.parse(getPayload(flowContext.packet));
 	saveParsedValues(parser, flowContext.flowRecord, *pluginData);
 
 	return {

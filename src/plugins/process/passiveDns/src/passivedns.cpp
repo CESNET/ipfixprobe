@@ -85,9 +85,9 @@ PassiveDNSPlugin::PassiveDNSPlugin(
 
 PluginInitResult PassiveDNSPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	// TODO DISSCECTOR VALUE
 	constexpr std::size_t DNS_PORT = 53;
-	if (flowContext.packet.src_port != DNS_PORT && flowContext.packet.dst_port != DNS_PORT) {
+	if (flowContext.flowRecord.flowKey.srcPort != DNS_PORT
+		&& flowContext.flowRecord.flowKey.dstPort != DNS_PORT) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -96,11 +96,11 @@ PluginInitResult PassiveDNSPlugin::onInit(const FlowContext& flowContext, void* 
 	}
 
 	auto* pluginData = std::construct_at(reinterpret_cast<PassiveDNSData*>(pluginContext));
-	if (flowContext.packet.src_port == DNS_PORT) {
+	if (flowContext.flowRecord.flowKey.srcPort == DNS_PORT) {
 		parseDNS(
-			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+			getPayload(flowContext.packet),
 			flowContext.flowRecord,
-			flowContext.packet.ip_proto,
+			flowContext.flowRecord.flowKey.l4Protocol,
 			*pluginData);
 		return {
 			.constructionState = ConstructionState::Constructed,
@@ -119,13 +119,13 @@ PluginInitResult PassiveDNSPlugin::onInit(const FlowContext& flowContext, void* 
 PluginUpdateResult PassiveDNSPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = reinterpret_cast<PassiveDNSData*>(pluginContext);
-	// TODO DISSCECTOR VALUE
 	constexpr std::size_t DNS_PORT = 53;
-	if (flowContext.packet.src_port == DNS_PORT) {
+	if (flowContext.features.direction ? flowContext.flowRecord.flowKey.srcPort == DNS_PORT
+									   : flowContext.flowRecord.flowKey.dstPort == DNS_PORT) {
 		parseDNS(
-			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
+			getPayload(flowContext.packet),
 			flowContext.flowRecord,
-			flowContext.packet.ip_proto,
+			flowContext.flowRecord.flowKey.l4Protocol,
 			*pluginData);
 		return {
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,

@@ -134,7 +134,7 @@ constexpr static void updateHistogram(
 
 void PacketHistogramPlugin::updateExportData(
 	const std::size_t realPacketLength,
-	const Timestamp packetTimestamp,
+	const amon::types::Timestamp packetTimestamp,
 	const Direction direction,
 	PacketHistogramData& pluginData) noexcept
 {
@@ -145,16 +145,14 @@ void PacketHistogramPlugin::updateExportData(
 	updateHistogram(static_cast<uint32_t>(realPacketLength), pluginData.packetLengths[direction]);
 
 	if (!pluginData.processingState.lastTimestamps[direction].has_value()) {
-		pluginData.processingState.lastTimestamps[direction]
-			= static_cast<uint32_t>(packetTimestamp.ns);
+		pluginData.processingState.lastTimestamps[direction] = packetTimestamp.nanoseconds();
 		return;
 	}
 
 	const int64_t timediff = std::max<int64_t>(
 		0,
-		(packetTimestamp.ns - *pluginData.processingState.lastTimestamps[direction]));
-	pluginData.processingState.lastTimestamps[direction]
-		= static_cast<uint32_t>(packetTimestamp.ns);
+		(packetTimestamp.nanoseconds() - *pluginData.processingState.lastTimestamps[direction]));
+	pluginData.processingState.lastTimestamps[direction] = packetTimestamp.nanoseconds();
 	updateHistogram(static_cast<uint32_t>(timediff), pluginData.packetTimediffs[direction]);
 }
 
@@ -162,8 +160,8 @@ PluginInitResult PacketHistogramPlugin::onInit(const FlowContext& flowContext, v
 {
 	auto* pluginData = std::construct_at(reinterpret_cast<PacketHistogramData*>(pluginContext));
 	updateExportData(
-		flowContext.packet.payload_len_wire,
-		flowContext.packet.ts,
+		flowContext.features.ipPayloadLength,
+		flowContext.packet.timestamp,
 		Direction::Forward,
 		*pluginData);
 
@@ -179,9 +177,9 @@ PacketHistogramPlugin::onUpdate(const FlowContext& flowContext, void* pluginCont
 {
 	auto* pluginData = reinterpret_cast<PacketHistogramData*>(pluginContext);
 	updateExportData(
-		flowContext.packet.payload_len_wire,
-		flowContext.packet.ts,
-		flowContext.packet.source_pkt,
+		flowContext.features.ipPayloadLength,
+		flowContext.packet.timestamp,
+		flowContext.features.direction,
 		*pluginData);
 
 	return {

@@ -79,16 +79,16 @@ static bool hasTLSClientHello(std::span<const std::byte> vpnPayload) noexcept
 			&& vpnPayload[encryptedHeaderSize + handshakeTypeOffset] == clientHelloHandshakeType);
 }
 
-constexpr static bool isValidRTPHeader(const Packet& packet)
+constexpr static bool
+isValidRTPHeader(const amon::Packet& packet, const PacketFeatures& features) noexcept
 {
-	// TODO USE DISSECTOR VALUES
-	if (packet.ip_proto != 17)
+	if (!packet.getLayerView<amon::layers::TCPView>().has_value())
 		return false;
 
-	if (packet.payload_len < sizeof(RTPHeader))
+	if (features.ipPayloadLength < sizeof(RTPHeader))
 		return false;
 
-	const RTPHeader* rtpHeader = reinterpret_cast<const RTPHeader*>(packet.payload);
+	const RTPHeader* rtpHeader = reinterpret_cast<const RTPHeader*>(getPayload(packet).data());
 
 	if (rtpHeader->version != 2)
 		return false;
@@ -114,16 +114,19 @@ constexpr static std::optional<std::size_t> getOpcodeOffset(const uint8_t l4Prot
 	return std::nullopt;
 }
 
-bool OpenVPNPlugin::updateConfidenceLevel(const Packet& packet, OpenVPNData& pluginData) noexcept
+bool OpenVPNPlugin::updateConfidenceLevel(
+	const amon::Packet& packet,
+	const FlowRecord& flowRecord,
+	const PacketFeatures& features,
+	OpenVPNData& pluginData) noexcept
 {
-	std::span<const std::byte> payload
-		= toSpan<const std::byte>(packet.payload, packet.payload_len);
+	std::span<const std::byte> payload = getPayload(packet);
 	if (payload.size() < 2) {
 		return false;
 	}
 
 	// TODO USE VALUES FROM DISSECTOR
-	const std::optional<std::size_t> opcodeOffset = getOpcodeOffset(packet.ip_proto);
+	const std::optional<std::size_t> opcodeOffset = getOpcodeOffset(flowRecord.flowKey.l4Protocol);
 	if (!opcodeOffset.has_value()) {
 		return false;
 	}
@@ -136,11 +139,11 @@ bool OpenVPNPlugin::updateConfidenceLevel(const Packet& packet, OpenVPNData& plu
 
 	pluginData.processingState.processOpcode(
 		opcode,
-		{packet.src_ip, static_cast<IP>(packet.ip_proto)},
-		{packet.dst_ip, static_cast<IP>(packet.ip_proto)},
+		features.direction ? flowRecord.flowKey.srcIp : flowRecord.flowKey.dstIp,
+		features.direction ? flowRecord.flowKey.dstIp : flowRecord.flowKey.srcIp,
 		hasClientHello,
-		isValidRTPHeader(packet),
-		packet.payload_len_wire);
+		isValidRTPHeader(packet, features),
+		features.ipPayloadLength);
 
 	return true;
 }
@@ -148,7 +151,11 @@ bool OpenVPNPlugin::updateConfidenceLevel(const Packet& packet, OpenVPNData& plu
 PluginInitResult OpenVPNPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = std::construct_at(reinterpret_cast<OpenVPNData*>(pluginContext));
-	if (!updateConfidenceLevel(flowContext.packet, *pluginData)) {
+	if (!updateConfidenceLevel(
+			flowContext.packet,
+			flowContext.flowRecord,
+			flowContext.features,
+			*pluginData)) {
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -166,7 +173,11 @@ PluginInitResult OpenVPNPlugin::onInit(const FlowContext& flowContext, void* plu
 PluginUpdateResult OpenVPNPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
 {
 	auto* pluginData = reinterpret_cast<OpenVPNData*>(pluginContext);
-	if (!updateConfidenceLevel(flowContext.packet, *pluginData)) {
+	if (!updateConfidenceLevel(
+			flowContext.packet,
+			flowContext.flowRecord,
+			flowContext.features,
+			*pluginData)) {
 		return {
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
 			.flowAction = FlowAction::RemovePlugin,

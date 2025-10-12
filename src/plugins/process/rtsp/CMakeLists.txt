@@ -16,6 +16,7 @@ set_target_properties(ipfixprobe-process-rtsp PROPERTIES
 target_include_directories(ipfixprobe-process-rtsp PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
 	${CMAKE_SOURCE_DIR}/src/plugins/process/common
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 if(ENABLE_NEMEA)

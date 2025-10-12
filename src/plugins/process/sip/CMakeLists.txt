@@ -15,6 +15,7 @@ set_target_properties(ipfixprobe-process-sip PROPERTIES
 
 target_include_directories(ipfixprobe-process-sip PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 if(ENABLE_NEMEA)

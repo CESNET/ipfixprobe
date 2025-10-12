@@ -18,6 +18,7 @@
 
 #include <iostream>
 
+#include <amon/layers/VLAN.hpp>
 #include <fieldGroup.hpp>
 #include <fieldManager.hpp>
 #include <ipfixprobe/options.hpp>
@@ -59,8 +60,16 @@ VLANPlugin::VLANPlugin([[maybe_unused]] const std::string& params, FieldManager&
 
 PluginInitResult VLANPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	std::construct_at(reinterpret_cast<VLANData*>(pluginContext))->vlanId
-		= flowContext.packet.vlan_id;
+	auto vlanView = flowContext.packet.getLayerView<amon::layers::VLANView>();
+	if (!vlanView.has_value()) {
+		return {
+			.constructionState = ConstructionState::NotConstructed,
+			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
+			.flowAction = FlowAction::NoAction,
+		};
+	}
+
+	std::construct_at(reinterpret_cast<VLANData*>(pluginContext))->vlanId = vlanView->tag();
 	m_fieldHandlers[VLANFields::VLAN_ID].setAsAvailable(flowContext.flowRecord);
 
 	return {

@@ -14,6 +14,7 @@ set_target_properties(ipfixprobe-process-mpls PROPERTIES
 
 target_include_directories(ipfixprobe-process-mpls PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 if(ENABLE_NEMEA)

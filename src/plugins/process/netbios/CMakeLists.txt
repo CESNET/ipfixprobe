@@ -17,6 +17,7 @@ target_include_directories(ipfixprobe-process-netbios PRIVATE
 	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
 	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
 	${CMAKE_SOURCE_DIR}/src/plugins/process/common
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 if(ENABLE_NEMEA)

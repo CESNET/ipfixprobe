@@ -388,7 +388,8 @@ constexpr PluginUpdateResult SMTPPlugin::updateSMTPData(
 PluginInitResult SMTPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	constexpr uint16_t SMTP_PORT = 25;
-	if (flowContext.packet.src_port != SMTP_PORT && flowContext.packet.dst_port != SMTP_PORT) {
+	if (flowContext.flowRecord.flowKey.srcPort != SMTP_PORT
+		&& flowContext.flowRecord.flowKey.dstPort != SMTP_PORT) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -397,9 +398,9 @@ PluginInitResult SMTPPlugin::onInit(const FlowContext& flowContext, void* plugin
 	}
 	auto* pluginData = std::construct_at(reinterpret_cast<SMTPData*>(pluginContext));
 	auto [updateRequirement, flowAction] = updateSMTPData(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
-		flowContext.packet.src_port,
-		flowContext.packet.dst_port,
+		getPayload(flowContext.packet),
+		flowContext.flowRecord.flowKey.srcPort,
+		flowContext.flowRecord.flowKey.dstPort,
 		*pluginData,
 		flowContext.flowRecord);
 	return {
@@ -413,9 +414,11 @@ PluginUpdateResult SMTPPlugin::onUpdate(const FlowContext& flowContext, void* pl
 {
 	auto* pluginData = reinterpret_cast<SMTPData*>(pluginContext);
 	return updateSMTPData(
-		toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
-		flowContext.packet.src_port,
-		flowContext.packet.dst_port,
+		getPayload(flowContext.packet),
+		flowContext.features.direction ? flowContext.flowRecord.flowKey.srcPort
+									   : flowContext.flowRecord.flowKey.dstPort,
+		flowContext.features.direction ? flowContext.flowRecord.flowKey.dstPort
+									   : flowContext.flowRecord.flowKey.srcPort,
 		*pluginData,
 		flowContext.flowRecord);
 }

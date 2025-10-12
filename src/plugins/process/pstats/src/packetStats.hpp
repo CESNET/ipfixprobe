@@ -99,7 +99,10 @@ private:
 	 */
 	constexpr static std::size_t MIN_FLOW_LENGTH = 1;
 
-	void updatePacketsData(const Packet& packet, PacketStatsData& pluginData) noexcept;
+	void updatePacketsData(
+		const amon::Packet& packet,
+		const PacketFeatures& features,
+		PacketStatsData& pluginData) noexcept;
 
 	/**
 	 * @brief Skip packets that repeat ack or seq of last TCP fragment with

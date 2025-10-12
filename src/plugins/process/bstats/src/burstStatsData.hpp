@@ -31,8 +31,9 @@ class BurstStatsData {
 
 	DirectionalField<boost::container::static_vector<uint32_t, MAX_BURST_COUNT>> packets;
 	DirectionalField<boost::container::static_vector<uint32_t, MAX_BURST_COUNT>> bytes;
-	DirectionalField<boost::container::static_vector<Timestamp, MAX_BURST_COUNT>> start;
-	DirectionalField<boost::container::static_vector<Timestamp, MAX_BURST_COUNT>> end;
+	DirectionalField<boost::container::static_vector<amon::types::Timestamp, MAX_BURST_COUNT>>
+		start;
+	DirectionalField<boost::container::static_vector<amon::types::Timestamp, MAX_BURST_COUNT>> end;
 
 public:
 	/**
@@ -65,9 +66,10 @@ public:
 	 * @param direction The direction for which to retrieve the start timestamps span.
 	 * @return A span over the start timestamps.
 	 */
-	std::span<const Timestamp> getStartTimestamps(const Direction direction) const noexcept
+	std::span<const amon::types::Timestamp>
+	getStartTimestamps(const Direction direction) const noexcept
 	{
-		return std::span<const Timestamp>(
+		return std::span<const amon::types::Timestamp>(
 			start[direction].data(),
 			static_cast<std::size_t>(start[direction].size()));
 	}
@@ -78,9 +80,10 @@ public:
 	 * @param direction The direction for which to retrieve the end timestamps span.
 	 * @return A span over the end timestamps.
 	 */
-	std::span<const Timestamp> getEndTimestamps(const Direction direction) const noexcept
+	std::span<const amon::types::Timestamp>
+	getEndTimestamps(const Direction direction) const noexcept
 	{
-		return std::span<const Timestamp>(
+		return std::span<const amon::types::Timestamp>(
 			end[direction].data(),
 			static_cast<std::size_t>(end[direction].size()));
 	}

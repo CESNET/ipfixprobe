@@ -79,7 +79,8 @@ public:
 private:
 	UpdateRequirement updateContent(
 		FlowRecord& flowRecord,
-		const Packet& packet,
+		const amon::Packet& packet,
+		const PacketFeatures& features,
 		IDPContentData& exportData) noexcept;
 
 	FieldHandlers<IDPContentFields> m_fieldHandlers;

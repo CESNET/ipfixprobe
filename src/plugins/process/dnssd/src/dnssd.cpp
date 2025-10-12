@@ -71,7 +71,8 @@ DNSSDPlugin::DNSSDPlugin([[maybe_unused]] const std::string& params, FieldManage
 PluginInitResult DNSSDPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
 	constexpr uint16_t DNSSD_PORT = 5353;
-	if (flowContext.packet.src_port != DNSSD_PORT && flowContext.packet.dst_port != DNSSD_PORT) {
+	if (flowContext.flowRecord.flowKey.srcPort != DNSSD_PORT
+		&& flowContext.flowRecord.flowKey.dstPort != DNSSD_PORT) {
 		return {
 			.constructionState = ConstructionState::NotConstructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -81,12 +82,9 @@ PluginInitResult DNSSDPlugin::onInit(const FlowContext& flowContext, void* plugi
 
 	auto* pluginData = std::construct_at(reinterpret_cast<DNSSDData*>(pluginContext));
 	// TODO USE VALUES FROM DISSECTOR
-	constexpr std::size_t TCP = 6;
-	const bool isDNSoverTCP = (flowContext.packet.ip_proto == TCP);
-	if (!parseDNSSD(
-			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
-			isDNSoverTCP,
-			*pluginData)) {
+	// constexpr std::size_t TCP = 6;
+	const bool isDNSoverTCP = (flowContext.features.tcp.has_value());
+	if (!parseDNSSD(getPayload(flowContext.packet), isDNSoverTCP, *pluginData)) {
 		return {
 			.constructionState = ConstructionState::Constructed,
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
@@ -105,12 +103,9 @@ PluginUpdateResult DNSSDPlugin::onUpdate(const FlowContext& flowContext, void* p
 {
 	auto* pluginData = reinterpret_cast<DNSSDData*>(pluginContext);
 	// TODO USE VALUES FROM DISSECTOR
-	constexpr std::size_t TCP = 6;
-	const bool isDNSoverTCP = (flowContext.packet.ip_proto == TCP);
-	if (!parseDNSSD(
-			toSpan<const std::byte>(flowContext.packet.payload, flowContext.packet.payload_len),
-			isDNSoverTCP,
-			*pluginData)) {
+	// constexpr std::size_t TCP = 6;
+	const bool isDNSoverTCP = (flowContext.features.tcp.has_value());
+	if (!parseDNSSD(getPayload(flowContext.packet), isDNSoverTCP, *pluginData)) {
 		return {
 			.updateRequirement = UpdateRequirement::NoUpdateNeeded,
 			.flowAction = FlowAction::RemovePlugin,

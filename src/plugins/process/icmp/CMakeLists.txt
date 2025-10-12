@@ -16,6 +16,7 @@ target_include_directories(ipfixprobe-process-icmp PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
 	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
 	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 if(ENABLE_NEMEA)
