@@ -526,7 +526,7 @@ void TLSParser::parse_quic_user_agent(
 		= quic_transport_parameters_begin + extension_length;
 	for (const uint8_t* parameter = quic_transport_parameters_begin;
 		 parameter < quic_transport_parameters_end;) {
-		size_t offset = 0UL;
+		uint64_t offset = 0UL;
 		const size_t parameter_id = quic_get_variable_length(parameter, offset);
 		const size_t parameter_length = quic_get_variable_length(parameter, offset);
 		if (parameter + offset + parameter_length > quic_transport_parameters_end) {
