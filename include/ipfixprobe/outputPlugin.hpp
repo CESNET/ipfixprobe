@@ -43,6 +43,8 @@ public:
 	}
 	virtual ~OutputPlugin() {}
 
+	using Plugin::init;
+
 	virtual void init(const char* params, ProcessPlugins& plugins) = 0;
 
 	enum class Result { EXPORTED = 0, DROPPED };

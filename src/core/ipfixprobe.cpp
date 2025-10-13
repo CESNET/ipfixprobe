@@ -26,9 +26,8 @@
  *
  */
 
-#include "ipfixprobe.hpp"
-
 #include "buildConfig.hpp"
+#include "ipfixprobe.hpp"
 #include "stacktrace.hpp"
 #include "stats.hpp"
 
@@ -132,30 +131,6 @@ static void printPluginsUsage(const std::string& pluginName)
 	if (!found) {
 		std::cerr << "No help available for " << pluginName << std::endl;
 	}
-}
-
-static void printRegisteredPlugins(
-	const std::string& pluginType,
-	const std::vector<PluginManifest>& pluginsManifest)
-{
-	std::cout << "Registered " << pluginType << " plugins:" << std::endl;
-	for (const auto& pluginManifest : pluginsManifest) {
-		std::cout << "  " << pluginManifest.name << std::endl;
-	}
-	std::cout << "#####################\n";
-}
-
-static void printPlugins()
-{
-	auto& inputPluginFactory = InputPluginFactory::getInstance();
-	auto& storagePluginFactory = StoragePluginFactory::getInstance();
-	auto& processPluginFactory = ProcessPluginFactory::getInstance();
-	auto& outputPluginFactory = OutputPluginFactory::getInstance();
-
-	printRegisteredPlugins("input", inputPluginFactory.getRegisteredPlugins());
-	printRegisteredPlugins("storage", storagePluginFactory.getRegisteredPlugins());
-	printRegisteredPlugins("process", processPluginFactory.getRegisteredPlugins());
-	printRegisteredPlugins("output", outputPluginFactory.getRegisteredPlugins());
 }
 
 void print_help(const std::string& arg)
@@ -678,8 +653,6 @@ int run(int argc, char* argv[])
 	}
 
 	conf.pluginManager.loadPlugins(parser.m_plugins_path, loadPluginsRecursive);
-
-	// printPlugins();
 
 	if (parser.m_help) {
 		if (parser.m_help_str.empty()) {
