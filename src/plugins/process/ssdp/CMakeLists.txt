@@ -3,6 +3,8 @@ project(ipfixprobe-process-ssdp VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-ss
 add_library(ipfixprobe-process-ssdp MODULE
 	src/ssdp.cpp
 	src/ssdp.hpp
+	src/ssdpContext.hpp
+	src/ssdpFields.hpp
 )
 
 set_target_properties(ipfixprobe-process-ssdp PROPERTIES
@@ -10,8 +12,12 @@ set_target_properties(ipfixprobe-process-ssdp PROPERTIES
 	VISIBILITY_INLINES_HIDDEN YES
 )
 
-target_include_directories(ipfixprobe-process-ssdp PRIVATE
+target_include_directories(ipfixprobe-process-ssdp PRIVATE 
 	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
+	${CMAKE_SOURCE_DIR}/src/plugins/process/common
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 if(ENABLE_NEMEA)
