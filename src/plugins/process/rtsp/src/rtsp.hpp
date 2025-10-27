@@ -3,198 +3,101 @@
  * @brief Plugin for parsing RTSP traffic.
  * @author Jiri Havranek <havranek@cesnet.cz>
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that parses RTSP traffic,
+ * stores it in per-flow plugin data, and exposes that field via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
+#include "rtspContext.hpp"
+#include "rtspFields.hpp"
+
 #include <sstream>
+#include <string>
 
-#ifdef WITH_NEMEA
-#include <fields.h>
-#endif
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
-#include <ipfixprobe/flowifc.hpp>
-#include <ipfixprobe/ipfix-elements.hpp>
-#include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/processPlugin.hpp>
-
-namespace ipxp {
-
-#define RTSP_UNIREC_TEMPLATE                                                                       \
-	"RTSP_REQUEST_METHOD,RTSP_REQUEST_AGENT,RTSP_REQUEST_URI,RTSP_RESPONSE_STATUS_CODE,RTSP_"      \
-	"RESPONSE_SERVER,RTSP_RESPONSE_CONTENT_TYPE"
-UR_FIELDS(
-	string RTSP_REQUEST_METHOD,
-	string RTSP_REQUEST_AGENT,
-	string RTSP_REQUEST_URI,
-
-	uint16 RTSP_RESPONSE_STATUS_CODE,
-	string RTSP_RESPONSE_SERVER,
-	string RTSP_RESPONSE_CONTENT_TYPE)
+namespace ipxp::process::rtsp {
 
 /**
- * \brief Flow record extension header for storing RTSP requests.
+ * @class RTSPPlugin
+ * @brief A plugin for processing RTSP traffic and exporting values.
+ *
+ * Collects request method, user agent, URI, response status code, server and content type.
+ *
  */
-struct RecordExtRTSP : public RecordExt {
-	bool req;
-	bool resp;
-
-	char method[10];
-	char user_agent[128];
-	char uri[128];
-
-	uint16_t code;
-	char content_type[32];
-	char server[128];
+class RTSPPlugin : public ProcessPluginCRTP<RTSPPlugin> {
+public:
+	/**
+	 * @brief Constructs the RTSP plugin and initializes field handlers.
+	 * @param params String with plugin-specific parameters for configuration(currently unused).
+	 * @param manager Reference to the FieldManager for field handler registration.
+	 */
+	RTSPPlugin(const std::string& params, FieldManager& manager);
 
 	/**
-	 * \brief Constructor.
+	 * @brief Initializes plugin data for a new flow.
+	 *
+	 * Constructs `RTSPContext` in `pluginContext` and initializes it with
+	 * parsed RTSP values.
+	 * Skip consequent packets if RTSP parsing fails.
+	 *
+	 * @param flowContext Contextual information about the flow to fill new record.
+	 * @param pluginContext Pointer to pre-allocated memory to create record.
+	 * @return Result of the initialization process.
 	 */
-	RecordExtRTSP(int pluginID)
-		: RecordExt(pluginID)
-	{
-		req = false;
-		resp = false;
+	OnInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
 
-		method[0] = 0;
-		user_agent[0] = 0;
-		uri[0] = 0;
+	/**
+	 * @brief Called before the main per-packet update.
+	 *
+	 * If a new request or response is parsed and the respective one was already seen,
+	 * the flow is flushed and then reinserted.
+	 *
+	 * @param flowContext Contextual information about the flow to be updated.
+	 * @param pluginContext Pointer to `RTSPContext`.
+	 * @return Result of the pre-update.
+	 */
+	BeforeUpdateResult
+	beforeUpdate(const FlowContext& flowContext, const void* pluginContext) const override;
 
-		code = 0;
-		content_type[0] = 0;
-		server[0] = 0;
-	}
+	/**
+	 * @brief Updates plugin data with values from new packet.
+	 *
+	 * Updates `RTSPContext` with parsed RTSP values.
+	 * Skip consequent packets if RTSP parsing fails or both request and response are already
+	 * parsed.
+	 * @param flowContext Contextual information about the flow to be updated.
+	 * @param pluginContext Pointer to `RTSPContext`.
+	 * @return Result of the update.
+	 */
+	OnUpdateResult onUpdate(const FlowContext& flowContext, void* pluginContext) override;
 
-#ifdef WITH_NEMEA
-	virtual void fill_unirec(ur_template_t* tmplt, void* record)
-	{
-		ur_set_string(tmplt, record, F_RTSP_REQUEST_METHOD, method);
-		ur_set_string(tmplt, record, F_RTSP_REQUEST_AGENT, user_agent);
-		ur_set_string(tmplt, record, F_RTSP_REQUEST_URI, uri);
+	/**
+	 * @brief Cleans up and destroys `RTSPContext`.
+	 * @param pluginContext Pointer to `RTSPContext`.
+	 */
+	void onDestroy(void* pluginContext) noexcept override;
 
-		ur_set(tmplt, record, F_RTSP_RESPONSE_STATUS_CODE, code);
-		ur_set_string(tmplt, record, F_RTSP_RESPONSE_SERVER, server);
-		ur_set_string(tmplt, record, F_RTSP_RESPONSE_CONTENT_TYPE, content_type);
-	}
-
-	const char* get_unirec_tmplt() const { return RTSP_UNIREC_TEMPLATE; }
-#endif
-
-	virtual int fill_ipfix(uint8_t* buffer, int size)
-	{
-		int length, total_length = 0;
-
-		// Method
-		length = strlen(method);
-		if (total_length + length + 1 > size) {
-			return -1;
-		}
-		buffer[total_length] = length;
-		memcpy(buffer + total_length + 1, method, length);
-		total_length += length + 1;
-
-		// User Agent
-		length = strlen(user_agent);
-		if (total_length + length + 1 > size) {
-			return -1;
-		}
-		buffer[total_length] = length;
-		memcpy(buffer + total_length + 1, user_agent, length);
-		total_length += length + 1;
-
-		// URI
-		length = strlen(uri);
-		if (total_length + length + 3 > size) {
-			return -1;
-		}
-		buffer[total_length] = length;
-		memcpy(buffer + total_length + 1, uri, length);
-		total_length += length + 1;
-
-		// Response code
-		*(uint16_t*) (buffer + total_length) = ntohs(code);
-		total_length += 2;
-
-		// Server
-		length = strlen(server);
-		if (total_length + length + 1 > size) {
-			return -1;
-		}
-		buffer[total_length] = length;
-		memcpy(buffer + total_length + 1, server, length);
-		total_length += length + 1;
-
-		// Content type
-		length = strlen(content_type);
-		if (total_length + length + 1 > size) {
-			return -1;
-		}
-		buffer[total_length] = length;
-		memcpy(buffer + total_length + 1, content_type, length);
-		total_length += length + 1;
-
-		return total_length;
-	}
-
-	const char** get_ipfix_tmplt() const
-	{
-		static const char* ipfix_template[] = {IPFIX_RTSP_TEMPLATE(IPFIX_FIELD_NAMES) nullptr};
-		return ipfix_template;
-	}
-
-	std::string get_text() const
-	{
-		std::ostringstream out;
-		out << "httpmethod=\"" << method << "\""
-			<< ",uri=\"" << uri << "\""
-			<< ",agent=\"" << user_agent << "\""
-			<< ",server=\"" << server << "\""
-			<< ",content=\"" << content_type << "\""
-			<< ",status=" << code;
-		return out.str();
-	}
-};
-
-/**
- * \brief Flow cache plugin used to parse RTSP requests / responses.
- */
-class RTSPPlugin : public ProcessPlugin {
-public:
-	RTSPPlugin(const std::string& params, int pluginID);
-	~RTSPPlugin();
-	void init(const char* params);
-	void close();
-	OptionsParser* get_parser() const { return new OptionsParser("rtsp", "Parse RTSP traffic"); }
-	std::string get_name() const { return "rtsp"; }
-	RecordExt* get_ext() const { return new RecordExtRTSP(m_pluginID); }
-	ProcessPlugin* copy();
-
-	int post_create(Flow& rec, const Packet& pkt);
-	int pre_update(Flow& rec, Packet& pkt);
-	void finish(bool print_stats);
+	/**
+	 * @brief Provides the memory layout of `RTSPContext`.
+	 * @return Memory layout description for the plugin data.
+	 */
+	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	bool is_response(const char* data, int payload_len);
-	bool is_request(const char* data, int payload_len);
-	bool parse_rtsp_request(const char* data, int payload_len, RecordExtRTSP* rec);
-	bool parse_rtsp_response(const char* data, int payload_len, RecordExtRTSP* rec);
-	void add_ext_rtsp_request(const char* data, int payload_len, Flow& flow);
-	void add_ext_rtsp_response(const char* data, int payload_len, Flow& flow);
-	bool valid_rtsp_method(const char* method) const;
+	bool parseRequest(std::string_view payload, RTSPContext& pluginContext) noexcept;
+	bool parseResponse(std::string_view payload, RTSPContext& pluginContext) noexcept;
+	OnUpdateResult updateExportData(std::string_view payload, RTSPContext& pluginContext) noexcept;
 
-	RecordExtRTSP* recPrealloc; /**< Preallocated extension. */
-	bool flow_flush; /**< Tell storage plugin to flush current Flow. */
-	uint32_t requests; /**< Total number of parsed RTSP requests. */
-	uint32_t responses; /**< Total number of parsed RTSP responses. */
-	uint32_t total; /**< Total number of parsed RTSP packets. */
+	FieldHandlers<RTSPFields> m_fieldHandlers;
 };
 
-} // namespace ipxp
+} // namespace ipxp::process::rtsp
