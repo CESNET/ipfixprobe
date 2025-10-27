@@ -3,6 +3,8 @@ project(ipfixprobe-process-vlan VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-vl
 add_library(ipfixprobe-process-vlan MODULE
 	src/vlan.cpp
 	src/vlan.hpp
+	src/vlanContext.hpp
+	src/vlanFields.hpp
 )
 
 set_target_properties(ipfixprobe-process-vlan PROPERTIES
@@ -10,8 +12,11 @@ set_target_properties(ipfixprobe-process-vlan PROPERTIES
 	VISIBILITY_INLINES_HIDDEN YES
 )
 
-target_include_directories(ipfixprobe-process-vlan PRIVATE
+target_include_directories(ipfixprobe-process-vlan PRIVATE 
 	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 if(ENABLE_NEMEA)
