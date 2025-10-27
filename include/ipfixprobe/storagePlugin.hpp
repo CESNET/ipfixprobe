@@ -17,12 +17,13 @@
 #include "flowifc.hpp"
 #include "packet.hpp"
 #include "plugin.hpp"
-#include "processPlugin.hpp"
 #include "ring.h"
 
 #include <memory>
 #include <string>
 
+#include <processPlugin.hpp>
+#include <processPluginManager.hpp>
 #include <telemetry.hpp>
 
 namespace ipxp {
@@ -32,18 +33,19 @@ namespace ipxp {
  */
 class IPXP_API StoragePlugin : public Plugin {
 public:
-	StoragePlugin()
+	StoragePlugin(ProcessPluginManager& manager)
 		: m_export_queue(nullptr)
-		, m_plugins(nullptr)
-		, m_plugin_cnt(0)
+		, m_manager(manager)
+	//, m_plugins(nullptr)
+	//, m_plugin_cnt(0)
 	{
 	}
 
 	virtual ~StoragePlugin()
 	{
-		if (m_plugins != nullptr) {
+		/*if (m_plugins != nullptr) {
 			delete[] m_plugins;
-		}
+		}*/
 	}
 
 	/**
@@ -75,7 +77,7 @@ public:
 	 * \brief Add plugin to internal list of plugins.
 	 * Plugins are always called in the same order, as they were added.
 	 */
-	void add_plugin(ProcessPlugin* plugin)
+	/*void add_plugin(ProcessPlugin* plugin)
 	{
 		if (m_plugins == nullptr) {
 			m_plugins = new ProcessPlugin*[8];
@@ -90,7 +92,7 @@ public:
 			}
 		}
 		m_plugins[m_plugin_cnt++] = plugin;
-	}
+	}*/
 
 protected:
 	// Every StoragePlugin implementation should call these functions at appropriate places
@@ -100,14 +102,14 @@ protected:
 	 * \param [in] pkt Input parsed packet.
 	 * \return Options for flow cache.
 	 */
-	int plugins_pre_create(Packet& pkt)
+	/*int plugins_pre_create(Packet& pkt)
 	{
 		int ret = 0;
 		for (unsigned int i = 0; i < m_plugin_cnt; i++) {
 			ret |= m_plugins[i]->pre_create(pkt);
 		}
 		return ret;
-	}
+	}*/
 
 	/**
 	 * \brief Call post_create function for each added plugin.
@@ -118,9 +120,9 @@ protected:
 	int plugins_post_create(Flow& rec, const Packet& pkt)
 	{
 		int ret = 0;
-		for (unsigned int i = 0; i < m_plugin_cnt; i++) {
-			ret |= m_plugins[i]->post_create(rec, pkt);
-		}
+		// for (unsigned int i = 0; i < m_plugin_cnt; i++) {
+		//	ret |= m_plugins[i]->post_create(rec, pkt);
+		// }
 		return ret;
 	}
 
@@ -130,14 +132,14 @@ protected:
 	 * \param [in] pkt Input parsed packet.
 	 * \return Options for flow cache.
 	 */
-	int plugins_pre_update(Flow& rec, Packet& pkt)
+	/*int plugins_pre_update(Flow& rec, Packet& pkt)
 	{
 		int ret = 0;
 		for (unsigned int i = 0; i < m_plugin_cnt; i++) {
 			ret |= m_plugins[i]->pre_update(rec, pkt);
 		}
 		return ret;
-	}
+	}*/
 
 	/**
 	 * \brief Call post_update function for each added plugin.
@@ -147,9 +149,9 @@ protected:
 	int plugins_post_update(Flow& rec, const Packet& pkt)
 	{
 		int ret = 0;
-		for (unsigned int i = 0; i < m_plugin_cnt; i++) {
-			ret |= m_plugins[i]->post_update(rec, pkt);
-		}
+		// for (unsigned int i = 0; i < m_plugin_cnt; i++) {
+		//	ret |= m_plugins[i]->post_update(rec, pkt);
+		// }
 		return ret;
 	}
 
@@ -159,16 +161,15 @@ protected:
 	 */
 	void plugins_pre_export(Flow& rec)
 	{
-		for (unsigned int i = 0; i < m_plugin_cnt; i++) {
-			m_plugins[i]->pre_export(rec);
-		}
+		//	for (unsigned int i = 0; i < m_plugin_cnt; i++) {
+		//			m_plugins[i]->pre_export(rec);
+		//}
 	}
 
 	ipx_ring_t* m_export_queue;
 
-private:
-	ProcessPlugin** m_plugins; /**< Array of plugins. */
-	uint32_t m_plugin_cnt;
+protected:
+	ProcessPluginManager& m_manager;
 };
 
 /**
@@ -188,6 +189,7 @@ class IPXP_API PluginFactory;
  *
  * Provides a factory for creating StoragePlugin instances using a string-based constructor.
  */
-using StoragePluginFactory = PluginFactory<StoragePlugin, const std::string&, ipx_ring_t*>;
+using StoragePluginFactory
+	= PluginFactory<StoragePlugin, const std::string&, ipx_ring_t*, ProcessPluginManager&>;
 
 } // namespace ipxp

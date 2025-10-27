@@ -1,0 +1,195 @@
+#pragma once
+
+#include "fieldHandler.hpp"
+#include "flowRecord.hpp"
+#include "packet.hpp"
+#include "processPluginEntry.hpp"
+
+#include <array>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <type_traits>
+
+#include <boost/container/static_vector.hpp>
+
+namespace ipxp {
+
+class FlowRecordBuilder;
+
+class ProcessPlugins {
+public:
+	ProcessPlugins(FieldManager& manager)
+		: m_fieldManager(manager)
+	{
+	}
+
+	template<typename... Args>
+	void addProcessPlugin(const std::string& pluginName, Args&&... args)
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+
+		auto processPlugin
+			= std::make_shared<IcmpPlugin>(std::forward<Args>(args)..., m_fieldManager);
+		auto [pluginDataSize, pluginDataAlignment] = processPlugin->getDataMemoryLayout();
+		ProcessPluginEntry pluginEntry = {
+			.name = pluginName,
+			.contextSize = pluginDataSize,
+			.contextAlignment = pluginDataAlignment,
+			.enabled = true,
+			.plugin = std::move(processPlugin),
+		};
+
+		printPluginEntry(pluginEntry);
+
+		m_processPlugins.emplace_back(pluginEntry);
+	}
+
+	void enableProcessPlugin(const std::string& pluginName)
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+		for (auto& plugin : m_processPlugins) {
+			if (plugin.name == pluginName) {
+				// plugin.enabled = true;
+				std::cout << "Plugin '" << pluginName << "' has been enabled\n";
+				return;
+			}
+		}
+		std::cout << "Plugin '" << pluginName << "' not found\n";
+	}
+
+	void disableProcessPlugin(const std::string& pluginName)
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+		for (auto& plugin : m_processPlugins) {
+			if (plugin.name == pluginName) {
+				// plugin.enabled = false;
+				std::cout << "Plugin '" << pluginName << "' has been disabled\n";
+				return;
+			}
+		}
+		std::cout << "Plugin '" << pluginName << "' not found\n";
+	}
+
+	/*
+	void processFlowRecord(FlowContext& flowContext)
+	{
+		// updateBasic
+
+		FlowRecord& flowRecord = flowContext.flowRecord;
+
+		if (flowRecord.pluginsUpdate.none()) {
+			return;
+		}
+
+		for (std::size_t pluginID = 0; pluginID < m_processPlugins.size(); pluginID++) {
+			const auto& pluginEntry = m_processPlugins[pluginID];
+			if (!flowRecord.pluginsAvailable.test(pluginID)) {
+				continue;
+			}
+
+			if (!flowRecord.pluginsUpdate.test(pluginID)) {
+				continue;
+			}
+
+			if (!flowRecord.pluginsConstructed.test(pluginID)) {
+				auto pluginInitResult
+					= pluginEntry.plugin->onInit(flowContext, flowRecord.getPluginData(pluginID));
+
+				if (pluginInitResult.updateRequirement == UpdateRequirement::NoUpdateNeeded) {
+					flowRecord.pluginsUpdate.reset(pluginID);
+				}
+
+				if (pluginInitResult.flowAction == FlowAction::RemovePlugin) {
+					flowRecord.pluginsAvailable.reset(pluginID);
+				}
+
+				if (pluginInitResult.constructionState == ConstructionState::Constructed) {
+					flowRecord.pluginsConstructed.set(pluginID);
+				}
+
+				continue;
+			}
+		}
+		*/
+
+	/*
+	void processFlowRecord(
+		FlowRecord* flowRecord,
+		const Packet& packet,
+		const PacketFeatures& packetFeatures)
+	{
+		// Check if any plugin needs to process the flow record
+		if (flowRecord->pluginsUpdate.none()) {
+			return;
+		}
+
+		for (std::size_t pluginID = 0; pluginID < m_processPlugins.size(); ++pluginID) {
+			const auto& entry = m_processPlugins[pluginID];
+			if (!flowRecord->pluginsAvailable.test(pluginID)) {
+				continue;
+			}
+
+			// Plugin does not want to process packets
+			if (!flowRecord->pluginsUpdate.test(pluginID)) {
+				continue;
+			}
+
+			// Plugin not yet constructed, call onFlowCreate
+			if (!flowRecord->pluginsConstructed.test(pluginID)) {
+				const auto [isConstructed, needsUpdate, status] =
+	entry.plugin->onFlowCreate( *flowRecord, flowRecord->getPluginData(pluginID), packet,
+					packetFeatures);
+				{
+					// TODO: na zaklade return value
+					flowRecord->pluginsConstructed.set(pluginID);
+					flowRecord->pluginsUpdate.set(pluginID);
+				}
+				continue;
+			}
+
+			// Plugin already constructed, call update
+			if (flowRecord->pluginsConstructed.test(pluginID)) {
+				const auto [needsUpdate, status] = entry.plugin->onFlowUpdate(
+					*flowRecord,
+					flowRecord->getPluginData(pluginID),
+					packet,
+					packetFeatures);
+				continue;
+			}
+		}
+	}
+		*/
+
+	template<typename Func>
+	void forEachPlugin(FlowRecord* flowRecord, Func&& func)
+	{
+		std::size_t index = 0;
+		for (const auto& entry : m_processPlugins) {
+			if (flowRecord->pluginsAvailable.test(index)) {
+				func(flowRecord, entry.plugin.get(), flowRecord->getPluginContext(index));
+			}
+			index++;
+		}
+	}
+
+	std::shared_ptr<FlowRecordBuilder> rebuild();
+
+	const std::vector<ProcessPluginEntry>& getEntries() { return m_processPlugins; }
+
+private:
+	void printPluginEntry(const ProcessPluginEntry& entry)
+	{
+		std::cout << "Plugin: " << entry.name << "\n";
+		std::cout << "  Context Size: " << entry.contextSize << " bytes\n";
+		std::cout << "  Context Alignment: " << entry.contextAlignment << " bytes\n";
+		// std::cout << "  Enabled: " << std::boolalpha << entry.isEnabled << "\n";
+	}
+
+	std::mutex m_mutex;
+	std::atomic<std::size_t> m_pluginID = 0;
+	FieldManager& m_fieldManager;
+	std::vector<ProcessPluginEntry> m_processPlugins;
+};
+
+} // namespace ipxp

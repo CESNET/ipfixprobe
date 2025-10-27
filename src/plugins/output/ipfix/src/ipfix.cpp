@@ -108,7 +108,7 @@ const char* basic_tmplt_v4[] = {BASIC_TMPLT_V4(IPFIX_FIELD_NAMES) nullptr};
 /* Basic IPv6 template. */
 const char* basic_tmplt_v6[] = {BASIC_TMPLT_V6(IPFIX_FIELD_NAMES) nullptr};
 
-IPFIXExporter::IPFIXExporter(const std::string& params, ProcessPlugins& plugins)
+/*IPFIXExporter::IPFIXExporter(const std::string& params, ProcessPlugins& plugins)
 	: extensions(nullptr)
 	, extension_cnt(0)
 	, templates(nullptr)
@@ -244,10 +244,8 @@ void IPFIXExporter::init(const char* params, ProcessPlugins& plugins)
 
 void IPFIXExporter::close()
 {
-	/* Try to flush any remaining data */
 	flush();
 
-	/* Close the connection */
 	if (fd != -1) {
 		::close(fd);
 		freeaddrinfo(addrinfo);
@@ -270,7 +268,7 @@ void IPFIXExporter::close()
 		delete[] extensions;
 		extensions = nullptr;
 	}
-}
+}*/
 
 uint64_t IPFIXExporter::get_template_id(const Record& flow)
 {
@@ -295,7 +293,7 @@ template_t* IPFIXExporter::get_template(const Flow& flow)
 		RecordExt* ext = flow.m_exts;
 		while (ext != nullptr) {
 			if (ext->m_ext_id < 0 || ext->m_ext_id >= extension_cnt) {
-				throw PluginError("encountered invalid extension id");
+				//throw PluginError("encountered invalid extension id");
 			}
 			extensions[ext->m_ext_id] = ext;
 			ext = ext->m_next;
@@ -307,8 +305,8 @@ template_t* IPFIXExporter::get_template(const Flow& flow)
 			const char** fields = extensions[i]->get_ipfix_tmplt();
 			extensions[i] = nullptr;
 			if (fields == nullptr) {
-				throw PluginError(
-					"missing template fields for extension with ID " + std::to_string(i));
+				//throw PluginError(
+				//	"missing template fields for extension with ID " + std::to_string(i));
 			}
 			while (*fields != nullptr) {
 				all_fields.push_back(*fields);
@@ -382,7 +380,7 @@ bool IPFIXExporter::fill_template(const Flow& flow, template_t* tmplt)
 	return true;
 }
 
-int IPFIXExporter::export_flow(const Flow& flow)
+/*int IPFIXExporter::export_flow(const Flow& flow)
 {
 	m_flows_seen++;
 	template_t* tmplt = get_template(flow);
@@ -395,7 +393,7 @@ int IPFIXExporter::export_flow(const Flow& flow)
 		}
 	}
 	return 0;
-}
+}*/
 
 /**
  * \brief Initialise buffer for record with Data Set Header
@@ -837,7 +835,7 @@ void IPFIXExporter::send_data()
 			ret = send_packet(&pkt);
 		}
 		if (ret != 0) {
-			m_flows_dropped += pkt.flows;
+			m_dropped += pkt.flows;
 		}
 	}
 }
@@ -845,14 +843,12 @@ void IPFIXExporter::send_data()
 /**
  * \brief Export stored flows.
  */
-void IPFIXExporter::flush()
+/*void IPFIXExporter::flush()
 {
-	/* Send all new templates */
 	send_templates();
 
-	/* Send the data packet */
 	send_data();
-}
+}*/
 
 /**
  * \brief Sends packet using UDP or TCP as defined in plugin configuration
@@ -1507,6 +1503,10 @@ int IPFIXExporter::fill_basic_flow(const Flow& flow, template_t* tmplt)
 	length = p - buffer;
 
 	return length;
+}
+
+void IPFIXExporter::processRecord(FlowRecordUniquePtr& flowRecord)
+{
 }
 
 static const PluginRegistrar<IPFIXExporter, OutputPluginFactory>

@@ -39,16 +39,16 @@
 #include <sys/time.h>
 
 #ifdef WITH_NEMEA
-#include <unirec/unirec.h>
+//#include <unirec/unirec.h>
 #else
-#define UR_FIELDS(...)
+//#define UR_FIELDS(...)
 #endif
 
 #include "ipaddr.hpp"
 
 #include <string>
 
-#include <arpa/inet.h>
+//#include <arpa/inet.h>
 
 namespace ipxp {
 
@@ -80,17 +80,17 @@ struct RecordExt {
 	 * \param [in] tmplt Unirec template.
 	 * \param [out] record Pointer to the unirec record.
 	 */
-	virtual void fill_unirec(ur_template_t* tmplt, void* record)
+	/*virtual void fill_unirec(ur_template_t* tmplt, void* record)
 	{
 		(void) tmplt;
 		(void) record;
-	}
+	}*/
 
 	/**
 	 * \brief Get unirec template string.
 	 * \return Unirec template string.
 	 */
-	virtual const char* get_unirec_tmplt() const { return ""; }
+	//virtual const char* get_unirec_tmplt() const { return ""; }
 #endif
 
 	/**
@@ -233,11 +233,11 @@ struct Record {
 	virtual ~Record() { remove_extensions(); }
 };
 
-#define FLOW_END_INACTIVE 0x01
-#define FLOW_END_ACTIVE 0x02
-#define FLOW_END_EOF 0x03
-#define FLOW_END_FORCED 0x04
-#define FLOW_END_NO_RES 0x05
+//#define FLOW_END_INACTIVE 0x01
+//#define FLOW_END_ACTIVE 0x02
+//#define FLOW_END_EOF 0x03
+//#define FLOW_END_FORCED 0x04
+//#define FLOW_END_NO_RES 0x05
 
 /**
  * \brief Flow record struct constaining basic flow record data and extension headers.
