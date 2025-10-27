@@ -3,6 +3,9 @@ project(ipfixprobe-process-rtsp VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-rt
 add_library(ipfixprobe-process-rtsp MODULE
 	src/rtsp.cpp
 	src/rtsp.hpp
+	src/rtspContext.hpp
+	src/rtspFields.hpp
+	src/rtspExtensionReader.hpp
 )
 
 set_target_properties(ipfixprobe-process-rtsp PROPERTIES
@@ -12,7 +15,10 @@ set_target_properties(ipfixprobe-process-rtsp PROPERTIES
 
 target_include_directories(ipfixprobe-process-rtsp PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
 	${CMAKE_SOURCE_DIR}/src/plugins/process/common
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 if(ENABLE_NEMEA)
