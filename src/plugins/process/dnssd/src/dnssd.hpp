@@ -1,290 +1,104 @@
 /**
  * @file
  * @brief Plugin for parsing dnssd traffic.
- * @author Ondrej Sedlacek xsedla1o@stud.fit.vutbr.cz
+ * @author Ondrej Sedlacek <xsedla1o@stud.fit.vutbr.cz>
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that extracts DNS-SD data from packets,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <algorithm>
-#include <cstring>
-#include <fstream>
-#include <list>
+#include "dnssdContext.hpp"
+#include "dnssdFields.hpp"
+#include "serviceFilter.hpp"
+
 #include <sstream>
 #include <string>
 
-#ifdef WITH_NEMEA
-#include "fields.h"
-#endif
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
-#include <dns-utils.hpp>
-#include <ipfixprobe/flowifc.hpp>
-#include <ipfixprobe/ipfix-elements.hpp>
-#include <ipfixprobe/options.hpp>
-#include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/processPlugin.hpp>
-
-namespace ipxp {
-
-#define DNSSD_UNIREC_TEMPLATE "DNSSD_QUERIES,DNSSD_RESPONSES"
-
-UR_FIELDS(string DNSSD_QUERIES, string DNSSD_RESPONSES)
-
-class DNSSDOptParser : public OptionsParser {
-public:
-	bool m_txt_all;
-	std::string m_config_file;
-
-	DNSSDOptParser()
-		: OptionsParser("dnssd", "Processing plugin for parsing DNS service discovery packets")
-		, m_txt_all(false)
-		, m_config_file("")
-	{
-		register_option(
-			"t",
-			"txt",
-			"FILE",
-			"Activates processing of all txt records. Allow to specify whitelist txt records file "
-			"(file line format: service.domain,txt_key1,txt_key2,...)",
-			[this](const char* arg) {
-				m_txt_all = true;
-				if (arg != nullptr) {
-					m_config_file = arg;
-				}
-				return true;
-			},
-			OptionFlags::OptionalArgument);
-	}
-};
-
-struct DnsSdRr {
-	std::string name;
-	int32_t srv_port;
-	std::string srv_target;
-	std::string hinfo[2];
-	std::string txt;
-
-	/**
-	 * \brief Constructor.
-	 */
-	DnsSdRr()
-	{
-		name = std::string();
-		srv_port = -1;
-		srv_target = std::string();
-		hinfo[0] = std::string();
-		txt = std::string();
-	}
-};
+namespace ipxp::process::dnssd {
 
 /**
- * \brief Flow record extension header for storing parsed DNSSD packets.
+ * @class DNSSDPlugin
+ * @brief A plugin for processing DNS-SD packets.
  */
-struct RecordExtDNSSD : public RecordExt {
-	std::list<std::string> queries;
-	std::list<DnsSdRr> responses;
-
-	/**
-	 * \brief Constructor.
-	 */
-	RecordExtDNSSD(int pluginID)
-		: RecordExt(pluginID)
-	{
-	}
-
-	/**
-	 * \brief Concatenates all collected queries to a single string.
-	 * \param [in] max_length Size limit for the output string.
-	 * \return String of semicolon separated queries.
-	 *
-	 * The string will allways contain complete entries.
-	 */
-	std::string queries_to_string(size_t max_length) const
-	{
-		std::string ret;
-
-		for (auto it = queries.cbegin(); it != queries.cend(); it++) {
-			if (max_length == std::string::npos) {
-				ret += *it + ";";
-			} else {
-				if (ret.length() + (*it).length() + 1 <= max_length) {
-					ret += *it + ";";
-				} else {
-					break;
-				}
-			}
-		}
-		return ret;
-	}
-
-	/**
-	 * \brief Converts a response to semicolon separated string.
-	 * \param [in] response Iterator pointing at the response.
-	 */
-	std::string response_to_string(std::list<DnsSdRr>::const_iterator response) const
-	{
-		std::stringstream ret;
-
-		ret << response->name + ";";
-		ret << response->srv_port << ";";
-		ret << response->srv_target + ";";
-		if (!(response->hinfo[0].empty() && response->hinfo[1].empty())) {
-			ret << response->hinfo[0] << ":" << response->hinfo[1] + ";";
-		} else {
-			ret << ";";
-		}
-		ret << response->txt + ";";
-		return ret.str();
-	}
-
-	/**
-	 * \brief Concatenates all collected responses to single string.
-	 * \param [in] max_length Size limit for the output string.
-	 * \return String of semicolon separated responses.
-	 *
-	 * The string will allways contain complete entries.
-	 */
-	std::string responses_to_string(size_t max_length) const
-	{
-		std::string ret, part;
-
-		for (auto it = responses.cbegin(); it != responses.cend(); it++) {
-			if (max_length == std::string::npos) {
-				ret += response_to_string(it);
-			} else {
-				part = response_to_string(it);
-				if (ret.length() + part.length() + 1 <= max_length) {
-					ret += part;
-				} else {
-					break;
-				}
-			}
-		}
-		return ret;
-	}
-
-#ifdef WITH_NEMEA
-	virtual void fill_unirec(ur_template_t* tmplt, void* record)
-	{
-		ur_set_string(tmplt, record, F_DNSSD_QUERIES, queries_to_string(std::string::npos).c_str());
-		ur_set_string(
-			tmplt,
-			record,
-			F_DNSSD_RESPONSES,
-			responses_to_string(std::string::npos).c_str());
-	}
-
-	const char* get_unirec_tmplt() const { return DNSSD_UNIREC_TEMPLATE; }
-#endif
-
-	virtual int fill_ipfix(uint8_t* buffer, int size)
-	{
-		std::string queries = queries_to_string(510);
-		std::string responses = responses_to_string(510);
-
-		int length = 0;
-		int qry_len = queries.length();
-		int resp_len = responses.length();
-
-		if (qry_len + resp_len + 6 > size) {
-			return -1;
-		}
-
-		if (qry_len >= 255) {
-			buffer[length++] = 255;
-			*(uint16_t*) (buffer + length) = ntohs(qry_len);
-			length += sizeof(uint16_t);
-		} else {
-			buffer[length++] = qry_len;
-		}
-		memcpy(buffer + length, queries.c_str(), qry_len);
-		length += qry_len;
-
-		if (resp_len >= 255) {
-			buffer[length++] = 255;
-			*(uint16_t*) (buffer + length) = ntohs(resp_len);
-			length += sizeof(uint16_t);
-		} else {
-			buffer[length++] = resp_len;
-		}
-		memcpy(buffer + length, responses.c_str(), resp_len);
-		length += resp_len;
-
-		return length;
-	}
-
-	const char** get_ipfix_tmplt() const
-	{
-		static const char* ipfix_tmplt[] = {IPFIX_DNSSD_TEMPLATE(IPFIX_FIELD_NAMES) nullptr};
-
-		return ipfix_tmplt;
-	}
-
-	std::string get_text() const
-	{
-		std::ostringstream out;
-		out << "dnssdqueries=\"" << queries_to_string(std::string::npos) << "\""
-			<< ",dnssdresponses=\"" << responses_to_string(std::string::npos) << "\"";
-		return out.str();
-	}
-};
-
-/**
- * \brief Flow cache plugin for parsing DNSSD packets.
- */
-class DNSSDPlugin : public ProcessPlugin {
+class DNSSDPlugin : public ProcessPluginCRTP<DNSSDPlugin> {
 public:
-	DNSSDPlugin(const std::string& params, int pluginID);
-	~DNSSDPlugin();
-	void init(const char* params);
-	void close();
-	OptionsParser* get_parser() const { return new DNSSDOptParser(); }
-	std::string get_name() const { return "dnssd"; }
-	RecordExt* get_ext() const { return new RecordExtDNSSD(m_pluginID); }
-	ProcessPlugin* copy();
+	/**
+	 * @brief Constructs the DNSSD plugin.
+	 *
+	 * @param parameters Plugin parameters as a string (currently unused).
+	 * @param fieldManager Reference to the FieldManager for field registration.
+	 */
+	DNSSDPlugin(const std::string& params, FieldManager& manager);
 
-	int post_create(Flow& rec, const Packet& pkt);
-	int post_update(Flow& rec, const Packet& pkt);
-	void finish(bool print_stats);
+	/**
+	 * @brief Initializes plugin data for a new flow.
+	 *
+	 * Constructs `DNSSDContext` in `pluginContext` and initializes it with
+	 * parsed DNSSD data.
+	 * Discards consequent traffic if neither source nor destination port is 5353.
+	 *
+	 * @param flowContext Contextual information about the flow to fill new record.
+	 * @param pluginContext Pointer to pre-allocated memory to create record.
+	 * @return Result of the initialization process.
+	 */
+	OnInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
+
+	/**
+	 * @brief Updates plugin data with values from new packet.
+	 *
+	 * Inserts newly parsed DNSSD data into `DNSSDContext`.
+	 * Discard consequent traffic if failed to parse.
+	 *
+	 * @param flowContext Contextual information about the flow to be updated.
+	 * @param pluginContext Pointer to `DNSSDContext`.
+	 * @return Result of the update.
+	 */
+	OnUpdateResult onUpdate(const FlowContext& flowContext, void* pluginContext) override;
+
+	/**
+	 * @brief Prepare the export data.
+	 *
+	 * Concatenates DNSSD records into a request and response strings.
+	 *
+	 * @param flowRecord The flow record containing flow data.
+	 * @param pluginContext Pointer to `DNSSDContext`.
+	 * @return RemovePlugin if no requests were stored, else no action is required.
+	 */
+	OnExportResult onExport(const FlowRecord& flowRecord, void* pluginContext) override;
+
+	/**
+	 * @brief Cleans up and destroys `DNSSDContext`.
+	 * @param pluginContext Pointer to `DNSSDContext`.
+	 */
+	void onDestroy(void* pluginContext) noexcept override;
+
+	/**
+	 * @brief Provides the memory layout of `DNSSDContext`.
+	 * @return Memory layout description for the plugin data.
+	 */
+	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
 
 private:
-	bool txt_all_records; /**< Indicator whether to process all TXT recods. */
-	uint32_t queries; /**< Total number of parsed DNS queries. */
-	uint32_t responses; /**< Total number of parsed DNS responses. */
-	uint32_t total; /**< Total number of parsed DNS packets. */
+	bool parseDNSSD(
+		std::span<const std::byte> payload,
+		const bool isDNSoverTCP,
+		DNSSDContext& dnssdContext) noexcept;
+	bool parseAnswer(const DNSRecord& answer, DNSSDContext& dnssdContext) noexcept;
 
-	const char* data_begin; /**< Pointer to begin of payload. */
-	uint32_t data_len; /**< Length of packet payload. */
-
-	bool parse_dns(const char* data, unsigned int payload_len, bool tcp, RecordExtDNSSD* rec);
-	int add_ext_dnssd(const char* data, unsigned int payload_len, bool tcp, Flow& rec);
-	void process_rdata(
-		const char* record_begin,
-		const char* data,
-		DnsSdRr& rdata,
-		uint16_t type,
-		size_t length) const;
-	void filtered_append(RecordExtDNSSD* rec, std::string name);
-	void filtered_append(RecordExtDNSSD* rec, std::string name, uint16_t type, DnsSdRr& rdata);
-
-	std::string get_name(const char* data) const;
-	size_t get_name_length(const char* data) const;
-	const std::string get_service_str(std::string& name) const;
-
-	bool parse_params(const std::string& params, std::string& config_file);
-	void load_txtconfig(const char* config_file);
-	bool matches_service(
-		std::list<std::pair<std::string, std::list<std::string>>>::const_iterator& it,
-		std::string& name) const;
-
-	std::list<std::pair<std::string, std::list<std::string>>>
-		txt_config; /**< Configuration for TXT record filter. */
+	// std::optional<std::string> m_configFilename;
+	FieldHandlers<DNSSDFields> m_fieldHandlers;
+	std::optional<ServiceFilter> m_serviceFilter;
 };
 
-} // namespace ipxp
+} // namespace ipxp::process::dnssd
