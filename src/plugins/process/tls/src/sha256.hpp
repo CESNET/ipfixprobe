@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-namespace sha256 {
+namespace ipxp::process::tls {
 
 struct sha256_buff {
 	unsigned long data_size;
@@ -145,4 +145,4 @@ void hash_it(const unsigned char* data, unsigned long data_size, unsigned char* 
 	}
 }
 
-} // namespace sha256
+} // namespace ipxp::process::tls

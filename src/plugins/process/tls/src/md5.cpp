@@ -36,7 +36,7 @@ documentation and/or software.
 /* system implementation headers */
 #include <cstdio>
 
-namespace ipxp {
+namespace ipxp::process::tls {
 
 // Constants for MD5Transform routine.
 #define S11 7
@@ -122,6 +122,13 @@ MD5::MD5(const std::string& text)
 {
 	init();
 	update(text.c_str(), text.length());
+	finalize();
+}
+
+MD5::MD5(std::string_view text)
+{
+	init();
+	update(text.data(), text.size());
 	finalize();
 }
 
@@ -383,4 +390,10 @@ void md5_get_bin(const std::string str, void* dest)
 	memcpy(dest, md5.binary_digest(), 16);
 }
 
-} // namespace ipxp
+void md5_get_bin(std::string_view str, void* dest)
+{
+	MD5 md5 = MD5(str);
+	memcpy(dest, md5.binary_digest(), 16);
+}
+
+} // namespace ipxp::process::tls
