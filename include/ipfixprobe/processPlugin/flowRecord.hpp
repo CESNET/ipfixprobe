@@ -273,4 +273,16 @@ private:
 
 using FlowRecordUniquePtr = std::unique_ptr<FlowRecord, FlowRecordDeleter>;
 
+constexpr inline uint16_t
+getSrcPort(const FlowRecord& flowRecord, const process::Direction direction)
+{
+	return direction ? flowRecord.flowKey.srcPort : flowRecord.flowKey.dstPort;
+}
+
+constexpr inline uint16_t
+getDstPort(const FlowRecord& flowRecord, const process::Direction direction)
+{
+	return direction ? flowRecord.flowKey.dstPort : flowRecord.flowKey.srcPort;
+}
+
 } // namespace ipxp

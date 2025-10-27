@@ -29,17 +29,19 @@
 #include <type_traits>
 
 #include <amon/Packet.hpp>
+#include <amon/layers/IPv4.hpp>
+#include <amon/layers/IPv6.hpp>
 #include <amon/layers/TCP.hpp>
 #include <ipfixprobe/api.hpp>
 
 namespace ipxp::process {
 
 struct PacketFeatures {
-	Direction direction;
-
-	std::optional<amon::layers::TCPView> tcp;
-	std::optional<TCPOptions> tcpOptions;
-	uint16_t ipPayloadLength {0};
+	// src_ip
+	// dst_ip
+	uint16_t srcPort;
+	uint16_t dstPort;
+	uint8_t l4Protocol;
 };
 
 } // namespace ipxp::process
@@ -517,6 +519,33 @@ constexpr std::span<const std::byte> getPayload(const amon::Packet& packet) noex
 {
 	return packet.data.subspan(
 		std::get<amon::PacketLayer>(packet.layers[*packet.layout.l7]).offset);
+}
+
+template<typename ViewType>
+constexpr std::optional<ViewType>
+getLayerView(const amon::Packet& packet, const std::optional<uint8_t>& layer) noexcept
+{
+	if (!layer.has_value()) {
+		return std::nullopt;
+	}
+	if (std::holds_alternative<amon::ErrorLayer>(packet.layers[*layer])) {
+		return std::nullopt;
+	}
+
+	return packet.getLayerView<ViewType>(std::get<amon::PacketLayer>(packet.layers[*layer]));
+}
+
+constexpr inline std::optional<std::size_t> getIPPayloadLength(const amon::Packet& packet) noexcept
+{
+	if (auto ipv4 = getLayerView<amon::layers::IPv4View>(packet, packet.layout.l3);
+		ipv4.has_value()) {
+		return ipv4->totalLength() - ipv4->headerLength();
+	} else if (auto ipv6 = getLayerView<amon::layers::IPv6View>(packet, packet.layout.l4);
+			   ipv6.has_value()) {
+		return ipv6->payloadLength();
+	}
+
+	return std::nullopt;
 }
 
 /**
