@@ -3,101 +3,68 @@
  * @brief Plugin for parsing icmp traffic.
  * @author Jakub Antonín Štigler xstigl00@xstigl00@stud.fit.vut.cz
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that extracts ICMP typecode from packets,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <cstring>
-
-#ifdef WITH_NEMEA
-#include "fields.h"
-#endif
+#include "icmpFields.hpp"
 
 #include <sstream>
+#include <string>
 
-#include <ipfixprobe/flowifc.hpp>
-#include <ipfixprobe/ipfix-elements.hpp>
-#include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/processPlugin.hpp>
-#include <ipfixprobe/utils.hpp>
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
-namespace ipxp {
-
-#define ICMP_UNIREC_TEMPLATE "L4_ICMP_TYPE_CODE"
-
-UR_FIELDS(uint16 L4_ICMP_TYPE_CODE)
+namespace ipxp::process::icmp {
 
 /**
- * \brief Flow record extension header for storing parsed ICMP data.
+ * @class ICMPPlugin
+ * @brief A plugin for parsing ICMP traffic and exporting typecodes.
  */
-struct RecordExtICMP : public RecordExt {
-	uint16_t type_code;
-
-	RecordExtICMP(int pluginID)
-		: RecordExt(pluginID)
-	{
-		type_code = 0;
-	}
-
-#ifdef WITH_NEMEA
-	virtual void fill_unirec(ur_template_t* tmplt, void* record)
-	{
-		ur_set(tmplt, record, F_L4_ICMP_TYPE_CODE, ntohs(type_code));
-	}
-
-	const char* get_unirec_tmplt() const { return ICMP_UNIREC_TEMPLATE; }
-#endif
-
-	virtual int fill_ipfix(uint8_t* buffer, int size)
-	{
-		const int LEN = 2;
-
-		if (size < LEN) {
-			return -1;
-		}
-
-		*reinterpret_cast<uint16_t*>(buffer) = type_code;
-
-		return LEN;
-	}
-
-	const char** get_ipfix_tmplt() const
-	{
-		static const char* ipfix_template[] = {IPFIX_ICMP_TEMPLATE(IPFIX_FIELD_NAMES) NULL};
-		return ipfix_template;
-	}
-
-	std::string get_text() const
-	{
-		// type is on the first byte, code is on the second byte
-		auto* type_code = reinterpret_cast<const uint8_t*>(&this->type_code);
-
-		std::ostringstream out;
-		out << "type=\"" << static_cast<int>(type_code[0]) << '"' << ",code=\""
-			<< static_cast<int>(type_code[1]) << '"';
-
-		return out.str();
-	}
-};
-
-/**
- * \brief Process plugin for parsing ICMP packets.
- */
-class ICMPPlugin : public ProcessPlugin {
+class ICMPPlugin : public ProcessPluginCRTP<ICMPPlugin> {
 public:
-	ICMPPlugin(const std::string& params, int pluginID);
+	/**
+	 * @brief Constructs the ICMP plugin.
+	 *
+	 * @param parameters Plugin parameters as a string (currently unused).
+	 * @param fieldManager Reference to the FieldManager for field registration.
+	 */
+	ICMPPlugin(const std::string& params, FieldManager& manager);
 
-	OptionsParser* get_parser() const { return new OptionsParser("icmp", "Parse ICMP traffic"); }
-	std::string get_name() const { return "icmp"; }
-	RecordExt* get_ext() const { return new RecordExtICMP(m_pluginID); }
-	ProcessPlugin* copy();
+	/**
+	 * @brief Initializes plugin data for a new flow.
+	 *
+	 * Constructs `ICMPContext` in `pluginContext` and sets typecode if flow is ICMP and parsed
+	 * successfully.
+	 *
+	 * @param flowContext Contextual information about the flow to fill new record.
+	 * @param pluginContext Pointer to pre-allocated memory to create record.
+	 * @return Result of the initialization process.
+	 */
+	OnInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
 
-	int post_create(Flow& rec, const Packet& pkt);
+	/**
+	 * @brief Cleans up and destroys `ICMPContext`.
+	 * @param pluginContext Pointer to `ICMPContext`.
+	 */
+	void onDestroy(void* pluginContext) noexcept override;
+
+	/**
+	 * @brief Provides the memory layout of `ICMPContext`.
+	 * @return Memory layout description for the plugin data.
+	 */
+	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
+
+private:
+	FieldHandlers<ICMPFields> m_fieldHandlers;
 };
 
-} // namespace ipxp
+} // namespace ipxp::process::icmp

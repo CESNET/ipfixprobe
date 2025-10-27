@@ -1,23 +1,35 @@
 /**
  * @file
- * @brief Plugin for parsing basicplus traffic.
- * @author Jiri Havranek <havranek@cesnet.cz>
+ * @brief Plugin for parsing icmp traffic.
+ * @author Jakub Antonín Štigler xstigl00@xstigl00@stud.fit.vut.cz
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that extracts ICMP typecode from packets,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "icmp.hpp"
 
+#include "icmpContext.hpp"
+#include "icmpGetters.hpp"
+
 #include <iostream>
 
-#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
-#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+#include <amon/layers/ICMP.hpp>
+#include <amon/layers/ICMPv6.hpp>
+#include <fieldGroup.hpp>
+#include <fieldManager.hpp>
+#include <flowRecord.hpp>
+#include <ipfixprobe/options.hpp>
+#include <pluginFactory.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
 
-namespace ipxp {
+namespace ipxp::process::icmp {
 
 static const PluginManifest icmpPluginManifest = {
 	.name = "icmp",
@@ -31,34 +43,74 @@ static const PluginManifest icmpPluginManifest = {
 		},
 };
 
-ICMPPlugin::ICMPPlugin(const std::string& params, int pluginID)
-	: ProcessPlugin(pluginID)
+static FieldGroup createICMPSchema(FieldManager& fieldManager, FieldHandlers<ICMPFields>& handlers)
 {
-	init(params.c_str());
+	FieldGroup schema = fieldManager.createFieldGroup("icmp");
+
+	handlers.insert(
+		ICMPFields::L4_ICMP_TYPE_CODE,
+		schema.addScalarField("L4_ICMP_TYPE_CODE", getICMPTypeCodeField));
+
+	handlers.insert(
+		ICMPFields::L4_ICMP_CODE,
+		schema.addScalarField("L4_ICMP_CODE", getICMPCodeField));
+
+	handlers.insert(
+		ICMPFields::L4_ICMP_TYPE,
+		schema.addScalarField("L4_ICMP_TYPE", getICMPTypeField));
+
+	return schema;
 }
 
-ProcessPlugin* ICMPPlugin::copy()
+ICMPPlugin::ICMPPlugin([[maybe_unused]] const std::string& params, FieldManager& manager)
 {
-	return new ICMPPlugin(*this);
+	createICMPSchema(manager, m_fieldHandlers);
 }
 
-int ICMPPlugin::post_create(Flow& rec, const Packet& pkt)
+static bool isICMP(const amon::Packet& packet) noexcept
 {
-	if (pkt.ip_proto == IPPROTO_ICMP || pkt.ip_proto == IPPROTO_ICMPV6) {
-		if (pkt.payload_len < sizeof(RecordExtICMP::type_code))
-			return 0;
+	return getLayerView<amon::layers::ICMPView>(packet, packet.layout.l4).has_value()
+		|| getLayerView<amon::layers::ICMPv6View>(packet, packet.layout.l4).has_value();
+}
 
-		auto ext = new RecordExtICMP(m_pluginID);
-
-		// the type and code are the first two bytes, type on MSB and code on LSB
-		// in the network byte order
-		ext->type_code = *reinterpret_cast<const uint16_t*>(pkt.payload);
-
-		rec.add_extension(ext);
+OnInitResult ICMPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
+{
+	if (!isICMP(*flowContext.packetContext.packet)) {
+		return OnInitResult::Irrelevant;
 	}
-	return 0;
+
+	if (getIPPayloadLength(*flowContext.packetContext.packet) < sizeof(ICMPContext::typeCode)) {
+		return OnInitResult::PendingConstruction;
+	}
+
+	// the type and code are the first two bytes, type on MSB and code on LSB
+	// in the network byte order
+	auto& icmpContext = *std::construct_at(reinterpret_cast<ICMPContext*>(pluginContext));
+	icmpContext.typeCode
+		= *reinterpret_cast<const uint16_t*>(getPayload(*flowContext.packetContext.packet).data());
+	m_fieldHandlers[ICMPFields::L4_ICMP_TYPE_CODE].setAsAvailable(flowContext.flowRecord);
+	m_fieldHandlers[ICMPFields::L4_ICMP_CODE].setAsAvailable(flowContext.flowRecord);
+	m_fieldHandlers[ICMPFields::L4_ICMP_TYPE].setAsAvailable(flowContext.flowRecord);
+
+	return OnInitResult::ConstructedFinal;
 }
 
-static const PluginRegistrar<ICMPPlugin, ProcessPluginFactory> icmpRegistrar(icmpPluginManifest);
+void ICMPPlugin::onDestroy(void* pluginContext) noexcept
+{
+	std::destroy_at(reinterpret_cast<ICMPContext*>(pluginContext));
+}
 
-} // namespace ipxp
+PluginDataMemoryLayout ICMPPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(ICMPContext),
+		.alignment = alignof(ICMPContext),
+	};
+}
+
+static const PluginRegistrar<
+	ICMPPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+	icmpRegistrar(icmpPluginManifest);
+
+} // namespace ipxp::process::icmp
