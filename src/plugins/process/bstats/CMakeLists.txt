@@ -1,8 +1,11 @@
 project(ipfixprobe-process-bstats VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-bstats plugin")
 
 add_library(ipfixprobe-process-bstats MODULE
-	src/bstats.cpp
-	src/bstats.hpp
+	src/burstStats.cpp
+	src/burstStats.hpp
+	src/burstStatsContext.hpp
+	src/burstStatsFields.hpp
+	src/burst.hpp	
 )
 
 set_target_properties(ipfixprobe-process-bstats PROPERTIES
@@ -10,12 +13,15 @@ set_target_properties(ipfixprobe-process-bstats PROPERTIES
 	VISIBILITY_INLINES_HIDDEN YES
 )
 
-target_include_directories(ipfixprobe-process-bstats PRIVATE
+target_include_directories(ipfixprobe-process-bstats PRIVATE 
 	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 target_link_libraries(ipfixprobe-process-bstats PRIVATE
-	ipfixprobe-output-ipfix
+	ipfixprobe-core
 )
 
 if(ENABLE_NEMEA)
