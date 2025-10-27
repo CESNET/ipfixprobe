@@ -3,21 +3,33 @@
  * @brief Plugin for parsing ssdp traffic.
  * @author Ondrej Sedlacek xsedla1o@stud.fit.vutbr.cz
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that parses SSDP traffic,
+ * stores it in per-flow plugin data, and exposes that field via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "ssdp.hpp"
 
+#include "ssdpGetters.hpp"
+
 #include <iostream>
 
-#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
-#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+#include <fieldGroup.hpp>
+#include <fieldManager.hpp>
+#include <flowRecord.hpp>
+#include <ipfixprobe/options.hpp>
+#include <pluginFactory.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
+#include <readers/headerFieldReader/headerFieldReader.hpp>
+#include <utils.hpp>
+#include <utils/stringViewUtils.hpp>
 
-namespace ipxp {
+namespace ipxp::process::ssdp {
 
 static const PluginManifest ssdpPluginManifest = {
 	.name = "ssdp",
@@ -31,266 +43,191 @@ static const PluginManifest ssdpPluginManifest = {
 		},
 };
 
-// #define DEBUG_SSDP
-
-// Print debug message if debugging is allowed.
-#ifdef DEBUG_SSDP
-#define SSDP_DEBUG_MSG(format, ...) fprintf(stderr, format, ##__VA_ARGS__)
-#else
-#define SSDP_DEBUG_MSG(format, ...)
-#endif
-
-enum header_types { LOCATION, NT, ST, SERVER, USER_AGENT, NONE };
-
-const char* headers[] = {"location", "nt", "st", "server", "user-agent"};
-
-SSDPPlugin::SSDPPlugin(const std::string& params, int pluginID)
-	: ProcessPlugin(pluginID)
-	, record(nullptr)
-	, notifies(0)
-	, searches(0)
-	, total(0)
+static FieldGroup
+createSSDPSchema(FieldManager& fieldManager, FieldHandlers<SSDPFields>& handlers) noexcept
 {
-	init(params.c_str());
+	FieldGroup schema = fieldManager.createFieldGroup("ssdp");
+
+	handlers.insert(
+		SSDPFields::SSDP_LOCATION_PORT,
+		schema.addScalarField("SSDP_LOCATION_PORT", getSSDPLocationPortField));
+	handlers.insert(SSDPFields::SSDP_NT, schema.addScalarField("SSDP_NT", getSSDPNTField));
+	handlers.insert(
+		SSDPFields::SSDP_SERVER,
+		schema.addScalarField("SSDP_SERVER", getSSDPServerField));
+	handlers.insert(
+		SSDPFields::SSDP_ST,
+		schema.addScalarField("SSDP_ST", getSSDPSearchTargetField));
+	handlers.insert(
+		SSDPFields::SSDP_USER_AGENT,
+		schema.addScalarField("SSDP_USER_AGENT", getSSDPUserAgentField));
+
+	return schema;
 }
 
-SSDPPlugin::~SSDPPlugin()
+SSDPPlugin::SSDPPlugin([[maybe_unused]] const std::string& params, FieldManager& manager)
 {
-	close();
+	createSSDPSchema(manager, m_fieldHandlers);
 }
 
-void SSDPPlugin::init(const char* params)
+constexpr static void getURN(std::string_view value, auto&& output) noexcept
 {
-	(void) params;
-}
-
-void SSDPPlugin::close() {}
-
-ProcessPlugin* SSDPPlugin::copy()
-{
-	return new SSDPPlugin(*this);
-}
-
-int SSDPPlugin::post_create(Flow& rec, const Packet& pkt)
-{
-	if (pkt.dst_port == 1900) {
-		record = new RecordExtSSDP(m_pluginID);
-		rec.add_extension(record);
-		record = nullptr;
-
-		parse_ssdp_message(rec, pkt);
+	const std::vector<std::string_view> tokens = splitToVector(value);
+	if (tokens.size() < 2 || tokens[0] != "urn") {
+		return;
 	}
-	return 0;
+
+	std::ranges::copy(
+		tokens[1] | std::views::take(output.capacity() - output.size()),
+		std::back_inserter(output));
 }
 
-int SSDPPlugin::pre_update(Flow& rec, Packet& pkt)
+constexpr static std::optional<uint16_t> parseLocationPort(std::string_view value) noexcept
 {
-	if (pkt.dst_port == 1900) {
-		parse_ssdp_message(rec, pkt);
+	const std::size_t protocolPos = value.find("://");
+	if (protocolPos == std::string_view::npos) {
+		return std::nullopt;
 	}
-	return 0;
-}
 
-void SSDPPlugin::finish(bool print_stats)
-{
-	if (print_stats) {
-		std::cout << "SSDP plugin stats:" << std::endl;
-		std::cout << "   Parsed SSDP M-Searches: " << searches << std::endl;
-		std::cout << "   Parsed SSDP Notifies: " << notifies << std::endl;
-		std::cout << "   Total SSDP packets processed: " << total << std::endl;
+	const std::size_t portPos = value.find(':', protocolPos + 3);
+	if (portPos == std::string_view::npos) {
+		return std::nullopt;
 	}
-}
 
-/**
- * \brief Parses port from location header message string.
- *
- * \param [in, out] data Pointer to SSDP data.
- * \param [in] ip_version IP version of the Location url being parsed.
- * \return Parsed port number on success, 0 otherwise.
- */
-uint16_t SSDPPlugin::parse_loc_port(const char* data, unsigned data_len, uint8_t ip_version)
-{
+	const std::string_view portView = value.substr(portPos + 1);
 	uint16_t port;
-	char* end_ptr = nullptr;
-	const void* data_mem = static_cast<const void*>(data);
+	if (std::from_chars(portView.begin(), portView.end(), port).ec != std::errc()) {
+		return std::nullopt;
+	}
 
-	if (ip_version == IP::v6) {
-		data_mem = memchr(data_mem, ']', data_len);
-	} else {
-		data_mem = memchr(data_mem, '.', data_len);
-	}
-	if (data_mem == nullptr) {
-		return 0;
-	}
-	data_mem = memchr(data_mem, ':', data_len);
-
-	if (data_mem == nullptr) {
-		return 0;
-	}
-	data = static_cast<const char*>(data_mem);
-	data++;
-
-	port = strtol(data, &end_ptr, 0);
-	if (data != end_ptr) {
-		return port;
-	}
-	return 0;
+	return port;
 }
 
-/**
- * \brief Checks for given header string in data
- *
- * \param [in, out] data Pointer to pointer to SSDP data.
- * \param [in] header String containing the desired header.
- * \param [in] len Lenght of the desired header.
- * \return True if the header is found, otherwise false.
- */
-bool SSDPPlugin::get_header_val(const char** data, const char* header, const int len)
+void SSDPPlugin::parseSSDPNotify(
+	std::string_view headerFields,
+	SSDPContext& ssdpContext,
+	FlowRecord& flowRecord) noexcept
 {
-	if (strncasecmp(*data, header, len) == 0 && (*data)[len] == ':') {
-		(*data) += len + 1;
-		while (isspace(**data)) {
-			(*data)++;
-		};
-		return true;
-	}
-	return false;
-}
+	HeaderFieldReader reader;
 
-/**
- * \brief Parses SSDP payload based on configuration in conf struct.
- *
- * \param [in] data Pointer to pointer to SSDP data.
- * \param [in] payload_len Lenght of payload data
- * \param [in] conf Struct containing parser configuration.
- */
-void SSDPPlugin::parse_headers(const uint8_t* data, size_t payload_len, header_parser_conf conf)
-{
-	const char* ptr = (const char*) (data);
-	const char* old_ptr = ptr;
-	size_t len = 0;
-
-	while (*ptr != '\0' && len <= payload_len) {
-		if (*ptr == '\n' && *(ptr - 1) == '\r') {
-			for (unsigned j = 0, i = 0; j < conf.select_cnt; j++) {
-				i = conf.select[j];
-				if (get_header_val(&old_ptr, conf.headers[i], strlen(conf.headers[i]))) {
-					switch ((header_types) i) {
-					case ST:
-						if (get_header_val(&old_ptr, "urn", strlen("urn"))) {
-							SSDP_DEBUG_MSG("%s\n", old_ptr);
-							append_value(conf.ext->st, SSDP_URN_LEN, old_ptr, ptr - old_ptr);
-						}
-						break;
-					case NT:
-						if (get_header_val(&old_ptr, "urn", strlen("urn"))) {
-							SSDP_DEBUG_MSG("%s\n", old_ptr);
-							append_value(conf.ext->nt, SSDP_URN_LEN, old_ptr, ptr - old_ptr);
-						}
-						break;
-					case LOCATION: {
-						uint16_t port = parse_loc_port(old_ptr, ptr - old_ptr, conf.ip_version);
-
-						if (port > 0) {
-							SSDP_DEBUG_MSG("%d <- %d\n", conf.ext->port, port);
-							conf.ext->port = port;
-						}
-						break;
-					}
-					case USER_AGENT:
-						SSDP_DEBUG_MSG("%s\n", old_ptr);
-						append_value(
-							conf.ext->user_agent,
-							SSDP_USER_AGENT_LEN,
-							old_ptr,
-							ptr - old_ptr);
-						break;
-					case SERVER:
-						SSDP_DEBUG_MSG("%s\n", old_ptr);
-						append_value(conf.ext->server, SSDP_SERVER_LEN, old_ptr, ptr - old_ptr);
-						break;
-					default:
-						break;
-					}
-					break;
-				}
-			}
-			old_ptr = ptr + 1;
+	for (const auto& [key, value] : reader.getRange(headerFields)) {
+		if (key == "NT") {
+			getURN(value, ssdpContext.notificationType);
+			m_fieldHandlers[SSDPFields::SSDP_NT].setAsAvailable(flowRecord);
 		}
-		ptr++;
-		len++;
-	}
-	return;
-}
 
-/**
- * \brief Appends a value to the existing semicolon separated entry.
- *
- * Appends only values that are not already included in the current entry.
- *
- * \param [in,out] curr_entry String containing the current entry.
- * \param [in] entry_max Maximum length if the entry.
- * \param [in] value String containing the new entry.
- */
-void SSDPPlugin::append_value(
-	char* curr_entry,
-	unsigned entry_max,
-	const char* value,
-	unsigned value_len)
-{
-	if (strlen(curr_entry) + value_len + 1 < entry_max) {
-		// return if value already in curr_entry
-		for (unsigned i = 0; i < strlen(curr_entry) - value_len; i++) {
-			if (strlen(curr_entry) < value_len) {
-				break;
-			}
-			if (strncmp(&curr_entry[i], value, value_len) == 0) {
-				return;
+		if (key == "LOCATION") {
+			const std::optional<uint16_t> port = parseLocationPort(value);
+			if (port.has_value()) {
+				ssdpContext.port = *port;
+				m_fieldHandlers[SSDPFields::SSDP_LOCATION_PORT].setAsAvailable(flowRecord);
 			}
 		}
 
-		SSDP_DEBUG_MSG("New entry\n");
-		strncat(curr_entry, value, value_len);
-		strcat(curr_entry, ";");
+		if (key == "SERVER") {
+			std::ranges::copy(
+				value | std::views::take(ssdpContext.server.capacity() - ssdpContext.server.size()),
+				std::back_inserter(ssdpContext.server));
+			m_fieldHandlers[SSDPFields::SSDP_SERVER].setAsAvailable(flowRecord);
+		}
 	}
 }
 
-/**
- * \brief Parses SSDP payload.
- *
- * Detects type of message and configures the parser accordingly.
- *
- * \param [in, out] rec Flow record containing basic flow data.
- * \param [in] pkt Packet struct containing packet data.
- */
-void SSDPPlugin::parse_ssdp_message(Flow& rec, const Packet& pkt)
+void SSDPPlugin::parseSSDPMSearch(
+	std::string_view headerFields,
+	SSDPContext& ssdpContext,
+	FlowRecord& flowRecord) noexcept
 {
-	header_parser_conf parse_conf
-		= {headers,
-		   rec.ip_version,
-		   static_cast<RecordExtSSDP*>(rec.get_extension(m_pluginID)),
-		   0,
-		   nullptr};
+	HeaderFieldReader reader;
 
-	total++;
-	if (pkt.payload[0] == 'N') {
-		notifies++;
-		SSDP_DEBUG_MSG("Notify #%d\n", notifies);
-		int notify_headers[] = {NT, LOCATION, SERVER};
-		parse_conf.select = notify_headers;
-		parse_conf.select_cnt = sizeof(notify_headers) / sizeof(notify_headers[0]);
-		parse_headers(pkt.payload, pkt.payload_len, parse_conf);
-	} else if (pkt.payload[0] == 'M') {
-		searches++;
-		SSDP_DEBUG_MSG("M-search #%d\n", searches);
-		int search_headers[] = {ST, USER_AGENT};
-		parse_conf.select = search_headers;
-		parse_conf.select_cnt = sizeof(search_headers) / sizeof(search_headers[0]);
-		parse_headers(pkt.payload, pkt.payload_len, parse_conf);
+	for (const auto& [key, value] : reader.getRange(headerFields)) {
+		if (key == "ST") {
+			getURN(value, ssdpContext.searchTarget);
+			m_fieldHandlers[SSDPFields::SSDP_ST].setAsAvailable(flowRecord);
+		}
+
+		if (key == "USER_AGENT") {
+			std::ranges::copy(
+				value
+					| std::views::take(
+						ssdpContext.userAgent.capacity() - ssdpContext.userAgent.size()),
+				std::back_inserter(ssdpContext.userAgent));
+			m_fieldHandlers[SSDPFields::SSDP_USER_AGENT].setAsAvailable(flowRecord);
+		}
 	}
-	SSDP_DEBUG_MSG("\n");
 }
 
-static const PluginRegistrar<SSDPPlugin, ProcessPluginFactory> ssdpRegistrar(ssdpPluginManifest);
+constexpr void SSDPPlugin::parseSSDP(
+	std::string_view payload,
+	SSDPContext& ssdpContext,
+	FlowRecord& flowRecord) noexcept
+{
+	if (payload.empty()) {
+		return;
+	}
 
-} // namespace ipxp
+	auto headerEnd = payload.find('\n');
+	if (headerEnd == std::string_view::npos) {
+		return;
+	}
+
+	std::string_view headerFields = payload.substr(headerEnd + 1);
+
+	if (toStringView(payload).starts_with("NOTIFY")) {
+		parseSSDPNotify(headerFields, ssdpContext, flowRecord);
+	}
+
+	if (toStringView(payload).starts_with("M-SEARCH")) {
+		parseSSDPMSearch(headerFields, ssdpContext, flowRecord);
+	}
+}
+
+OnInitResult SSDPPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
+{
+	constexpr std::size_t SSDP_PORT = 1900;
+	if (flowContext.flowRecord.flowKey.dstPort != SSDP_PORT) {
+		return OnInitResult::Irrelevant;
+	}
+
+	auto& ssdpContext = *std::construct_at(reinterpret_cast<SSDPContext*>(pluginContext));
+	parseSSDP(
+		toStringView(getPayload(*flowContext.packetContext.packet)),
+		ssdpContext,
+		flowContext.flowRecord);
+
+	return OnInitResult::ConstructedNeedsUpdate;
+}
+
+OnUpdateResult SSDPPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
+{
+	auto& ssdpContext = *reinterpret_cast<SSDPContext*>(pluginContext);
+	constexpr std::size_t SSDP_PORT = 1900;
+	if (getDstPort(flowContext.flowRecord, flowContext.packetDirection) == SSDP_PORT) {
+		parseSSDP(
+			toStringView(getPayload(*flowContext.packetContext.packet)),
+			ssdpContext,
+			flowContext.flowRecord);
+	}
+
+	return OnUpdateResult::NeedsUpdate;
+}
+
+void SSDPPlugin::onDestroy(void* pluginContext) noexcept
+{
+	std::destroy_at(reinterpret_cast<SSDPContext*>(pluginContext));
+}
+
+PluginDataMemoryLayout SSDPPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(SSDPContext),
+		.alignment = alignof(SSDPContext),
+	};
+}
+
+static const PluginRegistrar<
+	SSDPPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
+	ssdpRegistrar(ssdpPluginManifest);
+
+} // namespace ipxp::process::ssdp
