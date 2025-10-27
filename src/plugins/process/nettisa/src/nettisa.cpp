@@ -2,23 +2,31 @@
  * @file
  * @brief Plugin for parsing Nettisa flow.
  * @author Josef Koumar koumajos@fit.cvut.cz
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that extracts advanced statistics based on packet lengths,
+ * stores them in per-flow plugin data, and exposes fields via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #include "nettisa.hpp"
 
+#include "nettisaGetters.hpp"
+
 #include <cmath>
 #include <iostream>
 
-#include <ipfixprobe/pluginFactory/pluginManifest.hpp>
-#include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
-#include <ipfixprobe/utils.hpp>
+#include <fieldGroup.hpp>
+#include <fieldManager.hpp>
+#include <flowRecord.hpp>
+#include <ipfixprobe/options.hpp>
+#include <pluginFactory.hpp>
+#include <pluginManifest.hpp>
+#include <pluginRegistrar.hpp>
 
-namespace ipxp {
+namespace ipxp::process::nettisa {
 
 static const PluginManifest nettisaPluginManifest = {
 	.name = "nettisa",
@@ -32,103 +40,213 @@ static const PluginManifest nettisaPluginManifest = {
 		},
 };
 
-NETTISAPlugin::NETTISAPlugin(const std::string& params, int pluginID)
-	: ProcessPlugin(pluginID)
+static FieldGroup createNetTimeSeriesSchema(
+	FieldManager& fieldManager,
+	FieldHandlers<NetTimeSeriesFields>& handlers) noexcept
 {
-	init(params.c_str());
+	FieldGroup schema = fieldManager.createFieldGroup("nettisa");
+
+	handlers.insert(
+		NetTimeSeriesFields::NTS_MEAN,
+		schema.addScalarField("NTS_MEAN", getNTSMeanField));
+
+	handlers.insert(NetTimeSeriesFields::NTS_MIN, schema.addScalarField("NTS_MIN", getNTSMinField));
+
+	handlers.insert(NetTimeSeriesFields::NTS_MAX, schema.addScalarField("NTS_MAX", getNTSMaxField));
+
+	handlers.insert(
+		NetTimeSeriesFields::NTS_STDEV,
+		schema.addScalarField("NTS_STDEV", getNTSStdevField));
+
+	handlers.insert(
+		NetTimeSeriesFields::NTS_KURTOSIS,
+		schema.addScalarField("NTS_KURTOSIS", getNTSKurtosisField));
+
+	handlers.insert(
+		NetTimeSeriesFields::NTS_ROOT_MEAN_SQUARE,
+		schema.addScalarField("NTS_ROOT_MEAN_SQUARE", getNTSRootMeanSquareField));
+
+	handlers.insert(
+		NetTimeSeriesFields::NTS_AVERAGE_DISPERSION,
+		schema.addScalarField("NTS_AVERAGE_DISPERSION", getNTSAverageDispersionField));
+
+	handlers.insert(
+		NetTimeSeriesFields::NTS_MEAN_SCALED_TIME,
+		schema.addScalarField("NTS_MEAN_SCALED_TIME", getNTSMeanScaledTimeField));
+
+	handlers.insert(
+		NetTimeSeriesFields::NTS_MEAN_DIFFTIMES,
+		schema.addScalarField("NTS_MEAN_DIFFTIMES", getNTSMeanDifftimesField));
+
+	handlers.insert(
+		NetTimeSeriesFields::NTS_MAX_DIFFTIMES,
+		schema.addScalarField("NTS_MAX_DIFFTIMES", getNTSMaxDifftimesField));
+
+	handlers.insert(
+		NetTimeSeriesFields::NTS_MIN_DIFFTIMES,
+		schema.addScalarField("NTS_MIN_DIFFTIMES", getNTSMinDifftimesField));
+
+	handlers.insert(
+		NetTimeSeriesFields::NTS_TIME_DISTRIBUTION,
+		schema.addScalarField("NTS_TIME_DISTRIBUTION", getNTSTimeDistributionField));
+
+	handlers.insert(
+		NetTimeSeriesFields::NTS_SWITCHING_RATIO,
+		schema.addScalarField("NTS_SWITCHING_RATIO", getNTSSwitchingRatioField));
+
+	return schema;
 }
 
-ProcessPlugin* NETTISAPlugin::copy()
+NetTimeSeriesPlugin::NetTimeSeriesPlugin(
+	[[maybe_unused]] const std::string& params,
+	FieldManager& manager)
 {
-	return new NETTISAPlugin(*this);
+	createNetTimeSeriesSchema(manager, m_fieldHandlers);
 }
 
-void NETTISAPlugin::update_record(
-	RecordExtNETTISA* nettisa_data,
-	const Packet& pkt,
-	const Flow& rec)
+OnInitResult NetTimeSeriesPlugin::onInit(const FlowContext& flowContext, void* pluginContext)
 {
-	float variation_from_mean = pkt.payload_len_wire - nettisa_data->mean;
-	uint32_t n = rec.dst_packets + rec.src_packets;
-	uint64_t packet_time = timeval2usec(pkt.ts);
-	uint64_t record_time = timeval2usec(rec.time_first);
-	float diff_time = fmax(packet_time - nettisa_data->prev_time, 0);
-	nettisa_data->sum_payload += pkt.payload_len_wire;
-	nettisa_data->prev_time = packet_time;
-	// MEAN
-	nettisa_data->mean += (variation_from_mean) / n;
-	// MIN
-	nettisa_data->min = std::min(nettisa_data->min, pkt.payload_len_wire);
-	// MAX
-	nettisa_data->max = std::max(nettisa_data->max, pkt.payload_len_wire);
-	// ROOT MEAN SQUARE
-	nettisa_data->root_mean_square += pow(pkt.payload_len_wire, 2);
-	// AVERAGE DISPERSION
-	nettisa_data->average_dispersion += abs(variation_from_mean);
-	// KURTOSIS
-	nettisa_data->kurtosis += pow(variation_from_mean, 4);
-	// MEAN SCALED TIME
-	nettisa_data->mean_scaled_time
-		+= (packet_time - record_time - nettisa_data->mean_scaled_time) / n;
-	// MEAN TIME DIFFERENCES
-	nettisa_data->mean_difftimes += (diff_time - nettisa_data->mean_difftimes) / n;
-	// MIN
-	nettisa_data->min_difftimes = fmin(nettisa_data->min_difftimes, diff_time);
-	// MAX
-	nettisa_data->max_difftimes = fmax(nettisa_data->max_difftimes, diff_time);
-	// TIME DISTRIBUTION
-	nettisa_data->time_distribution += abs(nettisa_data->mean_difftimes - diff_time);
-	// SWITCHING RATIO
-	if (nettisa_data->prev_payload != pkt.packet_len_wire) {
-		nettisa_data->switching_ratio += 1;
-		nettisa_data->prev_payload = pkt.packet_len_wire;
+	auto& nettisaContext
+		= *std::construct_at(reinterpret_cast<NetTimeSeriesContext*>(pluginContext));
+
+	const std::optional<std::size_t> ipPayloadLength
+		= getIPPayloadLength(*flowContext.packetContext.packet);
+	if (!ipPayloadLength.has_value()) {
+		return OnInitResult::Irrelevant;
+	}
+
+	updateNetTimeSeries(
+		flowContext.flowRecord,
+		flowContext.packetContext.packet->timestamp,
+		*ipPayloadLength,
+		nettisaContext);
+	return OnInitResult::ConstructedNeedsUpdate;
+}
+
+OnUpdateResult NetTimeSeriesPlugin::onUpdate(const FlowContext& flowContext, void* pluginContext)
+{
+	auto& nettisaContext = *reinterpret_cast<NetTimeSeriesContext*>(pluginContext);
+
+	const std::optional<std::size_t> ipPayloadLength
+		= getIPPayloadLength(*flowContext.packetContext.packet);
+	if (!ipPayloadLength.has_value()) {
+		return OnUpdateResult::NeedsUpdate;
+	}
+
+	updateNetTimeSeries(
+		flowContext.flowRecord,
+		flowContext.packetContext.packet->timestamp,
+		*ipPayloadLength,
+		nettisaContext);
+	return OnUpdateResult::NeedsUpdate;
+}
+
+void NetTimeSeriesPlugin::updateNetTimeSeries(
+	FlowRecord& flowRecord,
+	const amon::types::Timestamp packetTimestamp,
+	const std::size_t ipPayloadLength,
+	NetTimeSeriesContext& nettisaContext) noexcept
+{
+	const float variationFromMean = static_cast<float>(ipPayloadLength) - nettisaContext.mean;
+	const float packetsTotal = static_cast<float>(
+		flowRecord.directionalData[Direction::Forward].packets
+		+ flowRecord.directionalData[Direction::Reverse].packets + 1);
+	const float diff = std::max<float>(
+		static_cast<float>(packetTimestamp.nanoseconds() - flowRecord.timeLastUpdate.nanoseconds()),
+		0);
+	nettisaContext.processingState.sumPayload += ipPayloadLength;
+	nettisaContext.processingState.prevTime = packetTimestamp;
+	nettisaContext.mean += variationFromMean / packetsTotal;
+	nettisaContext.min
+		= std::min<uint16_t>(nettisaContext.min, static_cast<uint16_t>(ipPayloadLength));
+	nettisaContext.max
+		= std::max<uint16_t>(nettisaContext.max, static_cast<uint16_t>(ipPayloadLength));
+	nettisaContext.rootMeanSquare += static_cast<float>(std::pow(ipPayloadLength, 2));
+	nettisaContext.averageDispersion += std::abs(variationFromMean);
+	nettisaContext.kurtosis += static_cast<float>(std::pow(variationFromMean, 4));
+	nettisaContext.meanScaledTime
+		+= static_cast<float>(
+			   packetTimestamp.nanoseconds() - flowRecord.timeCreation.nanoseconds()
+			   - nettisaContext.meanScaledTime)
+		/ packetsTotal;
+	nettisaContext.meanDifftimes += (diff - nettisaContext.meanDifftimes) / packetsTotal;
+	nettisaContext.minDifftimes = std::min(nettisaContext.minDifftimes, diff);
+	nettisaContext.maxDifftimes = std::max(nettisaContext.maxDifftimes, diff);
+	nettisaContext.timeDistribution += std::abs(nettisaContext.meanDifftimes - diff);
+	if (nettisaContext.processingState.prevPayload != ipPayloadLength) {
+		nettisaContext.switchingRatio += 1;
+		nettisaContext.processingState.prevPayload = static_cast<uint16_t>(ipPayloadLength);
 	}
 }
 
-int NETTISAPlugin::post_create(Flow& rec, const Packet& pkt)
+OnExportResult NetTimeSeriesPlugin::onExport(const FlowRecord& flowRecord, void* pluginContext)
 {
-	RecordExtNETTISA* nettisa_data = new RecordExtNETTISA(m_pluginID);
-	rec.add_extension(nettisa_data);
+	auto& nettisaContext = *reinterpret_cast<NetTimeSeriesContext*>(pluginContext);
 
-	nettisa_data->prev_time = timeval2usec(pkt.ts);
-
-	update_record(nettisa_data, pkt, rec);
-	return 0;
-}
-
-int NETTISAPlugin::post_update(Flow& rec, const Packet& pkt)
-{
-	RecordExtNETTISA* nettisa_data = (RecordExtNETTISA*) rec.get_extension(m_pluginID);
-
-	update_record(nettisa_data, pkt, rec);
-	return 0;
-}
-
-void NETTISAPlugin::pre_export(Flow& rec)
-{
-	RecordExtNETTISA* nettisa_data = (RecordExtNETTISA*) rec.get_extension(m_pluginID);
-	uint32_t n = rec.src_packets + rec.dst_packets;
-	if (n == 1) {
-		rec.remove_extension(m_pluginID);
-		return;
+	const float packetsTotal = static_cast<float>(
+		flowRecord.directionalData[Direction::Forward].packets
+		+ flowRecord.directionalData[Direction::Reverse].packets);
+	if (packetsTotal == 1) {
+		return OnExportResult::Remove;
+	}
+	nettisaContext.switchingRatio = nettisaContext.switchingRatio / packetsTotal;
+	nettisaContext.standardDeviation = static_cast<float>(std::pow(
+		(nettisaContext.rootMeanSquare / packetsTotal)
+			- std::pow(
+				static_cast<float>(nettisaContext.processingState.sumPayload) / packetsTotal,
+				2),
+		0.5));
+	if (nettisaContext.standardDeviation == 0) {
+		nettisaContext.kurtosis = 0;
 	} else {
-		nettisa_data->switching_ratio = nettisa_data->switching_ratio / n;
-		nettisa_data->stdev = pow(
-			(nettisa_data->root_mean_square / n) - pow(nettisa_data->sum_payload / n, 2),
-			0.5);
-		if (nettisa_data->stdev == 0) {
-			nettisa_data->kurtosis = 0;
-		} else {
-			nettisa_data->kurtosis = nettisa_data->kurtosis / (n * pow(nettisa_data->stdev, 4));
-		}
-		nettisa_data->time_distribution = (nettisa_data->time_distribution / (n - 1))
-			/ (nettisa_data->max_difftimes - nettisa_data->min);
+		nettisaContext.kurtosis = static_cast<float>(
+			nettisaContext.kurtosis
+			/ (packetsTotal * std::pow(nettisaContext.standardDeviation, 4)));
 	}
-	nettisa_data->root_mean_square = pow(nettisa_data->root_mean_square / n, 0.5);
-	nettisa_data->average_dispersion = nettisa_data->average_dispersion / n;
+	nettisaContext.timeDistribution = (nettisaContext.timeDistribution / (packetsTotal - 1))
+		/ (nettisaContext.maxDifftimes - nettisaContext.minDifftimes);
+
+	nettisaContext.rootMeanSquare
+		= static_cast<float>(std::pow(nettisaContext.rootMeanSquare / packetsTotal, 0.5));
+	nettisaContext.averageDispersion = nettisaContext.averageDispersion / packetsTotal;
+
+	makeAllFieldsAvailable(flowRecord);
+	return OnExportResult::NoAction;
 }
 
-static const PluginRegistrar<NETTISAPlugin, ProcessPluginFactory>
+void NetTimeSeriesPlugin::makeAllFieldsAvailable(const FlowRecord& flowRecord) noexcept
+{
+	m_fieldHandlers[NetTimeSeriesFields::NTS_MEAN].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetTimeSeriesFields::NTS_MIN].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetTimeSeriesFields::NTS_MAX].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetTimeSeriesFields::NTS_STDEV].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetTimeSeriesFields::NTS_KURTOSIS].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetTimeSeriesFields::NTS_ROOT_MEAN_SQUARE].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetTimeSeriesFields::NTS_AVERAGE_DISPERSION].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetTimeSeriesFields::NTS_MEAN_SCALED_TIME].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetTimeSeriesFields::NTS_MEAN_DIFFTIMES].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetTimeSeriesFields::NTS_MIN_DIFFTIMES].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetTimeSeriesFields::NTS_MAX_DIFFTIMES].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetTimeSeriesFields::NTS_TIME_DISTRIBUTION].setAsAvailable(flowRecord);
+	m_fieldHandlers[NetTimeSeriesFields::NTS_SWITCHING_RATIO].setAsAvailable(flowRecord);
+}
+
+void NetTimeSeriesPlugin::onDestroy(void* pluginContext) noexcept
+{
+	std::destroy_at(reinterpret_cast<NetTimeSeriesContext*>(pluginContext));
+}
+
+PluginDataMemoryLayout NetTimeSeriesPlugin::getDataMemoryLayout() const noexcept
+{
+	return {
+		.size = sizeof(NetTimeSeriesContext),
+		.alignment = alignof(NetTimeSeriesContext),
+	};
+}
+
+static const PluginRegistrar<
+	NetTimeSeriesPlugin,
+	PluginFactory<ProcessPlugin, const std::string&, FieldManager&>>
 	nettisaRegistrar(nettisaPluginManifest);
 
-} // namespace ipxp
+} // namespace ipxp::process::nettisa
