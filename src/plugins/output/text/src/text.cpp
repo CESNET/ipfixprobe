@@ -20,6 +20,8 @@
 
 #include <ipfixprobe/pluginFactory/pluginManifest.hpp>
 #include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 namespace ipxp {
 

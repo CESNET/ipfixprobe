@@ -32,6 +32,8 @@
 #include <ipfixprobe/packet.hpp>
 #include <telemetry.hpp>
 
+#include "ipProtocol.hpp"
+
 namespace ipxp {
 
 static constexpr std::size_t MAX_VLAN_ID = 4096;
@@ -132,9 +134,9 @@ struct VlanStats {
 			ipv6_bytes += pkt.packet_len;
 		}
 
-		if (pkt.ip_proto == IPPROTO_TCP) {
+		if (pkt.ip_proto == IPProtocol::TCP) {
 			tcp_packets++;
-		} else if (pkt.ip_proto == IPPROTO_UDP) {
+		} else if (pkt.ip_proto == IPProtocol::UDP) {
 			udp_packets++;
 		}
 

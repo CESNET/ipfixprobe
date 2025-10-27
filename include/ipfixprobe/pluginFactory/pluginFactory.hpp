@@ -21,6 +21,8 @@
 #include <string_view>
 #include <type_traits>
 
+#include "../api.hpp"
+
 namespace ipxp {
 
 /**
@@ -62,7 +64,7 @@ public:
 	void registerPlugin(const PluginManifest& manifest)
 	{
 		static_assert(std::is_base_of<Base, Derived>::value, "Derived must be a subclass of Base");
-
+		
 		m_registeredPlugins[manifest] = createGenerators<Base, Derived, Args...>();
 	}
 

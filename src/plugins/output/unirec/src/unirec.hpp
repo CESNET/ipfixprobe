@@ -17,10 +17,10 @@
 #include <string>
 #include <vector>
 
-#include <ipfixprobe/flowifc.hpp>
+//#include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/options.hpp>
-#include <ipfixprobe/outputPlugin.hpp>
-#include <ipfixprobe/processPlugin.hpp>
+#include <ipfixprobe/outputPlugin/outputPlugin.hpp>
+#include <processPlugin.hpp>
 #include <ipfixprobe/utils.hpp>
 #include <libtrap/trap.h>
 #include <unirec/unirec.h>
@@ -46,7 +46,7 @@ public:
 		, m_odid(false)
 		, m_eof(false)
 		, m_help(false)
-		, m_id(DEFAULT_EXPORTER_ID)
+		, m_id(OutputPlugin::DEFAULT_EXPORTER_ID)
 		, m_dir(0)
 		, m_verbose(0)
 	{
@@ -228,37 +228,50 @@ private:
 /**
  * \brief Class for exporting flow records.
  */
-class UnirecExporter : public OutputPlugin {
+class IPXP_API UnirecExporter : public OutputPlugin {
 public:
-	UnirecExporter(const std::string& params, ProcessPlugins& plugins);
+
+	UnirecExporter(const std::string& params, const FieldManager& manager, const std::vector<ProcessPluginEntry>& plugins)
+		: OutputPlugin(manager, plugins)
+	{
+		//TODO parse parameters
+		(void)params;
+	}
+
+	//UnirecExporter(const std::string& params, ProcessPlugins& plugins);
 	~UnirecExporter();
 	void init(const char* params);
-	void init(const char* params, ProcessPlugins& plugins);
+	void init(const char* params, const std::vector<ProcessPluginEntry>& plugins);
 	void close();
-	OptionsParser* get_parser() const { return new UnirecOptParser(); }
-	std::string get_name() const { return "unirec"; }
-	int export_flow(const Flow& flow);
+	//OptionsParser* get_parser() const { return new UnirecOptParser(); }
+	//std::string get_name() const { return "unirec"; }
+	//int export_flow(const Flow& flow);
+	
+	void processRecord(FlowRecordUniquePtr& flowRecord) override;
 
 private:
 	int init_trap(std::string& ifcs, int verbosity);
 	void create_tmplt(int ifc_idx, const char* tmplt_str);
-	void fill_basic_flow(const Flow& flow, ur_template_t* tmplt_ptr, void* record_ptr);
+	void fill_basic_flow(const FlowRecord& flow, ur_template_t* tmplt_ptr, void* record_ptr);
 	void free_unirec_resources();
+	void fillFromScalarVariant(const FieldDescriptor& field, const ScalarValueGetter& variant, const void* data, ur_template_t* tmplt_ptr, void* record_ptr) noexcept;
+	void fillFromVectorVariant(const FieldDescriptor& field, const VectorValueGetter& variant, const void* data, ur_template_t* tmplt_ptr, void* record_ptr) noexcept;
 
-	int m_basic_idx; /**< Basic output interface number. */
-	size_t m_ext_cnt; /**< Size of ifc map. */
-	int* m_ifc_map; /**< Contain extension id (as index) -> output interface number mapping. */
+	int m_basic_idx{-1}; /**< Basic output interface number. */
+	size_t m_ext_cnt{0}; /**< Size of ifc map. */
+	int* m_ifc_map{nullptr}; /**< Contain extension id (as index) -> output interface number mapping. */
 	UnirecOptParser::IfcPluginMap m_group_map; /**< Plugin groups mapping to interface number. */
 
-	ur_template_t** m_tmplts; /**< Pointer to unirec templates. */
-	void** m_records; /**< Pointer to unirec records. */
-	size_t m_ifc_cnt; /**< Number of output interfaces. */
-	int* m_ext_id_flgs; /** flags of used extension during export*/
+	ur_template_t** m_tmplts{nullptr}; /**< Pointer to unirec templates. */
+	void** m_records{nullptr}; /**< Pointer to unirec records. */
+	size_t m_ifc_cnt{0}; /**< Number of output interfaces. */
+	int* m_ext_id_flgs{nullptr}; /** flags of used extension during export*/
+	std::vector<ur_field_id_t> m_field_ids; 
 
-	bool m_eof; /**< Send eof when module exits. */
-	bool m_odid; /**< Export ODID field instead of LINK_BIT_FIELD. */
-	uint64_t m_link_bit_field; /**< Link bit field value. */
-	uint8_t m_dir_bit_field; /**< Direction bit field value. */
+	bool m_eof{false}; /**< Send eof when module exits. */
+	bool m_odid{false}; /**< Export ODID field instead of LINK_BIT_FIELD. */
+	uint64_t m_link_bit_field{0}; /**< Link bit field value. */
+	uint8_t m_dir_bit_field{0}; /**< Direction bit field value. */
 };
 
 } // namespace ipxp

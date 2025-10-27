@@ -220,7 +220,7 @@ public:
 	}
 };
 
-class alignas(64) FlowRecord {
+/*class alignas(64) FlowRecord {
 	uint64_t m_hash;
 
 public:
@@ -236,7 +236,7 @@ public:
 	inline bool belongs(uint64_t pkt_hash) const;
 	void create(const Packet& pkt, uint64_t pkt_hash);
 	void update(const Packet& pkt, bool src);
-};
+};*/
 
 struct FlowEndReasonStats {
 	uint64_t active_timeout;
@@ -259,7 +259,7 @@ class NHTFlowCache
 	: TelemetryUtils
 	, public StoragePlugin {
 public:
-	NHTFlowCache(const std::string& params, ipx_ring_t* queue);
+	NHTFlowCache(const std::string& params, ipx_ring_t* queue, ProcessPluginManager& manager);
 	~NHTFlowCache();
 	void init(const char* params);
 	void close();
@@ -301,8 +301,9 @@ private:
 	uint8_t m_keylen;
 	char m_key[MAX_KEY_LENGTH];
 	char m_key_inv[MAX_KEY_LENGTH];
-	FlowRecord** m_flow_table;
-	FlowRecord* m_flow_records;
+	FlowKey m_flowKey;
+	std::vector<FlowRecordUniquePtr> m_flow_table;
+	//FlowRecordUniquePtr* m_flow_records;
 
 	FragmentationCache m_fragmentation_cache;
 	FlowEndReasonStats m_flow_end_reason_stats = {};
@@ -312,7 +313,7 @@ private:
 	void flush(Packet& pkt, size_t flow_index, int ret, bool source_flow);
 	bool create_hash_key(Packet& pkt);
 	void export_flow(size_t index);
-	static uint8_t get_export_reason(Flow& flow);
+	static uint8_t get_export_reason(FlowRecord& flow);
 	void finish();
 
 	void update_flow_end_reason_stats(uint8_t reason);

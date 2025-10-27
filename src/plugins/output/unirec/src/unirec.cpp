@@ -18,9 +18,12 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <numeric>
+#include <ranges>
 
 #include <ipfixprobe/pluginFactory/pluginManifest.hpp>
 #include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+#include <ipfixprobe/plugin.hpp>
 #include <libtrap/trap.h>
 #include <unirec/unirec.h>
 
@@ -69,7 +72,7 @@ UR_FIELDS(
 /**
  * \brief Constructor.
  */
-UnirecExporter::UnirecExporter(const std::string& params, ProcessPlugins& plugins)
+/*UnirecExporter::UnirecExporter(const std::string& params, ProcessPlugins& plugins)
 	: m_basic_idx(-1)
 	, m_ext_cnt(0)
 	, m_ifc_map(nullptr)
@@ -83,7 +86,7 @@ UnirecExporter::UnirecExporter(const std::string& params, ProcessPlugins& plugin
 	, m_dir_bit_field(0)
 {
 	init(params.c_str(), plugins);
-}
+}*/
 
 UnirecExporter::~UnirecExporter()
 {
@@ -147,6 +150,77 @@ int UnirecExporter::init_trap(std::string& ifcs, int verbosity)
 	return ifc_cnt;
 }
 
+template<typename T>
+constexpr bool always_false = false;
+
+template<typename Type>
+static ur_field_id_t defineField(std::string_view name) noexcept
+{
+	if constexpr (std::is_same_v<Type, uint8_t>) {
+		return ur_define_field(name.data(), UR_TYPE_UINT8);
+	} else if constexpr (std::is_same_v<Type, uint16_t>) {
+		return ur_define_field(name.data(), UR_TYPE_UINT16);
+	} else if constexpr (std::is_same_v<Type, uint32_t>) {
+		return ur_define_field(name.data(), UR_TYPE_UINT32);
+	} else if constexpr (std::is_same_v<Type, uint64_t>) {
+		return ur_define_field(name.data(), UR_TYPE_UINT64);
+	} else if constexpr (std::is_same_v<Type, int8_t>) {
+		return ur_define_field(name.data(), UR_TYPE_INT8);
+	} else if constexpr (std::is_same_v<Type, int16_t>) {
+		return ur_define_field(name.data(), UR_TYPE_INT16);
+	} else if constexpr (std::is_same_v<Type, int32_t>) {
+		return ur_define_field(name.data(), UR_TYPE_INT32);
+	} else if constexpr (std::is_same_v<Type, int64_t>) {
+		return ur_define_field(name.data(), UR_TYPE_INT64);
+	} else if constexpr (std::is_same_v<Type, float>) {
+		return ur_define_field(name.data(), UR_TYPE_FLOAT);
+	} else if constexpr (std::is_same_v<Type, double>) {
+		return ur_define_field(name.data(), UR_TYPE_DOUBLE);
+	} else if constexpr (std::is_same_v<Type, std::string_view>) {
+		return ur_define_field(name.data(), UR_TYPE_STRING);
+	} else if constexpr (std::is_same_v<Type, MACAddress>) {
+		return ur_define_field(name.data(), UR_TYPE_MAC);
+	} else if constexpr (std::is_same_v<Type, IPAddress>) {
+		return ur_define_field(name.data(), UR_TYPE_IP);
+	} else if constexpr (std::is_same_v<Type, Timestamp>) {
+		return ur_define_field(name.data(), UR_TYPE_TIME);
+	} else if constexpr (std::is_same_v<Type, std::span<const std::byte>>) {
+		return ur_define_field(name.data(), UR_TYPE_BYTES);
+	} else if constexpr (std::is_same_v<Type, std::span<const std::string>>) {
+		return ur_define_field(name.data(), UR_TYPE_STRING);
+	} else if constexpr (std::is_same_v<Type, std::span<const MACAddress>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_MAC);
+	} else if constexpr (std::is_same_v<Type, std::span<const IPAddress>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_IP);
+	} else if constexpr (std::is_same_v<Type, std::span<const Timestamp>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_TIME);
+	} else if constexpr (std::is_same_v<Type, std::span<const double>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_DOUBLE);
+	} else if constexpr (std::is_same_v<Type, std::span<const float>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_FLOAT);
+	} else if constexpr (std::is_same_v<Type, std::span<const uint8_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_UINT8);
+	} else if constexpr (std::is_same_v<Type, std::span<const uint16_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_UINT16);
+	} else if constexpr (std::is_same_v<Type, std::span<const uint32_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_UINT32);
+	} else if constexpr (std::is_same_v<Type, std::span<const uint64_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_UINT64);
+	} else if constexpr (std::is_same_v<Type, std::span<const int8_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_INT8);
+	} else if constexpr (std::is_same_v<Type, std::span<const int16_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_INT16);
+	} else if constexpr (std::is_same_v<Type, std::span<const int32_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_INT32);
+	} else if constexpr (std::is_same_v<Type, std::span<const int64_t>>) {
+		return ur_define_field(name.data(), UR_TYPE_A_INT64);
+	} else {
+		static_assert(always_false<Type>, "Unsupported type");
+	}
+
+	__builtin_unreachable();
+} 
+
 void UnirecExporter::init(const char* params)
 {
 	UnirecOptParser parser;
@@ -169,7 +243,7 @@ void UnirecExporter::init(const char* params)
 	m_dir_bit_field = parser.m_dir;
 	m_group_map = parser.m_ifc_map;
 	m_ifc_cnt = init_trap(parser.m_ifc, parser.m_verbose);
-	m_ext_cnt = ProcessPluginIDGenerator::instance().getPluginsCount();
+	m_ext_cnt = m_plugins.size();
 
 	try {
 		m_tmplts = new ur_template_t*[m_ifc_cnt];
@@ -186,6 +260,16 @@ void UnirecExporter::init(const char* params)
 	for (size_t i = 0; i < m_ext_cnt; i++) {
 		m_ifc_map[i] = -1;
 	}
+
+	std::ranges::transform(m_fieldManager.getBiflowFields(), std::back_inserter(m_field_ids),
+	[&](const FieldDescriptor& fieldDescriptor) {
+		return std::visit(
+			[&](const auto& variant) {
+				return std::visit([&](const auto& accessor) {
+					return defineField<decltype(accessor(nullptr))>(fieldDescriptor.getName());
+				}, variant);
+			}, fieldDescriptor.getValueGetter());
+	});
 }
 
 void UnirecExporter::create_tmplt(int ifc_idx, const char* tmplt_str)
@@ -200,7 +284,7 @@ void UnirecExporter::create_tmplt(int ifc_idx, const char* tmplt_str)
 	}
 }
 
-void UnirecExporter::init(const char* params, ProcessPlugins& plugins)
+void UnirecExporter::init(const char* params, const std::vector<ProcessPluginEntry>& plugins)
 {
 	init(params);
 
@@ -217,7 +301,7 @@ void UnirecExporter::init(const char* params, ProcessPlugins& plugins)
 
 			create_tmplt(m_basic_idx, basic_tmplt.c_str());
 		} else if (m_ifc_cnt == 1 && plugins.size() == 1) {
-			m_group_map[0] = std::vector<std::string>({plugins[0].first});
+			m_group_map[0] = std::vector<std::string>({plugins[0].name});
 		} else {
 			throw PluginError("specify plugin-interface mapping");
 		}
@@ -232,13 +316,13 @@ void UnirecExporter::init(const char* params, ProcessPlugins& plugins)
 		std::vector<std::string>& group = m.second;
 
 		// Find plugin for each plugin in group
-		std::vector<std::shared_ptr<ProcessPlugin>> plugin_group;
+		std::vector<std::pair<std::string_view, std::shared_ptr<ProcessPlugin>>> plugin_group;
 		for (auto& g : group) {
 			std::shared_ptr<ProcessPlugin> plugin = nullptr;
 			for (auto& p : plugins) {
-				std::string name = p.first;
+				std::string name = p.name;
 				if (g == name) {
-					plugin = p.second;
+					plugin = p.plugin;
 					break;
 				}
 			}
@@ -252,24 +336,32 @@ void UnirecExporter::init(const char* params, ProcessPlugins& plugins)
 			if (plugin == nullptr) {
 				throw PluginError(g + " plugin is not activated");
 			}
-			plugin_group.push_back(plugin);
+			plugin_group.push_back({g, plugin});
 		}
 
 		// Create output template string and extension->ifc map
 		std::string tmplt_str = basic_tmplt;
-		for (auto& p : plugin_group) {
-			RecordExt* ext = p->get_ext();
-			tmplt_str += std::string(",") + ext->get_unirec_tmplt();
-			int ext_id = ext->m_ext_id;
-			delete ext;
-			if (ext_id < 0) {
+		for (auto [name, plugin] : plugin_group) {
+			//RecordExt* ext = p->get_ext();
+			//tmplt_str += std::string(",") + ext->get_unirec_tmplt();
+			auto fields = m_fieldManager.getBiflowFields() | std::views::filter([&](const auto& field) {
+				return field.getGroup() == name;
+			}) | std::views::transform(&FieldDescriptor::getName);
+			tmplt_str += std::accumulate(fields.begin(), fields.end(), std::string{}, [](const auto& a, const auto& b) {
+				return a + (a.empty() ? "" : ",") + b.data();
+			});
+			int ext_id = std::ranges::find_if(plugins, [&](const auto &p) {
+    			return p.plugin.get() == plugin.get();}) - plugins.begin();
+			//int ext_id = ext->m_ext_id;
+			//delete ext;
+			/*if (ext_id < 0) {
 				continue;
-			}
+			}*/
 			if (m_ifc_map[ext_id] >= 0) {
 				throw PluginError(
 					"plugin output can be exported only to one interface at the moment");
 			}
-			m_ifc_map[ext_id] = ifc_idx;
+			m_ifc_map[ext_id++] = ifc_idx;
 		}
 
 		create_tmplt(ifc_idx, tmplt_str.c_str());
@@ -333,32 +425,146 @@ void UnirecExporter::free_unirec_resources()
 	}
 }
 
-int UnirecExporter::export_flow(const Flow& flow)
+/*template<typename T>
+static void
+fillFromVectorVariant(const FieldDescriptor& field, const VectorAccessor<T>& accessor, const void* data)
 {
-	RecordExt* ext = flow.m_exts;
-	ur_template_t* tmplt_ptr = nullptr;
-	void* record_ptr = nullptr;
+	std::cout << "[" << field.getGroup() << "] " << field.getName() << ": [";
 
+	bool first = true;
+	for (const auto& value : accessor(data)) {
+		if (!first)
+			std::cout << ", ";
+		std::cout << value;
+		first = false;
+	}
+
+	std::cout << "]\n";
+}*/
+
+void UnirecExporter::fillFromScalarVariant(const FieldDescriptor& field, const ScalarValueGetter& variant, const void* data, ur_template_t* tmplt_ptr, void* record_ptr) noexcept
+{
+	const auto visitor = [&](const auto& accessor) {
+		if constexpr (std::is_same_v<std::decay_t<decltype(accessor(data))>, std::string_view>) {
+			ur_set_string(tmplt_ptr, record_ptr, m_field_ids[field.getBitIndex()], accessor(data).data());
+		} else {
+			*reinterpret_cast<decltype(accessor(data))*>(
+				ur_get_ptr_by_id(tmplt_ptr, record_ptr, m_field_ids[field.getBitIndex()])) = accessor(data);
+		}
+	};
+	std::visit(visitor, variant);
+}
+
+void UnirecExporter::fillFromVectorVariant(const FieldDescriptor& field, const VectorValueGetter& variant, const void* data, ur_template_t* tmplt_ptr, void* record_ptr) noexcept
+{
+	const auto visitor = [&](const auto& accessor) {
+		if constexpr (std::is_same_v<std::decay_t<decltype(accessor(data))>, std::span<const Timestamp>>) {
+			ur_set_var_len(tmplt_ptr, record_ptr, m_field_ids[field.getBitIndex()], accessor(data).size() * sizeof(ur_time_t));
+			auto* buffer = reinterpret_cast<ur_time_t*>(ur_get_ptr_by_id(tmplt_ptr, record_ptr, m_field_ids[field.getBitIndex()]));
+			std::ranges::transform(accessor(data), buffer, [](const Timestamp& ts) {
+				return ur_time_from_sec_usec(ts.toTimeval().tv_sec, ts.toTimeval().tv_usec);
+			});
+		} else if constexpr (std::is_same_v<std::decay_t<decltype(accessor(data))>, std::span<const std::string>>) {
+			const std::size_t totalLength = std::accumulate(accessor(data).begin(), accessor(data).end(), 0,
+				[](std::size_t sum, const std::string& str) { return sum + str.size() + sizeof(';'); });
+			ur_set_var_len(tmplt_ptr, record_ptr, m_field_ids[field.getBitIndex()], totalLength);
+			auto* buffer = reinterpret_cast<char*>(ur_get_ptr_by_id(tmplt_ptr, record_ptr, m_field_ids[field.getBitIndex()]));
+			std::ranges::for_each(accessor(data), [&buffer](const std::string& str) {
+				std::memcpy(buffer, str.data(), str.size());
+				buffer += str.size();
+				*(buffer++) = ';';
+			});
+		} /*else if constexpr (std::is_same_v<std::decay_t<decltype(accessor(data))>, std::span<const IPAddress>>) {}*/
+		else {
+			ur_set_var(
+				tmplt_ptr,
+				record_ptr,
+				m_field_ids[field.getBitIndex()],
+				accessor(data).data(),
+				accessor(data).size() * sizeof(decltype(accessor(data)[0])));
+		}
+	};
+	std::visit(visitor, variant);
+}
+
+
+void UnirecExporter::processRecord(FlowRecordUniquePtr& flowRecord)
+{
 	if (m_basic_idx >= 0) { // Process basic flow.
-		tmplt_ptr = m_tmplts[m_basic_idx];
-		record_ptr = m_records[m_basic_idx];
+		ur_template_t* tmplt_ptr = m_tmplts[m_basic_idx];
+		void* record_ptr = m_records[m_basic_idx];
 
 		ur_clear_varlen(tmplt_ptr, record_ptr);
-		fill_basic_flow(flow, tmplt_ptr, record_ptr);
+		fill_basic_flow(*flowRecord, tmplt_ptr, record_ptr);
 		trap_send(
 			m_basic_idx,
 			record_ptr,
 			ur_rec_fixlen_size(tmplt_ptr) + ur_rec_varlen_size(tmplt_ptr, record_ptr));
 	}
 
-	m_flows_seen++;
+	m_seen++;
 	uint64_t tmplt_dbits = 0; // templates dirty bits
-	memset(
-		m_ext_id_flgs,
-		0,
-		sizeof(int) * m_ext_cnt); // in case one flow has multiple extension of same type
+	memset(m_ext_id_flgs, 0, sizeof(int) * m_ext_cnt); // in case one flow has multiple extension of same type
 	int ext_processed_cnd = 0;
-	while (ext != nullptr) {
+
+	std::ranges::for_each(m_fieldManager.getBiflowFields(), [&, index = 0](const FieldDescriptor& fieldDescriptor) mutable {
+		ext_processed_cnd++;
+		std::cout << "Bit index is " << fieldDescriptor.getBitIndex() << "\n";
+		const void* pluginExportData = flowRecord->getPluginContext(fieldDescriptor.getBitIndex());
+		if (!fieldDescriptor.isInRecord(*flowRecord)) {
+			return;
+		}
+
+
+		const int ifc_num = m_ifc_map[fieldDescriptor.getBitIndex()];
+		if (ifc_num < 0) {
+			return;
+		}
+
+		ur_template_t* tmplt_ptr = m_tmplts[ifc_num];
+		void* record_ptr = m_records[ifc_num];
+
+		if ((tmplt_dbits & (1 << ifc_num)) == 0) {
+			ur_clear_varlen(tmplt_ptr, record_ptr);
+			memset(record_ptr, 0, ur_rec_fixlen_size(tmplt_ptr));
+			tmplt_dbits |= (1 << ifc_num);
+		}
+
+		if (m_ext_id_flgs[index] == 1) {
+			// send the previously filled unirec record
+			trap_send(ifc_num, record_ptr, ur_rec_size(tmplt_ptr, record_ptr));
+		} else {
+			m_ext_id_flgs[index] = 1;
+		}
+
+		const auto& getter = fieldDescriptor.getValueGetter();
+
+		std::visit(
+			[&](const auto& variant) {
+				using GetterT = std::decay_t<decltype(variant)>;
+				if constexpr (std::is_same_v<GetterT, ScalarValueGetter>) {
+					fillFromScalarVariant(fieldDescriptor, variant, pluginExportData, tmplt_ptr, record_ptr);
+				} else if constexpr (std::is_same_v<GetterT, VectorValueGetter>) {
+					fillFromVectorVariant(fieldDescriptor, variant, pluginExportData, tmplt_ptr, record_ptr);
+				}
+			},
+			getter);
+	});
+
+	// send the last record with all plugin data
+	for (size_t ifc_num = 0; ifc_num < m_ifc_cnt && !(m_basic_idx >= 0) && ext_processed_cnd > 0;
+		 ifc_num++) {
+		ur_template_t* tmplt_ptr = m_tmplts[ifc_num];
+		void* record_ptr = m_records[ifc_num];
+		trap_send(ifc_num, record_ptr, ur_rec_size(tmplt_ptr, record_ptr));
+	}
+
+	return;
+}
+
+//int UnirecExporter::export_flow(const Flow& flow)
+//{
+	/*while (ext != nullptr) {
 		if (ext->m_ext_id >= static_cast<int>(m_ext_cnt)) {
 			throw PluginError("encountered invalid extension id");
 		}
@@ -384,19 +590,12 @@ int UnirecExporter::export_flow(const Flow& flow)
 			fill_basic_flow(flow, tmplt_ptr, record_ptr);
 			ext->fill_unirec(
 				tmplt_ptr,
-				record_ptr); /* Add each extension header into unirec record. */
+				record_ptr); // Add each extension header into unirec record.
 		}
 		ext = ext->m_next;
-	}
-	// send the last record with all plugin data
-	for (size_t ifc_num = 0; ifc_num < m_ifc_cnt && !(m_basic_idx >= 0) && ext_processed_cnd > 0;
-		 ifc_num++) {
-		tmplt_ptr = m_tmplts[ifc_num];
-		record_ptr = m_records[ifc_num];
-		trap_send(ifc_num, record_ptr, ur_rec_size(tmplt_ptr, record_ptr));
-	}
-	return 0;
-}
+}*/
+
+//}
 
 /**
  * \brief Fill record with basic flow fields.
@@ -404,22 +603,22 @@ int UnirecExporter::export_flow(const Flow& flow)
  * \param [in] tmplt_ptr Pointer to unirec template.
  * \param [out] record_ptr Pointer to unirec record.
  */
-void UnirecExporter::fill_basic_flow(const Flow& flow, ur_template_t* tmplt_ptr, void* record_ptr)
+void UnirecExporter::fill_basic_flow(const FlowRecord& flow, ur_template_t* tmplt_ptr, void* record_ptr)
 {
 	ur_time_t tmp_time;
 
-	if (flow.ip_version == IP::v4) {
-		ur_set(tmplt_ptr, record_ptr, F_SRC_IP, ip_from_4_bytes_be((char*) &flow.src_ip.v4));
-		ur_set(tmplt_ptr, record_ptr, F_DST_IP, ip_from_4_bytes_be((char*) &flow.dst_ip.v4));
+	if (flow.flowKey.srcIp.isIPv4()) {
+		ur_set(tmplt_ptr, record_ptr, F_SRC_IP, ip_from_4_bytes_be(reinterpret_cast<const char*>(flow.flowKey.srcIp.u8.data())));
+		ur_set(tmplt_ptr, record_ptr, F_DST_IP, ip_from_4_bytes_be(reinterpret_cast<const char*>(flow.flowKey.dstIp.u8.data())));
 	} else {
-		ur_set(tmplt_ptr, record_ptr, F_SRC_IP, ip_from_16_bytes_be((char*) flow.src_ip.v6));
-		ur_set(tmplt_ptr, record_ptr, F_DST_IP, ip_from_16_bytes_be((char*) flow.dst_ip.v6));
+		ur_set(tmplt_ptr, record_ptr, F_SRC_IP, ip_from_16_bytes_be(reinterpret_cast<const char*>(flow.flowKey.srcIp.u8.data())));
+		ur_set(tmplt_ptr, record_ptr, F_DST_IP, ip_from_16_bytes_be(reinterpret_cast<const char*>(flow.flowKey.dstIp.u8.data())));
 	}
 
-	tmp_time = ur_time_from_sec_usec(flow.time_first.tv_sec, flow.time_first.tv_usec);
+	tmp_time = ur_time_from_sec_usec(flow.timeCreation.toTimeval().tv_sec, flow.timeCreation.toTimeval().tv_usec);
 	ur_set(tmplt_ptr, record_ptr, F_TIME_FIRST, tmp_time);
 
-	tmp_time = ur_time_from_sec_usec(flow.time_last.tv_sec, flow.time_last.tv_usec);
+	tmp_time = ur_time_from_sec_usec(flow.timeLastUpdate.toTimeval().tv_sec, flow.timeLastUpdate.toTimeval().tv_usec);
 	ur_set(tmplt_ptr, record_ptr, F_TIME_LAST, tmp_time);
 
 	if (m_odid) {
@@ -428,18 +627,18 @@ void UnirecExporter::fill_basic_flow(const Flow& flow, ur_template_t* tmplt_ptr,
 		ur_set(tmplt_ptr, record_ptr, F_LINK_BIT_FIELD, m_link_bit_field);
 	}
 	ur_set(tmplt_ptr, record_ptr, F_DIR_BIT_FIELD, m_dir_bit_field);
-	ur_set(tmplt_ptr, record_ptr, F_PROTOCOL, flow.ip_proto);
-	ur_set(tmplt_ptr, record_ptr, F_SRC_PORT, flow.src_port);
-	ur_set(tmplt_ptr, record_ptr, F_DST_PORT, flow.dst_port);
-	ur_set(tmplt_ptr, record_ptr, F_PACKETS, flow.src_packets);
-	ur_set(tmplt_ptr, record_ptr, F_BYTES, flow.src_bytes);
-	ur_set(tmplt_ptr, record_ptr, F_TCP_FLAGS, flow.src_tcp_flags);
-	ur_set(tmplt_ptr, record_ptr, F_PACKETS_REV, flow.dst_packets);
-	ur_set(tmplt_ptr, record_ptr, F_BYTES_REV, flow.dst_bytes);
-	ur_set(tmplt_ptr, record_ptr, F_TCP_FLAGS_REV, flow.dst_tcp_flags);
+	ur_set(tmplt_ptr, record_ptr, F_PROTOCOL, flow.flowKey.srcIp.isIPv4() ? 4 : 6);
+	ur_set(tmplt_ptr, record_ptr, F_SRC_PORT, flow.flowKey.srcPort);
+	ur_set(tmplt_ptr, record_ptr, F_DST_PORT, flow.flowKey.dstPort);
+	ur_set(tmplt_ptr, record_ptr, F_PACKETS, flow.directionalData[Direction::Forward].packets);
+	ur_set(tmplt_ptr, record_ptr, F_BYTES, flow.directionalData[Direction::Forward].bytes);
+	ur_set(tmplt_ptr, record_ptr, F_TCP_FLAGS, flow.directionalData[Direction::Forward].tcpFlags.raw);
+	ur_set(tmplt_ptr, record_ptr, F_PACKETS_REV, flow.directionalData[Direction::Reverse].packets);
+	ur_set(tmplt_ptr, record_ptr, F_BYTES_REV, flow.directionalData[Direction::Reverse].bytes);
+	ur_set(tmplt_ptr, record_ptr, F_TCP_FLAGS_REV, flow.directionalData[Direction::Reverse].tcpFlags.raw);
 
-	ur_set(tmplt_ptr, record_ptr, F_DST_MAC, mac_from_bytes(const_cast<uint8_t*>(flow.dst_mac)));
-	ur_set(tmplt_ptr, record_ptr, F_SRC_MAC, mac_from_bytes(const_cast<uint8_t*>(flow.src_mac)));
+	ur_set(tmplt_ptr, record_ptr, F_DST_MAC, mac_from_bytes(reinterpret_cast<const uint8_t*>(flow.macAddress[Direction::Reverse].address.data())));
+	ur_set(tmplt_ptr, record_ptr, F_SRC_MAC, mac_from_bytes(reinterpret_cast<const uint8_t*>(flow.macAddress[Direction::Forward].address.data())));
 }
 
 static const PluginRegistrar<UnirecExporter, OutputPluginFactory>

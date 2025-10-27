@@ -12,8 +12,6 @@ add_library(ipfixprobe-storage-cache MODULE
 	src/fragmentationCache/fragmentationTable.hpp
 	src/fragmentationCache/ringBuffer.hpp
 	src/fragmentationCache/timevalUtils.hpp
-	src/xxhash.c
-	src/xxhash.h
 )
 
 set_target_properties(ipfixprobe-storage-cache PROPERTIES
@@ -23,6 +21,8 @@ set_target_properties(ipfixprobe-storage-cache PROPERTIES
 
 target_include_directories(ipfixprobe-storage-cache PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
 )
 
 target_link_libraries(ipfixprobe-storage-cache PRIVATE
