@@ -1,23 +1,28 @@
-/* SPDX-License-Identifier: BSD-3-Clause
- * Copyright (C) 2022, CESNET z.s.p.o.
- */
-
 /**
- * \file quic_parser.hpp
- * \brief Class for parsing quic traffic.
- * \author Andrej Lukacovic lukacan1@fit.cvut.cz
- * \author Karel Hynek <Karel.Hynek@cesnet.cz>
- * \author Jonas Mücke <jonas.muecke@tu-dresden.de>
- * \date 2023
+ * @file quicParser.hpp
+ * @brief Parser for QUIC traffic.
+ * @author Andrej Lukacovic lukacan1@fit.cvut.cz
+ * @author Karel Hynek <Karel.Hynek@cesnet.cz>
+ * @author Jonas Mücke <jonas.muecke@tu-dresden.de>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
-#include <ipfixprobe/byte-utils.hpp>
-#include <ipfixprobe/processPlugin.hpp>
-#include <openssl/evp.h>
-#include <openssl/kdf.h>
-#include <tlsParser/tls_parser.hpp>
+#pragma once
 
-#define HASH_SHA2_256_LENGTH 32
+#include "quicConnectionId.hpp"
+#include "quicDirection.hpp"
+#include "quicInitialHeaderView.hpp"
+#include "quicTypesCumulative.hpp"
+
+#include <optional>
+#include <span>
+
+#include <tlsParser/tlsParser.hpp>
+
+/*#define HASH_SHA2_256_LENGTH 32
 #define TLS13_AEAD_NONCE_LENGTH 12
 #define SAMPLE_LENGTH 16
 #define SALT_LENGTH 20
@@ -45,19 +50,14 @@
 #define CURRENT_BUFFER_SIZE 1500
 // 8 because (1B QUIC LH, 4B Version, 1 B SCID LEN, 1B DCID LEN, Payload/Retry Token/Supported
 // Version >= 1 B)
-#define QUIC_MIN_PACKET_LENGTH 8
+//#define QUIC_MIN_PACKET_LENGTH 8
 #define MAX_CID_LEN 20
-#define QUIC_BIT 0b01000000
-#define MAX_QUIC_TLS_EXT_LEN 30
+//#define QUIC_BIT 0b01000000
+#define MAX_QUIC_TLS_EXT_LEN 30*/
 
-namespace ipxp {
+namespace ipxp::process::quic {
 
-typedef struct __attribute__((packed)) quic_first_ver_dcidlen {
-	uint8_t first_byte;
-	uint32_t version;
-	uint8_t dcid_len;
-} quic_first_ver_dcidlen;
-
+/*
 typedef struct __attribute__((packed)) quic_scidlen {
 	uint8_t scid_len;
 } quic_scidlen;
@@ -66,19 +66,44 @@ typedef struct Initial_Secrets {
 	uint8_t key[AES_128_KEY_LENGTH];
 	uint8_t iv[TLS13_AEAD_NONCE_LENGTH];
 	uint8_t hp[AES_128_KEY_LENGTH];
-} Initial_Secrets;
+} Initial_Secrets;*/
 
 class QUICParser {
+public:
+	constexpr static std::size_t QUIC_MIN_PACKET_LENGTH = 8;
+
+	std::optional<QUICInitialHeaderView> initialHeaderView;
+	std::optional<QUICHeaderView> headerView;
+	std::optional<uint16_t> serverPort;
+	QUICTypesCumulative packetTypesCumulative {};
+	std::optional<QUICDirection> quicDirection;
+	QUICHeaderView::PacketType mostSignificantPacketType;
+	uint32_t version;
+	uint8_t zeroRTTPackets;
+	std::vector<std::byte> extensionsPayload;
+
+	bool parse(
+		std::span<const std::byte> payload,
+		const std::optional<ConnectionId>& initialConnectionId,
+		const uint8_t l4Protocol) noexcept;
+
 private:
-	enum FRAME_TYPE {
-		CRYPTO = 0x06,
-		PADDING = 0x00,
-		PING = 0x01,
-		ACK1 = 0x02,
-		ACK2 = 0x03,
-		CONNECTION_CLOSE1 = 0x1C,
-		CONNECTION_CLOSE2 = 0x1D
-	};
+	constexpr std::optional<std::size_t> parseRetry(std::span<const std::byte> payload) noexcept;
+
+	constexpr std::optional<std::size_t> parseZeroRTT(std::span<const std::byte> payload) noexcept;
+
+	constexpr std::optional<std::size_t>
+	parseHandshake(std::span<const std::byte> payload) noexcept;
+
+	std::optional<std::size_t> parseInitial(
+		std::span<const std::byte> payload,
+		const std::span<const uint8_t> currentDCID,
+		const std::optional<ConnectionId>& initialDCID,
+		const std::byte headerForm,
+		std::span<const std::byte> salt,
+		const QUICVersion version,
+		const std::size_t primaryHeaderLength) noexcept;
+	/*
 	enum HKDF_LENGTHS {
 		quic_key_hkdf_v1
 		= sizeof("tls13 quic key") + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t),
@@ -189,7 +214,8 @@ private:
 	uint16_t quic_crypto_len;
 	TLSParser tls_parser;
 
-	uint8_t packets;
+	std::byte m_packets;
+
 
 public:
 	enum PACKET_TYPE {
@@ -211,48 +237,8 @@ public:
 		F_QUIC_BIT = 0b10000000
 	};
 	enum QUIC_CONSTANTS { QUIC_UNUSED_VARIABLE_LENGTH_INT = 0xFFFFFFFFFFFFFFFF };
-	enum QUIC_VERSION {
-		// Full versions
-		faceebook1 = 0xfaceb001,
-		faceebook2 = 0xfaceb002,
-		facebook3 = 0xfaceb00d,
-		facebook4 = 0xfaceb00f,
-		facebook_experimental = 0xfaceb00e,
-		facebook_experimental2 = 0xfaceb011,
-		facebook_experimental3 = 0xfaceb013,
-		facebook_mvfst_old = 0xfaceb000,
-		facebook_mvfst_alias = 0xfaceb010,
-		facebook_mvfst_alias2 = 0xfaceb012,
-		facebook_v1_alias = 0xfaceb003,
-		q_version2_draft00 = 0xff020000,
-		q_version2_newest = 0x709a50c4,
-		q_version2 = 0x6b3343cf,
-		version_negotiation = 0x00000000,
-		quic_newest = 0x00000001,
-		picoquic1 = 0x50435130,
-		picoquic2 = 0x50435131,
-		// Patterns
-		force_ver_neg_pattern = 0x0a0a0a0a,
-		quant = 0x45474700,
-		older_version = 0xff0000,
-		quic_go = 0x51474f00,
-		// unknown handshake salt TODO use version 1 as default?
-		quicly = 0x91c17000,
-		// https://github.com/microsoft/msquic/blob/d33bc56d5e11db52e2b34ae152ea598fd6e935c0/src/core/packet.c#L461
-		// But version is different
-		ms_quic = 0xabcd0000,
 
-		ethz = 0xf0f0f0f0,
-		telecom_italia = 0xf0f0f1f0,
 
-		moz_quic = 0xf123f0c0,
-
-		tencent_quic = 0x07007000,
-
-		quinn_noise = 0xf0f0f2f0,
-
-		quic_over_scion = 0x5c100000
-	};
 
 	QUICParser();
 	void quic_get_zero_rtt(uint8_t& zero_rtt_toset);
@@ -290,10 +276,10 @@ public:
 	void quic_parse_quic_bit(uint8_t packet0);
 	void quic_get_tls_extension_lengths(uint16_t* tls_extensions_len);
 	void quic_get_tls_extension_lengths_len(uint8_t& tls_extensions_length_len_toset);
-	void quic_get_tls_extensions(char* in);
+	void quic_get_tls_extensions(char* in);*/
 };
 
-} // namespace ipxp
+} // namespace ipxp::process::quic
 
 // known versions
 
