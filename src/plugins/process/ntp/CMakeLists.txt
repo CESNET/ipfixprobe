@@ -3,6 +3,9 @@ project(ipfixprobe-process-ntp VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-ntp
 add_library(ipfixprobe-process-ntp MODULE
 	src/ntp.cpp
 	src/ntp.hpp
+	src/ntpContext.hpp
+	src/ntpFields.hpp
+	src/ntpHeader.hpp
 )
 
 set_target_properties(ipfixprobe-process-ntp PROPERTIES
@@ -12,6 +15,10 @@ set_target_properties(ipfixprobe-process-ntp PROPERTIES
 
 target_include_directories(ipfixprobe-process-ntp PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
+	${CMAKE_SOURCE_DIR}/src/plugins/process/common
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 if(ENABLE_NEMEA)
