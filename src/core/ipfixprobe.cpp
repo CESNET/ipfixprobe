@@ -45,6 +45,8 @@
 #include <poll.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 namespace ipxp {
 
@@ -250,7 +252,7 @@ void set_thread_details(pthread_t thread, const std::string& name, const std::ve
 
 bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 {
-	OutputPlugin::ProcessPlugins processPlugins;
+	//OutputPlugin::ProcessPlugins processPlugins;
 	std::string storage_name = "cache";
 	std::string storage_params = "";
 	std::string output_name = "ipfix";
@@ -276,7 +278,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 
 	// Process
 	for (auto& it : parser.m_process) {
-		std::shared_ptr<ProcessPlugin> processPlugin;
+		//std::shared_ptr<ProcessPlugin> processPlugin;
 		std::string process_params;
 		std::string process_name;
 		std::vector<int> affinity;
@@ -287,8 +289,8 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 				"inside "
 				"input threads)");
 		}
-		for (auto& it : processPlugins) {
-			std::string plugin_name = it.first;
+		for (auto& it : conf.manager.getEntries()) {
+			std::string plugin_name = it.name;
 			if (plugin_name == process_name) {
 				throw IPXPError(process_name + " plugin was specified multiple times");
 			}
@@ -298,14 +300,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 		}
 
 		try {
-			auto& processPluginFactory = ProcessPluginFactory::getInstance();
-			const int pluginID = ProcessPluginIDGenerator::instance().generatePluginID();
-			processPlugin
-				= processPluginFactory.createShared(process_name, process_params, pluginID);
-			if (processPlugin == nullptr) {
-				throw IPXPError("invalid process plugin " + process_name);
-			}
-			processPlugins.emplace_back(process_name, processPlugin);
+			conf.manager.addProcessPlugin(process_name, process_params);
 		} catch (PluginError& e) {
 			throw IPXPError(process_name + std::string(": ") + e.what());
 		} catch (PluginExit& e) {
@@ -334,7 +329,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 
 	try {
 		auto& outputPluginFactory = OutputPluginFactory::getInstance();
-		outputPlugin = outputPluginFactory.createShared(output_name, output_params, processPlugins);
+		outputPlugin = outputPluginFactory.createShared(output_name, output_params, conf.manager.getFieldManager(), conf.manager.getEntries());
 		if (outputPlugin == nullptr) {
 			throw IPXPError("invalid output plugin " + output_name);
 		}
@@ -412,7 +407,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 		try {
 			auto& storagePluginFactory = StoragePluginFactory::getInstance();
 			storagePlugin
-				= storagePluginFactory.createShared(storage_name, storage_params, output_queue);
+				= storagePluginFactory.createShared(storage_name, storage_params, output_queue, conf.manager);
 			if (storagePlugin == nullptr) {
 				throw IPXPError("invalid storage plugin " + storage_name);
 			}
@@ -427,11 +422,11 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 		}
 
 		std::vector<ProcessPlugin*> storage_process_plugins;
-		for (auto& it : processPlugins) {
-			ProcessPlugin* tmp = it.second->copy();
-			storagePlugin->add_plugin(tmp);
+		for (auto& it : conf.manager.getEntries()) {
+			ProcessPlugin* tmp = it.plugin.get();
+			//storagePlugin->add_plugin(tmp);
 			conf.active.process.push_back(tmp);
-			conf.active.all.push_back(tmp);
+			//conf.active.all.push_back(tmp);
 			storage_process_plugins.push_back(tmp);
 		}
 
@@ -479,7 +474,7 @@ void finish(ipxp_conf_t& conf)
 	// Terminate all storages
 	for (auto& it : conf.pipelines) {
 		for (auto& itp : it.storage.plugins) {
-			itp->close();
+			//itp->close(); TODO
 		}
 	}
 
@@ -596,7 +591,7 @@ void serve_stat_clients(ipxp_conf_t& conf, struct pollfd pfds[2])
 	}
 
 	if (pfds[0].revents & POLL_IN) {
-		int fd = accept(pfds[0].fd, NULL, NULL);
+		int fd = accept(pfds[-1].fd, NULL, NULL);
 		if (pfds[1].fd == -1) {
 			pfds[1].fd = fd;
 		} else if (fd != -1) {

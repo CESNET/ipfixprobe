@@ -43,10 +43,10 @@
 #include <appFs.hpp>
 #include <ipfixprobe/inputPlugin.hpp>
 #include <ipfixprobe/options.hpp>
-#include <ipfixprobe/outputPlugin.hpp>
+#include <outputPlugin.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/plugin.hpp>
-#include <ipfixprobe/processPlugin.hpp>
+#include <processPlugin.hpp>
 #include <ipfixprobe/ring.h>
 #include <ipfixprobe/storagePlugin.hpp>
 #include <ipfixprobe/utils.hpp>
@@ -314,7 +314,8 @@ struct ipxp_conf_t {
 	std::vector<std::shared_ptr<InputPlugin>> inputPlugins;
 	std::vector<std::shared_ptr<StoragePlugin>> storagePlugins;
 	std::shared_ptr<OutputPlugin> outputPlugin;
-
+	FieldManager fieldManager;
+	ProcessPluginManager manager;
 	PluginManager pluginManager;
 	struct Plugins {
 		std::vector<InputPlugin*> input;
@@ -352,6 +353,7 @@ struct ipxp_conf_t {
 		, worker_cnt(0)
 		, fps(0)
 		, max_pkts(0)
+		, manager(fieldManager)
 		, pluginManager(false)
 		, pkt_bufsize(1600)
 		, blocks_cnt(0)
