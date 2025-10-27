@@ -36,7 +36,7 @@ documentation and/or software.
 #include <cstring>
 #include <iostream>
 
-namespace ipxp {
+namespace ipxp::process::tls {
 
 // a small class for calculating MD5 hashes of strings or byte arrays
 // it is not meant to be fast or secure
@@ -54,6 +54,7 @@ public:
 
 	MD5();
 	MD5(const std::string& text);
+	MD5(std::string_view text);
 	void update(const unsigned char* buf, size_type length);
 	void update(const char* buf, size_type length);
 	MD5& finalize();
@@ -91,6 +92,7 @@ private:
 
 std::string md5(const std::string str);
 void md5_get_bin(const std::string str, void* dest);
+void md5_get_bin(std::string_view str, void* dest);
 
-} // namespace ipxp
+} // namespace ipxp::process::tls
 #endif
