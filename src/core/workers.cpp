@@ -173,11 +173,11 @@ void output_worker(
 	while (1) {
 		gettimeofday(&end, nullptr);
 
-		Flow* flow = static_cast<Flow*>(ipx_ring_pop(queue));
-		if (!flow) {
+		FlowRecordUniquePtr* flowPtr = static_cast<FlowRecordUniquePtr*>(ipx_ring_pop(queue));
+		if (!flowPtr) {
 			if (end.tv_sec - last_flush.tv_sec > 1) {
 				last_flush = end;
-				outputPlugin->flush();
+				//outputPlugin->flush(); TODO flush ? 
 			}
 			if (terminate_export && !ipx_ring_cnt(queue)) {
 				break;
@@ -185,13 +185,15 @@ void output_worker(
 			continue;
 		}
 
+		FlowRecordUniquePtr& flow = *flowPtr;
+
 		stats.biflows++;
-		stats.bytes += flow->src_bytes + flow->dst_bytes;
-		stats.packets += flow->src_packets + flow->dst_packets;
-		stats.dropped = outputPlugin->m_flows_dropped;
+		stats.bytes += flow->directionalData[Direction::Forward].bytes + flow->directionalData[Direction::Reverse].bytes;
+		stats.packets += flow->directionalData[Direction::Forward].packets + flow->directionalData[Direction::Reverse].packets;
+		stats.dropped = outputPlugin->getDroppedCount();
 		out_stats->store(stats);
 		try {
-			outputPlugin->export_flow(*flow);
+			outputPlugin->processRecord(flow);
 		} catch (PluginError& e) {
 			res.error = true;
 			res.msg = e.what();
@@ -231,8 +233,8 @@ void output_worker(
 		}
 	}
 
-	outputPlugin->flush();
-	stats.dropped = outputPlugin->m_flows_dropped;
+	//outputPlugin->flush(); TODO flush ?
+	stats.dropped = outputPlugin->getDroppedCount();
 	out_stats->store(stats);
 	out->set_value(res);
 }

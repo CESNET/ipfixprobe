@@ -13,15 +13,27 @@ add_library(ipfixprobe-core STATIC
 	inputPlugin.cpp
 	pluginManager.cpp
 	pluginManager.hpp
+	fieldManager.cpp
+	xxhash.c
 )
-
 
 target_include_directories(ipfixprobe-core PUBLIC
 	${CMAKE_SOURCE_DIR}/include
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/outputPlugin
 	${CMAKE_BINARY_DIR}/src
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 target_compile_options(ipfixprobe-core PRIVATE -fPIC)
+
+#add_library(ipfixprobe-plugin-factory STATIC
+#	pluginFactory.cpp
+#)
+
+#target_include_directories(ipfixprobe-plugin-factory PUBLIC
+#	${CMAKE_SOURCE_DIR}/include
+#)
 
 set(CORE_LIB -Wl,--whole-archive ipfixprobe-core -Wl,--no-whole-archive)
 
