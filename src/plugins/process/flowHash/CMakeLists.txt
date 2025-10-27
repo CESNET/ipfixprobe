@@ -1,8 +1,10 @@
 project(ipfixprobe-process-flowhash VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-flowhash plugin")
 
 add_library(ipfixprobe-process-flowhash MODULE
-	src/flow_hash.cpp
-	src/flow_hash.hpp
+	src/flowHash.cpp
+	src/flowHash.hpp
+	src/flowHashContext.hpp
+	src/flowHashFields.hpp
 )
 
 set_target_properties(ipfixprobe-process-flowhash PROPERTIES
@@ -10,8 +12,11 @@ set_target_properties(ipfixprobe-process-flowhash PROPERTIES
 	VISIBILITY_INLINES_HIDDEN YES
 )
 
-target_include_directories(ipfixprobe-process-flowhash PRIVATE
+target_include_directories(ipfixprobe-process-flowhash PRIVATE 
 	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 if(ENABLE_NEMEA)
