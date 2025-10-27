@@ -3,6 +3,8 @@ project(ipfixprobe-process-passivedns VERSION 1.0.0 DESCRIPTION "ipfixprobe-proc
 add_library(ipfixprobe-process-passivedns MODULE
 	src/passivedns.cpp
 	src/passivedns.hpp
+	src/passivednsContext.hpp
+	src/passivednsFields.hpp
 )
 
 set_target_properties(ipfixprobe-process-passivedns PROPERTIES
@@ -10,9 +12,12 @@ set_target_properties(ipfixprobe-process-passivedns PROPERTIES
 	VISIBILITY_INLINES_HIDDEN YES
 )
 
-target_include_directories(ipfixprobe-process-passivedns PRIVATE
+target_include_directories(ipfixprobe-process-passivedns PRIVATE 
 	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
 	${CMAKE_SOURCE_DIR}/src/plugins/process/common
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 if(ENABLE_NEMEA)
