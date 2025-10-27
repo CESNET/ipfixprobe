@@ -6,6 +6,7 @@ find_package(Atomic REQUIRED)
 find_package(Unwind REQUIRED)
 find_package(LZ4 REQUIRED)
 find_package(OpenSSL REQUIRED)
+find_package(Boost REQUIRED)
 
 if (ENABLE_INPUT_PCAP)
 	pkg_check_modules(PCAP REQUIRED libpcap)
