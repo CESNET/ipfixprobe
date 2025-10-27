@@ -3,6 +3,8 @@ project(ipfixprobe-process-mpls VERSION 1.0.0 DESCRIPTION "ipfixprobe-process-mp
 add_library(ipfixprobe-process-mpls MODULE
 	src/mpls.cpp
 	src/mpls.hpp
+	src/mplsContext.hpp
+	src/mplsFields.hpp
 )
 
 set_target_properties(ipfixprobe-process-mpls PROPERTIES
@@ -12,6 +14,10 @@ set_target_properties(ipfixprobe-process-mpls PROPERTIES
 
 target_include_directories(ipfixprobe-process-mpls PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/processPlugin
+	${CMAKE_SOURCE_DIR}/include/ipfixprobe/pluginFactory
+	${CMAKE_SOURCE_DIR}/src/plugins/process/common
+	${adaptmon_SOURCE_DIR}/lib/include/public/
 )
 
 if(ENABLE_NEMEA)
