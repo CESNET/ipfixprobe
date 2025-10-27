@@ -3,104 +3,69 @@
  * @brief Plugin for parsing mpls traffic.
  * @author Jakub Antonín Štigler xstigl00@stud.fit.vut.cz
  * @author Pavel Siska <siska@cesnet.cz>
+ * @author Damir Zainullin <zaidamilda@gmail.com>
  * @date 2025
  *
- * Copyright (c) 2025 CESNET
+ * Provides a plugin that extracts MPLS top label from packets,
+ * stores them in per-flow plugin data, and exposes that field via FieldManager.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
 #pragma once
 
-#include <cstring>
+#include "mplsFields.hpp"
+
 #include <sstream>
 #include <string>
 
-#ifdef WITH_NEMEA
-#include "fields.h"
-#endif
+#include <fieldHandlersEnum.hpp>
+#include <fieldManager.hpp>
+#include <processPlugin.hpp>
 
-#include <ipfixprobe/flowifc.hpp>
-#include <ipfixprobe/ipfix-elements.hpp>
-#include <ipfixprobe/packet.hpp>
-#include <ipfixprobe/processPlugin.hpp>
-
-namespace ipxp {
-
-#define MPLS_LABEL_SECTION_LENGTH 3
-
-#define MPLS_UNIREC_TEMPLATE "MPLS_TOP_LABEL_STACK_SECTION"
-
-UR_FIELDS(bytes MPLS_TOP_LABEL_STACK_SECTION)
+namespace ipxp::process::mpls {
 
 /**
- * \brief Flow record extension header for storing parsed MPLS data.
+ * @class MPLSPlugin
+ * @brief A plugin for parsing MPLS traffic.
  */
-struct RecordExtMPLS : public RecordExt {
-	// Contents are (from MSb to LSb):
-	//   20-bit - Label,
-	//   3-bit  - Traffic class / EXP,
-	//   1-bit  - Bottom of stack (true if last),
-	//   8-bit  - TTL (Time To Live)
-	uint32_t mpls;
-
-	RecordExtMPLS(int pluginID)
-		: RecordExt(pluginID)
-		, mpls(0)
-	{
-	}
-
-#ifdef WITH_NEMEA
-	void fill_unirec(ur_template_t* tmplt, void* record) override
-	{
-		auto v = htonl(mpls);
-		auto arr = reinterpret_cast<uint8_t*>(&v);
-		ur_set_var(tmplt, record, F_MPLS_TOP_LABEL_STACK_SECTION, arr, MPLS_LABEL_SECTION_LENGTH);
-	}
-
-	const char* get_unirec_tmplt() const { return MPLS_UNIREC_TEMPLATE; }
-#endif
-
-	int fill_ipfix(uint8_t* buffer, int size) override
-	{
-		if (size < MPLS_LABEL_SECTION_LENGTH + 1) {
-			return -1;
-		}
-
-		buffer[0] = MPLS_LABEL_SECTION_LENGTH;
-		auto v = htonl(mpls);
-		auto arr = reinterpret_cast<uint8_t*>(&v);
-		memcpy(buffer + 2, arr, MPLS_LABEL_SECTION_LENGTH);
-
-		return MPLS_LABEL_SECTION_LENGTH + 1;
-	}
-
-	const char** get_ipfix_tmplt() const
-	{
-		static const char* ipfix_template[] = {IPFIX_MPLS_TEMPLATE(IPFIX_FIELD_NAMES) NULL};
-		return ipfix_template;
-	}
-
-	std::string get_text() const
-	{
-		std::ostringstream out;
-		out << "mpls_label_1=\"" << (mpls >> 8) << '"';
-		return out.str();
-	}
-};
-
-/**
- * \brief Process plugin for parsing MPLS packets.
- */
-class MPLSPlugin : public ProcessPlugin {
+class MPLSPlugin : public ProcessPluginCRTP<MPLSPlugin> {
 public:
-	MPLSPlugin(const std::string& params, int pluginID);
-	OptionsParser* get_parser() const { return new OptionsParser("mpls", "Parse MPLS traffic"); }
-	std::string get_name() const { return "mpls"; }
-	RecordExt* get_ext() const { return new RecordExtMPLS(m_pluginID); }
-	ProcessPlugin* copy();
+	/**
+	 * @brief Constructs the MPLS plugin.
+	 *
+	 * @param parameters Plugin parameters as a string (currently unused).
+	 * @param fieldManager Reference to the FieldManager for field registration.
+	 */
+	MPLSPlugin(const std::string& params, FieldManager& manager);
 
-	int post_create(Flow& rec, const Packet& pkt);
+	/**
+	 * @brief Initializes plugin data for a new flow.
+	 *
+	 * Constructs `MPLSContext` in `pluginContext` and initializes it with
+	 * the top label from the packet if present.
+	 * Removes export data if packet does not contain MPLS label.
+	 *
+	 * @param flowContext Contextual information about the flow to fill new record.
+	 * @param pluginContext Pointer to pre-allocated memory to create record.
+	 * @return Result of the initialization process.
+	 */
+	OnInitResult onInit(const FlowContext& flowContext, void* pluginContext) override;
+
+	/**
+	 * @brief Cleans up and destroys `MPLSContext`.
+	 * @param pluginContext Pointer to `MPLSContext`.
+	 */
+	void onDestroy(void* pluginContext) noexcept override;
+
+	/**
+	 * @brief Provides the memory layout of `MPLSContext`.
+	 * @return Memory layout description for the plugin data.
+	 */
+	PluginDataMemoryLayout getDataMemoryLayout() const noexcept override;
+
+private:
+	FieldHandlers<MPLSFields> m_fieldHandlers;
 };
 
-} // namespace ipxp
+} // namespace ipxp::process::mpls
