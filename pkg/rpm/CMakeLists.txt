@@ -22,6 +22,10 @@ if (ENABLE_INPUT_PCAP)
 	list(APPEND RPMBUILD_ARGS "--with" "input_pcap")
 endif()
 
+if (ENABLE_INPUT_SOCK)
+	list(APPEND RPMBUILD_ARGS "--with" "input_sock")
+endif()
+
 if (ENABLE_INPUT_DPDK)
 	list(APPEND RPMBUILD_ARGS "--with" "input_dpdk")
 endif()
