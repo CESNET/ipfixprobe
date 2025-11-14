@@ -12,6 +12,7 @@
 #include "tlsParser.hpp"
 
 #include "extensionReaders/extensionReader.hpp"
+#include "extensionReaders/serverNameReader.hpp"
 #include "extensionReaders/userAgentReader.hpp"
 #include "tlsHandshake.hpp"
 #include "tlsHeader.hpp"
@@ -84,11 +85,11 @@ parseHeader(std::span<const std::byte> payload, const bool isQUIC) noexcept
 	if (isQUIC) {
 		return 0;
 	}
-	const auto* tlsHeader = reinterpret_cast<const TLSHeader*>(payload.data());
 
 	if (sizeof(TLSHeader) > payload.size()) {
 		return std::nullopt;
 	}
+	const auto* tlsHeader = reinterpret_cast<const TLSHeader*>(payload.data());
 
 	if (tlsHeader->type != TLSHeader::Type::HANDSHAKE) {
 		return std::nullopt;
@@ -103,6 +104,10 @@ parseHeader(std::span<const std::byte> payload, const bool isQUIC) noexcept
 
 bool TLSParser::parseExtensions(const std::function<bool(const TLSExtension&)>& callable) noexcept
 {
+	if (!m_extensions.has_value()) {
+		return false;
+	}
+
 	ExtensionReader reader;
 	return std::ranges::all_of(reader.getRange(*m_extensions), callable)
 		&& reader.parsedSuccessfully();
@@ -152,13 +157,24 @@ static std::optional<TLSHandshake> parseHandshake(std::span<const std::byte> pay
 	return *handshake;
 }
 
-constexpr static std::optional<TLSParser::CipherSuites>
-parseClientCipherSuites(std::span<const std::byte> payload) noexcept
+struct ParsedCipherSuitesSection {
+	TLSParser::CipherSuites cipherSuites;
+	std::size_t sectionLength;
+};
+
+constexpr static std::optional<ParsedCipherSuitesSection> parseClientCipherSuites(
+	std::span<const std::byte> payload,
+	const TLSHandshake::Type handshakeType) noexcept
 {
-	auto res = std::make_optional<TLSParser::CipherSuites>();
+	auto res = std::make_optional<ParsedCipherSuitesSection>();
 
 	if (payload.size() < sizeof(uint16_t)) {
 		return std::nullopt;
+	}
+
+	if (handshakeType == TLSHandshake::Type::SERVER_HELLO) {
+		res->sectionLength = sizeof(uint16_t);
+		return res;
 	}
 
 	const uint16_t clientCipherSuitesLength
@@ -173,8 +189,10 @@ parseClientCipherSuites(std::span<const std::byte> payload) noexcept
 			clientCipherSuitesLength / sizeof(uint16_t))
 			| std::views::transform(ntohs)
 			| std::views::filter(std::not_fn(TLSParser::isGreaseValue))
-			| std::views::take(res->capacity()),
-		std::back_inserter(*res));
+			| std::views::take(res->cipherSuites.capacity()),
+		std::back_inserter(res->cipherSuites));
+
+	res->sectionLength = sizeof(clientCipherSuitesLength) + clientCipherSuitesLength;
 
 	return res;
 }
@@ -195,6 +213,10 @@ bool TLSParser::parse(std::span<const std::byte> payload, const bool isQUIC) noe
 	constexpr std::size_t randomBytesLength = 32;
 	const std::size_t sessionIdLengthOffset
 		= handshakeOffset + sizeof(TLSHandshake) + randomBytesLength;
+	if (payload.size() < sessionIdLengthOffset) {
+		return false;
+	}
+
 	const std::optional<uint8_t> sessionIdSectionLength
 		= getSessionIdSectionLength(payload.subspan(sessionIdLengthOffset));
 	if (!sessionIdSectionLength) {
@@ -202,15 +224,15 @@ bool TLSParser::parse(std::span<const std::byte> payload, const bool isQUIC) noe
 	}
 
 	const std::size_t cipherSuitesOffset = sessionIdLengthOffset + *sessionIdSectionLength;
-	if (handshake->type == TLSHandshake::Type::CLIENT_HELLO) {
-		cipherSuites = parseClientCipherSuites(payload.subspan(cipherSuitesOffset));
-		if (!cipherSuites.has_value()) {
-			return false;
-		}
+	const std::optional<ParsedCipherSuitesSection> parsedCipherSuitesSection
+		= parseClientCipherSuites(payload.subspan(cipherSuitesOffset), handshake->type);
+	if (!parsedCipherSuitesSection.has_value()) {
+		return false;
 	}
+	cipherSuites = parsedCipherSuitesSection->cipherSuites;
 
-	const std::size_t compressionMethodsOffset = cipherSuitesOffset + sizeof(uint16_t)
-		+ (cipherSuites.has_value() ? cipherSuites->size() * sizeof(uint16_t) : 0);
+	const std::size_t compressionMethodsOffset
+		= cipherSuitesOffset + parsedCipherSuitesSection->sectionLength;
 	const std::optional<std::size_t> compressionMethodsLength
 		= getCompressionMethodsLength(payload.subspan(compressionMethodsOffset), *handshake);
 	if (!compressionMethodsLength.has_value()) {
@@ -241,7 +263,7 @@ TLSParser::parseServerNames(std::span<const std::byte> extension) noexcept
 		return std::nullopt;
 	}
 
-	PrefixedLengthStringReader<uint16_t> reader;
+	ServerNameReader reader;
 	std::ranges::copy(
 		reader.getRange(extension.subspan(sizeof(servernameListLength), servernameListLength))
 			| std::views::take(res->capacity()),
@@ -259,10 +281,13 @@ TLSParser::parseUserAgent(std::span<const std::byte> extension) noexcept
 	auto res = std::make_optional<UserAgents>();
 
 	UserAgentReader reader;
+
+	constexpr static std::size_t GOOGLE_USER_AGENT_ID = 12585;
 	std::ranges::copy(
-		reader.getRange(extension) | std::views::transform([](const UserAgent& userAgent) {
-			return userAgent.value;
-		}) | std::views::take(res->capacity()),
+		reader.getRange(extension) | std::views::filter([](const UserAgent& userAgent) {
+			return userAgent.id == GOOGLE_USER_AGENT_ID;
+		}) | std::views::transform([](const UserAgent& userAgent) { return userAgent.value; })
+			| std::views::take(res->capacity()),
 		std::back_inserter(*res));
 	if (!reader.parsedSuccessfully()) {
 		return std::nullopt;
@@ -386,7 +411,8 @@ std::optional<TLSParser::SupportedVersions> TLSParser::parseSupportedVersions(
 		toSpan<const uint16_t>(
 			extension.data() + sizeof(versionsLength),
 			versionsLength / sizeof(uint16_t))
-			| std::views::transform(std::not_fn(isGreaseValue)),
+			| std::views::filter(std::not_fn(isGreaseValue)) | std::views::transform(ntohs)
+			| std::views::take(res->capacity()),
 		std::back_inserter(*res));
 
 	return res;

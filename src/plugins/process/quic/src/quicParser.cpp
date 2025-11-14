@@ -135,7 +135,6 @@ bool QUICParser::parse(
 	for (std::optional<std::size_t> secondaryHeaderSize = std::nullopt;
 		 payload.size() >= MIN_PACKET_SIZE;
 		 payload = payload.subspan(*secondaryHeaderSize)) {
-		// TODO CHECK IF SUBSPAN NOT STARTS AFTER SPAN END
 		const std::optional<QUICHeaderView> headerView
 			= QUICHeaderView::createFrom(payload, l4Protocol);
 		if (!headerView.has_value()) {

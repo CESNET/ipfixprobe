@@ -42,6 +42,7 @@ struct UserAgentReader : public RangeReader {
 				setSuccess();
 				return std::nullopt;
 			}
+
 			const std::optional<quic::VariableLengthInt> id
 				= quic::readQUICVariableLengthInt(userAgentExtension);
 			if (!id.has_value()) {
@@ -64,7 +65,7 @@ struct UserAgentReader : public RangeReader {
 				= reinterpret_cast<const char*>(userAgentExtension.data() + userAgentOffset);
 
 			userAgentExtension
-				= userAgentExtension.subspan(userAgentOffset + userAgentLength->length);
+				= userAgentExtension.subspan(userAgentOffset + userAgentLength->value);
 
 			return UserAgent {id->value, {userAgent, userAgentLength->value}};
 		});

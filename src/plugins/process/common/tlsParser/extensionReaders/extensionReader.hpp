@@ -9,7 +9,6 @@
 
 #include "../tlsExtension.hpp"
 
-#include <iostream>
 #include <optional>
 #include <ranges>
 #include <span>
@@ -31,7 +30,7 @@ class ExtensionReader : public RangeReader {
 public:
 	auto getRange(std::span<const std::byte> payload) noexcept
 	{
-		return Generator([&]() -> std::optional<TLSExtension> {
+		return Generator([payload, this]() mutable -> std::optional<TLSExtension> {
 			if (payload.empty()) {
 				setSuccess();
 				return std::nullopt;
@@ -42,7 +41,6 @@ public:
 
 			const auto type = static_cast<TLSExtensionType>(
 				ntohs(*reinterpret_cast<const uint16_t*>(payload.data())));
-			std::cout << "Extension type raw: " << std::hex << static_cast<uint16_t>(type) << "\n";
 			const uint16_t length
 				= ntohs(*reinterpret_cast<const uint16_t*>(payload.data() + sizeof(type)));
 			if (length > payload.size()) {

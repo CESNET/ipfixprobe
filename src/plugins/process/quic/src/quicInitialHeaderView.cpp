@@ -276,6 +276,10 @@ encryptSample(const QUICInitialSecrets& initialSecrets, std::span<const std::byt
 		return std::nullopt;
 	}
 
+	if (updateLength + finalLength > plaintext.size()) {
+		return std::nullopt;
+	}
+
 	return toSpan<const std::byte>(plaintext.data(), updateLength + finalLength);
 }
 
@@ -321,6 +325,15 @@ static std::optional<QUICInitialHeaderView::DeobfuscatedHeader> decryptInitialHe
 	//	= payload.subspan(-primaryHeaderLength, payload.size() + primaryHeaderLength);
 	const std::byte deobfuscatedFormHeader = payload[0] ^ (mask[0] & std::byte {0x0f});
 	const uint8_t packetNumberLength = (static_cast<uint8_t>(deobfuscatedFormHeader) & 0x03) + 1;
+
+	if (encryptedPacketNumber + packetNumberLength - payload.data() > payload.size()) {
+		return std::nullopt;
+	}
+	if (encryptedPacketNumber + packetNumberLength - payload.data()
+		> deobfuscatedHeader->capacity()) {
+		return std::nullopt;
+	}
+
 	deobfuscatedHeader->insert(
 		deobfuscatedHeader->end(),
 		payload.data(),
@@ -688,8 +701,6 @@ reassembleCryptoFrames(std::span<const std::byte> decryptedPayload) noexcept
 bool QUICInitialHeaderView::parseTLSExtensions(TLSParser& parser) noexcept
 {
 	const bool extensionsParsed = parser.parseExtensions([&](const TLSExtension& extension) {
-		std::cout << "Parsing extension type: " << std::hex << static_cast<uint16_t>(extension.type)
-				  << "\n";
 		if (extension.type == TLSExtensionType::SERVER_NAME && !extension.payload.empty()) {
 			const std::optional<TLSParser::ServerNames> parsedServerNames
 				= parser.parseServerNames(extension.payload);
@@ -820,6 +831,9 @@ std::optional<QUICInitialHeaderView> QUICInitialHeaderView::createFrom(
 		return std::nullopt;
 	}
 	res->tokenLength = tokenLength->value;
+	if (tokenLength->length + tokenLength->value > payload.size()) {
+		return std::nullopt;
+	}
 
 	const std::optional<VariableLengthInt> restPayloadLength
 		= readQUICVariableLengthInt(payload.subspan(tokenLength->length + tokenLength->value));
