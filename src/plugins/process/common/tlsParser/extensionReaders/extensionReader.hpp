@@ -50,9 +50,9 @@ public:
 			if (sizeof(type) + sizeof(length) + length > payload.size()) {
 				return std::nullopt;
 			}
-			payload = payload.subspan(sizeof(type) + sizeof(length) + length);
 
 			const std::byte* extensionBegin = payload.data() + sizeof(type) + sizeof(length);
+			payload = payload.subspan(sizeof(type) + sizeof(length) + length);
 			return TLSExtension {type, {extensionBegin, length}};
 		});
 	}
