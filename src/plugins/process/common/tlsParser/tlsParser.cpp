@@ -239,6 +239,10 @@ bool TLSParser::parse(std::span<const std::byte> payload, const bool isQUIC) noe
 		return false;
 	}
 
+	if (compressionMethodsOffset + *compressionMethodsLength > payload.size()) {
+		return false;
+	}
+
 	m_extensions = getExtensionsSection(
 		payload.subspan(compressionMethodsOffset + *compressionMethodsLength));
 	if (!m_extensions.has_value()) {
@@ -404,9 +408,6 @@ std::optional<TLSParser::SupportedVersions> TLSParser::parseSupportedVersions(
 
 	const uint8_t versionsLength = *reinterpret_cast<const uint8_t*>(extension.data());
 	if (sizeof(uint8_t) + versionsLength > extension.size()) {
-		return std::nullopt;
-	}
-	if (versionsLength % sizeof(uint16_t) != 0) {
 		return std::nullopt;
 	}
 
