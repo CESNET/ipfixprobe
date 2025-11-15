@@ -47,10 +47,12 @@ public:
 				return std::nullopt;
 			}
 
-			const auto extensionBegin = payload.data() + sizeof(type) + sizeof(length);
-
+			if (sizeof(type) + sizeof(length) + length > payload.size()) {
+				return std::nullopt;
+			}
 			payload = payload.subspan(sizeof(type) + sizeof(length) + length);
 
+			const std::byte* extensionBegin = payload.data() + sizeof(type) + sizeof(length);
 			return TLSExtension {type, {extensionBegin, length}};
 		});
 	}
