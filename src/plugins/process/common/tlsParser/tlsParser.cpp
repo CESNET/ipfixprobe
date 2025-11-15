@@ -406,6 +406,9 @@ std::optional<TLSParser::SupportedVersions> TLSParser::parseSupportedVersions(
 	if (sizeof(uint8_t) + versionsLength > extension.size()) {
 		return std::nullopt;
 	}
+	if (versionsLength % sizeof(uint16_t) != 0) {
+		return std::nullopt;
+	}
 
 	std::ranges::copy(
 		toSpan<const uint16_t>(
