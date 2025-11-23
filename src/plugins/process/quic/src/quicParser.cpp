@@ -99,6 +99,10 @@ std::optional<std::size_t> QUICParser::parseInitial(
 		currentDCID,
 		version,
 		primaryHeaderLength);
+
+	if (!initialHeaderView.has_value() && !initialDCID.has_value()) {
+		return std::nullopt;
+	}
 	if (!initialHeaderView.has_value() && initialDCID.has_value()) {
 		initialHeaderView = QUICInitialHeaderView::createFrom(
 			payload,
