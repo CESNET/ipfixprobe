@@ -1,7 +1,7 @@
 add_subdirectory(input)
 add_subdirectory(output)
 add_subdirectory(process)
-add_subdirectory(storage)
+#add_subdirectory(storage)
 
 
 if(ENABLE_NEMEA OR ENABLE_OUTPUT_UNIREC)

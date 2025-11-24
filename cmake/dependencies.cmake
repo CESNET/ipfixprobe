@@ -1,5 +1,6 @@
 # Project dependencies
 find_package(PkgConfig REQUIRED)
+include(FetchContent)
 
 find_package(Threads REQUIRED)
 find_package(Atomic REQUIRED)
@@ -35,4 +36,11 @@ if (ENABLE_TESTS)
 	if (NOT NEMEA_INSTALLED EQUAL 0)
 		message(FATAL_ERROR "NEMEA modules package is missing! Install it using: dnf install nemea-modules")
 	endif()
+
+	FetchContent_Declare(
+		googletest
+ 		URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+		DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+	)
+	FetchContent_MakeAvailable(googletest)
 endif()
