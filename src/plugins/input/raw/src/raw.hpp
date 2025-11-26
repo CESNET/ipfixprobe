@@ -22,6 +22,7 @@
 #include <ipfixprobe/utils.hpp>
 #include <linux/if_packet.h>
 #include <poll.h>
+#include <pcap/pcap.h>
 
 namespace ipxp {
 
