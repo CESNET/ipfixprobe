@@ -333,6 +333,9 @@ def process_storage(config):
             cache_params.append(f"s={cache['size_exponent']}")
         if "line_size_exponent" in cache:
             cache_params.append(f"l={cache['line_size_exponent']}")
+        if "source_optimization" in cache:
+            so_value = "true" if cache['source_optimization'] else "false"
+            cache_params.append(f"so={so_value}")
         if cache_params:
             params.append(f"{';'.join(cache_params)}")
 

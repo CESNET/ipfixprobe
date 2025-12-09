@@ -163,6 +163,7 @@ NHTFlowCache::NHTFlowCache(const std::string& params, ipx_ring_t* queue)
 	, m_inactive(0)
 	, m_split_biflow(false)
 	, m_enable_fragmentation_cache(true)
+	, m_source_optimization_enabled(false)
 	, m_keylen(0)
 	, m_key()
 	, m_key_inv()
@@ -220,7 +221,7 @@ void NHTFlowCache::init(const char* params)
 
 	m_split_biflow = parser.m_split_biflow;
 	m_enable_fragmentation_cache = parser.m_enable_fragmentation_cache;
-
+	m_source_optimization_enabled = parser.m_source_optimization_enabled;
 	if (m_enable_fragmentation_cache) {
 		try {
 			m_fragmentation_cache
@@ -367,7 +368,15 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 			}
 		}
 	}
-
+	// Set all source/destination ports to 0 for source optimization based on flow direction
+	// this will consolidate more flows into single flow record
+	if (m_source_optimization_enabled) {
+		if( source_flow ) {
+			pkt.src_port = 0;
+		} else {
+			pkt.dst_port = 0;
+		}
+	}
 	if (found) {
 		/* Existing flow record was found, put flow record at the first index of flow line. */
 #ifdef FLOW_CACHE_STATS
@@ -436,6 +445,7 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 	if (flow->is_empty()) {
 		m_flows_in_cache++;
 		flow->create(pkt, hashval);
+		
 		ret = plugins_post_create(flow->m_flow, pkt);
 
 		if (ret & FLOW_FLUSH) {
@@ -526,7 +536,11 @@ bool NHTFlowCache::create_hash_key(Packet& pkt)
 
 		key_v4->proto = pkt.ip_proto;
 		key_v4->ip_version = IP::v4;
-		key_v4->src_port = pkt.src_port;
+		if (m_source_optimization_enabled) {
+			key_v4->src_port = 0;
+		} else {
+			key_v4->src_port = pkt.src_port;
+		}
 		key_v4->dst_port = pkt.dst_port;
 		key_v4->src_ip = pkt.src_ip.v4;
 		key_v4->dst_ip = pkt.dst_ip.v4;
@@ -534,7 +548,11 @@ bool NHTFlowCache::create_hash_key(Packet& pkt)
 
 		key_v4_inv->proto = pkt.ip_proto;
 		key_v4_inv->ip_version = IP::v4;
-		key_v4_inv->src_port = pkt.dst_port;
+		if (m_source_optimization_enabled) {
+			key_v4_inv->src_port = 0;
+		} else {
+			key_v4_inv->src_port = pkt.dst_port;
+		}
 		key_v4_inv->dst_port = pkt.src_port;
 		key_v4_inv->src_ip = pkt.dst_ip.v4;
 		key_v4_inv->dst_ip = pkt.src_ip.v4;
@@ -548,7 +566,11 @@ bool NHTFlowCache::create_hash_key(Packet& pkt)
 
 		key_v6->proto = pkt.ip_proto;
 		key_v6->ip_version = IP::v6;
-		key_v6->src_port = pkt.src_port;
+		if (m_source_optimization_enabled) {
+			key_v6->src_port = 0;
+		} else {
+			key_v6->src_port = pkt.src_port;
+		}
 		key_v6->dst_port = pkt.dst_port;
 		memcpy(key_v6->src_ip, pkt.src_ip.v6, sizeof(pkt.src_ip.v6));
 		memcpy(key_v6->dst_ip, pkt.dst_ip.v6, sizeof(pkt.dst_ip.v6));
@@ -556,7 +578,11 @@ bool NHTFlowCache::create_hash_key(Packet& pkt)
 
 		key_v6_inv->proto = pkt.ip_proto;
 		key_v6_inv->ip_version = IP::v6;
-		key_v6_inv->src_port = pkt.dst_port;
+		if (m_source_optimization_enabled) {
+			key_v6_inv->src_port = 0;
+		} else {
+			key_v6_inv->src_port = pkt.dst_port;
+		}
 		key_v6_inv->dst_port = pkt.src_port;
 		memcpy(key_v6_inv->src_ip, pkt.dst_ip.v6, sizeof(pkt.dst_ip.v6));
 		memcpy(key_v6_inv->dst_ip, pkt.src_ip.v6, sizeof(pkt.src_ip.v6));

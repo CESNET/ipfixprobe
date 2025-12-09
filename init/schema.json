@@ -406,6 +406,9 @@
             "line_size_exponent": {
               "type": "integer",
               "minimum": 1
+            },
+            "source_optimization": {
+              "type": "boolean"
             }
           },
           "additionalProperties": false
