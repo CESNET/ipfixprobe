@@ -34,6 +34,7 @@ struct __attribute__((packed)) flow_key_v4_t {
 	uint32_t src_ip;
 	uint32_t dst_ip;
 	uint16_t vlan_id;
+	uint16_t vlan_id2;
 };
 
 struct __attribute__((packed)) flow_key_v6_t {
@@ -44,6 +45,7 @@ struct __attribute__((packed)) flow_key_v6_t {
 	uint8_t src_ip[16];
 	uint8_t dst_ip[16];
 	uint16_t vlan_id;
+	uint16_t vlan_id2;
 };
 
 #define MAX_KEY_LENGTH (max<size_t>(sizeof(flow_key_v4_t), sizeof(flow_key_v6_t)))
@@ -86,6 +88,7 @@ public:
 	uint32_t m_inactive;
 	bool m_split_biflow;
 	bool m_enable_fragmentation_cache;
+	bool m_source_optimization_enabled;
 	std::size_t m_frag_cache_size;
 	time_t m_frag_cache_timeout;
 
@@ -97,6 +100,7 @@ public:
 		, m_inactive(DEFAULT_INACTIVE_TIMEOUT)
 		, m_split_biflow(false)
 		, m_enable_fragmentation_cache(true)
+		, m_source_optimization_enabled(false)
 		, m_frag_cache_size(10007)
 		, // Prime for better distribution in hash table
 		m_frag_cache_timeout(3)
@@ -217,6 +221,21 @@ public:
 				}
 				return true;
 			});
+		register_option(
+			"so",
+			"source_optimization",
+			"true|false",
+			"Enable/disable source optimization e.g sets all source ports to 0. Disabled (false) by default.",
+			[this](const char* arg) {
+				if (strcmp(arg, "true") == 0) {
+					m_source_optimization_enabled = true;
+				} else if (strcmp(arg, "false") == 0) {
+					m_source_optimization_enabled = false;
+				} else {
+					return false;
+				}
+				return true;
+			});
 	}
 };
 
@@ -298,6 +317,7 @@ private:
 	uint32_t m_inactive;
 	bool m_split_biflow;
 	bool m_enable_fragmentation_cache;
+	bool m_source_optimization_enabled;
 	uint8_t m_keylen;
 	char m_key[MAX_KEY_LENGTH];
 	char m_key_inv[MAX_KEY_LENGTH];
