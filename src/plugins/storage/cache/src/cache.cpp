@@ -545,6 +545,7 @@ bool NHTFlowCache::create_hash_key(Packet& pkt)
 		key_v4->src_ip = pkt.src_ip.v4;
 		key_v4->dst_ip = pkt.dst_ip.v4;
 		key_v4->vlan_id = pkt.vlan_id;
+		key_v4->vlan_id2 = pkt.vlan_id2;
 
 		key_v4_inv->proto = pkt.ip_proto;
 		key_v4_inv->ip_version = IP::v4;
@@ -557,6 +558,7 @@ bool NHTFlowCache::create_hash_key(Packet& pkt)
 		key_v4_inv->src_ip = pkt.dst_ip.v4;
 		key_v4_inv->dst_ip = pkt.src_ip.v4;
 		key_v4_inv->vlan_id = pkt.vlan_id;
+		key_v4_inv->vlan_id2 = pkt.vlan_id2;
 
 		m_keylen = sizeof(flow_key_v4_t);
 		return true;
@@ -575,6 +577,7 @@ bool NHTFlowCache::create_hash_key(Packet& pkt)
 		memcpy(key_v6->src_ip, pkt.src_ip.v6, sizeof(pkt.src_ip.v6));
 		memcpy(key_v6->dst_ip, pkt.dst_ip.v6, sizeof(pkt.dst_ip.v6));
 		key_v6->vlan_id = pkt.vlan_id;
+		key_v6->vlan_id2 = pkt.vlan_id2;
 
 		key_v6_inv->proto = pkt.ip_proto;
 		key_v6_inv->ip_version = IP::v6;
@@ -587,6 +590,7 @@ bool NHTFlowCache::create_hash_key(Packet& pkt)
 		memcpy(key_v6_inv->src_ip, pkt.dst_ip.v6, sizeof(pkt.dst_ip.v6));
 		memcpy(key_v6_inv->dst_ip, pkt.src_ip.v6, sizeof(pkt.src_ip.v6));
 		key_v6_inv->vlan_id = pkt.vlan_id;
+		key_v6_inv->vlan_id2 = pkt.vlan_id2;
 
 		m_keylen = sizeof(flow_key_v6_t);
 		return true;
