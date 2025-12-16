@@ -57,7 +57,6 @@ DpdkDevice::DpdkDevice(
 	configurePort();
 	initMemPools(memPoolSize);
 	setupRxQueues(memPoolSize);
-	configureRSS();
 	enablePort();
 }
 
@@ -154,7 +153,9 @@ rte_eth_conf DpdkDevice::createPortConfig()
 
 	if (m_supportedRSS) {
 		portConfig.rxmode.mq_mode = RTE_ETH_MQ_RX_RSS;
+		portConfig.rx_adv_conf.rss_conf = createRSSConfig();
 	} else {
+		std::cerr << "Skipped RSS hash setting for port " << m_portID << "." << std::endl;
 		portConfig.rxmode.mq_mode = RTE_ETH_MQ_RX_NONE;
 	}
 
@@ -220,12 +221,9 @@ void DpdkDevice::setupRxQueues(uint16_t memPoolSize)
 			  << " set up. Size of each queue: " << rxQueueSize << std::endl;
 }
 
-void DpdkDevice::configureRSS()
+rte_eth_rss_conf DpdkDevice::createRSSConfig()
 {
-	if (!m_supportedRSS) {
-		std::cerr << "Skipped RSS hash setting for port " << m_portID << "." << std::endl;
-		return;
-	}
+	struct rte_eth_rss_conf rssConfig = {};
 
 	rte_eth_dev_info rteDevInfo;
 	if (rte_eth_dev_info_get(m_portID, &rteDevInfo)) {
@@ -249,17 +247,10 @@ void DpdkDevice::configureRSS()
 				  << std::endl;
 	}
 
-	struct rte_eth_rss_conf rssConfig = {};
 	rssConfig.rss_key = m_hashKey.data();
 	rssConfig.rss_key_len = rssHashKeySize;
 	rssConfig.rss_hf = rssOffloads;
-
-	int ret = rte_eth_dev_rss_hash_update(m_portID, &rssConfig);
-	if (ret < 0) {
-		std::cerr << "Setting RSS {" << rssOffloads << "} for port " << m_portID
-				  << " failed. Errno:" << ret << std::endl;
-		throw PluginError("DpdkDevice::configureRSS() has failed.");
-	}
+	return rssConfig;
 }
 
 void DpdkDevice::enablePort()
