@@ -84,7 +84,7 @@ private:
 	rte_eth_conf createPortConfig();
 	void initMemPools(uint16_t memPoolSize);
 	void setupRxQueues(uint16_t memPoolSize);
-	void configureRSS();
+	rte_eth_rss_conf createRSSConfig();
 	void enablePort();
 	void createRteMempool(uint16_t mempoolSize);
 	void setRxTimestampDynflag();
