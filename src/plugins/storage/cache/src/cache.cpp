@@ -68,6 +68,8 @@ void FlowRecord::erase()
 	m_flow.dst_bytes = 0;
 	m_flow.src_tcp_flags = 0;
 	m_flow.dst_tcp_flags = 0;
+	m_flow.end_reason = 0;
+	m_flow.ip_tos = 0;
 }
 void FlowRecord::reuse()
 {
@@ -99,6 +101,13 @@ void FlowRecord::create(const Packet& pkt, uint64_t hash)
 
 	m_flow.time_first = pkt.ts;
 	m_flow.time_last = pkt.ts;
+	if (pkt.end_ts.tv_sec || pkt.end_ts.tv_usec) {
+		m_flow.time_last = pkt.end_ts;
+	}
+
+	if (pkt.end_reason) {
+		m_flow.end_reason = pkt.end_reason;
+	}
 	m_flow.flow_hash = hash;
 
 	memcpy(m_flow.src_mac, pkt.src_mac, 6);
@@ -107,12 +116,14 @@ void FlowRecord::create(const Packet& pkt, uint64_t hash)
 	if (pkt.ip_version == IP::v4) {
 		m_flow.ip_version = pkt.ip_version;
 		m_flow.ip_proto = pkt.ip_proto;
+		m_flow.ip_tos = pkt.ip_tos;
 		m_flow.src_ip.v4 = pkt.src_ip.v4;
 		m_flow.dst_ip.v4 = pkt.dst_ip.v4;
 		m_flow.src_bytes = pkt.ip_len;
 	} else if (pkt.ip_version == IP::v6) {
 		m_flow.ip_version = pkt.ip_version;
 		m_flow.ip_proto = pkt.ip_proto;
+		m_flow.ip_tos = pkt.ip_tos;
 		memcpy(m_flow.src_ip.v6, pkt.src_ip.v6, 16);
 		memcpy(m_flow.dst_ip.v6, pkt.dst_ip.v6, 16);
 		m_flow.src_bytes = pkt.ip_len;

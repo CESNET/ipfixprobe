@@ -30,10 +30,17 @@ target_link_libraries(ipfixprobe-core
 	telemetry::telemetry
 	telemetry::appFs
 	atomic::atomic
-	unwind::unwind
 	${CMAKE_DL_LIBS}
 	top-ports
 )
+
+if (ENABLE_UNWIND)
+target_link_libraries(ipfixprobe-core unwind::unwind)
+
+target_compile_definitions(ipfixprobe-core PRIVATE
+	WITH_UNWIND
+)
+endif()
 
 add_executable(ipfixprobe main.cpp)
 target_link_libraries(ipfixprobe ${CORE_LIB})

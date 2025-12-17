@@ -39,6 +39,8 @@ def process_input_plugin(config):
         return process_input_dpdk_plugin(settings)
     if plugin == "dpdk_ring":
         return process_input_dpdk_ring_plugin(settings)
+    if plugin == "sock":
+        return process_input_sock_plugin(settings)
     if plugin == "raw":
         return process_input_raw_plugin(settings)
     if plugin == "ndp":
@@ -292,6 +294,19 @@ def process_input_raw_plugin(settings):
 
     return " ".join(params)
 
+def process_input_sock_plugin(settings):
+    params = ['-i "sock']
+
+    if settings is None:
+        raise ValueError("Settings for sock plugin cannot be empty.")
+
+    sock = settings.get("sock")
+    if sock is None:
+        raise ValueError("sock must be specified in the sock plugin configuration.")
+
+    params.append(f"sock={sock}")
+
+    return " ".join(params)
 
 def process_process_plugins(config):
     process_plugins = config.get("process_plugins", [])
