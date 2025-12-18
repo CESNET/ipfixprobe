@@ -79,30 +79,31 @@ inline uint16_t parse_eth_hdr(const u_char* data_ptr, uint16_t data_len, Packet*
 	DEBUG_MSG("\tDest mac:\t%s\n", ether_ntoa((struct ether_addr*) eth->h_dest));
 	DEBUG_MSG("\tSrc mac:\t%s\n", ether_ntoa((struct ether_addr*) eth->h_source));
 #else
-	DEBUG_CODE(char src_mac[18]; // ether_ntoa missing on some platforms
-			   char dst_mac[18];
-			   uint8_t* p = (uint8_t*) eth->h_source;
-			   snprintf(
-				   src_mac,
-				   sizeof(src_mac),
-				   "%02x:%02x:%02x:%02x:%02x:%02x",
-				   p[0],
-				   p[1],
-				   p[2],
-				   p[3],
-				   p[4],
-				   p[5]);
-			   p = (uint8_t*) eth->h_dest;
-			   snprintf(
-				   dst_mac,
-				   sizeof(dst_mac),
-				   "%02x:%02x:%02x:%02x:%02x:%02x",
-				   p[0],
-				   p[1],
-				   p[2],
-				   p[3],
-				   p[4],
-				   p[5]););
+	DEBUG_CODE(
+		char src_mac[18]; // ether_ntoa missing on some platforms
+		char dst_mac[18];
+		uint8_t* p = (uint8_t*) eth->h_source;
+		snprintf(
+			src_mac,
+			sizeof(src_mac),
+			"%02x:%02x:%02x:%02x:%02x:%02x",
+			p[0],
+			p[1],
+			p[2],
+			p[3],
+			p[4],
+			p[5]);
+		p = (uint8_t*) eth->h_dest;
+		snprintf(
+			dst_mac,
+			sizeof(dst_mac),
+			"%02x:%02x:%02x:%02x:%02x:%02x",
+			p[0],
+			p[1],
+			p[2],
+			p[3],
+			p[4],
+			p[5]););
 	DEBUG_MSG("\tDest mac:\t%s\n", dst_mac);
 	DEBUG_MSG("\tSrc mac:\t%s\n", src_mac);
 #endif
@@ -685,8 +686,9 @@ void parse_packet(
 	uint16_t data_offset = 0;
 
 	DEBUG_MSG("---------- packet parser  #%u -------------\n", ++s_total_pkts);
-	DEBUG_CODE(char timestamp[32]; time_t time = ts.tv_sec;
-			   strftime(timestamp, sizeof(timestamp), "%FT%T", localtime(&time)););
+	DEBUG_CODE(
+		char timestamp[32]; time_t time = ts.tv_sec;
+		strftime(timestamp, sizeof(timestamp), "%FT%T", localtime(&time)););
 	DEBUG_MSG("Time:\t\t\t%s.%06lu\n", timestamp, ts.tv_usec);
 	DEBUG_MSG("Packet length:\t\tcaplen=%uB len=%uB\n\n", caplen, len);
 

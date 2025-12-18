@@ -150,6 +150,4 @@ private:
 	void print_available_ifcs();
 };
 
-void packet_handler(u_char* arg, const struct pcap_pkthdr* h, const u_char* data);
-
 } // namespace ipxp
