@@ -13,7 +13,7 @@
 
 #include <unistd.h>
 
-namespace ipxp::process::osquery {
+namespace ipxp::process {
 
 /**
  * @brief Wrapper that owns and manages a file descriptor.
@@ -78,4 +78,4 @@ private:
 	int m_fileDescriptor = INVALID_FILE_DESCRIPTOR;
 };
 
-} // namespace ipxp::process::osquery
+} // namespace ipxp::process

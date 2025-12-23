@@ -9,7 +9,7 @@
 
 #include "fileDescriptor.hpp"
 
-namespace ipxp::process::osquery {
+namespace ipxp::process {
 
 FileDescriptor::operator bool() const noexcept
 {
@@ -75,4 +75,4 @@ FileDescriptor::~FileDescriptor() noexcept
 	close();
 }
 
-} // namespace ipxp::process::osquery
+} // namespace ipxp::process
