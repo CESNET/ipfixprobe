@@ -5,3 +5,4 @@ set(FETCHCONTENT_QUIET OFF)
 
 include(telemetry.cmake)
 include(adaptmon.cmake)
+include(yaml-cpp.cmake)

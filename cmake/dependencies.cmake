@@ -27,6 +27,10 @@ if (ENABLE_OUTPUT_UNIREC OR ENABLE_NEMEA)
 	find_package(UNIREC REQUIRED)
 endif()
 
+if (ENABLE_OUTPUT_IPFIX)
+	find_package(yaml-cpp REQUIRED)
+endif()
+
 if (ENABLE_TESTS)
 	execute_process(
 		COMMAND rpm -q nemea-modules
