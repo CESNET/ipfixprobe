@@ -293,7 +293,7 @@ template_t* IPFIXExporter::get_template(const Flow& flow)
 		RecordExt* ext = flow.m_exts;
 		while (ext != nullptr) {
 			if (ext->m_ext_id < 0 || ext->m_ext_id >= extension_cnt) {
-				//throw PluginError("encountered invalid extension id");
+				// throw PluginError("encountered invalid extension id");
 			}
 			extensions[ext->m_ext_id] = ext;
 			ext = ext->m_next;
@@ -305,7 +305,7 @@ template_t* IPFIXExporter::get_template(const Flow& flow)
 			const char** fields = extensions[i]->get_ipfix_tmplt();
 			extensions[i] = nullptr;
 			if (fields == nullptr) {
-				//throw PluginError(
+				// throw PluginError(
 				//	"missing template fields for extension with ID " + std::to_string(i));
 			}
 			while (*fields != nullptr) {
@@ -835,7 +835,7 @@ void IPFIXExporter::send_data()
 			ret = send_packet(&pkt);
 		}
 		if (ret != 0) {
-			m_dropped += pkt.flows;
+			// m_dropped += pkt.flows;
 		}
 	}
 }
@@ -1505,11 +1505,9 @@ int IPFIXExporter::fill_basic_flow(const Flow& flow, template_t* tmplt)
 	return length;
 }
 
-void IPFIXExporter::processRecord(FlowRecordUniquePtr& flowRecord)
-{
-}
+// void IPFIXExporter::processRecord(FlowRecordUniquePtr& flowRecord) {}
 
-static const PluginRegistrar<IPFIXExporter, OutputPluginFactory>
-	ipfixRegistrar(ipfixPluginManifest);
+/*static const PluginRegistrar<IPFIXExporter, OutputPluginFactory>
+	ipfixRegistrar(ipfixPluginManifest);*/
 
 } // namespace ipxp

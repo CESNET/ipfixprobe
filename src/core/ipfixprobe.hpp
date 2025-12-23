@@ -43,13 +43,13 @@
 #include <appFs.hpp>
 #include <ipfixprobe/inputPlugin.hpp>
 #include <ipfixprobe/options.hpp>
-#include <outputPlugin.hpp>
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/plugin.hpp>
-#include <processPlugin.hpp>
 #include <ipfixprobe/ring.h>
 #include <ipfixprobe/storagePlugin.hpp>
 #include <ipfixprobe/utils.hpp>
+#include <outputPlugin.hpp>
+#include <processPlugin.hpp>
 #include <telemetry.hpp>
 
 namespace ipxp {
@@ -314,14 +314,14 @@ struct ipxp_conf_t {
 	std::vector<std::shared_ptr<InputPlugin>> inputPlugins;
 	std::vector<std::shared_ptr<StoragePlugin>> storagePlugins;
 	std::shared_ptr<OutputPlugin> outputPlugin;
-	FieldManager fieldManager;
-	ProcessPluginManager manager;
+	process::FieldManager fieldManager;
+	process::ProcessPluginManager manager;
 	PluginManager pluginManager;
 	struct Plugins {
 		std::vector<InputPlugin*> input;
 		std::vector<StoragePlugin*> storage;
 		std::vector<OutputPlugin*> output;
-		std::vector<ProcessPlugin*> process;
+		std::vector<process::ProcessPlugin*> process;
 		std::vector<Plugin*> all;
 	} active;
 

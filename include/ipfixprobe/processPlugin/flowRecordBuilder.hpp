@@ -3,6 +3,7 @@
 #include "flowKey.hpp"
 #include "flowRecord.hpp"
 #include "ipAddress.hpp"
+#include "processPluginEntry.hpp"
 // #include "processPluginBuilder.hpp"
 
 #include <cstddef>

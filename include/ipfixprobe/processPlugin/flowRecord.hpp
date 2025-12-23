@@ -225,6 +225,11 @@ public:
 			reinterpret_cast<std::byte*>(this) + layouts[pluginIndex].offset);
 	}
 
+	const void* getPluginContext(std::size_t pluginIndex) const
+	{
+		return const_cast<FlowRecord*>(this)->getPluginContext(pluginIndex);
+	}
+
 	// TODO PRIVATE
 	FlowRecord(PluginsBitset pluginsAvailable = {})
 		: pluginsAvailable(pluginsAvailable)

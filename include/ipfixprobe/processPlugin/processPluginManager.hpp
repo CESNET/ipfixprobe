@@ -9,7 +9,7 @@
 #include "processPlugin.hpp"
 #include "processPluginEntry.hpp"
 
-namespace ipxp {
+namespace ipxp::process {
 
 class IPXP_API ProcessPluginManager {
 public:
@@ -218,4 +218,4 @@ private:
 	std::vector<ProcessPluginEntry> m_processPlugins;
 };
 
-} // namespace ipxp
+} // namespace ipxp::process

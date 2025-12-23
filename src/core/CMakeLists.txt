@@ -15,10 +15,9 @@ add_library(ipfixprobe-core STATIC
 	pluginManager.hpp
 	fieldManager.cpp
 	xxhash.c
-	outputFieldConfigurationParser/outputFieldConfigurationParser.cpp
-	outputFieldConfigurationParser/outputAction.hpp
-	outputFieldConfigurationParser/outputAction.cpp
-	outputFieldConfigurationParser/fieldMap.hpp
+	outputConfigurationParser/outputConfigurationParser.cpp
+	outputConfigurationParser/outputAction.cpp
+	outputConfigurationParser/fieldMap.hpp
 )
 
 target_include_directories(ipfixprobe-core PUBLIC

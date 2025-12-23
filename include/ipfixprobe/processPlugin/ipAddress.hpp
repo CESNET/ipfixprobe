@@ -134,7 +134,7 @@ public:
 	{
 	}
 
-	constexpr IPAddressVariant(const auto& ipv6) noexcept
+	explicit constexpr IPAddressVariant(const auto& ipv6) noexcept
 	{
 		if (ipv6.size() != 16) {
 			throw std::invalid_argument("IPAddressVariant: container must have size 16");

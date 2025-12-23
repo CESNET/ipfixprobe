@@ -35,11 +35,11 @@
 #include <future>
 
 #include <ipfixprobe/inputPlugin.hpp>
-#include <outputPlugin.hpp>
 #include <ipfixprobe/packet.hpp>
-#include <processPlugin.hpp>
 #include <ipfixprobe/ring.h>
 #include <ipfixprobe/storagePlugin.hpp>
+#include <outputPlugin.hpp>
+#include <processPlugin.hpp>
 
 namespace ipxp {
 
@@ -59,7 +59,7 @@ struct WorkPipeline {
 	} input;
 	struct {
 		std::shared_ptr<StoragePlugin> storagePlugin;
-		std::vector<ProcessPlugin*> plugins;
+		std::vector<process::ProcessPlugin*> plugins;
 	} storage;
 };
 

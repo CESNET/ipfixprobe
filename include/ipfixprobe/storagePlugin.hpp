@@ -33,7 +33,7 @@ namespace ipxp {
  */
 class IPXP_API StoragePlugin : public Plugin {
 public:
-	StoragePlugin(ProcessPluginManager& manager)
+	StoragePlugin(process::ProcessPluginManager& manager)
 		: m_export_queue(nullptr)
 		, m_manager(manager)
 	//, m_plugins(nullptr)
@@ -169,7 +169,7 @@ protected:
 	ipx_ring_t* m_export_queue;
 
 protected:
-	ProcessPluginManager& m_manager;
+	process::ProcessPluginManager& m_manager;
 };
 
 /**
@@ -190,6 +190,6 @@ class IPXP_API PluginFactory;
  * Provides a factory for creating StoragePlugin instances using a string-based constructor.
  */
 using StoragePluginFactory
-	= PluginFactory<StoragePlugin, const std::string&, ipx_ring_t*, ProcessPluginManager&>;
+	= PluginFactory<StoragePlugin, const std::string&, ipx_ring_t*, process::ProcessPluginManager&>;
 
 } // namespace ipxp

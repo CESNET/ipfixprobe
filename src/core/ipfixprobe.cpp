@@ -44,9 +44,9 @@
 #include <ipfixprobe/pluginFactory/pluginFactory.hpp>
 #include <poll.h>
 #include <signal.h>
-#include <unistd.h>
-#include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace ipxp {
 
@@ -121,7 +121,7 @@ static void printPluginsUsage(const std::string& pluginName)
 {
 	auto& inputPluginFactory = InputPluginFactory::getInstance();
 	auto& storagePluginFactory = StoragePluginFactory::getInstance();
-	auto& processPluginFactory = ProcessPluginFactory::getInstance();
+	auto& processPluginFactory = process::ProcessPluginFactory::getInstance();
 	auto& outputPluginFactory = OutputPluginFactory::getInstance();
 
 	bool found = false;
@@ -151,7 +151,7 @@ static void printPlugins()
 {
 	auto& inputPluginFactory = InputPluginFactory::getInstance();
 	auto& storagePluginFactory = StoragePluginFactory::getInstance();
-	auto& processPluginFactory = ProcessPluginFactory::getInstance();
+	auto& processPluginFactory = process::ProcessPluginFactory::getInstance();
 	auto& outputPluginFactory = OutputPluginFactory::getInstance();
 
 	printRegisteredPlugins("input", inputPluginFactory.getRegisteredPlugins());
@@ -178,7 +178,7 @@ void print_help(const std::string& arg)
 	}
 
 	if (arg == "process") {
-		auto& processPluginFactory = ProcessPluginFactory::getInstance();
+		auto& processPluginFactory = process::ProcessPluginFactory::getInstance();
 		return printPluginsUsage(processPluginFactory.getRegisteredPlugins());
 	}
 
@@ -252,7 +252,7 @@ void set_thread_details(pthread_t thread, const std::string& name, const std::ve
 
 bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 {
-	//OutputPlugin::ProcessPlugins processPlugins;
+	// OutputPlugin::ProcessPlugins processPlugins;
 	std::string storage_name = "cache";
 	std::string storage_params = "";
 	std::string output_name = "ipfix";
@@ -278,7 +278,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 
 	// Process
 	for (auto& it : parser.m_process) {
-		//std::shared_ptr<ProcessPlugin> processPlugin;
+		// std::shared_ptr<ProcessPlugin> processPlugin;
 		std::string process_params;
 		std::string process_name;
 		std::vector<int> affinity;
@@ -329,7 +329,11 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 
 	try {
 		auto& outputPluginFactory = OutputPluginFactory::getInstance();
-		outputPlugin = outputPluginFactory.createShared(output_name, output_params, conf.manager.getFieldManager(), conf.manager.getEntries());
+		outputPlugin = outputPluginFactory.createShared(
+			output_name,
+			output_params,
+			conf.manager.getFieldManager(),
+			conf.manager.getEntries());
 		if (outputPlugin == nullptr) {
 			throw IPXPError("invalid output plugin " + output_name);
 		}
@@ -406,8 +410,11 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 
 		try {
 			auto& storagePluginFactory = StoragePluginFactory::getInstance();
-			storagePlugin
-				= storagePluginFactory.createShared(storage_name, storage_params, output_queue, conf.manager);
+			storagePlugin = storagePluginFactory.createShared(
+				storage_name,
+				storage_params,
+				output_queue,
+				conf.manager);
 			if (storagePlugin == nullptr) {
 				throw IPXPError("invalid storage plugin " + storage_name);
 			}
@@ -421,12 +428,12 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 			throw IPXPError(storage_name + std::string(": ") + ex.what());
 		}
 
-		std::vector<ProcessPlugin*> storage_process_plugins;
+		std::vector<process::ProcessPlugin*> storage_process_plugins;
 		for (auto& it : conf.manager.getEntries()) {
-			ProcessPlugin* tmp = it.plugin.get();
-			//storagePlugin->add_plugin(tmp);
+			process::ProcessPlugin* tmp = it.plugin.get();
+			// storagePlugin->add_plugin(tmp);
 			conf.active.process.push_back(tmp);
-			//conf.active.all.push_back(tmp);
+			// conf.active.all.push_back(tmp);
 			storage_process_plugins.push_back(tmp);
 		}
 
@@ -474,7 +481,7 @@ void finish(ipxp_conf_t& conf)
 	// Terminate all storages
 	for (auto& it : conf.pipelines) {
 		for (auto& itp : it.storage.plugins) {
-			//itp->close(); TODO
+			// itp->close(); TODO
 		}
 	}
 
@@ -539,9 +546,9 @@ void finish(ipxp_conf_t& conf)
 			status = res.msg;
 		}
 		OutputStats stats = conf.output_stats[idx]->load();
-		std::cout << std::setw(3) << idx++ << " " << std::setw(12) << stats.biflows << " "
+		/*std::cout << std::setw(3) << idx++ << " " << std::setw(12) << stats.biflows << " "
 				  << std::setw(12) << stats.packets << " " << std::setw(19) << stats.bytes << " "
-				  << std::setw(12) << stats.dropped << " " << std::setw(6) << status << std::endl;
+				  << std::setw(12) << stats.dropped << " " << std::setw(6) << status << std::endl;*/
 	}
 
 	if (!ok) {

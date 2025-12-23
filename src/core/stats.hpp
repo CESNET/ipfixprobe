@@ -49,13 +49,6 @@ struct InputStats {
 	uint64_t dropped;
 };
 
-struct OutputStats {
-	uint64_t biflows;
-	uint64_t bytes;
-	uint64_t packets;
-	uint64_t dropped;
-};
-
 typedef struct msg_header_s {
 	uint32_t magic;
 	uint16_t size;

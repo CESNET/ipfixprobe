@@ -177,7 +177,7 @@ void output_worker(
 		if (!flowPtr) {
 			if (end.tv_sec - last_flush.tv_sec > 1) {
 				last_flush = end;
-				//outputPlugin->flush(); TODO flush ? 
+				// outputPlugin->flush(); TODO flush ?
 			}
 			if (terminate_export && !ipx_ring_cnt(queue)) {
 				break;
@@ -187,13 +187,15 @@ void output_worker(
 
 		FlowRecordUniquePtr& flow = *flowPtr;
 
-		stats.biflows++;
-		stats.bytes += flow->directionalData[Direction::Forward].bytes + flow->directionalData[Direction::Reverse].bytes;
-		stats.packets += flow->directionalData[Direction::Forward].packets + flow->directionalData[Direction::Reverse].packets;
-		stats.dropped = outputPlugin->getDroppedCount();
+		/*stats.biflows++;
+		stats.bytes += flow->directionalData[Direction::Forward].bytes +
+		flow->directionalData[Direction::Reverse].bytes; stats.packets +=
+		flow->directionalData[Direction::Forward].packets +
+		flow->directionalData[Direction::Reverse].packets; stats.dropped =
+		outputPlugin->getDroppedCount();*/
 		out_stats->store(stats);
 		try {
-			outputPlugin->processRecord(flow);
+			// outputPlugin->processRecord(flow);
 		} catch (PluginError& e) {
 			res.error = true;
 			res.msg = e.what();
@@ -233,8 +235,8 @@ void output_worker(
 		}
 	}
 
-	//outputPlugin->flush(); TODO flush ?
-	stats.dropped = outputPlugin->getDroppedCount();
+	// outputPlugin->flush(); TODO flush ?
+	// stats.dropped = outputPlugin->getDroppedCount();
 	out_stats->store(stats);
 	out->set_value(res);
 }

@@ -21,13 +21,13 @@
 #include <ipfixprobe/flowifc.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 #include <ipfixprobe/options.hpp>
-//#include <ipfixprobe/outputPlugin.hpp>
-//#include <ipfixprobe/processPlugin.hpp>
-#include <ipfixprobe/utils.hpp>
-#include <lz4.h>
-
+// #include <ipfixprobe/outputPlugin.hpp>
+// #include <ipfixprobe/processPlugin.hpp>
 #include "fieldDescriptor.hpp"
 #include "outputPlugin.hpp"
+
+#include <ipfixprobe/utils.hpp>
+#include <lz4.h>
 
 #define COUNT_IPFIX_TEMPLATES(T) +1
 
@@ -44,6 +44,7 @@
 #define RECONNECT_TIMEOUT 60
 #define TEMPLATE_REFRESH_TIME 600
 #define TEMPLATE_REFRESH_PACKETS 0
+#define DEFAULT_EXPORTER_ID 0
 
 namespace ipxp {
 
@@ -68,7 +69,7 @@ public:
 		, m_mtu(DEFAULT_MTU)
 		, m_udp(false)
 		, m_non_blocking_tcp(false)
-		, m_id(OutputPlugin::DEFAULT_EXPORTER_ID)
+		, m_id(DEFAULT_EXPORTER_ID)
 		, m_dir(0)
 		, m_template_refresh_time(TEMPLATE_REFRESH_TIME)
 		, m_verbose(false)
@@ -549,15 +550,17 @@ private:
 
 class IPFIXExporter : public OutputPlugin {
 public:
-
-	IPFIXExporter(const std::string& params, const FieldManager& manager, const std::vector<ProcessPluginEntry>& plugins)
-		: OutputPlugin(manager, plugins)
+	IPFIXExporter(
+		const std::string& params,
+		const process::FieldManager& manager,
+		const std::vector<process::ProcessPluginEntry>& plugins)
+		: OutputPlugin(manager)
 	{
 		// TODO parse params
-		(void)params;
+		(void) params;
 	}
 
-	void processRecord(FlowRecordUniquePtr& flowRecord) override;
+	// void processRecord(FlowRecordUniquePtr& flowRecord) override;
 
 	/*IPFIXExporter(const std::string& params, ProcessPlugins& plugins);
 	~IPFIXExporter();
