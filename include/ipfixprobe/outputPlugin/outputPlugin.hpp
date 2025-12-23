@@ -1,8 +1,18 @@
+/**
+ * @file
+ * @brief Declaration of OutputPlugin.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
 #pragma once
 
 #include "../api.hpp"
-#include "fieldManager.hpp"
+#include "../processPlugin/fieldManager.hpp"
 #include "flowRecord.hpp"
+#include "outputOptionsParser.hpp"
+#include "outputStats.hpp"
 #include "processPluginEntry.hpp"
 
 #include <cstddef>
@@ -10,33 +20,67 @@
 #include <string>
 #include <vector>
 
-// #include "../pluginFactory/pluginFactory.hpp"
-
 namespace ipxp {
 
-using namespace process;
-
+/**
+ * @class OutputPlugin
+ * @brief Base class for output plugins.
+ *
+ * Provides an interface for output plugins to process flow records and manage output fields.
+ */
 class IPXP_API OutputPlugin {
 public:
-	OutputPlugin(const FieldManager& fieldManager, const std::vector<ProcessPluginEntry>& plugins)
-		: m_fieldManager(fieldManager)
-		, m_plugins(plugins)
+	OutputPlugin(const process::FieldManager& manager, const OutputOptionsParser& optionsParser)
+		: m_fieldManager(manager)
 	{
+		std::tie(m_forwardFields, m_reverseFields) = optionsParser.getOutputFields(manager);
 	}
 
-	virtual void processRecord(FlowRecordUniquePtr& flowRecord) = 0;
+	/**
+	 * @brief Processes a flow record for output.
+	 * @param flowRecord The flow record to be processed.
+	 */
+	virtual void processRecord(const FlowRecord& flowRecord) = 0;
 
-	std::size_t getDroppedCount() const noexcept { return m_dropped; }
+	/**
+	 * @brief Retrieves the current output statistics.
+	 * @return Output statistics.
+	 */
+	const OutputStats& getStats() const noexcept { return m_stats; }
 
+	/**
+	 * @brief Sends a signal to stop exporting data and finalize output.
+	 */
+	virtual void terminateExport() noexcept = 0;
+
+	/**
+	 * @brief Virtual destructor.
+	 */
 	virtual ~OutputPlugin() = default;
 
-	constexpr static std::size_t DEFAULT_EXPORTER_ID = 1;
-
 protected:
-	const FieldManager& m_fieldManager;
-	const std::vector<ProcessPluginEntry>& m_plugins;
-	std::size_t m_dropped = 0;
-	std::size_t m_seen = 0;
+	/**
+	 * @brief Sets the output fields based on the provided options parser.
+	 * @param optionsParser The output options parser containing configuration.
+	 */
+	void setOutputFields(const OutputOptionsParser& optionsParser) {}
+
+	const std::vector<const process::FieldDescriptor*>& getForwardFields() const noexcept
+	{
+		return m_forwardFields;
+	}
+
+	const std::vector<const process::FieldDescriptor*>& getReverseFields() const noexcept
+	{
+		return m_reverseFields;
+	}
+
+	OutputStats m_stats;
+
+private:
+	const process::FieldManager& m_fieldManager;
+	std::vector<const process::FieldDescriptor*> m_forwardFields;
+	std::vector<const process::FieldDescriptor*> m_reverseFields;
 };
 
 template<typename Base, typename... Args>
@@ -50,7 +94,7 @@ class IPXP_API PluginFactory;
 using OutputPluginFactory = PluginFactory<
 	OutputPlugin,
 	const std::string&,
-	const FieldManager&,
-	const std::vector<ProcessPluginEntry>&>;
+	const process::FieldManager&,
+	const std::vector<process::ProcessPluginEntry>&>;
 
 } // namespace ipxp
