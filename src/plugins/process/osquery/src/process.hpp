@@ -9,11 +9,10 @@
 
 #pragma once
 
-#include "fileDescriptor.hpp"
-
 #include <optional>
 #include <string_view>
 
+#include <fileDescriptor/fileDescriptor.hpp>
 #include <sys/types.h>
 
 namespace ipxp::process::osquery {

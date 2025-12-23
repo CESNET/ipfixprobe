@@ -185,7 +185,7 @@ bool PassiveDNSPlugin::parseAnswer(
 
 	if (record.type == DNSQueryType::AAAA) {
 		const auto aaaaRecord = std::get<DNSAAAARecord>(*record.payload.getUnderlyingType());
-		pluginContext.ip = aaaaRecord.address;
+		pluginContext.ip = IPAddressVariant {aaaaRecord.address};
 		m_fieldHandlers[PassiveDNSFields::DNS_IP].setAsAvailable(flowRecord);
 	}
 

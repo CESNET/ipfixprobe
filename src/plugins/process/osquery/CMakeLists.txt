@@ -7,8 +7,8 @@ add_library(ipfixprobe-process-osquery MODULE
 	src/osqueryFields.hpp
 	src/osqueryRequestManager.hpp
 	src/osqueryRequestManager.cpp
-	src/fileDescriptor.hpp
-	src/fileDescriptor.cpp
+	${CMAKE_SOURCE_DIR}/src/plugins/process/common/fileDescriptor/fileDescriptor.hpp
+	${CMAKE_SOURCE_DIR}/src/plugins/process/common/fileDescriptor/fileDescriptor.cpp
 	src/osqueryStateHandler.hpp
 	src/process.cpp
 	src/process.hpp
