@@ -18,7 +18,7 @@
 #include <fieldHandlersEnum.hpp>
 #include <fieldManager.hpp>
 #include <gtest/gtest.h>
-#include <outputFieldConfigurationParser.hpp>
+#include <outputConfigurationParser.hpp>
 
 using namespace ipxp::process;
 using namespace ipxp;
@@ -71,21 +71,28 @@ std::set<KeyFields> extractKeyFields(const std::vector<const FieldDescriptor*>& 
 		| std::ranges::to<std::set>();
 }
 
-std::set<KeyFields> getKeyOutputFieldsFromConfig(std::string_view configPath)
+std::set<KeyFields> getKeyOutputFieldsFromConfig(std::string_view configFilePath)
 {
+	std::ifstream configFile(configFilePath.data());
+	if (!configFile.is_open()) {
+		throw std::invalid_argument(
+			"Could not open configuration file: " + std::string(configFilePath));
+	}
+	const std::string configuration(
+		(std::istreambuf_iterator<char>(configFile)),
+		std::istreambuf_iterator<char>());
+
 	FieldManager fieldManager;
 	addDummyOutputFields(fieldManager);
-	return extractKeyFields(
-		OutputFieldParser::getOutputFields(fieldManager.getUniflowForwardFields(), configPath));
+	OutputConfigurationParser outputParser(configuration);
+	return extractKeyFields(outputParser.getOutputFields(fieldManager.getUniflowForwardFields()));
 }
 
 TEST(TestOutputFieldConfigurationParser, TestAll1)
 {
-	std::system("pwd > ~/x.txt");
-
 	EXPECT_EQ(
 		getKeyOutputFieldsFromConfig(
-			"../../../../tests/unit/outputFieldConfigurationParser/inputs/all1.cfg"),
+			"../../../../tests/unit/outputConfigurationParser/inputs/all1.cfg"),
 		(std::set<KeyFields> {
 			{"quic", "QUIC_F1"},
 			{"quic", "QUIC_F2"},
@@ -98,7 +105,7 @@ TEST(TestOutputFieldConfigurationParser, TestAll2)
 {
 	EXPECT_EQ(
 		getKeyOutputFieldsFromConfig(
-			"../../../../tests/unit/outputFieldConfigurationParser/inputs/all2.cfg"),
+			"../../../../tests/unit/outputConfigurationParser/inputs/all2.cfg"),
 		(std::set<KeyFields> {
 			{"quic", "QUIC_F1"},
 			{"quic", "QUIC_F2"},
@@ -111,7 +118,7 @@ TEST(TestOutputFieldConfigurationParser, TestAll3)
 {
 	EXPECT_EQ(
 		getKeyOutputFieldsFromConfig(
-			"../../../../tests/unit/outputFieldConfigurationParser/inputs/all3.cfg"),
+			"../../../../tests/unit/outputConfigurationParser/inputs/all3.cfg"),
 		(std::set<KeyFields> {
 			{"quic", "QUIC_F1"},
 			{"quic", "QUIC_F2"},
@@ -124,7 +131,7 @@ TEST(TestOutputFieldConfigurationParser, TestAll4)
 {
 	EXPECT_EQ(
 		getKeyOutputFieldsFromConfig(
-			"../../../../tests/unit/outputFieldConfigurationParser/inputs/all4.cfg"),
+			"../../../../tests/unit/outputConfigurationParser/inputs/all4.cfg"),
 		(std::set<KeyFields> {
 			{"quic", "QUIC_F1"},
 			{"quic", "QUIC_F2"},
@@ -137,7 +144,7 @@ TEST(TestOutputFieldConfigurationParser, TestAll5)
 {
 	EXPECT_EQ(
 		getKeyOutputFieldsFromConfig(
-			"../../../../tests/unit/outputFieldConfigurationParser/inputs/all5.cfg"),
+			"../../../../tests/unit/outputConfigurationParser/inputs/all5.cfg"),
 		(std::set<KeyFields> {
 			{"quic", "QUIC_F1"},
 			{"quic", "QUIC_F2"},
@@ -149,21 +156,21 @@ TEST(TestOutputFieldConfigurationParser, TestAll5)
 TEST(TestOutputFieldConfigurationParser, TestEmpty1)
 {
 	EXPECT_TRUE(getKeyOutputFieldsFromConfig(
-					"../../../../tests/unit/outputFieldConfigurationParser/inputs/empty1.cfg")
+					"../../../../tests/unit/outputConfigurationParser/inputs/empty1.cfg")
 					.empty());
 }
 
 TEST(TestOutputFieldConfigurationParser, TestEmpty2)
 {
 	EXPECT_TRUE(getKeyOutputFieldsFromConfig(
-					"../../../../tests/unit/outputFieldConfigurationParser/inputs/empty2.cfg")
+					"../../../../tests/unit/outputConfigurationParser/inputs/empty2.cfg")
 					.empty());
 }
 
 TEST(TestOutputFieldConfigurationParser, TestEmpty3)
 {
 	EXPECT_TRUE(getKeyOutputFieldsFromConfig(
-					"../../../../tests/unit/outputFieldConfigurationParser/inputs/empty3.cfg")
+					"../../../../tests/unit/outputConfigurationParser/inputs/empty3.cfg")
 					.empty());
 }
 
@@ -171,7 +178,7 @@ TEST(TestOutputFieldConfigurationParser, TestTLS1)
 {
 	EXPECT_EQ(
 		getKeyOutputFieldsFromConfig(
-			"../../../../tests/unit/outputFieldConfigurationParser/inputs/tls1.cfg"),
+			"../../../../tests/unit/outputConfigurationParser/inputs/tls1.cfg"),
 		(std::set<KeyFields> {
 			{"tls", "TLS_F1"},
 			{"tls", "TLS_F2"},
@@ -182,7 +189,7 @@ TEST(TestOutputFieldConfigurationParser, TestTLS2)
 {
 	EXPECT_EQ(
 		getKeyOutputFieldsFromConfig(
-			"../../../../tests/unit/outputFieldConfigurationParser/inputs/tls2.cfg"),
+			"../../../../tests/unit/outputConfigurationParser/inputs/tls2.cfg"),
 		(std::set<KeyFields> {
 			{"tls", "TLS_F1"},
 			{"tls", "TLS_F2"},

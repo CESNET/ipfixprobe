@@ -1,1 +1,1 @@
-add_subdirectory(outputFieldConfigurationParser)
+add_subdirectory(outputConfigurationParser)
