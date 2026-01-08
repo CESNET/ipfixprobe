@@ -173,7 +173,8 @@ These plugins extract protocol-specific or behavioral information from packets a
 | [`smtp`](./src/plugins/process/smtp/README.md)             | extracts SMTP envelope data (from, to, subject, etc.)        |
 | [`ssaDetector`](./src/plugins/process/ssaDetector/README.md) | performs simple anomaly detection based on traffic patterns |
 | [`ssdp`](./src/plugins/process/ssdp/README.md)             | parses SSDP (UPnP discovery) protocol                        |
-| [`vlan`](./src/plugins/process/vlan/README.md)             | extracts VLAN IDs and QinQ encapsulation                     |
+| [`vlan`](./src/plugins/process/vlan/README.md)             | extracts VLAN IDs                                            |
+| [`qinq`](./src/plugins/process/qinq/README.md)             | extracts QinQ outer and inner VLAN IDs.                      |
 
 ---
 ### Output Plugins
