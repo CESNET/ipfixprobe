@@ -7,7 +7,9 @@ add_library(ipfixprobe-output-ipfix SHARED
 	src/ipfixElements/ipfixExporterElementsParser.hpp
 	src/ipfixElements/ipfixElement.hpp
 	src/ipfixBuffers/ipfixBuffer.hpp
-	src/ipfixBuffers/ipfixCompressedBuffer.hpp
+	src/ipfixBuffers/ipfixBuffer.cpp
+	src/ipfixBuffers/ipfixCompressBuffer.hpp
+	src/ipfixBuffers/ipfixCompressBuffer.cpp
 	src/ipfixBuffers/ipfixMessageHeader.hpp
 	src/ipfixBuffers/ipfixSetHeader.hpp
 	src/ipfixExporterOptionsParser.hpp
