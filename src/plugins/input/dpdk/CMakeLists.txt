@@ -17,6 +17,11 @@ add_library(ipfixprobe-input-dpdk MODULE
 	../parser/parser.hpp
 )
 
+option(DPDK_DUMP_ENABLED "Enable dpdk package capture using dpdk-dumpcap" OFF)
+if(DPDK_DUMP_ENABLED)	
+    target_compile_options(ipfixprobe-input-dpdk PRIVATE -DDPDK_DUMP_ENABLED)
+endif()
+
 set_target_properties(ipfixprobe-input-dpdk PROPERTIES
 	CXX_VISIBILITY_PRESET hidden
 	VISIBILITY_INLINES_HIDDEN YES

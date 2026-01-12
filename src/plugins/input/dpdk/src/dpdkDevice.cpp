@@ -33,6 +33,9 @@
 #include <ipfixprobe/inputPlugin.hpp>
 #include <rte_errno.h>
 #include <rte_version.h>
+#ifdef DPDK_DUMP_ENABLED
+#include <rte_pdump.h>
+#endif
 #include <unistd.h>
 
 namespace ipxp {
@@ -107,6 +110,18 @@ void DpdkDevice::recognizeDriver()
 	}
 	std::cerr << "\tDetected HW timestamp capability: " << (m_supportedHWTimestamp ? "yes" : "no")
 			  << std::endl;
+
+#ifdef DPDK_DUMP_ENABLED
+    std::cerr << "\tDPDK packet dump enabled on port " << m_portID << std::endl;
+	rte_pdump_init();
+	struct rte_ring *pdump_ring = rte_ring_create("IPFIX_PUMP_RING", 
+                                             131072, SOCKET_ID_ANY, 0);
+
+	if (rte_pdump_enable_by_deviceid((char*)rteDevInfo.driver_name, 0,
+                                    RTE_PDUMP_FLAG_RXTX, pdump_ring, m_memPools[0], NULL) < 0) {
+        rte_exit(EXIT_FAILURE, "Cannot enable pdump\n");
+    }
+#endif
 }
 
 void DpdkDevice::registerRxTimestamp()
