@@ -33,6 +33,7 @@ namespace ipxp {
 class IPXP_API OutputPlugin : public Plugin {
 public:
 	using ProcessPlugins = std::vector<std::pair<std::string, std::shared_ptr<ProcessPlugin>>>;
+	using Plugin::init;
 	uint64_t m_flows_seen; /**< Number of flows received to export. */
 	uint64_t m_flows_dropped; /**< Number of flows that could not be exported. */
 

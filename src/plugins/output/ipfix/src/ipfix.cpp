@@ -100,7 +100,7 @@ static const PluginManifest ipfixPluginManifest = {
  *
  * name enterprise-number element-id length
  */
-template_file_record_t ipfix_fields[][1] = {IPFIX_ENABLED_TEMPLATES(X) nullptr};
+template_file_record_t ipfix_fields[][1] = {IPFIX_ENABLED_TEMPLATES(X) {}};
 
 /* Basic IPv4 template. */
 const char* basic_tmplt_v4[] = {BASIC_TMPLT_V4(IPFIX_FIELD_NAMES) nullptr};

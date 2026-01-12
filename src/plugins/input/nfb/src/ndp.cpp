@@ -125,7 +125,6 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock& packets)
 	parser_opt_t opt = {&packets, false, false, 0};
 	struct ndp_packet* ndp_packet;
 	struct timeval timestamp;
-	int ret = -1;
 
 	packets.cnt = 0;
 	constexpr size_t maxBurstSize = 64;
@@ -148,7 +147,7 @@ InputPlugin::Result NdpPacketReader::get(PacketBlock& packets)
 		received += reader.get_packets(packetSpan, timestampSpan);
 	}
 
-	for (unsigned i = 0; i < received; ++i) {
+	for (unsigned i = 0; i < static_cast<unsigned>(received); ++i) {
 		ndp_packet = &ndp_packet_burst[i];
 		timestamp = timestamps[i];
 

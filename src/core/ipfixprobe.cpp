@@ -145,7 +145,7 @@ static void printRegisteredPlugins(
 	std::cout << "#####################\n";
 }
 
-static void printPlugins()
+[[maybe_unused]] static void printPlugins()
 {
 	auto& inputPluginFactory = InputPluginFactory::getInstance();
 	auto& storagePluginFactory = StoragePluginFactory::getInstance();
