@@ -1,4 +1,13 @@
-#pragma once
+/**
+ * @file ipfixElement.hpp
+ * @brief Definition of an IPFIX element.
+ * @author Damir Zainullin <zaidamilda@gmail.com>
+ * @date 2025
+ *
+ * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
+ */
+
+ #pragma once
 
 #include <cstdint>
 #include <string>
