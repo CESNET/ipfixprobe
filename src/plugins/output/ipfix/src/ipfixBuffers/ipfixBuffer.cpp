@@ -59,7 +59,6 @@ void IPFIXBuffer::appendTemplate(
 		m_uncompressedData.end(),
 		ipfixTemplate.serializedTemplate.begin(),
 		ipfixTemplate.serializedTemplate.end());
-	// increaseMessageLength(ipfixTemplate.serializedTemplate.size());
 }
 
 void IPFIXBuffer::appendRecord(const uint16_t templateId, const IPFIXRecord& record) noexcept
