@@ -16,10 +16,10 @@ add_library(ipfixprobe-input-dpdk MODULE
 	../parser/parser.cpp
 	../parser/parser.hpp
 )
+option(DPDK_PCAP_ENABLED "Enable dpdk pcap (dpdk-dumpcap)" OFF)
 
-option(DPDK_DUMP_ENABLED "Enable dpdk package capture using dpdk-dumpcap" OFF)
-if(DPDK_DUMP_ENABLED)	
-    target_compile_options(ipfixprobe-input-dpdk PRIVATE -DDPDK_DUMP_ENABLED)
+if (DPDK_PCAP_ENABLED)
+	target_compile_definitions(ipfixprobe-input-dpdk PRIVATE DPDK_PCAP_ENABLED)
 endif()
 
 set_target_properties(ipfixprobe-input-dpdk PROPERTIES

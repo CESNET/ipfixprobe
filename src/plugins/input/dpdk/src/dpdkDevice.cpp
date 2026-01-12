@@ -33,10 +33,10 @@
 #include <ipfixprobe/inputPlugin.hpp>
 #include <rte_errno.h>
 #include <rte_version.h>
+#include <unistd.h>
 #ifdef DPDK_DUMP_ENABLED
 #include <rte_pdump.h>
 #endif
-#include <unistd.h>
 
 namespace ipxp {
 
@@ -111,17 +111,7 @@ void DpdkDevice::recognizeDriver()
 	std::cerr << "\tDetected HW timestamp capability: " << (m_supportedHWTimestamp ? "yes" : "no")
 			  << std::endl;
 
-#ifdef DPDK_DUMP_ENABLED
-    std::cerr << "\tDPDK packet dump enabled on port " << m_portID << std::endl;
-	rte_pdump_init();
-	struct rte_ring *pdump_ring = rte_ring_create("IPFIX_PUMP_RING", 
-                                             131072, SOCKET_ID_ANY, 0);
 
-	if (rte_pdump_enable_by_deviceid((char*)rteDevInfo.driver_name, 0,
-                                    RTE_PDUMP_FLAG_RXTX, pdump_ring, m_memPools[0], NULL) < 0) {
-        rte_exit(EXIT_FAILURE, "Cannot enable pdump\n");
-    }
-#endif
 }
 
 void DpdkDevice::registerRxTimestamp()
@@ -288,6 +278,13 @@ void DpdkDevice::enablePort()
 	}
 
 	std::cerr << "DPDK input at port " << m_portID << " started." << std::endl;
+
+#ifdef DPDK_DUMP_ENABLED
+	rte_pdump_init(); // Initialize packet dump framework
+	if (rte_pdump_enable(m_portID, 0, 0) < 0) {
+		std::cerr << "Failed to enable pdump on port " << m_portID << std::endl;
+	}
+#endif
 }
 
 uint16_t DpdkDevice::receive(DpdkMbuf& dpdkMuf, uint16_t rxQueueID)
