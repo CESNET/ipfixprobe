@@ -10,15 +10,13 @@
  * @copyright Copyright (c) 2025 CESNET, z.s.p.o.
  */
 
-#pragma once
-
 #include "ipfixCompressBuffer.hpp"
 
 namespace ipxp::output::ipfix {
 
 IPFIXCompressBuffer::IPFIXCompressBuffer(
 	const IPFIXCompressBufferConfig& config,
-	const uint32_t observationDomainId)
+	const uint32_t observationDomainId) noexcept
 	: IPFIXBuffer(config.initialUncompressedSize, observationDomainId)
 {
 	if (!m_lz4Stream) {

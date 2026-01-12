@@ -81,8 +81,6 @@ private:
 		&LZ4_freeStream};
 
 	std::vector<std::byte> m_compressedData;
-	// std::size_t m_lastMessageOffset {0};
-	// IPFIXMessageHeader* m_lastMessage {nullptr};
 };
 
 } // namespace ipxp::output::ipfix
