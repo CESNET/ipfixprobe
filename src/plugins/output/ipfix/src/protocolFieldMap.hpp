@@ -77,7 +77,7 @@ public:
 	 * @brief Gets the number of protocols in the map.
 	 * @return The number of protocols.
 	 */
-	std::size_t size() const noexcept { return protocolFields.size(); }
+	std::size_t getProtocolCount() const noexcept { return protocolFields.size(); }
 
 private:
 	std::vector<std::vector<const process::FieldDescriptor*>> protocolFields;

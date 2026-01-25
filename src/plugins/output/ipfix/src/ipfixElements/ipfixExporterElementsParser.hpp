@@ -23,16 +23,6 @@ namespace ipxp::output::ipfix {
  */
 class IPFIXExporterElementsParser {
 public:
-	using ElementsMap = std::unordered_map<
-		std::string,
-		std::unordered_map<
-			std::string,
-			IPFIXElement,
-			utils::HeterogeneousStringHash,
-			std::equal_to<>>,
-		utils::HeterogeneousStringHash,
-		std::equal_to<>>;
-
 	/**
 	 * @brief Constructs an IPFIXExporterElementsParser and parses the elements from the given file.
 	 * @param configPath Path to the IPFIX exporter elements configuration file.
@@ -77,9 +67,33 @@ public:
 	 * @brief Retrieves the parsed elements map.
 	 * @return The elements map.
 	 */
-	const ElementsMap& getElementsMap() const { return m_ipfixElements; }
+	// const ElementsMap& getElementsMap() const { return m_ipfixElements; }
+
+	bool hasElement(std::string_view protocol, std::string_view elementName) const
+	{
+		if (!m_ipfixElements.contains(protocol)) {
+			return false;
+		}
+
+		return m_ipfixElements.at(protocol).contains(elementName);
+	}
+
+	const IPFIXElement& getElement(std::string_view protocol, std::string_view elementName) const
+	{
+		return m_ipfixElements.at(protocol).at(elementName);
+	}
 
 private:
+	using ElementsMap = std::unordered_map<
+		std::string,
+		std::unordered_map<
+			std::string,
+			IPFIXElement,
+			utils::HeterogeneousStringHash,
+			std::equal_to<>>,
+		utils::HeterogeneousStringHash,
+		std::equal_to<>>;
+
 	ElementsMap m_ipfixElements;
 };
 

@@ -1,5 +1,8 @@
 #pragma once
 
+#include "connection/connectionFactory.hpp"
+#include "ipfixBuffers/bufferTransformerFactory.hpp"
+
 #include <chrono>
 #include <cstdint>
 
@@ -62,7 +65,7 @@ struct IPFIXExporterOptionsParser : public OutputOptionsParser {
 			"Use UDP protocol",
 			[this](const char* arg) {
 				(void) arg;
-				connectionOptions.mode = Mode::UDP;
+				connectionOptions.mode = ConnectionFactory::Mode::UDP;
 				return true;
 			},
 			OptionFlags::NoArgument);
@@ -73,7 +76,7 @@ struct IPFIXExporterOptionsParser : public OutputOptionsParser {
 			"Use non-blocking socket for TCP protocol",
 			[this](const char* arg) {
 				(void) arg;
-				connectionOptions.mode = Mode::NON_BLOCKING_TCP;
+				connectionOptions.mode = ConnectionFactory::Mode::NON_BLOCKING_TCP;
 				return true;
 			},
 			OptionFlags::NoArgument);
@@ -160,8 +163,6 @@ struct IPFIXExporterOptionsParser : public OutputOptionsParser {
 		parse(params.data());
 	}
 
-	enum class Mode : uint8_t { UDP, NON_BLOCKING_TCP };
-
 	struct LZ4Options {
 		std::size_t bufferSize {0};
 	};
@@ -170,7 +171,7 @@ struct IPFIXExporterOptionsParser : public OutputOptionsParser {
 		std::string collector {std::string(LOCALHOST)};
 		uint16_t collectorPort {DEFAULT_PORT};
 		uint16_t maximalTransmissionUnit {DEFAULT_MTU};
-		Mode mode = Mode::UDP;
+		ConnectionFactory::Mode mode = ConnectionFactory::Mode::BLOCKING_TCP;
 	} connectionOptions;
 
 	struct ExporterOptions {

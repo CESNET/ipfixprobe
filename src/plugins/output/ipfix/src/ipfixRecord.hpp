@@ -30,8 +30,7 @@ namespace ipxp::output::ipfix {
  * @class IPFIXRecord
  * @brief Class representing an IPFIX record based on a given template and flow record.
  */
-class IPFIXRecord {
-public:
+struct IPFIXRecord {
 	/**
 	 * @brief Constructs an IPFIXRecord with the specified protocol fields, flow record, and IPFIX
 	 * template.
@@ -42,27 +41,16 @@ public:
 	IPFIXRecord(
 		const ProtocolFieldMap& protocolFields,
 		const FlowRecord& flowRecord,
-		const IPFIXTemplate& ipfixTemplate) noexcept;
+		const IPFIXTemplate& ipfixTemplate) noexcept
+		: protocolFields(protocolFields)
+		, flowRecord(flowRecord)
+		, ipfixTemplate(ipfixTemplate)
+	{
+	}
 
-	/**
-	 * @brief Writes the IPFIX record to the given byte writer.
-	 * @param outputWriter The byte writer to write the record to.
-	 */
-	void writeTo(utils::ByteWriter& outputWriter) const noexcept;
-
-	/**
-	 * @brief Gets the size of the IPFIX record.
-	 * @return The size of the record in bytes.
-	 */
-	std::size_t getSize() const noexcept { return m_size; }
-
-private:
-	std::size_t calculateSize() noexcept;
-
-	const ProtocolFieldMap& m_protocolFields;
-	const FlowRecord& m_flowRecord;
-	const IPFIXTemplate& m_ipfixTemplate;
-	const std::size_t m_size;
+	const ProtocolFieldMap& protocolFields;
+	const FlowRecord& flowRecord;
+	const IPFIXTemplate& ipfixTemplate;
 };
 
 } // namespace ipxp::output::ipfix

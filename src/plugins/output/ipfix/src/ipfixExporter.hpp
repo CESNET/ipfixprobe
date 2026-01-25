@@ -12,11 +12,13 @@
 #pragma once
 
 #include "connection.hpp"
-#include "ipfixBuffers/ipfixBuffer.hpp"
-#include "ipfixBuffers/ipfixCompressBuffer.hpp"
+#include "ipfixBuffers/bufferTransformerFactory.hpp"
+#include "ipfixBuffers/ipfixMessageBuilder.hpp"
+#include "ipfixBuffers/transmissionBuffer.hpp"
 #include "ipfixElements/ipfixExporterElementsParser.hpp"
 #include "ipfixExporterOptionsParser.hpp"
 #include "ipfixTemplate.hpp"
+#include "ipfixTemplateManager.hpp"
 #include "protocolFieldMap.hpp"
 
 #include <cstddef>
@@ -51,26 +53,25 @@ public:
 	void processRecord(const FlowRecord& flowRecord) override;
 
 private:
-	void createTemplates(const IPFIXExporterElementsParser::ElementsMap& elementsMap);
-	void appendTemplateMessageToBuffer(const uint16_t templateId) noexcept;
-	void elementMapContainsAllFields(const IPFIXExporterElementsParser::ElementsMap& elementsMap);
-	void initializeProtocolFields();
-	void sendUnknownTemplateToCollector(const std::size_t templateIndex) noexcept;
-	void sendBufferToCollector() noexcept;
-	void writeRecordToBuffer(
-		const std::size_t templateIndex,
-		const ProtocolFieldMap& protocolFields,
-		const FlowRecord& flowRecord);
+	void flush() noexcept;
+	void elementMapContainsAllFields(const IPFIXExporterElementsParser& elementsParser);
 
-	std::vector<IPFIXTemplate> m_templates;
-	std::unique_ptr<IPFIXBuffer> m_dataBuffer;
-	ProtocolFieldMap m_forwardProtocolFields;
-	ProtocolFieldMap m_reverseProtocolFields;
+	void addDataMessage(const std::size_t templateIndex, const IPFIXRecord& record) noexcept;
+	void addTemplateMessage(const std::size_t templateIndex) noexcept;
+
 	IPFIXExporterOptionsParser::ConnectionOptions m_connectionOptions;
 	IPFIXExporterOptionsParser::ExporterOptions m_exporterOptions;
-	uint32_t m_sequenceNumber {0};
-	FieldsBitset m_activeFieldsMask;
-	std::optional<Connection> m_connection;
+
+	std::unique_ptr<IPFIXMessageBuilder> m_messageBuilder;
+	std::unique_ptr<BufferTransformer> m_bufferTransformer;
+	TransmissionBuffer m_transmissionBuffer;
+	std::unique_ptr<Connection> m_connection;
+	std::optional<IPFIXTemplateManager> m_templateManager;
+
+	ProtocolFieldMap m_forwardProtocolFields;
+	ProtocolFieldMap m_reverseProtocolFields;
+	// uint32_t m_sequenceNumber {0};
+	// FieldsBitset m_activeFieldsMask;
 };
 
 } // namespace ipxp::output::ipfix

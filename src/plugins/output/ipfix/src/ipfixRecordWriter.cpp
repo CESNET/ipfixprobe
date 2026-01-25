@@ -1,20 +1,16 @@
-#include "ipfixRecord.hpp"
+#pragma once
 
-#include "ipfixBasicList.hpp"
-
-#include <ranges>
+#include "ipfixRecordWriter.hpp"
 
 namespace ipxp::output::ipfix {
 
-std::size_t getLengthOfVectorField(
+/*std::size_t getLengthOfVectorField(
 	const process::FieldDescriptor* const fieldDescriptor,
 	const FlowRecord& flowRecord) noexcept
 {
 	if (!fieldDescriptor->isInRecord(flowRecord)) {
 		return IPFIXBasicList().getSize();
 	}
-
-	// IPFIXBasicList list {std::span<const float>()}; // Placeholder
 
 	const void* pluginExportData = flowRecord.getPluginContext(fieldDescriptor->getBitIndex());
 	const auto& variant = std::get<process::VectorValueGetter>(fieldDescriptor->getValueGetter());
@@ -24,7 +20,7 @@ std::size_t getLengthOfVectorField(
 		return IPFIXBasicList(values).getSize();
 	};
 	return std::visit(visitor, variant);
-}
+}*/
 
 template<typename T>
 T getEmptyValue() noexcept
@@ -42,68 +38,68 @@ T getEmptyValue() noexcept
 	}
 }
 
-void storeEmptyScalar(
+bool storeEmptyScalar(
 	const process::FieldDescriptor& field,
 	const process::ScalarValueGetter& variant,
 	utils::ByteWriter& outputWriter) noexcept
 {
 	const auto visitor = [&](const auto& accessor) {
 		const auto emptyScalar = getEmptyValue<decltype(accessor(std::declval<const void*>()))>();
-		outputWriter.write(emptyScalar);
+		return outputWriter.write(emptyScalar);
 	};
-	std::visit(visitor, variant);
+	return std::visit(visitor, variant);
 }
 
-void storeEmptyList(
+bool storeEmptyList(
 	const process::FieldDescriptor& field,
 	const process::VectorValueGetter& variant,
 	utils::ByteWriter& outputWriter) noexcept
 {
 	IPFIXBasicList list;
-	list.writeTo(outputWriter);
+	return list.writeTo(outputWriter);
 }
 
-void storeEmptyField(
+bool storeEmptyField(
 	const process::FieldDescriptor& fieldDescriptor,
 	const FlowRecord& flowRecord,
 	utils::ByteWriter& outputWriter) noexcept
 {
 	const auto& getter = fieldDescriptor.getValueGetter();
-	std::visit(
+	return std::visit(
 		[&](const auto& variant) {
 			using GetterT = std::decay_t<decltype(variant)>;
 			if constexpr (std::is_same_v<GetterT, process::ScalarValueGetter>) {
-				storeEmptyScalar(fieldDescriptor, variant, outputWriter);
+				return storeEmptyScalar(fieldDescriptor, variant, outputWriter);
 			} else if constexpr (std::is_same_v<GetterT, process::VectorValueGetter>) {
-				storeEmptyList(fieldDescriptor, variant, outputWriter);
+				return storeEmptyList(fieldDescriptor, variant, outputWriter);
 			}
 		},
 		getter);
 }
 
 template<typename T>
-void storeScalar(
+bool storeScalar(
 	const process::FieldDescriptor& field,
 	const process::ScalarAccessor<T>& accessor,
 	const void* data,
 	utils::ByteWriter& outputWriter)
 {
-	outputWriter.write(utils::byteSwap(accessor(data)));
+	return outputWriter.write(utils::byteSwap(accessor(data)));
 }
 
-void storeScalarField(
+bool storeScalarField(
 	const process::FieldDescriptor& field,
 	const process::ScalarValueGetter& variant,
 	const void* data,
 	utils::ByteWriter& outputWriter)
 {
 	const auto visitor
-		= [&](const auto& accessor) { storeScalar(field, accessor, data, outputWriter); };
-	std::visit(visitor, variant);
+		= [&](const auto& accessor) { return storeScalar(field, accessor, data, outputWriter); };
+	return std::visit(visitor, variant);
 }
 
 template<typename T>
-void storeVector(
+bool storeVector(
 	const process::FieldDescriptor& field,
 	const process::VectorAccessor<T>& accessor,
 	const void* data,
@@ -111,32 +107,21 @@ void storeVector(
 {
 	const auto& values = accessor(data);
 	IPFIXBasicList list(values);
-	list.writeTo(outputWriter);
+	return list.writeTo(outputWriter);
 }
 
-void storeVectorField(
+bool storeVectorField(
 	const process::FieldDescriptor& field,
 	const process::VectorValueGetter& variant,
 	const void* data,
 	utils::ByteWriter& outputWriter)
 {
 	const auto visitor
-		= [&](const auto& accessor) { storeVector(field, accessor, data, outputWriter); };
-	std::visit(visitor, variant);
+		= [&](const auto& accessor) { return storeVector(field, accessor, data, outputWriter); };
+	return std::visit(visitor, variant);
 }
 
-IPFIXRecord::IPFIXRecord(
-	const ProtocolFieldMap& protocolFields,
-	const FlowRecord& flowRecord,
-	const IPFIXTemplate& ipfixTemplate) noexcept
-	: m_protocolFields(protocolFields)
-	, m_flowRecord(flowRecord)
-	, m_ipfixTemplate(ipfixTemplate)
-	, m_size(calculateSize())
-{
-}
-
-static void forEachFieldDescriptor(
+static bool forEachFieldDescriptor(
 	const IPFIXTemplate& ipfixTemplate,
 	const ProtocolFieldMap& protocolFields,
 	auto&& callable) noexcept
@@ -147,91 +132,43 @@ static void forEachFieldDescriptor(
 				   return protocolFields.getFieldsOnIndex(protocolIndex);
 			   })
 			 | std::views::join) {
-		callable(fieldDescriptor);
+		if (!callable(fieldDescriptor)) {
+			return false;
+		}
 	}
+	return true;
 }
 
-std::size_t IPFIXRecord::calculateSize() noexcept
+bool IPFIXRecordWriter::writeRecordTo(
+	const IPFIXRecord& record,
+	utils::ByteWriter& outputWriter) noexcept
 {
-	std::size_t variableLengthSize = 0;
-	forEachFieldDescriptor(
-		m_ipfixTemplate,
-		m_protocolFields,
+	return forEachFieldDescriptor(
+		record.ipfixTemplate,
+		record.protocolFields,
 		[&](const process::FieldDescriptor* const fieldDescriptor) {
-			const auto& getter = fieldDescriptor->getValueGetter();
-			if (!std::holds_alternative<process::VectorValueGetter>(getter)) {
-				return;
-			}
-			variableLengthSize += getLengthOfVectorField(fieldDescriptor, m_flowRecord);
-		});
-	return variableLengthSize + m_ipfixTemplate.staticSize;
-}
-
-/*void IPFIXRecord::forEachFieldView(auto&& callable) const noexcept
-{
-	forEachFieldDescriptor(
-		m_ipfixTemplate,
-		m_protocolFields,
-		[&](const process::FieldDescriptor* const fieldDescriptor) {
-			callable(getFieldView(fieldDescriptor));
-		});
-}*/
-
-/*std::span<const std::byte>
-IPFIXRecord::getFieldView(const process::FieldDescriptor* const fieldDescriptor) noexcept
-{
-	if (!fieldDescriptor->isInRecord(m_flowRecord)) {
-		saveEmptyFieldView(fieldDescriptor, m_flowRecord, m_serializationBuffer);
-		return std::span<const std::byte>(
-			m_serializationBuffer.data(),
-			m_serializationBuffer.size());
-	}
-
-	const void* pluginExportData =
-m_flowRecord.getPluginContext(fieldDescriptor->getBitIndex()); const auto& getter =
-fieldDescriptor->getValueGetter(); std::visit(
-		[&](const auto& variant) {
-			using GetterT = std::decay_t<decltype(variant)>;
-			if constexpr (std::is_same_v<GetterT, ScalarValueGetter>) {
-				saveScalarFieldView(
-					fieldDescriptor,
-					variant,
-					pluginExportData,
-					m_serializationBuffer);
-			} else if constexpr (std::is_same_v<GetterT, VectorValueGetter>) {
-				saveVectorFieldView(
-					fieldDescriptor,
-					variant,
-					pluginExportData,
-					m_serializationBuffer);
-			}
-		},
-		getter);
-	return std::span<const std::byte>(m_serializationBuffer.data(),
-m_serializationBuffer.size());
-}*/
-
-void IPFIXRecord::writeTo(utils::ByteWriter& outputWriter) const noexcept
-{
-	forEachFieldDescriptor(
-		m_ipfixTemplate,
-		m_protocolFields,
-		[&](const process::FieldDescriptor* const fieldDescriptor) {
-			if (!fieldDescriptor->isInRecord(m_flowRecord)) {
-				storeEmptyField(*fieldDescriptor, m_flowRecord, outputWriter);
-				return;
+			if (!fieldDescriptor->isInRecord(record.flowRecord)) {
+				return storeEmptyField(*fieldDescriptor, record.flowRecord, outputWriter);
 			}
 
 			const void* pluginExportData
-				= m_flowRecord.getPluginContext(fieldDescriptor->getBitIndex());
+				= record.flowRecord.getPluginContext(fieldDescriptor->getBitIndex());
 			const auto& getter = fieldDescriptor->getValueGetter();
-			std::visit(
+			return std::visit(
 				[&](const auto& variant) {
 					using GetterT = std::decay_t<decltype(variant)>;
 					if constexpr (std::is_same_v<GetterT, process::ScalarValueGetter>) {
-						storeScalarField(*fieldDescriptor, variant, pluginExportData, outputWriter);
+						return storeScalarField(
+							*fieldDescriptor,
+							variant,
+							pluginExportData,
+							outputWriter);
 					} else if constexpr (std::is_same_v<GetterT, process::VectorValueGetter>) {
-						storeVectorField(*fieldDescriptor, variant, pluginExportData, outputWriter);
+						return storeVectorField(
+							*fieldDescriptor,
+							variant,
+							pluginExportData,
+							outputWriter);
 					}
 				},
 				getter);
