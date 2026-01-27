@@ -1,7 +1,7 @@
 #pragma once
 
 #include "connection/connectionFactory.hpp"
-#include "ipfixExporterElementsParser.hpp"
+#include "ipfixElements/ipfixExporterElementsParser.hpp"
 #include "ipfixTemplate.hpp"
 #include "ipfixTemplateBuilder.hpp"
 #include "protocolFieldMap.hpp"

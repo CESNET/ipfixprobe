@@ -4,27 +4,21 @@ add_library(ipfixprobe-output-ipfix SHARED
 	#src/ipfix.hpp
 	#src/ipfix.cpp
 	#src/ipfix-basiclist.cpp
+	
 	src/ipfixElements/ipfixExporterElementsParser.hpp
-	src/ipfixElements/ipfixElement.hpp
-	src/ipfixBuffers/ipfixBuffer.hpp
-	src/ipfixBuffers/ipfixBuffer.cpp
-	src/ipfixBuffers/ipfixCompressBuffer.hpp
-	src/ipfixBuffers/ipfixCompressBuffer.cpp
-	src/ipfixBuffers/ipfixMessageHeader.hpp
-	src/ipfixBuffers/ipfixSetHeader.hpp
-	src/ipfixExporterOptionsParser.hpp
-	src/ipfixExporter.hpp
-	src/ipfixExporter.cpp
-	src/connection.hpp
-	src/connection.cpp
-	src/utils/byteUtils.hpp
-	src/utils/heterogeneousStringHash.hpp
-	src/ipfixBasicList.hpp
-	src/ipfixRecord.hpp
-	src/ipfixRecord.cpp
-	src/ipfixTemplate.hpp
-	src/ipfixTemplateBuilder.hpp
-	src/protocolFieldMap.hpp
+	#src/ipfixElements/ipfixElement.hpp
+	#src/ipfixBuffers/ipfixMessageHeader.hpp
+	#src/ipfixBuffers/ipfixSetHeader.hpp
+	#src/ipfixExporterOptionsParser.hpp
+	#src/ipfixExporter.hpp
+	#src/ipfixExporter.cpp
+	#src/utils/byteUtils.hpp
+	#src/utils/heterogeneousStringHash.hpp
+	#src/ipfixBasicList.hpp
+	#src/ipfixRecord.hpp
+	#src/ipfixTemplate.hpp
+	#src/ipfixTemplateBuilder.hpp
+	#src/protocolFieldMap.hpp
 )
 
 set_target_properties(ipfixprobe-output-ipfix PROPERTIES

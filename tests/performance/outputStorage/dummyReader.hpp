@@ -13,26 +13,30 @@ class DummyReader {
 public:
 	explicit DummyReader(
 		ipxp::output::OutputStorage& storage,
-		std::size_t readerGroupIndex,
+		ipxp::output::OutputStorage::ReaderGroupHandler& readerGroupHandler,
 		const bool immitateWork) noexcept
 		: m_storage(storage)
-		, m_readerGroupIndex(readerGroupIndex)
+		, m_readerGroupHandler(readerGroupHandler)
+		//, m_readerGroupIndex(readerGroupIndex)
 		, m_immitateWork(immitateWork)
 	{
 	}
 
 	std::size_t readContainers() noexcept
 	{
-		m_storage.registerReader(m_readerGroupIndex);
+		// m_storage.registerReader(m_readerGroupIndex);
+		ipxp::output::OutputStorage::ReadHandler readHandler
+			= m_readerGroupHandler.getReaderHandler();
 		std::size_t readContainers = 0;
-		uint64_t lastContainerSequenceNumber = 0;
-		while (!m_storage.finished(m_readerGroupIndex)) {
-			randomWait();
+		[[maybe_unused]] uint64_t lastContainerSequenceNumber = 0;
+		while (!readHandler.finished()) {
+			// randomWait();
 			std::optional<ReferenceCounterHandler<ipxp::output::OutputContainer>> containerHandler
-				= m_storage.getContainer(m_readerGroupIndex);
+				= readHandler.getContainer();
 			if (containerHandler.has_value()) {
 				++readContainers;
-				if (containerHandler->getData().readTimes++ > 2) {
+				auto& y = containerHandler->getData();
+				if (++containerHandler->getData().readTimes > 1) {
 					throw std::runtime_error(
 						"Container read more times than there are reader groups.");
 				}
@@ -47,9 +51,10 @@ public:
 					std::this_thread::sleep_for(std::chrono::microseconds(1));
 				}
 			}
-			if (std::chrono::steady_clock::now() - m_lastPrintTime > std::chrono::seconds(10)) {
-				const std::string message = "Reader group " + std::to_string(m_readerGroupIndex)
-					+ " read " + std::to_string(readContainers) + " containers so far.";
+			if (std::chrono::steady_clock::now() - m_lastPrintTime > std::chrono::seconds(3)) {
+				const std::string message = "Reader group "
+					+ std::to_string(readHandler.getReaderIndex()) + " read "
+					+ std::to_string(readContainers) + " containers so far.";
 				std::cout << message << std::endl;
 				m_lastPrintTime = std::chrono::steady_clock::now();
 			}
@@ -59,7 +64,8 @@ public:
 
 private:
 	ipxp::output::OutputStorage& m_storage;
-	std::size_t m_readerGroupIndex;
+	// std::size_t m_readerGroupIndex;
+	ipxp::output::OutputStorage::ReaderGroupHandler& m_readerGroupHandler;
 	bool m_immitateWork;
 	std::chrono::steady_clock::time_point m_lastPrintTime = std::chrono::steady_clock::now();
 };

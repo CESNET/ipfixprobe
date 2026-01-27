@@ -20,16 +20,17 @@ public:
 	{
 	}
 
-	std::size_t registerReaderGroup(const uint8_t groupSize) noexcept override
+	ReaderGroupHandler& registerReaderGroup(const uint8_t groupSize) noexcept override
 	{
-		const std::size_t index = OutputStorage::registerReaderGroup(groupSize);
 		std::lock_guard<std::mutex> lock(m_registrationMutex);
 		m_readerGroupPositions.emplace_back(m_nextWritePos.load());
 		m_alreadyReadGroupPositions.emplace_back(0);
-		return index;
+		return OutputStorage::registerReaderGroup(groupSize);
 	}
 
-	void storeContainer(ContainerWrapper container) noexcept override
+	void storeContainer(
+		ContainerWrapper container,
+		[[maybe_unused]] const uint8_t writerId) noexcept override
 	{
 		if (container.empty()) {
 			throw std::runtime_error("Attempt to store empty container in LFNBOutputStorage");
@@ -46,11 +47,15 @@ public:
 				// std::cout << "Writer slowed down. Distance to reader: "
 				//		+ std::to_string(distanceToReader) + "\n";
 				//   std::this_thread::yield();
-				if (m_writtenPos - worstReaderPos() >= m_writersCount + 64ULL) {
+				/*const auto x = distanceToConfirmedPos();
+				if (x >= m_writersCount + 64ULL) {
+					std::cout << std::to_string(x) + " " + std::to_string(distanceToReader) + "\n";
 					worstReaderPos()++;
-				} else {
-					std::this_thread::yield();
-				}
+					d_writerShifts++;
+				} else {*/
+				d_writerYields++;
+				std::this_thread::yield();
+				//}
 			} else {
 				break;
 			}
@@ -73,8 +78,10 @@ public:
 		}
 	}
 
-	std::optional<ReferenceCounterHandler<OutputContainer>>
-	getContainer(const std::size_t readerGroupIndex) noexcept override
+	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
+		const std::size_t readerGroupIndex,
+		[[maybe_unused]] const uint8_t localReaderIndex,
+		[[maybe_unused]] const uint8_t globalReaderIndex) noexcept override
 	{
 		if (!m_initialized) [[unlikely]] {
 			std::unique_lock<std::mutex> lock(m_registrationMutex);
@@ -88,6 +95,7 @@ public:
 			if (distance > m_readerGroupSizes[readerGroupIndex] + 5ULL || !writersPresent()) {
 				break;
 			}
+			d_readerYields++;
 			// std::cout << "Reader " + std::to_string(readerGroupIndex)
 			//		+ " slowed down - distance: " + std::to_string(distance) + "\n";
 			std::this_thread::yield();
@@ -135,6 +143,11 @@ private:
 		return (worstReaderPos() - sequentialWriteIndex - 1 + m_storage.size()) % m_storage.size();
 	}
 
+	uint64_t distanceToConfirmedPos() noexcept
+	{
+		return (m_writtenPos - worstReaderPos() - 1 + m_storage.size()) % m_storage.size();
+	}
+
 	uint64_t distanceToWriter(const uint64_t sequentialReadIndex) noexcept
 	{
 		return m_writtenPos.load(std::memory_order_acquire) - sequentialReadIndex;
@@ -177,6 +190,9 @@ private:
 	std::atomic_uint64_t m_nextWritePos {0};
 	std::atomic_uint64_t m_confirmedPos {0};
 	std::atomic_uint64_t m_writtenPos {0};
+	std::atomic_uint64_t d_writerYields {0};
+	std::atomic_uint64_t d_writerShifts {0};
+	uint64_t d_readerYields {0};
 	std::mutex m_registrationMutex;
 	bool m_initialized {false};
 	std::condition_variable m_initializationCV;

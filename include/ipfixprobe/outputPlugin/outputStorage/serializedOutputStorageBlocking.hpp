@@ -22,7 +22,9 @@ public:
 	{
 	}
 
-	void storeContainer(ContainerWrapper container) noexcept override
+	void storeContainer(
+		ContainerWrapper container,
+		[[maybe_unused]] const uint8_t writerId) noexcept override
 	{
 		std::unique_lock<std::mutex> lock(m_storageMutex);
 		m_storage[m_writeIndex].assign(container, *m_allocationBuffer);
@@ -34,8 +36,10 @@ public:
 		m_writeIndex = nextIndex(m_writeIndex);
 	}
 
-	std::optional<ReferenceCounterHandler<OutputContainer>>
-	getContainer(const std::size_t readerGroupIndex) noexcept override
+	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
+		const std::size_t readerGroupIndex,
+		[[maybe_unused]] const uint8_t localReaderIndex,
+		[[maybe_unused]] const uint8_t globalReaderIndex) noexcept override
 	{
 		std::lock_guard<std::mutex> lock(m_storageMutex);
 		m_tailNotifier.notify_all();

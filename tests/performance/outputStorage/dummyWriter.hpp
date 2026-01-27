@@ -30,6 +30,7 @@ public:
 
 	void writeContainers() noexcept
 	{
+		ipxp::output::OutputStorage::WriteHandler writeHandler = m_storage.registerWriter();
 		for (const auto _ : std::views::iota(0u, m_containersToWrite)) {
 			if (m_immitateWork) {
 				std::this_thread::sleep_for(std::chrono::microseconds(1));
@@ -42,11 +43,11 @@ public:
 			container.getContainer().sequenceNumber
 				= ipxp::output::OutputContainer::globalSequenceNumber++;
 			container.getContainer().readTimes = 0;
-			randomWait();
-			m_storage.storeContainer(std::move(container));
+			// randomWait();
+			writeHandler.storeContainer(std::move(container));
 		}
 		std::cout << "Writer finished writing " << std::endl;
-		m_storage.unregisterWriter();
+		// m_storage.unregisterWriter();
 	}
 
 private:

@@ -25,7 +25,9 @@ public:
 		static_assert(sizeof(ContainerWrapper) == sizeof(void*));
 	}
 
-	void storeContainer(ContainerWrapper container) noexcept override
+	void storeContainer(
+		ContainerWrapper container,
+		[[maybe_unused]] const uint8_t writerId) noexcept override
 	{
 		if (container.empty()) {
 			throw std::runtime_error("Attempt to store empty container");
@@ -33,8 +35,10 @@ public:
 		ipx_ring_push(m_ring.get(), *reinterpret_cast<void**>(&container));
 	}
 
-	std::optional<ReferenceCounterHandler<OutputContainer>>
-	getContainer(const std::size_t readerGroupIndex) noexcept override
+	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
+		const std::size_t readerGroupIndex,
+		[[maybe_unused]] const uint8_t localReaderIndex,
+		[[maybe_unused]] const uint8_t globalReaderIndex) noexcept override
 	{
 		if (ipx_ring_cnt(m_ring.get()) == 0) {
 			return std::nullopt;

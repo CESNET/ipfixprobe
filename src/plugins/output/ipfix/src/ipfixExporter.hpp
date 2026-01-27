@@ -11,7 +11,7 @@
 
 #pragma once
 
-#include "connection.hpp"
+#include "connection/connectionFactory.hpp"
 #include "ipfixBuffers/bufferTransformerFactory.hpp"
 #include "ipfixBuffers/ipfixMessageBuilder.hpp"
 #include "ipfixBuffers/transmissionBuffer.hpp"

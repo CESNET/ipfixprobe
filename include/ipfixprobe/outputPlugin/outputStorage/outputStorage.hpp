@@ -10,6 +10,9 @@
 #include "referenceCounterHandler.hpp"
 
 #include <atomic>
+#include <condition_variable>
+
+#include <boost/container/static_vector.hpp>
 
 namespace ipxp::output {
 
@@ -43,10 +46,8 @@ public:
 
 	void deallocate(AllocationBufferBase<ReferenceCounter<OutputContainer>>& origin) noexcept
 	{
-		if (!empty()) {
-			origin.deallocate(data);
-			data = nullptr;
-		}
+		origin.deallocate(data);
+		data = nullptr;
 	}
 
 	// ReferenceCounter<OutputContainer>* operator->() const noexcept { return m_data; }
@@ -73,14 +74,100 @@ class OutputStorage {
 public:
 	constexpr static std::size_t ALLOCATION_BUFFER_CAPACITY = 65536;
 	constexpr static std::size_t MAX_WRITERS_COUNT = 32;
+	constexpr static std::size_t MAX_READERS_COUNT = 32;
+
+	class WriteHandler {
+	public:
+		explicit WriteHandler(const uint8_t writerId, OutputStorage& storage) noexcept
+			: m_writerId(writerId)
+			, m_storage(storage)
+		{
+		}
+
+		~WriteHandler() noexcept { m_storage.unregisterWriter(); }
+
+		void storeContainer(ContainerWrapper container) noexcept
+		{
+			m_storage.storeContainer(std::move(container), m_writerId);
+		}
+
+	private:
+		uint8_t m_writerId;
+		OutputStorage& m_storage;
+	};
+
+	class ReadHandler {
+	public:
+		explicit ReadHandler(
+			const uint8_t readerGroupIndex,
+			const uint8_t localReaderIndex,
+			const uint8_t globalReaderIndex,
+			OutputStorage& storage) noexcept
+			: m_readerGroupIndex(readerGroupIndex)
+			, m_localReaderIndex(localReaderIndex)
+			, m_globalReaderIndex(globalReaderIndex)
+			, m_storage(storage)
+		{
+			m_storage.registerReader(m_readerGroupIndex, m_localReaderIndex, m_globalReaderIndex);
+		}
+
+		std::optional<ReferenceCounterHandler<OutputContainer>> getContainer() noexcept
+		{
+			return m_storage.getContainer(
+				m_readerGroupIndex,
+				m_localReaderIndex,
+				m_globalReaderIndex);
+		}
+
+		// void registerReader() noexcept { m_storage.registerReader(m_readerGroupIndex); }
+
+		bool finished() noexcept { return m_storage.finished(m_readerGroupIndex); }
+
+		uint8_t getReaderIndex() const noexcept { return m_globalReaderIndex; }
+
+	private:
+		const std::size_t m_readerGroupIndex;
+		const uint8_t m_localReaderIndex;
+		const uint8_t m_globalReaderIndex;
+		OutputStorage& m_storage;
+	};
+
+	class ReaderGroupHandler {
+	public:
+		explicit ReaderGroupHandler(
+			const uint8_t groupSize,
+			OutputStorage& storage,
+			const uint8_t readerGroupIndex,
+			std::atomic<uint8_t>& readersRegisteredGlobally) noexcept
+			: m_groupSize(groupSize)
+			, m_storage(storage)
+			, m_readerGroupIndex(readerGroupIndex)
+			, m_readersRegisteredGlobally(readersRegisteredGlobally)
+		{
+		}
+
+		ReadHandler getReaderHandler() noexcept
+		{
+			const uint8_t localReaderIndex = m_readersRegisteredInGroup++;
+			const uint8_t globalReaderIndex = m_readersRegisteredGlobally++;
+			return ReadHandler(m_readerGroupIndex, localReaderIndex, globalReaderIndex, m_storage);
+		}
+
+	private:
+		const uint8_t m_groupSize;
+		OutputStorage& m_storage;
+		const std::size_t m_readerGroupIndex;
+		std::atomic<uint8_t> m_readersRegisteredInGroup {0};
+		std::atomic<uint8_t>& m_readersRegisteredGlobally;
+	};
 
 	explicit OutputStorage(const uint8_t writersCount) noexcept
 		//, m_storage(ALLOCATION_BUFFER_CAPACITY, ContainerWrapper())
 		: m_allocationBuffer(
 			  std::make_unique<AllocationBuffer2<ReferenceCounter<OutputContainer>>>(
-				  ALLOCATION_BUFFER_CAPACITY,
+				  ALLOCATION_BUFFER_CAPACITY * 32 * 16 + MAX_WRITERS_COUNT,
 				  writersCount))
-		, m_writersCount(writersCount)
+		, m_totalWritersCount(writersCount)
 	{
 		// m_storage.resize(ALLOCATION_BUFFER_CAPACITY);
 		std::generate_n(std::back_inserter(m_storage), ALLOCATION_BUFFER_CAPACITY, [&]() {
@@ -88,15 +175,37 @@ public:
 		});
 	}
 
-	virtual std::size_t registerReaderGroup(const uint8_t groupSize) noexcept
+	virtual ReaderGroupHandler& registerReaderGroup(const uint8_t groupSize) noexcept
 	{
 		m_readerGroupSizes.push_back(groupSize);
-		return m_readerGroupsCount++;
+		m_readerGroupHandlers
+			.emplace_back(groupSize, *this, m_readerGroupsCount, m_readersRegisteredGlobally);
+		const uint8_t readerGroupIndex = m_readerGroupsCount++;
+		return m_readerGroupHandlers.back();
 	}
 
-	virtual void registerReader(const std::size_t readerGroupIndex) noexcept {}
+	virtual void registerReader(
+		[[maybe_unused]] const uint8_t readerGroupIndex,
+		[[maybe_unused]] const uint8_t localReaderIndex,
+		[[maybe_unused]] const uint8_t globalReaderIndex) noexcept
+	{
+		std::unique_lock<std::mutex> lock(m_registrationMutex);
+		m_registrationCondition.notify_all();
+		m_registrationCondition.wait(lock, [&]() { return m_writersCount > 0; });
+	}
 
-	virtual void registerWriter() noexcept { m_allocationBuffer->registerWriter(); }
+	virtual WriteHandler registerWriter() noexcept
+	{
+		m_allocationBuffer->registerWriter();
+
+		std::unique_lock<std::mutex> lock(m_registrationMutex);
+		const uint8_t currentWriterId = m_writersCount++;
+		m_registrationCondition.notify_all();
+		m_registrationCondition.wait(lock, [&]() {
+			return m_readersRegisteredGlobally.load() > 0 && m_writersCount == m_totalWritersCount;
+		});
+		return WriteHandler(currentWriterId, *this);
+	}
 
 	virtual void unregisterWriter() noexcept
 	{
@@ -108,10 +217,13 @@ public:
 
 	virtual bool finished(const std::size_t readerGroupIndex) noexcept = 0;
 
-	virtual void storeContainer(ContainerWrapper container) noexcept = 0;
+	virtual void storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept = 0;
 
-	virtual std::optional<ReferenceCounterHandler<OutputContainer>>
-	getContainer(const std::size_t readerGroupIndex) noexcept = 0;
+	virtual std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
+		const std::size_t readerGroupIndex,
+		const uint8_t localReaderIndex,
+		const uint8_t globalReaderIndex) noexcept
+		= 0;
 
 	virtual ~OutputStorage() = default;
 
@@ -138,6 +250,12 @@ protected:
 	std::atomic_uint8_t m_readerGroupsCount {0};
 	std::vector<uint8_t> m_readerGroupSizes;
 	std::atomic_uint8_t m_writersCount {0};
+	const uint8_t m_totalWritersCount;
+	std::atomic<uint8_t> m_readersRegisteredGlobally {0};
+	std::condition_variable m_registrationCondition;
+	boost::container::static_vector<ReaderGroupHandler, 4> m_readerGroupHandlers;
+
+private:
 	std::mutex m_registrationMutex;
 };
 

@@ -20,15 +20,16 @@ public:
 	{
 	}
 
-	std::size_t registerReaderGroup(const uint8_t groupSize) noexcept override
+	ReaderGroupHandler& registerReaderGroup(const uint8_t groupSize) noexcept override
 	{
-		const std::size_t index = OutputStorage::registerReaderGroup(groupSize);
 		std::lock_guard<std::mutex> lock(m_storageMutex);
 		m_readIndex.push_back(m_writeIndex);
-		return index;
+		return OutputStorage::registerReaderGroup(groupSize);
 	}
 
-	void storeContainer(ContainerWrapper container) noexcept override
+	void storeContainer(
+		ContainerWrapper container,
+		[[maybe_unused]] const uint8_t writerId) noexcept override
 	{
 		std::lock_guard<std::mutex> lock(m_storageMutex);
 		while (!m_storage[m_writeIndex].empty()
@@ -49,8 +50,10 @@ public:
 		});
 	}
 
-	std::optional<ReferenceCounterHandler<OutputContainer>>
-	getContainer(const std::size_t readerGroupIndex) noexcept override
+	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
+		const std::size_t readerGroupIndex,
+		[[maybe_unused]] const uint8_t localReaderIndex,
+		[[maybe_unused]] const uint8_t globalReaderIndex) noexcept override
 	{
 		std::lock_guard<std::mutex> lock(m_storageMutex);
 		if (m_readIndex[readerGroupIndex] == m_writeIndex) {
