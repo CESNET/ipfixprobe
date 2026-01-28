@@ -434,8 +434,11 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 	flow = m_flow_table[flow_index];
 
 	uint8_t flw_flags = source_flow ? flow->m_flow.src_tcp_flags : flow->m_flow.dst_tcp_flags;
-	if ((pkt.tcp_flags & 0x02) && (flw_flags & (0x01 | 0x04))) {
-		// Flows with FIN or RST TCP flags are exported when new SYN packet arrives
+	if (!m_source_optimization_enabled && (pkt.tcp_flags & 0x02) && (flw_flags & (0x01 | 0x04))) {
+		// Flows with FIN or RST TCP flags are exported when new SYN packet arrives.
+		// When source optimization is enabled this case do not make any sence as the code would 
+		// trigger a record push even thow we are trying to collect all data to a destination with 
+		// in actvie timeout. 
 		m_flow_table[flow_index]->m_flow.end_reason = FLOW_END_EOF;
 		export_flow(flow_index);
 		put_pkt(pkt);
