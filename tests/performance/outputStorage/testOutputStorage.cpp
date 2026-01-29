@@ -9,6 +9,7 @@
 
 #include <gtest/gtest.h>
 #include <outputStorage/bOutputStorage.hpp>
+#include <outputStorage/ffqOutputStorage.hpp>
 #include <outputStorage/lfnbOutputStorage.hpp>
 #include <outputStorage/mqOutputStorage.hpp>
 #include <outputStorage/ringOutputStorage.hpp>
@@ -209,6 +210,11 @@ TEST(TestOutputStorage, RingTest)
 TEST(TestOutputStorage, SerializationStorageShortTestNoWorkImmitation)
 {
 	shortTestLoop<ipxp::output::SerializedOutputStorage>(false);
+}
+
+TEST(TestOutputStorage, FFQStorageTestStressNoWorkImmitation)
+{
+	makeTestGroup<ipxp::output::FFQOutputStorage>(false);
 }
 
 TEST(TestOutputStorage, LFNBStorageTestStressNoWorkImmitation)
