@@ -17,6 +17,7 @@ input_plugin:
     workers_cpu_list: []
     eal_opts: null
     mtu: 1518
+    rss_offload: null
 ```
 
 ## Parameters
@@ -36,6 +37,7 @@ input_plugin:
 |__workers_cpu_list__| [] (autofill) | List of CPU cores assigned to RX queues (must match number of rx_queues) |
 |__eal_opts__     | null | Extra options to be passed to the DPDK EAL (Environment Abstraction Layer). Can be used for fine-tuning DPDK behavior.|
 |__mtu__          | 1518 | Maximum Transmission Unit size for the interface. Defines the maximum packet size that can be received.|
+|__rss_offload__  | null | RSS offload configuration. Can be used to override the default RSS offload configuration.|
 
 ## How to use
 
@@ -240,9 +242,12 @@ grubby --update-kernel ALL --args "isolcpus=2-19,22-39"
 ```
 
 
-### 4. Validate with dpdk-testpmd
+### 4. Troubleshooting
 
-TODO
+⚠️ RSS on Intel X710 (i40e)
+
+We observed that RSS on Intel X710 (i40e) may not distribute packets across multiple RX queues with the default RTE_ETH_RSS_IP.
+For X710 (i40e) we use full RSS offload provided by the driver. If you experience similar issues, try to set `rss_offload` explicitly to override the default RSS offload configuration.
 
 ## FAQ
 
