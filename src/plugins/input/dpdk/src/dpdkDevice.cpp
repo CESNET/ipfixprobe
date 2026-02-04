@@ -42,7 +42,8 @@ DpdkDevice::DpdkDevice(
 	uint16_t rxQueueCount,
 	uint16_t memPoolSize,
 	uint16_t mbufsCount,
-	uint16_t mtuSize)
+	uint16_t mtuSize,
+	uint64_t rssOffload)
 	: m_portID(portID)
 	, m_rxQueueCount(rxQueueCount)
 	, m_txQueueCount(0)
@@ -51,6 +52,7 @@ DpdkDevice::DpdkDevice(
 	, m_supportedRSS(false)
 	, m_supportedHWTimestamp(false)
 	, m_mtuSize(mtuSize)
+	, m_rssOffload(rssOffload)
 {
 	validatePort();
 	recognizeDriver();
@@ -94,9 +96,13 @@ void DpdkDevice::recognizeDriver()
 	std::cerr << "\tflow type RSS offloads: " << rteDevInfo.flow_type_rss_offloads << std::endl;
 
 	/* Check if RSS hashing is supported in NIC */
-	m_supportedRSS = (rteDevInfo.flow_type_rss_offloads & RTE_ETH_RSS_IP) != 0;
-	std::cerr << "\tDetected RSS offload capability: " << (m_supportedRSS ? "yes" : "no")
-			  << std::endl;
+	if (m_rxQueueCount > 1) {
+		m_supportedRSS = (rteDevInfo.flow_type_rss_offloads & RTE_ETH_RSS_IP) != 0;
+		std::cerr << "\tDetected RSS offload capability: " << (m_supportedRSS ? "yes" : "no")
+				  << std::endl;
+	} else {
+		m_supportedRSS = false;
+	}
 
 	/* Check if HW timestamps are supported, we support NFB cards only */
 	if (m_isNfbDpdkDriver) {
@@ -241,11 +247,27 @@ rte_eth_rss_conf DpdkDevice::createRSSConfig()
 			return hashKey[idx++ % sizeof(hashKey)];
 		});
 
-	const uint64_t rssOffloads = rteDevInfo.flow_type_rss_offloads & RTE_ETH_RSS_IP;
-	if (rssOffloads != RTE_ETH_RSS_IP) {
-		std::cerr << "RTE_ETH_RSS_IP is not supported by the card. Used subset: " << rssOffloads
-				  << std::endl;
+	uint64_t rssOffloads = 0;
+	if (m_rssOffload) { // user specified RSS offload
+		rssOffloads = m_rssOffload;
+	} else {
+		if (std::string(rteDevInfo.driver_name) == "net_i40e") {
+			std::cerr << "RTE_ETH_RSS_IP is not supported reliably by this driver, falling back to "
+						 "NIC-provided RSS: "
+					  << rteDevInfo.flow_type_rss_offloads << std::endl;
+			std::cerr << "You can override this behavior using the 'rss' configuration parameter."
+					  << std::endl;
+			rssOffloads = rteDevInfo.flow_type_rss_offloads;
+		} else {
+			rssOffloads = rteDevInfo.flow_type_rss_offloads & RTE_ETH_RSS_IP;
+			if (rssOffloads != RTE_ETH_RSS_IP) {
+				std::cerr << "RTE_ETH_RSS_IP is not supported by the card. Used subset: "
+						  << rssOffloads << std::endl;
+			}
+		}
 	}
+
+	std::cerr << "Using RSS offloads: " << rssOffloads << std::endl;
 
 	rssConfig.rss_key = m_hashKey.data();
 	rssConfig.rss_key_len = rssHashKeySize;
