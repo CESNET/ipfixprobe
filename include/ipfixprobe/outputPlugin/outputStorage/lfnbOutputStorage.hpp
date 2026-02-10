@@ -90,7 +90,7 @@ public:
 		readerData.lastReadPosition = readPosition;
 		ContainerWrapper& container = m_storage[readPosition];
 		if (container.getContainer().readTimes == 4) {
-			throw std::runtime_error("Satan");
+			throw std::runtime_error("Bad read times");
 		}
 		return std::make_optional<ReferenceCounterHandler<OutputContainer>>(
 			getReferenceCounter(container));

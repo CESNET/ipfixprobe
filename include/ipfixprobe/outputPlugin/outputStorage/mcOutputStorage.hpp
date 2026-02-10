@@ -140,7 +140,7 @@ public:
 				throw std::runtime_error("Should not happen");
 			}
 			if (queue.storage[readIndex].getContainer().readTimes == 4) {
-				throw std::runtime_error("Satan");
+				throw std::runtime_error("Bad read times");
 			}
 
 			readerData.lastReadSuccessful = true;

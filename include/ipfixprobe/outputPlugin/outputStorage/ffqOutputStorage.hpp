@@ -78,39 +78,42 @@ private:
 
 	public:
 		explicit ReaderGroupState() noexcept
-			: m_state(std::numeric_limits<uint64_t>::max() >> 8)
+			: m_startedState(std::numeric_limits<uint64_t>::max() >> 8)
+			, m_finishedState(std::numeric_limits<uint64_t>::max())
 		{
 		}
 
-		bool tryToSetWriter() noexcept { return tryToSet(WRITER_INDEX); }
+		bool tryToSetWriter() noexcept { return setByte(WRITER_INDEX, m_startedState); }
 
 		bool tryToSetReadingStarted(const uint8_t readerGroup) noexcept
 		{
-			return tryToSet(readerGroup * 2);
+			return setByte(readerGroup, m_startedState);
 		}
 
 		void setReadingFinished(const uint8_t readerGroup) noexcept
 		{
-			tryToSet(readerGroup * 2 + 1);
+			setByte(readerGroup, m_finishedState);
 		}
 
 		void reset(const uint8_t groupsTotal)
 		{
-			m_state = (std::numeric_limits<uint64_t>::max() << ((groupsTotal * 2 + 1) * 8)) >> 8;
+			m_finishedState = (std::numeric_limits<uint64_t>::max() << ((groupsTotal) * 8));
+			m_startedState = (std::numeric_limits<uint64_t>::max() << (groupsTotal * 8 + 1)) >> 8;
+			// m_state = (std::numeric_limits<uint64_t>::max() << ((groupsTotal * 2 + 1) * 8)) >> 8;
 		}
 
 		bool allGroupsRead() noexcept
 		{
-			return m_state == std::numeric_limits<uint64_t>::max() >> 8;
+			return m_finishedState == std::numeric_limits<uint64_t>::max();
 		}
 
 	private:
-		bool tryToSet(const uint8_t index) noexcept
+		static bool setByte(const uint8_t index, std::atomic<uint64_t>& state) noexcept
 		{
 			uint64_t expected;
 			uint64_t newState;
 			do {
-				expected = m_state;
+				expected = state.load(std::memory_order_relaxed);
 				newState = expected;
 				std::span<uint8_t> newGroups(
 					reinterpret_cast<uint8_t*>(&newState),
@@ -119,11 +122,12 @@ private:
 					return false;
 				}
 				newGroups[index] = 0xFF;
-			} while (!m_state.compare_exchange_weak(expected, newState));
+			} while (!state.compare_exchange_weak(expected, newState));
 			return true;
 		}
 
-		std::atomic<uint64_t> m_state;
+		std::atomic<uint64_t> m_startedState;
+		std::atomic<uint64_t> m_finishedState;
 	};
 
 	struct Cell {

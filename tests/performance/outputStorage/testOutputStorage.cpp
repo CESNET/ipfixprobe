@@ -153,23 +153,30 @@ void shortTestLoop(const bool immitateWork)
 template<typename OutputStorageType>
 void makePerformanceTest(std::string_view storageName)
 {
+	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 1 Writers, 1 Reader\n";
 	makeTest<OutputStorageType>(1, {1}, false, 30'000'000);
 
+	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 32 Writers, 1 Reader\n";
 	makeTest<OutputStorageType>(32, {1}, false);
 
+	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 1 Writers, 32 Readers\n";
 	makeTest<OutputStorageType>(1, {32}, false);
 
+	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 32 Writers, 32 Readers\n";
 	makeTest<OutputStorageType>(32, {32}, false);
 
+	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 4 Writers, 4 Group 1 Reader\n";
 	makeTest<OutputStorageType>(4, {1, 1, 1, 1}, false);
 
+	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 32 Writers, 4 Group 8 Reader\n";
 	makeTest<OutputStorageType>(32, {8, 8, 8, 8}, false);
+	std::cout << std::endl;
 }
 
 TEST(TestOutputStorage, XXX)
@@ -191,7 +198,7 @@ TEST(TestOutputStorage, Debug)
 	for (const auto testIndex : std::views::iota(0, 100)) {
 		std::cout << " Debug Loop Iteration " << testIndex << "\n";
 		std::cout << "1 Writers, 1 Reader\n";
-		stressTest<ipxp::output::LFNBOutputStorage>(false);
+		stressTest<ipxp::output::FFQOutputStorage>(false);
 	}
 }
 
