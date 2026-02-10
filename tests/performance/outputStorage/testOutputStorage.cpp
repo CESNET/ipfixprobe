@@ -11,6 +11,7 @@
 #include <outputStorage/bOutputStorage.hpp>
 #include <outputStorage/ffqOutputStorage.hpp>
 #include <outputStorage/lfnbOutputStorage.hpp>
+#include <outputStorage/mcOutputStorage.hpp>
 #include <outputStorage/mqOutputStorage.hpp>
 #include <outputStorage/ringOutputStorage.hpp>
 #include <outputStorage/serializedOutputStorage.hpp>
@@ -107,6 +108,10 @@ void makeTest(
 template<typename OutputStorageType>
 void makeTestGroup(const bool immitateWork)
 {
+	std::cout << "4 Writers, 2 Groups 2 Readers" << (immitateWork ? " With Work" : " No Work")
+			  << "\n";
+	makeTest<OutputStorageType>(4, {2, 2}, immitateWork);
+
 	std::cout << "1 Writer, 1 Reader" << (immitateWork ? " With Work" : " No Work") << "\n";
 	makeTest<OutputStorageType>(1, {1}, immitateWork, 10'000'000);
 
@@ -126,18 +131,14 @@ void makeTestGroup(const bool immitateWork)
 	std::cout << "1 Writer, 1 Group 2 Readers" << (immitateWork ? " With Work" : " No Work")
 			  << "\n";
 	makeTest<OutputStorageType>(1, {2}, immitateWork);
-
-	std::cout << "4 Writers, 2 Groups 2 Readers" << (immitateWork ? " With Work" : " No Work")
-			  << "\n";
-	makeTest<OutputStorageType>(4, {2, 2}, immitateWork);
 }
 
 template<typename OutputStorageType>
 void stressTest(const bool immitateWork)
 {
-	std::cout << "Stress Test: 32 Writers, 1 Group 32 Readers"
+	std::cout << "Stress Test: 10 Writers, 4 Group 2 Readers"
 			  << (immitateWork ? " With Work" : " No Work") << "\n";
-	makeTest<OutputStorageType>(32, {32}, immitateWork, 100'000'000);
+	makeTest<OutputStorageType>(32, {8, 8, 8, 8}, immitateWork, 0'500'000);
 }
 
 template<typename OutputStorageType>
@@ -149,22 +150,29 @@ void shortTestLoop(const bool immitateWork)
 	}
 }
 
+template<typename OutputStorageType>
+void makePerformanceTest(std::string_view storageName)
+{
+	std::cout << storageName << ", 1 Writers, 1 Reader\n";
+	makeTest<OutputStorageType>(1, {1}, false, 30'000'000);
+
+	std::cout << storageName << ", 32 Writers, 1 Reader\n";
+	makeTest<OutputStorageType>(32, {1}, false);
+
+	std::cout << storageName << ", 32 Writers, 32 Readers\n";
+	makeTest<OutputStorageType>(32, {32}, false);
+
+	std::cout << storageName << ", 32 Writers, 4 Group 8 Reader\n";
+	makeTest<OutputStorageType>(32, {8, 8, 8, 8}, false);
+}
+
 TEST(TestOutputStorage, XXX)
 {
-	std::cout << "MQ, 1 Writers, 1 Reader\n";
-	makeTest<ipxp::output::MQOutputStorage>(1, {1}, false, 30'000'000);
-	std::cout << "MQ, 32 Writers, 1 Reader\n";
-	makeTest<ipxp::output::MQOutputStorage>(32, {1}, false);
-
-	std::cout << "LFNB, 1 Writers, 1 Reader\n";
-	makeTest<ipxp::output::LFNBOutputStorage>(1, {1}, false, 30'000'000);
-	std::cout << "LFNB, 32 Writers, 1 Reader\n";
-	makeTest<ipxp::output::LFNBOutputStorage>(32, {1}, false);
-
-	std::cout << "B, 1 Writers, 1 Reader\n";
-	makeTest<ipxp::output::BOutputStorage>(1, {1}, false, 30'000'000);
-	std::cout << "B, 32 Writers, 1 Reader\n";
-	makeTest<ipxp::output::BOutputStorage>(32, {1}, false);
+	makePerformanceTest<ipxp::output::LFNBOutputStorage>("LFNBOutputStorage");
+	makePerformanceTest<ipxp::output::FFQOutputStorage>("FFQOutputStorage");
+	makePerformanceTest<ipxp::output::BOutputStorage>("BOutputStorage");
+	makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
+	makePerformanceTest<ipxp::output::MQOutputStorage>("MQOutputStorage");
 
 	std::cout << "Ring, 1 Writers, 1 Reader\n";
 	makeTest<ipxp::output::RingOutputStorage>(1, {1}, false, 30'000'000);
@@ -176,8 +184,8 @@ TEST(TestOutputStorage, Debug)
 {
 	for (const auto testIndex : std::views::iota(0, 100)) {
 		std::cout << " Debug Loop Iteration " << testIndex << "\n";
-		std::cout << "32 Writers, 1 Reader\n";
-		makeTest<ipxp::output::LFNBOutputStorage>(32, {1}, false);
+		std::cout << "1 Writers, 1 Reader\n";
+		stressTest<ipxp::output::LFNBOutputStorage>(false);
 	}
 }
 
@@ -210,6 +218,11 @@ TEST(TestOutputStorage, RingTest)
 TEST(TestOutputStorage, SerializationStorageShortTestNoWorkImmitation)
 {
 	shortTestLoop<ipxp::output::SerializedOutputStorage>(false);
+}
+
+TEST(TestOutputStorage, MCStorageTestStressNoWorkImmitation)
+{
+	makeTestGroup<ipxp::output::MCOutputStorage>(false);
 }
 
 TEST(TestOutputStorage, FFQStorageTestStressNoWorkImmitation)

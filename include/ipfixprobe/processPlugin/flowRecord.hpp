@@ -131,7 +131,7 @@ public:
 	// TODO remove hashval
 	void createFrom(const amon::Packet& packet, uint64_t hashval)
 	{
-		directionalData[ipxp::process::Direction::Forward].packets = 1;
+		/*directionalData[ipxp::process::Direction::Forward].packets = 1;
 
 		const std::optional<amon::EthernetView> ethernetView
 			= packet.getLayerView<amon::EthernetView>(
@@ -183,7 +183,7 @@ public:
 		} else {
 			flowKey.srcPort = 0;
 			flowKey.dstPort = 0;
-		}
+		}*/
 
 		/*macAddress[Direction::Forward]
 			= std::span<const std::byte, 6>(reinterpret_cast<const std::byte*>(packet.src_mac), 6);

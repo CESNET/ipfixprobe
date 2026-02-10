@@ -232,7 +232,7 @@ public:
 			cachedGeneration = m_buckets[readerData.readPosition].generation;
 			std::atomic_thread_fence(std::memory_order_acquire);
 			cachedBucketIndex = m_buckets[readerData.readPosition].bucketIndex;
-			if (cachedGeneration == readerData.generation + WINDOW_SIZE) {
+			if (cachedGeneration >= readerData.generation + WINDOW_SIZE) {
 				readerData.seenValidBucket = true;
 			}
 			/*if (cachedGeneration > readerData.generation) {

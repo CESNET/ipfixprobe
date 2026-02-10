@@ -36,7 +36,7 @@ public:
 			if (containerHandler.has_value()) {
 				++readContainers;
 				auto& y = containerHandler->getData();
-				if (++containerHandler->getData().readTimes > 2) {
+				if (++containerHandler->getData().readTimes > 4) {
 					throw std::runtime_error(
 						"Container read more times than there are reader groups.");
 				}

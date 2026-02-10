@@ -25,168 +25,117 @@ public:
 		std::lock_guard<std::mutex> lock(m_registrationMutex);
 		m_readerGroupPositions.emplace_back(m_nextWritePos.load());
 		m_alreadyReadGroupPositions.emplace_back(0);
+		m_readerData.resize(m_readerData.size() + groupSize);
 		return OutputStorage::registerReaderGroup(groupSize);
 	}
+
+	/*void registerReader(
+		[[maybe_unused]] const uint8_t readerGroupIndex,
+		[[maybe_unused]] const uint8_t localReaderIndex,
+		[[maybe_unused]] const uint8_t globalReaderIndex) noexcept override
+	{
+		m_readerData
+	}*/
 
 	void storeContainer(
 		ContainerWrapper container,
 		[[maybe_unused]] const uint8_t writerId) noexcept override
 	{
-		if (container.empty()) {
-			throw std::runtime_error("Attempt to store empty container in LFNBOutputStorage");
-		}
 		const uint64_t sequentialWritePosition = m_nextWritePos++;
 		const uint64_t writePosition = sequentialWritePosition % m_storage.size();
-		while (!m_storage[writePosition].empty()
-			   && getReferenceCounter(m_storage[writePosition]).hasUsers()) {
+		/*const bool rightCircle
+			= m_writersFinished[writePosition / BUCKET_SIZE].load(std::memory_order_acquire)
+				/ BUCKET_SIZE
+			!= sequentialWritePosition / ALLOCATION_BUFFER_CAPACITY;*/
+		while (m_writersFinished[writePosition / BUCKET_SIZE].load(std::memory_order_acquire)
+					   / BUCKET_SIZE
+				   != sequentialWritePosition / ALLOCATION_BUFFER_CAPACITY
+			   || !bucketIsRead(writePosition / BUCKET_SIZE)) {
 			std::this_thread::yield();
 		}
-		while (true) {
-			const uint64_t distanceToReader = distanceToClosestReader(sequentialWritePosition);
-			if (distanceToReader <= BUCKET_SIZE + m_writersCount + 1ULL) {
-				// std::cout << "Writer slowed down. Distance to reader: "
-				//		+ std::to_string(distanceToReader) + "\n";
-				//   std::this_thread::yield();
-				/*const auto x = distanceToConfirmedPos();
-				if (x >= m_writersCount + 64ULL) {
-					std::cout << std::to_string(x) + " " + std::to_string(distanceToReader) + "\n";
-					worstReaderPos()++;
-					d_writerShifts++;
-				} else {*/
-				d_writerYields++;
-				std::this_thread::yield();
-				//}
-			} else {
-				break;
-			}
-		}
-		m_storage[writePosition].assign(container, *m_allocationBuffer);
-		std::atomic_thread_fence(std::memory_order_seq_cst);
-		workerFinished(writePosition, sequentialWritePosition);
-		/*const uint64_t oldConfirmedPos = m_confirmedPos++;
-		if (oldConfirmedPos == sequentialWritePosition) {
-			updateWrittenPos(oldConfirmedPos);
-			std::cout << "Writer advanced written pos to " + std::to_string(m_writtenPos.load())
-					+ "\n";
-		}*/
 
-		if (m_writtenPos >= *std::ranges::max_element(m_readerGroupSizes) + m_writersCount + 1ULL)
-			[[unlikely]] {
-			std::lock_guard<std::mutex> lock(m_registrationMutex);
-			m_initialized = true;
-			m_initializationCV.notify_all();
-		}
+		m_storage[writePosition].assign(container, *m_allocationBuffer);
+		std::atomic_thread_fence(std::memory_order_release);
+		m_writersFinished[writePosition / BUCKET_SIZE]++;
 	}
 
 	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
 		const std::size_t readerGroupIndex,
 		[[maybe_unused]] const uint8_t localReaderIndex,
-		[[maybe_unused]] const uint8_t globalReaderIndex) noexcept override
+		const uint8_t globalReaderIndex) noexcept override
 	{
-		if (!m_initialized) [[unlikely]] {
-			std::unique_lock<std::mutex> lock(m_registrationMutex);
-			m_initializationCV.wait(lock, [&]() { return m_initialized; });
+		ReaderData& readerData = m_readerData[globalReaderIndex].get();
+		if (readerData.lastReadPosition.has_value()) {
+			m_readersFinished[*readerData.lastReadPosition / BUCKET_SIZE]++;
 		}
 
 		const uint64_t sequentialReadPosition = m_readerGroupPositions[readerGroupIndex]++;
 		const uint64_t readPosition = sequentialReadPosition % m_storage.size();
-		while (true) {
-			const uint64_t distance = distanceToWriter(sequentialReadPosition);
-			if (distance > m_readerGroupSizes[readerGroupIndex] + 5ULL || !writersPresent()) {
-				break;
-			}
-			d_readerYields++;
-			// std::cout << "Reader " + std::to_string(readerGroupIndex)
-			//		+ " slowed down - distance: " + std::to_string(distance) + "\n";
+		while ((m_readersFinished[readPosition / BUCKET_SIZE].load(std::memory_order_acquire)
+						/ (BUCKET_SIZE * m_readerGroupsCount)
+					!= sequentialReadPosition / ALLOCATION_BUFFER_CAPACITY
+				|| !bucketIsWritten(readPosition / BUCKET_SIZE))
+			   && writersPresent()) {
 			std::this_thread::yield();
 		}
 
+		std::atomic_thread_fence(std::memory_order_acquire);
+		if (sequentialReadPosition >= m_nextWritePos.load()) {
+			readerData.lastReadPosition = std::nullopt;
+			return std::nullopt;
+		}
 		if (m_storage[readPosition].empty()) {
 			throw std::runtime_error("Should not happen");
 		}
+		readerData.lastReadPosition = readPosition;
 		ContainerWrapper& container = m_storage[readPosition];
+		if (container.getContainer().readTimes == 4) {
+			throw std::runtime_error("Satan");
+		}
 		return std::make_optional<ReferenceCounterHandler<OutputContainer>>(
 			getReferenceCounter(container));
 	}
 
 	bool finished(const std::size_t readerGroupIndex) noexcept override
 	{
-		return !writersPresent();
+		return !writersPresent()
+			&& std::ranges::all_of(m_readerGroupPositions, [&](const auto& position) {
+				   return position.load(std::memory_order_acquire) >= m_nextWritePos.load();
+			   });
 	}
 
 private:
-	std::atomic<uint64_t>& worstReaderPos() noexcept
+	bool bucketIsWritten(const uint64_t bucketIndex) noexcept
 	{
-		return m_readerGroupPositions[*std::ranges::min_element(
-			std::views::iota(0ULL, m_readerGroupPositions.size()),
-			{},
-			[&](const std::size_t readerGroupIndex) {
-				return (m_readerGroupPositions[readerGroupIndex]
-						- m_readerGroupSizes[readerGroupIndex] + m_storage.size())
-					% m_storage.size();
-			})];
+		const uint64_t writersFinished
+			= m_writersFinished[bucketIndex].load(std::memory_order_acquire);
+		return writersFinished % BUCKET_SIZE == 0
+			&& writersFinished * m_readerGroupsCount
+			> m_readersFinished[bucketIndex].load(std::memory_order_acquire);
 	}
 
-	/*uint64_t worstReaderPos() noexcept
+	bool bucketIsRead(const uint64_t bucketIndex) noexcept
 	{
-		return std::ranges::min(
-			std::views::iota(0ULL, m_readerGroupSizes.size())
-			| std::views::transform([&](const std::size_t readerGroupIndex) {
-				  return (m_readerGroupPositions[readerGroupIndex]
-						  - m_readerGroupSizes[readerGroupIndex] + m_storage.size())
-					  % m_storage.size();
-			  }));
-	}*/
-
-	uint64_t distanceToClosestReader(const uint64_t sequentialWriteIndex) noexcept
-	{
-		return (worstReaderPos() - sequentialWriteIndex - 1 + m_storage.size()) % m_storage.size();
+		const uint64_t readersFinished
+			= m_readersFinished[bucketIndex].load(std::memory_order_acquire);
+		auto x = readersFinished % (BUCKET_SIZE * m_readerGroupsCount) == 0
+			&& m_writersFinished[bucketIndex].load(std::memory_order_acquire) * m_readerGroupsCount
+					- readersFinished
+				< BUCKET_SIZE * m_readerGroupsCount;
+		return x;
 	}
 
-	uint64_t distanceToConfirmedPos() noexcept
-	{
-		return (m_writtenPos - worstReaderPos() - 1 + m_storage.size()) % m_storage.size();
-	}
+	struct ReaderData {
+		std::optional<uint64_t> lastReadPosition;
+	};
 
-	uint64_t distanceToWriter(const uint64_t sequentialReadIndex) noexcept
-	{
-		return m_writtenPos.load(std::memory_order_acquire) - sequentialReadIndex;
-	}
-
-	void updateWrittenPos(const uint64_t newValue) noexcept
-	{
-		uint64_t expected;
-		do {
-			expected = m_writtenPos.load(std::memory_order_relaxed);
-			if (expected >= newValue) {
-				return;
-			}
-		} while (!m_writtenPos.compare_exchange_weak(
-			expected,
-			newValue,
-			std::memory_order_release,
-			std::memory_order_acquire));
-	}
-
-	void workerFinished(const uint64_t boundedWritePos, const uint64_t sequentialWritePos) noexcept
-	{
-		const uint64_t bucketIndex = boundedWritePos / BUCKET_SIZE;
-		const uint64_t finishedCount
-			= m_writersFinished[bucketIndex].fetch_add(1, std::memory_order_acq_rel) + 1;
-		if (finishedCount % BUCKET_SIZE == 0) {
-			const uint64_t newWrittenPos = (sequentialWritePos / BUCKET_SIZE + 1) * BUCKET_SIZE;
-			while (m_writtenPos.load(std::memory_order_acquire) != newWrittenPos - BUCKET_SIZE) {
-				std::this_thread::yield();
-			}
-			m_writtenPos.store(newWrittenPos, std::memory_order_release);
-		}
-	}
-
-	// std::vector<uint16_t> m_readIndex;
 	boost::container::static_vector<std::atomic_uint64_t, MAX_WRITERS_COUNT> m_readerGroupPositions;
 	boost::container::static_vector<std::atomic_uint64_t, MAX_WRITERS_COUNT>
 		m_alreadyReadGroupPositions;
 	std::array<std::atomic<uint64_t>, ALLOCATION_BUFFER_CAPACITY / BUCKET_SIZE> m_writersFinished;
+	std::array<std::atomic<uint64_t>, ALLOCATION_BUFFER_CAPACITY / BUCKET_SIZE> m_readersFinished;
+	boost::container::static_vector<CacheAlligned<ReaderData>, MAX_READERS_COUNT> m_readerData;
+	std::span<CacheAlligned<ReaderData>> d_readerData {m_readerData.data(), MAX_READERS_COUNT};
 	std::atomic_uint64_t m_nextWritePos {0};
 	std::atomic_uint64_t m_confirmedPos {0};
 	std::atomic_uint64_t m_writtenPos {0};

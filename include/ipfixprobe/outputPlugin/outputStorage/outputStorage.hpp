@@ -73,6 +73,7 @@ private:
 class OutputStorage {
 public:
 	constexpr static std::size_t ALLOCATION_BUFFER_CAPACITY = 65536;
+	// constexpr static std::size_t ALLOCATION_BUFFER_CAPACITY = 40;
 	constexpr static std::size_t MAX_WRITERS_COUNT = 32;
 	constexpr static std::size_t MAX_READERS_COUNT = 32;
 	constexpr static std::size_t MAX_READER_GROUPS_COUNT = 8;
