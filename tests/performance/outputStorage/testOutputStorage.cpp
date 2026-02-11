@@ -136,9 +136,9 @@ void makeTestGroup(const bool immitateWork)
 template<typename OutputStorageType>
 void stressTest(const bool immitateWork)
 {
-	std::cout << "Stress Test: 10 Writers, 4 Group 2 Readers"
+	std::cout << "Stress Test: X Writers, X Group X Readers"
 			  << (immitateWork ? " With Work" : " No Work") << "\n";
-	makeTest<OutputStorageType>(32, {32}, immitateWork, 1'000'000);
+	makeTest<OutputStorageType>(32, {32}, immitateWork, 10'000'000);
 }
 
 template<typename OutputStorageType>
@@ -181,9 +181,9 @@ void makePerformanceTest(std::string_view storageName)
 
 TEST(TestOutputStorage, XXX)
 {
+	makePerformanceTest<ipxp::output::BOutputStorage>("BOutputStorage");
 	makePerformanceTest<ipxp::output::LFNBOutputStorage>("LFNBOutputStorage");
 	makePerformanceTest<ipxp::output::FFQOutputStorage>("FFQOutputStorage");
-	makePerformanceTest<ipxp::output::BOutputStorage>("BOutputStorage");
 	makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
 	makePerformanceTest<ipxp::output::MQOutputStorage>("MQOutputStorage");
 

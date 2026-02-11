@@ -108,11 +108,11 @@ public:
 		}
 
 		uint8_t loopCounter = 0;
-		const uint16_t initialPosition = writerData.writePosition;
+		//const uint16_t initialPosition = writerData.writePosition;
 		do {
-			writerData.randomShift();
+			const bool overflowed = writerData.randomShift();
 			d_writerShifts++;
-			if (writerData.writePosition == initialPosition) {
+			if (overflowed) {
 				writerData.cachedLowestReaderGeneration = m_lowestReaderGeneration.load();
 				if (containersLeft == 0) {
 					container.deallocate(*m_allocationBuffer);
@@ -188,6 +188,7 @@ public:
 					return std::nullopt;
 				}
 				if (!readerData.seenValidBucket) {
+					updateLowestReaderGeneration(globalReaderIndex);
 					std::this_thread::yield();
 					d_readerYields++;
 					readerData.skipLoop = true;
@@ -201,7 +202,8 @@ public:
 			cachedGeneration = m_buckets[readerData.readPosition].generation;
 			std::atomic_thread_fence(std::memory_order_acquire);
 			cachedBucketIndex = m_buckets[readerData.readPosition].bucketIndex;
-			if (cachedGeneration >= readerData.generation + WINDOW_SIZE) {
+			//if (cachedGeneration >= readerData.generation + WINDOW_SIZE) {
+			if (cachedGeneration >= readerData.generation + 2) {
 				readerData.seenValidBucket = true;
 			}
 		} while (cachedGeneration != readerData.generation
@@ -239,10 +241,12 @@ private:
 		uint64_t generation {1};
 		uint64_t cachedLowestReaderGeneration {1};
 
-		void randomShift() noexcept
+		bool randomShift() noexcept
 		{
+			const uint16_t saved = writePosition; 
 			writePosition = (writePosition + randomHandler.getValue()) % BUCKET_COUNT;
 			// writePosition = ~writePosition & (BUCKET_COUNT - 1);
+			return writePosition < saved;
 		}
 
 		bool isOnBufferBegin(const uint8_t writersCount) const noexcept
@@ -330,7 +334,7 @@ private:
 	// std::atomic<uint64_t> m_highestWriterGeneration {1};
 
 	// std::vector<uint16_t> m_readIndex;
-	constexpr static uint8_t WINDOW_SIZE = 2;
+	constexpr static uint8_t WINDOW_SIZE = 300;
 	boost::container::static_vector<CacheAlligned<ReaderData>, MAX_READERS_COUNT> m_readersData;
 	std::span<CacheAlligned<ReaderData>> debugReaders {m_readersData.data(), MAX_READERS_COUNT};
 	std::span<CacheAlligned<WriterData>> debugWriters {m_writersData.data(), MAX_WRITERS_COUNT};

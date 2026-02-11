@@ -51,7 +51,7 @@ public:
 					std::this_thread::sleep_for(std::chrono::microseconds(1));
 				}
 			}
-			if (std::chrono::steady_clock::now() - m_lastPrintTime > std::chrono::seconds(2)) {
+			if (std::chrono::steady_clock::now() - m_lastPrintTime > std::chrono::seconds(20)) {
 				const std::string message = "Reader group "
 					+ std::to_string(readHandler.getReaderIndex()) + " read "
 					+ std::to_string(readContainers) + " containers so far.";
