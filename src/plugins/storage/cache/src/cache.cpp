@@ -321,6 +321,11 @@ void NHTFlowCache::flush(Packet& pkt, size_t flow_index, int ret, bool source_fl
 
 int NHTFlowCache::put_pkt(Packet& pkt)
 {
+	return put_pkt_recursive(pkt);
+}
+
+int NHTFlowCache::put_pkt_recursive(Packet& pkt)
+{
 	int ret = plugins_pre_create(pkt);
 
 	if (m_enable_fragmentation_cache) {
@@ -429,7 +434,7 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 		// Flows with FIN or RST TCP flags are exported when new SYN packet arrives
 		m_flow_table[flow_index]->m_flow.end_reason = FLOW_END_EOF;
 		export_flow(flow_index);
-		put_pkt(pkt);
+		put_pkt_recursive(pkt);
 		return 0;
 	}
 
@@ -453,7 +458,7 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 #ifdef FLOW_CACHE_STATS
 			m_expired++;
 #endif /* FLOW_CACHE_STATS */
-			return put_pkt(pkt);
+			return put_pkt_recursive(pkt);
 		}
 
 		/* Check if flow record is expired (active timeout). */
@@ -464,7 +469,7 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 #ifdef FLOW_CACHE_STATS
 			m_expired++;
 #endif /* FLOW_CACHE_STATS */
-			return put_pkt(pkt);
+			return put_pkt_recursive(pkt);
 		}
 
 		ret = plugins_pre_update(flow->m_flow, pkt);
