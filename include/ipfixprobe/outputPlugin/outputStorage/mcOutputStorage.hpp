@@ -102,6 +102,7 @@ public:
 		for (uint8_t queueShifts = 0; queueShifts < m_totalWritersCount; queueShifts++) {
 			const uint8_t currentQueueIndex = readerData.lastQueueIndex % m_queues.size();
 			Queue& queue = m_queues[currentQueueIndex];
+			queue.sync(readerGroupIndex);
 			const std::size_t dequeCount = queue.groupData[readerGroupIndex]->dequeueCount++;
 			const std::size_t d_x = readerData.cachedEnqueCounts[currentQueueIndex];
 			const std::size_t d_enqueCount = queue.enqueCount.load();
@@ -114,20 +115,12 @@ public:
 				readerData.lastQueueIndex++;
 				readerData.readWithoutShift = 0;
 				// readerData.cachedEnqueCount = 0;
-				const std::size_t confirmedIndex
-					= queue.groupData[readerGroupIndex]->confirmedIndex.load();
-				const std::size_t headIndex = queue.groupData[readerGroupIndex]->headIndex.load();
-				if (headIndex == confirmedIndex) {
-					queue.groupData[readerGroupIndex]->commitedIndex = headIndex;
-				}
 				continue;
 			}
 			readerData.readWithoutShift++;
 			// TODO originally was 256
-			constexpr std::size_t overreadThreshold
-				= ALLOCATION_BUFFER_CAPACITY / MAX_WRITERS_COUNT;
 			bool d_s = false;
-			if (readerData.readWithoutShift == overreadThreshold) {
+			if (readerData.readWithoutShift == queue.storage.size()) {
 				shiftAllQueues();
 				d_s = true;
 			}
@@ -203,6 +196,15 @@ private:
 					return groupData->commitedIndex.load();
 				});
 			return it->get().commitedIndex.load();
+		}
+
+		void sync(const std::size_t readerGroupIndex) noexcept
+		{
+			const std::size_t confirmedIndex = groupData[readerGroupIndex]->confirmedIndex.load();
+			const std::size_t headIndex = groupData[readerGroupIndex]->headIndex.load();
+			if (headIndex == confirmedIndex) {
+				groupData[readerGroupIndex]->commitedIndex = headIndex;
+			}
 		}
 
 		bool finished() const noexcept

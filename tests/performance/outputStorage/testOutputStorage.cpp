@@ -51,17 +51,17 @@ void makeTest(
 		DummyWriter(containersToWritePerWriter, storage, immitateWork));
 	std::latch readersLatch(totalReaders);
 	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
-	std::vector<std::vector<std::future<std::size_t>>> readContainers
-		= readers | std::views::transform([&](std::vector<DummyReader>& readerGroup) {
-			  return readerGroup | std::views::transform([&](DummyReader& reader) {
-						 return std::async(std::launch::async, [&]() {
-							 readersLatch.count_down();
-							 return reader.readContainers();
-						 });
-					 })
-				  | std::ranges::to<std::vector<std::future<std::size_t>>>();
-		  })
-		| std::ranges::to<std::vector<std::vector<std::future<std::size_t>>>>();
+	std::vector<std::vector<std::future<std::size_t>>> readContainers;
+	for (std::vector<DummyReader>& readerGroup : readers) {
+		readContainers.emplace_back();
+		for (DummyReader& reader : readerGroup) {
+			readContainers.back().emplace_back(
+				std::async(std::launch::async, [&reader, &readersLatch]() {
+					readersLatch.count_down();
+					return reader.readContainers();
+				}));
+		}
+	}
 
 	readersLatch.wait();
 	std::vector<std::future<void>> writerFutures
@@ -138,7 +138,7 @@ void stressTest(const bool immitateWork)
 {
 	std::cout << "Stress Test: X Writers, X Group X Readers"
 			  << (immitateWork ? " With Work" : " No Work") << "\n";
-	makeTest<OutputStorageType>(32, {32}, immitateWork, 10'000'000);
+	makeTest<OutputStorageType>(4, {1, 1, 1, 1}, immitateWork, 0'200'000);
 }
 
 template<typename OutputStorageType>
@@ -198,7 +198,7 @@ TEST(TestOutputStorage, Debug)
 	for (const auto testIndex : std::views::iota(0, 100)) {
 		std::cout << " Debug Loop Iteration " << testIndex << "\n";
 		makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
-		//stressTest<ipxp::output::MCOutputStorage>(false);
+		// stressTest<ipxp::output::MCOutputStorage>(false);
 	}
 }
 
