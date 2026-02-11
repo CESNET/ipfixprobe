@@ -159,23 +159,23 @@ void makePerformanceTest(std::string_view storageName)
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 32 Writers, 1 Reader\n";
-	makeTest<OutputStorageType>(32, {1}, false);
+	makeTest<OutputStorageType>(32, {1}, false, 10'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 1 Writers, 32 Readers\n";
-	makeTest<OutputStorageType>(1, {32}, false);
+	makeTest<OutputStorageType>(1, {32}, false, 30'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 32 Writers, 32 Readers\n";
-	makeTest<OutputStorageType>(32, {32}, false);
+	makeTest<OutputStorageType>(32, {32}, false, 2'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 4 Writers, 4 Group 1 Reader\n";
-	makeTest<OutputStorageType>(4, {1, 1, 1, 1}, false);
+	makeTest<OutputStorageType>(4, {1, 1, 1, 1}, false, 10'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 32 Writers, 4 Group 8 Reader\n";
-	makeTest<OutputStorageType>(32, {8, 8, 8, 8}, false);
+	makeTest<OutputStorageType>(32, {8, 8, 8, 8}, false, 3'000'000);
 	std::cout << std::endl;
 }
 

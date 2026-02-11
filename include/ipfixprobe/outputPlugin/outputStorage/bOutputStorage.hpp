@@ -334,7 +334,7 @@ private:
 	// std::atomic<uint64_t> m_highestWriterGeneration {1};
 
 	// std::vector<uint16_t> m_readIndex;
-	constexpr static uint8_t WINDOW_SIZE = 300;
+	constexpr static uint8_t WINDOW_SIZE = 4;
 	boost::container::static_vector<CacheAlligned<ReaderData>, MAX_READERS_COUNT> m_readersData;
 	std::span<CacheAlligned<ReaderData>> debugReaders {m_readersData.data(), MAX_READERS_COUNT};
 	std::span<CacheAlligned<WriterData>> debugWriters {m_writersData.data(), MAX_WRITERS_COUNT};
