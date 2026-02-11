@@ -108,7 +108,7 @@ public:
 		}
 
 		uint8_t loopCounter = 0;
-		//const uint16_t initialPosition = writerData.writePosition;
+		// const uint16_t initialPosition = writerData.writePosition;
 		do {
 			const bool overflowed = writerData.randomShift();
 			d_writerShifts++;
@@ -202,7 +202,7 @@ public:
 			cachedGeneration = m_buckets[readerData.readPosition].generation;
 			std::atomic_thread_fence(std::memory_order_acquire);
 			cachedBucketIndex = m_buckets[readerData.readPosition].bucketIndex;
-			//if (cachedGeneration >= readerData.generation + WINDOW_SIZE) {
+			// if (cachedGeneration >= readerData.generation + WINDOW_SIZE) {
 			if (cachedGeneration >= readerData.generation + 2) {
 				readerData.seenValidBucket = true;
 			}
@@ -243,7 +243,7 @@ private:
 
 		bool randomShift() noexcept
 		{
-			const uint16_t saved = writePosition; 
+			const uint16_t saved = writePosition;
 			writePosition = (writePosition + randomHandler.getValue()) % BUCKET_COUNT;
 			// writePosition = ~writePosition & (BUCKET_COUNT - 1);
 			return writePosition < saved;

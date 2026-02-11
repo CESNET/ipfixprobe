@@ -57,6 +57,7 @@ public:
 			&& queue.enqueCount - queue.storage.size() >= queue.cachedLowestHeadIndex) {
 			d_deallocatedContainers++;
 			container.deallocate(*m_allocationBuffer);
+			std::this_thread::yield();
 			return;
 		}
 
@@ -96,22 +97,23 @@ public:
 		if (readerData.shiftQueue) {
 			readerData.shiftQueue = false;
 			readerData.lastQueueIndex++;
-			readerData.cachedEnqueCount = 0;
+			// readerData.cachedEnqueCount = 0;
 		}
 		for (uint8_t queueShifts = 0; queueShifts < m_totalWritersCount; queueShifts++) {
-			Queue& queue = m_queues[readerData.lastQueueIndex % m_queues.size()];
+			const uint8_t currentQueueIndex = readerData.lastQueueIndex % m_queues.size();
+			Queue& queue = m_queues[currentQueueIndex];
 			const std::size_t dequeCount = queue.groupData[readerGroupIndex]->dequeueCount++;
-			const std::size_t d_x = readerData.cachedEnqueCount;
+			const std::size_t d_x = readerData.cachedEnqueCounts[currentQueueIndex];
 			const std::size_t d_enqueCount = queue.enqueCount.load();
-			if (dequeCount >= readerData.cachedEnqueCount) {
-				readerData.cachedEnqueCount = queue.enqueCount;
+			if (dequeCount >= readerData.cachedEnqueCounts[currentQueueIndex]) {
+				readerData.cachedEnqueCounts[currentQueueIndex] = queue.enqueCount;
 			}
-			const std::size_t d_y = readerData.cachedEnqueCount;
-			if (dequeCount >= readerData.cachedEnqueCount) {
+			const std::size_t d_y = readerData.cachedEnqueCounts[currentQueueIndex];
+			if (dequeCount >= readerData.cachedEnqueCounts[currentQueueIndex]) {
 				queue.groupData[readerGroupIndex]->dequeueCount--;
 				readerData.lastQueueIndex++;
 				readerData.readWithoutShift = 0;
-				readerData.cachedEnqueCount = 0;
+				// readerData.cachedEnqueCount = 0;
 				const std::size_t confirmedIndex
 					= queue.groupData[readerGroupIndex]->confirmedIndex.load();
 				const std::size_t headIndex = queue.groupData[readerGroupIndex]->headIndex.load();
@@ -121,7 +123,9 @@ public:
 				continue;
 			}
 			readerData.readWithoutShift++;
-			constexpr std::size_t overreadThreshold = 256;
+			// TODO originally was 256
+			constexpr std::size_t overreadThreshold
+				= ALLOCATION_BUFFER_CAPACITY / MAX_WRITERS_COUNT;
 			bool d_s = false;
 			if (readerData.readWithoutShift == overreadThreshold) {
 				shiftAllQueues();
@@ -133,7 +137,7 @@ public:
 			std::atomic_thread_fence(std::memory_order_seq_cst);
 
 			auto& y = queue.groupData[readerGroupIndex];
-			if (readerData.cachedEnqueCount > queue.enqueCount) {
+			if (readerData.cachedEnqueCounts[currentQueueIndex] > queue.enqueCount) {
 				throw std::runtime_error("XXXXX");
 			}
 			if (queue.storage[readIndex].empty()) {
@@ -149,6 +153,7 @@ public:
 		}
 		d_nulloptsReturned++;
 		readerData.lastReadSuccessful = false;
+		std::this_thread::yield();
 		return std::nullopt;
 	}
 
@@ -160,8 +165,9 @@ public:
 
 private:
 	struct ReaderData {
-		uint64_t cachedEnqueCount {0};
+		// uint64_t cachedEnqueCount {0};
 		std::atomic<uint16_t> readWithoutShift {0};
+		std::array<uint64_t, MAX_WRITERS_COUNT> cachedEnqueCounts;
 		uint8_t lastQueueIndex {0};
 		bool shiftQueue {false};
 		bool lastReadSuccessful {false};

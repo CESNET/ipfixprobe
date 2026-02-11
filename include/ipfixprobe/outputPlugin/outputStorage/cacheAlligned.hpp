@@ -19,7 +19,7 @@ private:
 	static constexpr std::size_t EXPECTED_CACHE_LINE_SIZE = 64;
 
 	alignas(EXPECTED_CACHE_LINE_SIZE) Type data;
-	const std::array<std::byte, EXPECTED_CACHE_LINE_SIZE - sizeof(Type)> m_padding {};
+	// const std::array<std::byte, EXPECTED_CACHE_LINE_SIZE - sizeof(Type)> m_padding {};
 };
 
 } // namespace ipxp::output

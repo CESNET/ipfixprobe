@@ -181,10 +181,10 @@ void makePerformanceTest(std::string_view storageName)
 
 TEST(TestOutputStorage, XXX)
 {
+	makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
 	makePerformanceTest<ipxp::output::BOutputStorage>("BOutputStorage");
 	makePerformanceTest<ipxp::output::LFNBOutputStorage>("LFNBOutputStorage");
 	makePerformanceTest<ipxp::output::FFQOutputStorage>("FFQOutputStorage");
-	makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
 	makePerformanceTest<ipxp::output::MQOutputStorage>("MQOutputStorage");
 
 	std::cout << "Ring, 1 Writers, 1 Reader\n";
@@ -197,8 +197,8 @@ TEST(TestOutputStorage, Debug)
 {
 	for (const auto testIndex : std::views::iota(0, 100)) {
 		std::cout << " Debug Loop Iteration " << testIndex << "\n";
-		std::cout << "1 Writers, 1 Reader\n";
-		stressTest<ipxp::output::BOutputStorage>(false);
+		makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
+		//stressTest<ipxp::output::MCOutputStorage>(false);
 	}
 }
 
