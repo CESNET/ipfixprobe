@@ -31,23 +31,17 @@ public:
 	void writeContainers() noexcept
 	{
 		ipxp::output::OutputStorage::WriteHandler writeHandler = m_storage.registerWriter();
+		ipxp::FlowRecordDeleter flowRecordDeleter(16);
 		for (const auto _ : std::views::iota(0u, m_containersToWrite)) {
+			for (const auto _ : std::views::iota(0u, ipxp::output::OutputContainer::SIZE)) {
+				ipxp::FlowRecordUniquePtr flowRecord(nullptr, flowRecordDeleter);
+				writeHandler.pushFlowRecord(std::move(flowRecord));
+			}
 			if (m_immitateWork) {
 				std::this_thread::sleep_for(std::chrono::microseconds(1));
 			}
-			ipxp::output::ContainerWrapper container = m_storage.allocateNewContainer();
-			if (container.empty()) {
-				throw std::runtime_error("Failed to allocate new container in DummyWriter");
-			}
-			container.getContainer().creationTime = std::chrono::steady_clock::now();
-			container.getContainer().sequenceNumber
-				= ipxp::output::OutputContainer::globalSequenceNumber++;
-			container.getContainer().readTimes = 0;
-			// randomWait();
-			writeHandler.storeContainer(std::move(container));
 		}
 		std::cout << "Writer finished writing " << std::endl;
-		// m_storage.unregisterWriter();
 	}
 
 private:

@@ -11,6 +11,12 @@ public:
 	{
 	}
 
+	CacheAlligned<Type>& operator=(const Type& other) noexcept
+	{
+		data = other;
+		return *this;
+	}
+
 	auto& get(this auto& self) noexcept { return self.data; }
 
 	auto operator->(this auto& self) noexcept { return &self.data; }

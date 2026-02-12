@@ -44,7 +44,7 @@ public:
 		return OutputStorage::registerWriter();
 	}
 
-	void storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept override
+	bool storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept override
 	{
 		Queue& queue = m_queues[writerId];
 		const std::size_t writeIndex = queue.enqueCount % queue.storage.size();
@@ -58,13 +58,14 @@ public:
 			d_deallocatedContainers++;
 			container.deallocate(*m_allocationBuffer);
 			std::this_thread::yield();
-			return;
+			return false;
 		}
 
 		std::atomic_thread_fence(std::memory_order_seq_cst);
 		queue.storage[writeIndex].assign(container, *m_allocationBuffer);
 		std::atomic_thread_fence(std::memory_order_seq_cst);
 		queue.enqueCount++;
+		return true;
 	}
 
 	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(

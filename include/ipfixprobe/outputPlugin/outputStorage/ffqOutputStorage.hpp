@@ -17,7 +17,7 @@ public:
 		// m_cells.resize(ALLOCATION_BUFFER_CAPACITY);
 	}
 
-	void storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept override
+	bool storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept override
 	{
 		BackoffScheme backoffScheme(SHORT_TRIES, LONG_TRIES);
 		while (true) {
@@ -30,11 +30,11 @@ public:
 				m_storage[writeIndex].assign(container, *m_allocationBuffer);
 				std::atomic_thread_fence(std::memory_order_release);
 				m_cells[writeIndex].state.reset(m_readerGroupsCount.load());
-				return;
+				return true;
 			}
 			if (!backoffScheme.backoff()) {
 				container.deallocate(*m_allocationBuffer);
-				return;
+				return false;
 			}
 		}
 	}

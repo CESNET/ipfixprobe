@@ -92,7 +92,7 @@ public:
 		return m_storage[position.bucketIndex * BUCKET_SIZE + containerIndex];
 	}
 
-	void storeContainer(ContainerWrapper container, const uint8_t writerIndex) noexcept override
+	bool storeContainer(ContainerWrapper container, const uint8_t writerIndex) noexcept override
 	{
 		WriterData& writerData = m_writersData[writerIndex].get();
 		const uint16_t containersLeft = writerData.bucketAllocation.containersLeft();
@@ -104,7 +104,7 @@ public:
 			break;
 		default:
 			getNextContainer(writerData.bucketAllocation).assign(container, *m_allocationBuffer);
-			return;
+			return true;
 		}
 
 		uint8_t loopCounter = 0;
@@ -119,7 +119,7 @@ public:
 				}
 				d_writerYields++;
 				std::this_thread::yield();
-				return;
+				return false;
 			}
 
 			if (m_buckets[writerData.writePosition].generation
@@ -151,6 +151,7 @@ public:
 		if (containersLeft == 0) {
 			getNextContainer(writerData.bucketAllocation).assign(container, *m_allocationBuffer);
 		}
+		return true;
 	}
 
 	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(

@@ -27,7 +27,7 @@ public:
 		return OutputStorage::registerReaderGroup(groupSize);
 	}
 
-	void storeContainer(
+	bool storeContainer(
 		ContainerWrapper container,
 		[[maybe_unused]] const uint8_t writerId) noexcept override
 	{
@@ -48,6 +48,7 @@ public:
 				readIdx = (nextIndex(readIdx));
 			}
 		});
+		return true;
 	}
 
 	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../processPlugin/flowRecord.hpp"
 #include "allocationBuffer.hpp"
 #include "allocationBuffer2.hpp"
 #include "allocationBuffer3.hpp"
@@ -82,20 +83,58 @@ public:
 	public:
 		explicit WriteHandler(const uint8_t writerId, OutputStorage& storage) noexcept
 			: m_writerId(writerId)
+			, m_currentContainer(storage.allocateNewContainer())
 			, m_storage(storage)
 		{
 		}
 
-		~WriteHandler() noexcept { m_storage.unregisterWriter(); }
+		~WriteHandler() noexcept { m_storage.unregisterWriter(m_writerId); }
 
-		void storeContainer(ContainerWrapper container) noexcept
+		void pushFlowRecord(FlowRecordUniquePtr flowRecord) noexcept
 		{
-			m_storage.storeContainer(std::move(container), m_writerId);
+			if (m_currentContainer.getContainer().flows.size() == OutputContainer::SIZE) {
+				if (m_storage.storeContainer(std::move(m_currentContainer), m_writerId)) {
+					m_flowsPushed += OutputContainer::SIZE;
+				}
+				m_currentContainer.assign(
+					m_storage.allocateNewContainer(),
+					*m_storage.m_allocationBuffer);
+
+				m_currentContainer.getContainer().creationTime = std::chrono::steady_clock::now();
+				m_currentContainer.getContainer().sequenceNumber
+					= ipxp::output::OutputContainer::globalSequenceNumber++;
+				m_currentContainer.getContainer().readTimes = 0;
+				m_currentContainer.getContainer().flows.clear();
+			}
+
+			m_currentContainer.getContainer().flows.push_back(std::move(flowRecord));
 		}
+
+		void flush() noexcept
+		{
+			if (!m_currentContainer.empty() && !m_currentContainer.getContainer().flows.empty()) {
+				if (m_storage.storeContainer(std::move(m_currentContainer), m_writerId)) {
+					m_flowsPushed += m_currentContainer.getContainer().flows.size();
+				}
+				m_currentContainer.assign(
+					m_storage.allocateNewContainer(),
+					*m_storage.m_allocationBuffer);
+			}
+		}
+
+		/*bool storeContainer(ContainerWrapper container) noexcept
+		{
+			return m_storage.storeContainer(std::move(container), m_writerId);
+		}*/
+
+		std::size_t flowsPushed() const noexcept { return m_flowsPushed; }
 
 	private:
 		uint8_t m_writerId;
+		uint8_t m_flowIndex {0};
+		ContainerWrapper m_currentContainer;
 		OutputStorage& m_storage;
+		std::size_t m_flowsPushed {0};
 	};
 
 	class ReadHandler {
@@ -113,12 +152,29 @@ public:
 			m_storage.registerReader(m_readerGroupIndex, m_localReaderIndex, m_globalReaderIndex);
 		}
 
-		std::optional<ReferenceCounterHandler<OutputContainer>> getContainer() noexcept
+		const FlowRecordUniquePtr* getFlowRecord() noexcept
 		{
-			return m_storage.getContainer(
+			if (m_currentContainer.has_value()
+				&& m_flowIndex < m_currentContainer->getData().flows.size()) [[likely]] {
+				return &m_currentContainer->getData().flows[m_flowIndex++];
+			}
+
+			m_currentContainer = m_storage.getContainer(
 				m_readerGroupIndex,
 				m_localReaderIndex,
 				m_globalReaderIndex);
+			if (m_currentContainer == std::nullopt) {
+				return nullptr;
+			}
+			m_flowIndex = 0;
+			m_readContainers++;
+
+			auto& y = m_currentContainer->getData();
+			if (++m_currentContainer->getData().readTimes > 4) {
+				throw std::runtime_error("Container read more times than there are reader groups.");
+			}
+
+			return &m_currentContainer->getData().flows[m_flowIndex++];
 		}
 
 		// void registerReader() noexcept { m_storage.registerReader(m_readerGroupIndex); }
@@ -127,11 +183,16 @@ public:
 
 		uint8_t getReaderIndex() const noexcept { return m_globalReaderIndex; }
 
+		std::size_t readContainers() const noexcept { return m_readContainers; }
+
 	private:
 		const std::size_t m_readerGroupIndex;
 		const uint8_t m_localReaderIndex;
 		const uint8_t m_globalReaderIndex;
+		uint8_t m_flowIndex {OutputContainer::SIZE};
+		std::optional<ReferenceCounterHandler<OutputContainer>> m_currentContainer;
 		OutputStorage& m_storage;
+		std::size_t m_readContainers {0};
 	};
 
 	class ReaderGroupHandler {
@@ -167,7 +228,7 @@ public:
 		//, m_storage(ALLOCATION_BUFFER_CAPACITY, ContainerWrapper())
 		: m_allocationBuffer(
 			  std::make_unique<AllocationBuffer2<ReferenceCounter<OutputContainer>>>(
-				  ALLOCATION_BUFFER_CAPACITY * 32 * 16 + MAX_WRITERS_COUNT,
+				  ALLOCATION_BUFFER_CAPACITY + MAX_WRITERS_COUNT * 2,
 				  writersCount))
 		, m_totalWritersCount(writersCount)
 	{
@@ -209,7 +270,7 @@ public:
 		return WriteHandler(currentWriterId, *this);
 	}
 
-	virtual void unregisterWriter() noexcept
+	virtual void unregisterWriter([[maybe_unused]] const uint8_t writerId) noexcept
 	{
 		m_writersCount--;
 		m_allocationBuffer->unregisterWriter();
@@ -219,7 +280,7 @@ public:
 
 	virtual bool finished(const std::size_t readerGroupIndex) noexcept = 0;
 
-	virtual void storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept = 0;
+	virtual bool storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept = 0;
 
 	virtual std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
 		const std::size_t readerGroupIndex,

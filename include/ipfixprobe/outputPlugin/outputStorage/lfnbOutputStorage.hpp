@@ -37,7 +37,7 @@ public:
 		m_readerData
 	}*/
 
-	void storeContainer(
+	bool storeContainer(
 		ContainerWrapper container,
 		[[maybe_unused]] const uint8_t writerId) noexcept override
 	{
@@ -57,6 +57,7 @@ public:
 		m_storage[writePosition].assign(container, *m_allocationBuffer);
 		std::atomic_thread_fence(std::memory_order_release);
 		m_writersFinished[writePosition / BUCKET_SIZE]++;
+		return true;
 	}
 
 	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(

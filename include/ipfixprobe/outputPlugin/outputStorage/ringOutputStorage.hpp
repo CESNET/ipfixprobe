@@ -25,7 +25,7 @@ public:
 		static_assert(sizeof(ContainerWrapper) == sizeof(void*));
 	}
 
-	void storeContainer(
+	bool storeContainer(
 		ContainerWrapper container,
 		[[maybe_unused]] const uint8_t writerId) noexcept override
 	{
@@ -33,6 +33,7 @@ public:
 			throw std::runtime_error("Attempt to store empty container");
 		}
 		ipx_ring_push(m_ring.get(), *reinterpret_cast<void**>(&container));
+		return true;
 	}
 
 	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(

@@ -46,18 +46,30 @@ template<typename T>
 class ReferenceCounterHandler {
 public:
 	explicit ReferenceCounterHandler(ReferenceCounter<T>& counter) noexcept
-		: m_counter(counter)
+		: m_counter(&counter)
 	{
-		m_counter.incrementUserCount();
+		m_counter->incrementUserCount();
 	}
 
-	auto&& getData(this auto&& self) noexcept { return self.m_counter.getData(); }
+	auto&& getData(this auto&& self) noexcept { return self.m_counter->getData(); }
 
-	ReferenceCounterHandler(const ReferenceCounterHandler&) = delete;
-	ReferenceCounterHandler& operator=(const ReferenceCounterHandler&) = delete;
+	ReferenceCounterHandler(const ReferenceCounterHandler& other) noexcept
+		: ReferenceCounterHandler(*other.m_counter)
+	{
+	}
 
-	~ReferenceCounterHandler() noexcept { m_counter.decrementUserCount(); }
+	ReferenceCounterHandler& operator=(const ReferenceCounterHandler& other) noexcept
+	{
+		if (this != &other) {
+			m_counter->decrementUserCount();
+			m_counter = other.m_counter;
+			m_counter->incrementUserCount();
+		}
+		return *this;
+	}
+
+	~ReferenceCounterHandler() noexcept { m_counter->decrementUserCount(); }
 
 private:
-	ReferenceCounter<T>& m_counter;
+	ReferenceCounter<T>* m_counter;
 };

@@ -22,7 +22,7 @@ public:
 	{
 	}
 
-	void storeContainer(
+	bool storeContainer(
 		ContainerWrapper container,
 		[[maybe_unused]] const uint8_t writerId) noexcept override
 	{
@@ -34,6 +34,7 @@ public:
 		});
 
 		m_writeIndex = nextIndex(m_writeIndex);
+		return true;
 	}
 
 	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
