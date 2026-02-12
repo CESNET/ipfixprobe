@@ -174,7 +174,7 @@ private:
 			State* currentState = &m_stateBuffer.getCurrentValue();
 
 			if (currentState->written == currentState->writeBuffer.size()) {
-				BackoffScheme backoff(20, 6);
+				BackoffScheme backoff(7, 5);
 				while (!allReadersFinished()) {
 					if (!backoff.backoff()) {
 						container.deallocate(origin);

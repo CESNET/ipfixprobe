@@ -19,7 +19,7 @@ public:
 	bool backoff() noexcept
 	{
 		if (m_waitCounter < m_shortWaitThreshold) {
-			for (volatile const auto _ : std::views::iota(0, 1'000)) {}
+			for (volatile const auto _ : std::views::iota(0, 10'000)) {}
 		} else if (m_waitCounter < m_longWaitThreshold) {
 			std::this_thread::yield();
 		} else {
