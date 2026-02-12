@@ -682,6 +682,8 @@ void parse_packet(
 		return;
 	}
 	Packet* pkt = &opt->pblock->pkts[opt->pblock->cnt];
+	// reset all packet data
+	*pkt = Packet();
 	uint16_t data_offset = 0;
 
 	DEBUG_MSG("---------- packet parser  #%u -------------\n", ++s_total_pkts);
@@ -693,18 +695,6 @@ void parse_packet(
 
 	pkt->packet_len_wire = len;
 	pkt->ts = ts;
-	pkt->src_port = 0;
-	pkt->dst_port = 0;
-	pkt->ip_proto = 0;
-	pkt->ip_ttl = 0;
-	pkt->ip_flags = 0;
-	pkt->ip_version = 0;
-	pkt->ip_payload_len = 0;
-	pkt->tcp_flags = 0;
-	pkt->tcp_window = 0;
-	pkt->tcp_options = 0;
-	pkt->tcp_mss = 0;
-	pkt->mplsTop = 0;
 
 	stats.seen_packets++;
 
