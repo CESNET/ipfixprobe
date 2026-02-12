@@ -126,6 +126,7 @@ public:
 					getReferenceCounter(*container));
 			}
 		}
+		std::this_thread::yield();
 		return std::nullopt;
 	}
 

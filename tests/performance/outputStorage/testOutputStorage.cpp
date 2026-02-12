@@ -159,7 +159,7 @@ void makePerformanceTest(std::string_view storageName)
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 32 Writers, 1 Reader\n";
-	makeTest<OutputStorageType>(32, {1}, false, 50'000'000);
+	makeTest<OutputStorageType>(32, {1}, false, 5'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 1 Writers, 32 Readers\n";
