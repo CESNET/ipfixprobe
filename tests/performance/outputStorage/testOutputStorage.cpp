@@ -182,6 +182,27 @@ void makePerformanceTest(std::string_view storageName)
 TEST(TestOutputStorage, XXX)
 {
 	makePerformanceTest<ipxp::output::MQOutputStorage>("MQOutputStorage");
+	std::cout << "==========================================================" << std::endl;
+	std::cout << "MQOutputStorage, 1 Writers, 1 Reader\n";
+	makeTest<ipxp::output::MQOutputStorage>(1, {1}, false, 30'000'000);
+
+	std::cout << "==========================================================" << std::endl;
+	std::cout << "MQOutputStorage, 32 Writers, 1 Reader\n";
+	makeTest<ipxp::output::MQOutputStorage>(32, {1}, false, 5'000'000);
+
+	std::cout << "==========================================================" << std::endl;
+	std::cout << "MQOutputStorage, 32 Writers, 32 Readers\n";
+	makeTest<ipxp::output::MQOutputStorage>(32, {32}, false, 5'000'000);
+
+	std::cout << "==========================================================" << std::endl;
+	std::cout << "MQOutputStorage, 4 Writers, 4 Group 1 Reader\n";
+	makeTest<ipxp::output::MQOutputStorage>(4, {1, 1, 1, 1}, false, 30'000'000);
+
+	std::cout << "==========================================================" << std::endl;
+	std::cout << "MQOutputStorage, 32 Writers, 4 Group 8 Reader\n";
+	makeTest<ipxp::output::MQOutputStorage>(32, {8, 8, 8, 8}, false, 10'000'000);
+	std::cout << std::endl;
+
 	makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
 	makePerformanceTest<ipxp::output::BOutputStorage>("BOutputStorage");
 	makePerformanceTest<ipxp::output::LFNBOutputStorage>("LFNBOutputStorage");
