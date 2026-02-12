@@ -197,8 +197,8 @@ TEST(TestOutputStorage, Debug)
 {
 	for (const auto testIndex : std::views::iota(0, 100)) {
 		std::cout << " Debug Loop Iteration " << testIndex << "\n";
-		makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
-		// stressTest<ipxp::output::MQOutputStorage>(false);
+		// makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
+		stressTest<ipxp::output::MQOutputStorage>(false);
 	}
 }
 

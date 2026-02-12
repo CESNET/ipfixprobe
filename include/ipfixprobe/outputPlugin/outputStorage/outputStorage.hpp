@@ -181,8 +181,8 @@ public:
 
 		bool finished() noexcept { return m_storage.finished(m_readerGroupIndex); }
 
+		// For debugging
 		uint8_t getReaderIndex() const noexcept { return m_globalReaderIndex; }
-
 		std::size_t readContainers() const noexcept { return m_readContainers; }
 
 	private:
@@ -228,7 +228,7 @@ public:
 		//, m_storage(ALLOCATION_BUFFER_CAPACITY, ContainerWrapper())
 		: m_allocationBuffer(
 			  std::make_unique<AllocationBuffer2<ReferenceCounter<OutputContainer>>>(
-				  ALLOCATION_BUFFER_CAPACITY + MAX_WRITERS_COUNT * 2,
+				  ALLOCATION_BUFFER_CAPACITY + MAX_WRITERS_COUNT * 10,
 				  writersCount))
 		, m_totalWritersCount(writersCount)
 	{

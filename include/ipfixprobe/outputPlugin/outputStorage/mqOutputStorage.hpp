@@ -100,9 +100,9 @@ public:
 	{
 		// const uint16_t writeQueueIndex = m_threadIdToWriterIndexMap.at(getThreadId());
 		//  WriteLockGuard lockGuard(m_locks[writeQueueIndex]);
+
 		if (!m_queues[writerId]
 				 .tryWrite(std::move(container), *m_allocationBuffer, m_readerGroupsCount)) {
-			std::this_thread::yield();
 			return false;
 		}
 		return true;
@@ -113,7 +113,8 @@ public:
 		const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
 	{
-		const size_t tries = MAX_WRITERS_COUNT / m_readerGroupSizes[readerGroupIndex];
+		const size_t tries = m_totalWritersCount / m_readerGroupSizes[readerGroupIndex] + 1;
+		BackoffScheme backoff(3, 5);
 		for (const auto _ : std::views::iota(0U, tries)) {
 			const uint8_t sequenceIndex = m_readersData[globalReaderIndex]->sequenceIndex++;
 			const uint8_t queueIndex = m_readersData[globalReaderIndex]
@@ -125,8 +126,9 @@ public:
 				return std::make_optional<ReferenceCounterHandler<OutputContainer>>(
 					getReferenceCounter(*container));
 			}
+			std::this_thread::yield();
+			// backoff.backoff();
 		}
-		std::this_thread::yield();
 		return std::nullopt;
 	}
 
@@ -172,10 +174,11 @@ private:
 			State* currentState = &m_stateBuffer.getCurrentValue();
 
 			if (currentState->written == currentState->writeBuffer.size()) {
-				BackoffScheme backoff(3, 5);
+				BackoffScheme backoff(20, 6);
 				while (!allReadersFinished()) {
 					if (!backoff.backoff()) {
 						container.deallocate(origin);
+						d_deallocated++;
 						return false;
 					}
 				}
@@ -297,6 +300,7 @@ private:
 		DoubleBufferedValue<State> m_stateBuffer;
 	};
 
+	static inline std::atomic<uint64_t> d_deallocated;
 	std::mutex m_registrationMutex;
 	// std::atomic_uint64_t m_queueDistributionIndex;
 	boost::container::static_vector<Queue, OutputStorage::MAX_WRITERS_COUNT> m_queues;
