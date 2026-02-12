@@ -758,12 +758,14 @@ void parse_packet(
 		}
 
 		l4_hdr_offset = data_offset;
-		if (pkt->ip_proto == IPPROTO_TCP) {
-			data_offset += parse_tcp_hdr(data + data_offset, caplen - data_offset, pkt, stats);
-			stats.tcp_packets++;
-		} else if (pkt->ip_proto == IPPROTO_UDP) {
-			data_offset += parse_udp_hdr(data + data_offset, caplen - data_offset, pkt, stats);
-			stats.udp_packets++;
+		if (pkt->frag_off == 0) {
+			if (pkt->ip_proto == IPPROTO_TCP) {
+				data_offset += parse_tcp_hdr(data + data_offset, caplen - data_offset, pkt, stats);
+				stats.tcp_packets++;
+			} else if (pkt->ip_proto == IPPROTO_UDP) {
+				data_offset += parse_udp_hdr(data + data_offset, caplen - data_offset, pkt, stats);
+				stats.udp_packets++;
+			}
 		}
 	} catch (const char* err) {
 		DEBUG_MSG("%s\n", err);
