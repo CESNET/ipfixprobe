@@ -321,16 +321,15 @@ void NHTFlowCache::flush(Packet& pkt, size_t flow_index, int ret, bool source_fl
 
 int NHTFlowCache::put_pkt(Packet& pkt)
 {
+	if (m_enable_fragmentation_cache) {
+		try_to_fill_ports_to_fragmented_packet(pkt);
+	}
 	return put_pkt_recursive(pkt);
 }
 
 int NHTFlowCache::put_pkt_recursive(Packet& pkt)
 {
 	int ret = plugins_pre_create(pkt);
-
-	if (m_enable_fragmentation_cache) {
-		try_to_fill_ports_to_fragmented_packet(pkt);
-	}
 
 	if (!create_hash_key(pkt)) { // saves key value and key length into attributes NHTFlowCache::key
 								 // and NHTFlowCache::m_keylen
