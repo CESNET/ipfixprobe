@@ -409,6 +409,24 @@
             },
             "source_optimization": {
               "type": "boolean"
+            },
+            "source_optimization_network": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "main": {
+                    "type": "string"
+                  },
+                  "exclude": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "main"
+                ],
+                "additionalProperties": false
+              }
             }
           },
           "additionalProperties": false
