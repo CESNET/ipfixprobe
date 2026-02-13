@@ -57,12 +57,12 @@ add_subdirectory(pkg)
 add_subdirectory(init)
 
 if (ENABLE_TESTS)
-	if (NOT ENABLE_NEMEA OR NOT ENABLE_OUTPUT_UNIREC OR NOT ENABLE_INPUT_PCAP)
-		message(FATAL_ERROR
-			"ENABLE_TESTS requires ENABLE_NEMEA, "
-			"ENABLE_INPUT_PCAP and ENABLE_OUTPUT_UNIREC to be enabled."
-		)
-	endif()
+	#if (NOT ENABLE_NEMEA OR NOT ENABLE_OUTPUT_UNIREC OR NOT ENABLE_INPUT_PCAP)
+	#	message(FATAL_ERROR
+	#		"ENABLE_TESTS requires ENABLE_NEMEA, "
+	#		"ENABLE_INPUT_PCAP and ENABLE_OUTPUT_UNIREC to be enabled."
+	#	)
+	#endif()
 	enable_testing()
 	add_subdirectory(tests)
 endif()

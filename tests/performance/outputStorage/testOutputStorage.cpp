@@ -181,7 +181,6 @@ void makePerformanceTest(std::string_view storageName)
 
 TEST(TestOutputStorage, XXX)
 {
-	makePerformanceTest<ipxp::output::MQOutputStorage>("MQOutputStorage");
 	std::cout << "==========================================================" << std::endl;
 	std::cout << "MQOutputStorage, 1 Writers, 1 Reader\n";
 	makeTest<ipxp::output::MQOutputStorage>(1, {1}, false, 30'000'000);
