@@ -41,6 +41,10 @@ public:
 		[[maybe_unused]] const uint8_t localReaderIndex,
 		[[maybe_unused]] const uint8_t globalReaderIndex) noexcept override
 	{
+		if (m_lastReadContainer != nullptr) {
+			m_lastReadContainer->deallocate(*m_allocationBuffer);
+			m_lastReadContainer = nullptr;
+		}
 		if (ipx_ring_cnt(m_ring.get()) == 0) {
 			return std::nullopt;
 		}
@@ -50,6 +54,7 @@ public:
 			return std::nullopt;
 		}
 		ContainerWrapper& container = *reinterpret_cast<ContainerWrapper*>(&pop);
+		m_lastReadContainer = &container;
 		return std::make_optional<ReferenceCounterHandler<OutputContainer>>(
 			getReferenceCounter(container));
 	}
@@ -61,6 +66,7 @@ public:
 
 private:
 	std::unique_ptr<ipx_ring_t, decltype(&ipx_ring_destroy)> m_ring;
+	ContainerWrapper* m_lastReadContainer {nullptr};
 };
 
 } // namespace ipxp::output
