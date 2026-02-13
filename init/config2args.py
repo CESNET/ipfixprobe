@@ -157,6 +157,9 @@ def process_input_dpdk_plugin(settings):
     mtu = settings.get("mtu", 1518)
     if mtu is not None:
         primary_param += f"mtu={mtu};"
+    rss_offload = settings.get("rss_offload", None)
+    if rss_offload is not None:
+        primary_param += f"rss={rss_offload};"
     primary_param += f"eal={eal}\""
 
     params = []

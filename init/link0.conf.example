@@ -35,6 +35,11 @@ input_plugin:
     eal_opts: null  # EAL options (null = default options)
     mtu: null  # Maximum Transmission Unit (defaults to RTE_ETHER_MAX_LEN)
 
+    # Our default RSS configuration is RTE_ETH_RSS_IP.
+    # Intel X710 (i40e) does not work reliably with it, so by default we use RSS provided by the NIC/driver.
+    # Set this explicitly to override the driver RSS configuration.
+    rss_offload: null
+
 # Storage configuration (storage)
 storage:
   cache:

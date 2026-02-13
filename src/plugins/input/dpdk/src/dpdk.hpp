@@ -34,6 +34,7 @@ private:
 	uint16_t rx_queues_ = 1;
 	std::string eal_;
 	uint16_t mtu_;
+	uint64_t rss_offload_ = 0;
 
 	std::vector<uint16_t> parsePortNumbers(std::string arg)
 	{
@@ -124,6 +125,20 @@ public:
 			},
 			RequiredArgument);
 		register_option(
+			"r",
+			"rss",
+			"VALUE",
+			"RSS offload value. Default: 0",
+			[this](const char* arg) {
+				try {
+					rss_offload_ = str2num<decltype(rss_offload_)>(arg);
+				} catch (std::invalid_argument&) {
+					return false;
+				}
+				return true;
+			},
+			RequiredArgument);
+		register_option(
 			"e",
 			"eal",
 			"EAL",
@@ -160,6 +175,8 @@ public:
 	uint16_t rx_queues() const { return rx_queues_; }
 
 	uint16_t mtu_size() const { return mtu_; }
+
+	uint64_t rss_offload() const { return rss_offload_; }
 };
 
 class DpdkCore {
