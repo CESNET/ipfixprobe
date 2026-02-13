@@ -19,13 +19,14 @@ public:
 
 	bool storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept override
 	{
-		BackoffScheme backoffScheme(SHORT_TRIES, LONG_TRIES);
+		BackoffScheme backoffScheme(8, 1);
 		while (true) {
 			const uint64_t writeRank = m_writeRank++;
 			const uint64_t writeIndex = writeRank % ALLOCATION_BUFFER_CAPACITY;
-			if ((m_storage[writeIndex].empty()
-				 || !getReferenceCounter(m_storage[writeIndex]).hasUsers())
-				&& m_cells[writeIndex].state.allGroupsRead()
+			if (
+				/*(m_storage[writeIndex].empty()
+				 || !getReferenceCounter(m_storage[writeIndex]).hasUsers())&&*/
+				m_cells[writeIndex].state.allGroupsRead()
 				&& m_cells[writeIndex].state.tryToSetWriter()) {
 				m_storage[writeIndex].assign(container, *m_allocationBuffer);
 				std::atomic_thread_fence(std::memory_order_release);

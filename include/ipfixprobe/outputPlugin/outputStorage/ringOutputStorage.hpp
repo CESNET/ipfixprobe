@@ -17,9 +17,7 @@ public:
 	explicit RingOutputStorage(const uint8_t writersCount) noexcept
 		: OutputStorage(writersCount)
 		, m_ring(
-			  ipx_ring_init(
-				  static_cast<uint32_t>(ALLOCATION_BUFFER_CAPACITY * 32),
-				  writersCount > 1),
+			  ipx_ring_init(static_cast<uint32_t>(ALLOCATION_BUFFER_CAPACITY), writersCount > 1),
 			  &ipx_ring_destroy)
 		, m_lastReadContainer(allocateNewContainer())
 	{

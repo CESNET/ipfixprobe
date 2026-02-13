@@ -138,7 +138,7 @@ void stressTest(const bool immitateWork)
 {
 	std::cout << "Stress Test: X Writers, X Group X Readers"
 			  << (immitateWork ? " With Work" : " No Work") << "\n";
-	makeTest<OutputStorageType>(1, {1}, immitateWork, 1'000'000);
+	makeTest<OutputStorageType>(32, {1}, immitateWork, 0'300'000);
 }
 
 template<typename OutputStorageType>
@@ -218,7 +218,7 @@ TEST(TestOutputStorage, Debug)
 	for (const auto testIndex : std::views::iota(0, 100)) {
 		std::cout << " Debug Loop Iteration " << testIndex << "\n";
 		// makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
-		stressTest<ipxp::output::MQOutputStorage>(false);
+		stressTest<ipxp::output::FFQOutputStorage>(false);
 	}
 }
 
