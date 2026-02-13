@@ -58,6 +58,7 @@ struct FragmentationKey {
 		, destination_ip(packet.dst_ip)
 		, fragmentation_id(packet.frag_id)
 		, vlan_id(packet.vlan_id)
+		, vlan_id2(packet.vlan_id2)
 	{
 	}
 
@@ -76,6 +77,7 @@ struct FragmentationKey {
 	ipaddr_t destination_ip; ///< Destination IP address of the packet.
 	uint32_t fragmentation_id; ///< Fragmentation ID of the packet.
 	uint16_t vlan_id; ///< VLAN ID of the packet.
+	uint16_t vlan_id2; ///< Second VLAN ID of the packet.
 } __attribute__((packed));
 
 /**

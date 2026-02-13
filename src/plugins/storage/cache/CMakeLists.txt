@@ -12,6 +12,8 @@ add_library(ipfixprobe-storage-cache MODULE
 	src/fragmentationCache/fragmentationTable.hpp
 	src/fragmentationCache/ringBuffer.hpp
 	src/fragmentationCache/timevalUtils.hpp
+	src/sourceOptimization.cpp
+	src/sourceOptimization.hpp
 	src/xxhash.c
 	src/xxhash.h
 )

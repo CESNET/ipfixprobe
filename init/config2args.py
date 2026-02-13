@@ -336,6 +336,40 @@ def process_storage(config):
             cache_params.append(f"s={cache['size_exponent']}")
         if "line_size_exponent" in cache:
             cache_params.append(f"l={cache['line_size_exponent']}")
+        if "source_optimization" in cache:
+            so_value = "true" if cache['source_optimization'] else "false"
+            cache_params.append(f"so={so_value}")
+        if "source_optimization_network" in cache:
+            son_networks = cache.get("source_optimization_network")
+            if son_networks:
+                # Handle source_optimization_network - can be a list of dicts or a single dict
+                if isinstance(son_networks, dict):
+                    # If it's a single dict with main/exclude, convert to list
+                    son_networks = [son_networks]
+                elif not isinstance(son_networks, list):
+                    son_networks = [son_networks]
+                
+                # Generate -son arguments for each network group
+                for network_group in son_networks:
+                    if isinstance(network_group, dict):
+                        main = network_group.get("main")
+                        exclude = network_group.get("exclude", "")
+                        
+                        if main:
+                            # Combine main network with exclusions
+                            networks = [main.strip()]
+                            if exclude:
+                                # Handle exclude as comma-separated string
+                                if isinstance(exclude, str):
+                                    excludes = [e.strip() for e in exclude.split(",")]
+                                    networks.extend(excludes)
+                                elif isinstance(exclude, list):
+                                    networks.extend(exclude)
+                            
+                            cache_params.append(f"son={','.join(networks)}")
+                    elif isinstance(network_group, str):
+                        # If it's just a string, use it directly
+                        cache_params.append(f"son={network_group}")
         if cache_params:
             params.append(f"{';'.join(cache_params)}")
 

@@ -60,6 +60,7 @@ struct Packet : public Record {
 	ipaddr_t src_ip;
 	ipaddr_t dst_ip;
 	uint32_t vlan_id;
+	uint32_t vlan_id2;
 	uint32_t frag_id;
 	uint16_t frag_off;
 	bool more_fragments;
@@ -119,6 +120,7 @@ struct Packet : public Record {
 		, src_ip({0})
 		, dst_ip({0})
 		, vlan_id(0)
+		, vlan_id2(0)
 		, frag_id(0)
 		, frag_off(0)
 		, more_fragments(false)
