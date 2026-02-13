@@ -181,6 +181,11 @@ void makePerformanceTest(std::string_view storageName)
 
 TEST(TestOutputStorage, XXX)
 {
+	std::cout << "Ring, 1 Writers, 1 Reader\n";
+	makeTest<ipxp::output::RingOutputStorage>(1, {1}, false, 30'000'000);
+	std::cout << "Ring, 32 Writers, 1 Reader\n";
+
+	makeTest<ipxp::output::RingOutputStorage>(32, {1}, false);
 	std::cout << "==========================================================" << std::endl;
 	std::cout << "MQOutputStorage, 1 Writers, 1 Reader\n";
 	makeTest<ipxp::output::MQOutputStorage>(1, {1}, false, 30'000'000);
@@ -206,11 +211,6 @@ TEST(TestOutputStorage, XXX)
 	makePerformanceTest<ipxp::output::BOutputStorage>("BOutputStorage");
 	makePerformanceTest<ipxp::output::LFNBOutputStorage>("LFNBOutputStorage");
 	makePerformanceTest<ipxp::output::FFQOutputStorage>("FFQOutputStorage");
-
-	std::cout << "Ring, 1 Writers, 1 Reader\n";
-	makeTest<ipxp::output::RingOutputStorage>(1, {1}, false, 30'000'000);
-	std::cout << "Ring, 32 Writers, 1 Reader\n";
-	makeTest<ipxp::output::RingOutputStorage>(32, {1}, false);
 }
 
 TEST(TestOutputStorage, Debug)

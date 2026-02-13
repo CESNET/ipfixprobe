@@ -21,6 +21,7 @@ public:
 				  static_cast<uint32_t>(ALLOCATION_BUFFER_CAPACITY * 32),
 				  writersCount > 1),
 			  &ipx_ring_destroy)
+		, m_lastReadContainer(allocateNewContainer())
 	{
 		static_assert(sizeof(ContainerWrapper) == sizeof(void*));
 	}
@@ -41,9 +42,8 @@ public:
 		[[maybe_unused]] const uint8_t localReaderIndex,
 		[[maybe_unused]] const uint8_t globalReaderIndex) noexcept override
 	{
-		if (m_lastReadContainer != nullptr) {
-			m_lastReadContainer->deallocate(*m_allocationBuffer);
-			m_lastReadContainer = nullptr;
+		if (!m_lastReadContainer.empty()) {
+			m_lastReadContainer.deallocate(*m_allocationBuffer);
 		}
 		if (ipx_ring_cnt(m_ring.get()) == 0) {
 			return std::nullopt;
@@ -54,9 +54,9 @@ public:
 			return std::nullopt;
 		}
 		ContainerWrapper& container = *reinterpret_cast<ContainerWrapper*>(&pop);
-		m_lastReadContainer = &container;
+		m_lastReadContainer.assign(container, *m_allocationBuffer);
 		return std::make_optional<ReferenceCounterHandler<OutputContainer>>(
-			getReferenceCounter(container));
+			getReferenceCounter(m_lastReadContainer));
 	}
 
 	bool finished(const std::size_t readerGroupIndex) noexcept override
@@ -66,7 +66,7 @@ public:
 
 private:
 	std::unique_ptr<ipx_ring_t, decltype(&ipx_ring_destroy)> m_ring;
-	ContainerWrapper* m_lastReadContainer {nullptr};
+	ContainerWrapper m_lastReadContainer;
 };
 
 } // namespace ipxp::output
