@@ -28,13 +28,14 @@ public:
 		ipxp::output::OutputStorage::ReadHandler readHandler
 			= m_readerGroupHandler.getReaderHandler();
 		while (!readHandler.finished()) {
-			while (readHandler.getFlowRecord() != nullptr) {}
-			if (std::chrono::steady_clock::now() - m_lastPrintTime > std::chrono::seconds(20)) {
-				const std::string message = "Reader  "
-					+ std::to_string(readHandler.getReaderIndex()) + " read "
-					+ std::to_string(readHandler.readContainers()) + " containers so far.";
-				std::cout << message << std::endl;
-				m_lastPrintTime = std::chrono::steady_clock::now();
+			while (readHandler.getFlowRecord() != nullptr) {
+				if (std::chrono::steady_clock::now() - m_lastPrintTime > std::chrono::seconds(20)) {
+					const std::string message = "Reader  "
+						+ std::to_string(readHandler.getReaderIndex()) + " read "
+						+ std::to_string(readHandler.readContainers()) + " containers so far.";
+					std::cout << message << std::endl;
+					m_lastPrintTime = std::chrono::steady_clock::now();
+				}
 			}
 		}
 		return readHandler.readContainers();
