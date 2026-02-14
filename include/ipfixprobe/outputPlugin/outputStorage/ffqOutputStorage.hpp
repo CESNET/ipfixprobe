@@ -71,7 +71,7 @@ public:
 		return !writersPresent() &&
 			// m_readRanks[readerGroupIndex].get() % ALLOCATION_BUFFER_CAPACITY
 			//== m_writeRank.load() % ALLOCATION_BUFFER_CAPACITY;
-			m_readRanks[readerGroupIndex].get() > m_writeRank.load()
+			m_readRanks[readerGroupIndex].get() > m_writeRank.load();
 	}
 
 private:
