@@ -112,14 +112,17 @@ public:
 
 		void flush() noexcept
 		{
-			if (!m_currentContainer.empty() && !m_currentContainer.getContainer().flows.empty()) {
-				if (m_storage.storeContainer(std::move(m_currentContainer), m_writerId)) {
-					m_flowsPushed += m_currentContainer.getContainer().flows.size();
-				}
-				m_currentContainer.assign(
-					m_storage.allocateNewContainer(),
-					*m_storage.m_allocationBuffer);
+			if (m_currentContainer.empty() || m_currentContainer.getContainer().flows.empty()) {
+				return;
 			}
+
+			const std::size_t flowsInContainer = m_currentContainer.getContainer().flows.size();
+			if (m_storage.storeContainer(std::move(m_currentContainer), m_writerId)) {
+				m_flowsPushed += flowsInContainer;
+			}
+			m_currentContainer.assign(
+				m_storage.allocateNewContainer(),
+				*m_storage.m_allocationBuffer);
 		}
 
 		/*bool storeContainer(ContainerWrapper container) noexcept

@@ -50,7 +50,7 @@ public:
 			m_cells[*m_readersData[globalReaderIndex]->lastReadIndex].state.setReadingFinished(
 				readerGroupIndex);
 		}
-		while (true) {
+		while (!finished(readerGroupIndex)) {
 			const uint64_t readRank = m_readRanks[readerGroupIndex].get()++;
 			const uint64_t readIndex = readRank % ALLOCATION_BUFFER_CAPACITY;
 			if (m_cells[readIndex].state.tryToSetReadingStarted(readerGroupIndex)) {
@@ -60,10 +60,11 @@ public:
 					getReferenceCounter(m_storage[readIndex]));
 			}
 			if (!backoffScheme.backoff()) {
-				m_readersData[globalReaderIndex]->lastReadIndex = std::nullopt;
-				return std::nullopt;
+				// m_readersData[globalReaderIndex]->lastReadIndex = std::nullopt;
+				// return std::nullopt;
 			}
 		}
+		return std::nullopt;
 	}
 
 	bool finished(const std::size_t readerGroupIndex) noexcept override
@@ -74,7 +75,7 @@ public:
 			m_readRanks[readerGroupIndex].get() > m_writeRank.load();
 	}
 
-private:
+protected:
 	class ReaderGroupState {
 		constexpr static uint8_t WRITER_INDEX = MAX_READER_GROUPS_COUNT - 1;
 

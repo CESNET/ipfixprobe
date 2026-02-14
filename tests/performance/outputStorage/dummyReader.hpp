@@ -27,7 +27,8 @@ public:
 		// m_storage.registerReader(m_readerGroupIndex);
 		ipxp::output::OutputStorage::ReadHandler readHandler
 			= m_readerGroupHandler.getReaderHandler();
-		while (readHandler.getFlowRecord() != nullptr || !readHandler.finished()) {
+		while (!readHandler.finished()) {
+			while (readHandler.getFlowRecord() != nullptr) {}
 			if (std::chrono::steady_clock::now() - m_lastPrintTime > std::chrono::seconds(20)) {
 				const std::string message = "Reader  "
 					+ std::to_string(readHandler.getReaderIndex()) + " read "

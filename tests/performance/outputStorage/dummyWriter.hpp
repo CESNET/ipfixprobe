@@ -41,6 +41,7 @@ public:
 				std::this_thread::sleep_for(std::chrono::microseconds(1));
 			}
 		}
+		writeHandler.flush();
 		std::cout << "Writer finished writing " << std::endl;
 	}
 
