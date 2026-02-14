@@ -173,7 +173,7 @@ public:
 			m_readContainers++;
 
 			auto& y = m_currentContainer->getData();
-			if (++m_currentContainer->getData().readTimes > 4) {
+			if (++m_currentContainer->getData().readTimes > 1) {
 				throw std::runtime_error("Container read more times than there are reader groups.");
 			}
 
