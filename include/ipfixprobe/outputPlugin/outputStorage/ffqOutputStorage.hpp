@@ -19,7 +19,7 @@ public:
 
 	bool storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept override
 	{
-		BackoffScheme backoffScheme(8, 1);
+		BackoffScheme backoffScheme(70, 1);
 		while (true) {
 			const uint64_t writeRank = m_writeRank++;
 			const uint64_t writeIndex = writeRank % ALLOCATION_BUFFER_CAPACITY;
@@ -45,7 +45,7 @@ public:
 		const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
 	{
-		BackoffScheme backoffScheme(SHORT_TRIES, LONG_TRIES);
+		BackoffScheme backoffScheme(30, 1);
 		if (m_readersData[globalReaderIndex]->lastReadIndex.has_value()) {
 			m_cells[*m_readersData[globalReaderIndex]->lastReadIndex].state.setReadingFinished(
 				readerGroupIndex);
@@ -68,9 +68,10 @@ public:
 
 	bool finished(const std::size_t readerGroupIndex) noexcept override
 	{
-		return !writersPresent()
-			&& m_readRanks[readerGroupIndex].get() % ALLOCATION_BUFFER_CAPACITY
-			== m_writeRank.load() % ALLOCATION_BUFFER_CAPACITY;
+		return !writersPresent() &&
+			// m_readRanks[readerGroupIndex].get() % ALLOCATION_BUFFER_CAPACITY
+			//== m_writeRank.load() % ALLOCATION_BUFFER_CAPACITY;
+			m_readRanks[readerGroupIndex].get() > m_writeRank.load()
 	}
 
 private:
