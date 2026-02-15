@@ -74,7 +74,7 @@ private:
 class OutputStorage {
 public:
 	constexpr static std::size_t ALLOCATION_BUFFER_CAPACITY = 65536;
-	// constexpr static std::size_t ALLOCATION_BUFFER_CAPACITY = 40;
+	// constexpr static std::size_t ALLOCATION_BUFFER_CAPACITY = 2048;
 	constexpr static std::size_t MAX_WRITERS_COUNT = 32;
 	constexpr static std::size_t MAX_READERS_COUNT = 32;
 	constexpr static std::size_t MAX_READER_GROUPS_COUNT = 8;
@@ -86,12 +86,20 @@ public:
 			, m_currentContainer(storage.allocateNewContainer())
 			, m_storage(storage)
 		{
+			m_currentContainer.getContainer().flows.clear();
+			m_currentContainer.getContainer().creationTime = std::chrono::steady_clock::now();
+			m_currentContainer.getContainer().sequenceNumber
+				= ipxp::output::OutputContainer::globalSequenceNumber++;
+			m_currentContainer.getContainer().readTimes = 0;
 		}
 
 		~WriteHandler() noexcept { m_storage.unregisterWriter(m_writerId); }
 
 		void pushFlowRecord(FlowRecordUniquePtr flowRecord) noexcept
 		{
+			if (m_currentContainer.getContainer().readTimes > 0) {
+				throw std::runtime_error("Container read more times than there are reader groups.");
+			}
 			if (m_currentContainer.getContainer().flows.size() == OutputContainer::SIZE) {
 				if (m_storage.storeContainer(std::move(m_currentContainer), m_writerId)) {
 					m_flowsPushed += OutputContainer::SIZE;
@@ -173,7 +181,7 @@ public:
 			m_readContainers++;
 
 			auto& y = m_currentContainer->getData();
-			if (++m_currentContainer->getData().readTimes > 1) {
+			if (++m_currentContainer->getData().readTimes > 4) {
 				throw std::runtime_error("Container read more times than there are reader groups.");
 			}
 

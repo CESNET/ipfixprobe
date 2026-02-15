@@ -17,14 +17,19 @@ public:
 
 	bool storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept override
 	{
+		if (container.getContainer().readTimes > 0) {
+			throw std::runtime_error("Container read more times than there are reader groups.");
+		}
 		BackoffScheme backoffScheme(70, std::numeric_limits<std::size_t>::max());
 		const uint64_t writeRank = m_writeRank++;
 		const uint64_t writeIndex = writeRank % ALLOCATION_BUFFER_CAPACITY;
-		while (
-			!(m_cells[writeIndex].state.allGroupsRead()
-			  && m_cells[writeIndex].state.tryToSetWriter())) {
+		while (!m_cells[writeIndex].state.tryToSetWriter()) {
 			backoffScheme.backoff();
 		}
+		while (!m_cells[writeIndex].state.allGroupsRead()) {
+			backoffScheme.backoff();
+		}
+
 		m_storage[writeIndex].assign(container, *m_allocationBuffer);
 		std::atomic_thread_fence(std::memory_order_release);
 		m_cells[writeIndex].state.reset(m_readerGroupsCount.load());
@@ -40,6 +45,7 @@ public:
 		if (m_readersData[globalReaderIndex]->lastReadIndex.has_value()) {
 			m_cells[*m_readersData[globalReaderIndex]->lastReadIndex].state.setReadingFinished(
 				readerGroupIndex);
+			m_readersData[globalReaderIndex]->lastReadIndex = std::nullopt;
 		}
 		const uint64_t readRank = m_readRanks[readerGroupIndex].get()++;
 		const uint64_t readerIndex = readRank % ALLOCATION_BUFFER_CAPACITY;
@@ -71,6 +77,7 @@ public:
 	}
 
 private:
+	// std::array<std::atomic<uint64_t>, ALLOCATION_BUFFER_CAPACITY> m_readTimes {};
 };
 
 } // namespace ipxp::output

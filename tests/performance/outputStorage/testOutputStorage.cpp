@@ -139,7 +139,7 @@ void stressTest(const bool immitateWork)
 {
 	std::cout << "Stress Test: X Writers, X Group X Readers"
 			  << (immitateWork ? " With Work" : " No Work") << "\n";
-	makeTest<OutputStorageType>(1, {1}, immitateWork, 1'000'000);
+	makeTest<OutputStorageType>(32, {8, 8, 8, 8}, immitateWork, 400'000);
 }
 
 template<typename OutputStorageType>
@@ -182,6 +182,12 @@ void makePerformanceTest(std::string_view storageName)
 
 TEST(TestOutputStorage, XXX)
 {
+	makePerformanceTest<ipxp::output::FFQ2OutputStorage>("FFQ2OutputStorage");
+	makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
+	makePerformanceTest<ipxp::output::BOutputStorage>("BOutputStorage");
+	makePerformanceTest<ipxp::output::LFNBOutputStorage>("LFNBOutputStorage");
+	makePerformanceTest<ipxp::output::FFQOutputStorage>("FFQOutputStorage");
+
 	std::cout << "Ring, 1 Writers, 1 Reader\n";
 	makeTest<ipxp::output::RingOutputStorage>(1, {1}, false, 30'000'000);
 	std::cout << "Ring, 32 Writers, 1 Reader\n";
@@ -207,11 +213,6 @@ TEST(TestOutputStorage, XXX)
 	std::cout << "MQOutputStorage, 32 Writers, 4 Group 8 Reader\n";
 	makeTest<ipxp::output::MQOutputStorage>(32, {8, 8, 8, 8}, false, 10'000'000);
 	std::cout << std::endl;
-
-	makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
-	makePerformanceTest<ipxp::output::BOutputStorage>("BOutputStorage");
-	makePerformanceTest<ipxp::output::LFNBOutputStorage>("LFNBOutputStorage");
-	makePerformanceTest<ipxp::output::FFQOutputStorage>("FFQOutputStorage");
 }
 
 TEST(TestOutputStorage, Debug)

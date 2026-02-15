@@ -60,8 +60,8 @@ public:
 					getReferenceCounter(m_storage[readIndex]));
 			}
 			if (!backoffScheme.backoff()) {
-				// m_readersData[globalReaderIndex]->lastReadIndex = std::nullopt;
-				// return std::nullopt;
+				m_readersData[globalReaderIndex]->lastReadIndex = std::nullopt;
+				return std::nullopt;
 			}
 		}
 		return std::nullopt;
