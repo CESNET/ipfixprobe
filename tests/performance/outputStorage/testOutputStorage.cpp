@@ -13,6 +13,7 @@
 #include <outputStorage/ffq2OutputStorage.hpp>
 #include <outputStorage/ffqOutputStorage.hpp>
 #include <outputStorage/lfnbOutputStorage.hpp>
+#include <outputStorage/mc2OutputStorage.hpp>
 #include <outputStorage/mcOutputStorage.hpp>
 #include <outputStorage/mqOutputStorage.hpp>
 #include <outputStorage/ringOutputStorage.hpp>
@@ -183,10 +184,11 @@ void makePerformanceTest(std::string_view storageName)
 
 TEST(TestOutputStorage, XXX)
 {
+	makePerformanceTest<ipxp::output::MC2OutputStorage>("MC2OutputStorage");
+	makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
 	makePerformanceTest<ipxp::output::B2OutputStorage>("B2OutputStorage");
 	makePerformanceTest<ipxp::output::BOutputStorage>("BOutputStorage");
 	makePerformanceTest<ipxp::output::FFQ2OutputStorage>("FFQ2OutputStorage");
-	makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
 	makePerformanceTest<ipxp::output::LFNBOutputStorage>("LFNBOutputStorage");
 	makePerformanceTest<ipxp::output::FFQOutputStorage>("FFQOutputStorage");
 
@@ -222,7 +224,7 @@ TEST(TestOutputStorage, Debug)
 	for (const auto testIndex : std::views::iota(0, 100)) {
 		std::cout << " Debug Loop Iteration " << testIndex << "\n";
 		// makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
-		stressTest<ipxp::output::B2OutputStorage>(false);
+		stressTest<ipxp::output::MC2OutputStorage>(false);
 	}
 }
 

@@ -157,7 +157,7 @@ public:
 			&& std::ranges::all_of(m_queues, [&](const Queue& queue) { return queue.finished(); });
 	}
 
-private:
+protected:
 	struct ReaderData {
 		// uint64_t cachedEnqueCount {0};
 		std::atomic<uint16_t> readWithoutShift {0};
