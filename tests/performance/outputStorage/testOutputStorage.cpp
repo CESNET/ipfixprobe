@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <gtest/gtest.h>
+#include <outputStorage/b2OutputStorage.hpp>
 #include <outputStorage/bOutputStorage.hpp>
 #include <outputStorage/ffq2OutputStorage.hpp>
 #include <outputStorage/ffqOutputStorage.hpp>
@@ -139,7 +140,7 @@ void stressTest(const bool immitateWork)
 {
 	std::cout << "Stress Test: X Writers, X Group X Readers"
 			  << (immitateWork ? " With Work" : " No Work") << "\n";
-	makeTest<OutputStorageType>(32, {8, 8, 8, 8}, immitateWork, 400'000);
+	makeTest<OutputStorageType>(32, {1}, immitateWork, 100'000);
 }
 
 template<typename OutputStorageType>
@@ -182,9 +183,10 @@ void makePerformanceTest(std::string_view storageName)
 
 TEST(TestOutputStorage, XXX)
 {
+	makePerformanceTest<ipxp::output::B2OutputStorage>("B2OutputStorage");
+	makePerformanceTest<ipxp::output::BOutputStorage>("BOutputStorage");
 	makePerformanceTest<ipxp::output::FFQ2OutputStorage>("FFQ2OutputStorage");
 	makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
-	makePerformanceTest<ipxp::output::BOutputStorage>("BOutputStorage");
 	makePerformanceTest<ipxp::output::LFNBOutputStorage>("LFNBOutputStorage");
 	makePerformanceTest<ipxp::output::FFQOutputStorage>("FFQOutputStorage");
 
@@ -220,7 +222,7 @@ TEST(TestOutputStorage, Debug)
 	for (const auto testIndex : std::views::iota(0, 100)) {
 		std::cout << " Debug Loop Iteration " << testIndex << "\n";
 		// makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
-		stressTest<ipxp::output::FFQ2OutputStorage>(false);
+		stressTest<ipxp::output::FFQOutputStorage>(false);
 	}
 }
 

@@ -15,6 +15,7 @@
 namespace ipxp::output {
 
 class BOutputStorage : public OutputStorage {
+protected:
 	constexpr static std::size_t BUCKET_SIZE = 128;
 	constexpr static std::size_t BUCKET_COUNT
 		= OutputStorage::ALLOCATION_BUFFER_CAPACITY / BUCKET_SIZE;
@@ -222,7 +223,7 @@ public:
 		return !writersPresent() && getHighestWriterGeneration() < m_lowestReaderGeneration;
 	}
 
-private:
+protected:
 	uint16_t remap(const uint16_t index) noexcept
 	{
 		return index;
@@ -268,7 +269,6 @@ private:
 		m_highestReaderGeneration = highestReaderGeneration;
 		const uint64_t lowestReaderGeneration = *std::ranges::min_element(readerGenerations);
 		m_lowestReaderGeneration = lowestReaderGeneration;
-		return;
 	}
 
 	uint64_t getHighestWriterGeneration() const noexcept
