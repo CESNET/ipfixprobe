@@ -15,6 +15,7 @@
 #include <outputStorage/lfnbOutputStorage.hpp>
 #include <outputStorage/mc2OutputStorage.hpp>
 #include <outputStorage/mcOutputStorage.hpp>
+#include <outputStorage/mq2OutputStorage.hpp>
 #include <outputStorage/mqOutputStorage.hpp>
 #include <outputStorage/ringOutputStorage.hpp>
 #include <outputStorage/serializedOutputStorage.hpp>
@@ -224,7 +225,7 @@ TEST(TestOutputStorage, Debug)
 	for (const auto testIndex : std::views::iota(0, 100)) {
 		std::cout << " Debug Loop Iteration " << testIndex << "\n";
 		// makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
-		stressTest<ipxp::output::MC2OutputStorage>(false);
+		stressTest<ipxp::output::MQ2OutputStorage>(false);
 	}
 }
 

@@ -102,7 +102,7 @@ public:
 		//  WriteLockGuard lockGuard(m_locks[writeQueueIndex]);
 
 		if (!m_queues[writerId]
-				 .tryWrite(std::move(container), *m_allocationBuffer, m_readerGroupsCount)) {
+				 .tryWrite(std::move(container), *m_allocationBuffer, m_readerGroupsCount, 3)) {
 			return false;
 		}
 		return true;
@@ -140,7 +140,7 @@ public:
 			   }));
 	}
 
-private:
+protected:
 	struct QueueIndex {
 		const uint16_t initialOffset;
 		uint8_t loops;
@@ -169,12 +169,13 @@ private:
 		bool tryWrite(
 			ContainerWrapper container,
 			AllocationBufferBase<ReferenceCounter<OutputContainer>>& origin,
-			const uint8_t readerGroupCount) noexcept
+			const uint8_t readerGroupCount,
+			const std::size_t longBackoffTries) noexcept
 		{
 			State* currentState = &m_stateBuffer.getCurrentValue();
 
 			if (currentState->written == currentState->writeBuffer.size()) {
-				BackoffScheme backoff(7, 5);
+				BackoffScheme backoff(7, longBackoffTries);
 				while (!allReadersFinished()) {
 					if (!backoff.backoff()) {
 						container.deallocate(origin);

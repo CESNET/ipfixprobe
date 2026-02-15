@@ -9,10 +9,10 @@ namespace ipxp::output {
 class BackoffScheme {
 public:
 	explicit BackoffScheme(
-		const uint32_t shortWaitThreshold,
-		const uint32_t longWaitThreshold) noexcept
+		const std::size_t shortWaitThreshold,
+		const std::size_t longWaitThreshold) noexcept
 		: m_shortWaitThreshold(shortWaitThreshold)
-		, m_longWaitThreshold(shortWaitThreshold + longWaitThreshold)
+		, m_longWaitThreshold(std::max(shortWaitThreshold + longWaitThreshold, longWaitThreshold))
 	{
 	}
 
@@ -30,9 +30,9 @@ public:
 	}
 
 private:
-	const uint32_t m_shortWaitThreshold;
-	const uint32_t m_longWaitThreshold;
-	uint32_t m_waitCounter {0};
+	const std::size_t m_shortWaitThreshold;
+	const std::size_t m_longWaitThreshold;
+	std::size_t m_waitCounter {0};
 };
 
 } // namespace ipxp::output
