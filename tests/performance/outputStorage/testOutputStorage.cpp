@@ -185,19 +185,6 @@ void makePerformanceTest(std::string_view storageName)
 
 TEST(TestOutputStorage, XXX)
 {
-	makePerformanceTest<ipxp::output::MC2OutputStorage>("MC2OutputStorage");
-	makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
-	makePerformanceTest<ipxp::output::B2OutputStorage>("B2OutputStorage");
-	makePerformanceTest<ipxp::output::BOutputStorage>("BOutputStorage");
-	makePerformanceTest<ipxp::output::FFQ2OutputStorage>("FFQ2OutputStorage");
-	makePerformanceTest<ipxp::output::LFNBOutputStorage>("LFNBOutputStorage");
-	makePerformanceTest<ipxp::output::FFQOutputStorage>("FFQOutputStorage");
-
-	std::cout << "Ring, 1 Writers, 1 Reader\n";
-	makeTest<ipxp::output::RingOutputStorage>(1, {1}, false, 30'000'000);
-	std::cout << "Ring, 32 Writers, 1 Reader\n";
-
-	makeTest<ipxp::output::RingOutputStorage>(32, {1}, false);
 	std::cout << "==========================================================" << std::endl;
 	std::cout << "MQOutputStorage, 1 Writers, 1 Reader\n";
 	makeTest<ipxp::output::MQOutputStorage>(1, {1}, false, 30'000'000);
@@ -217,6 +204,40 @@ TEST(TestOutputStorage, XXX)
 	std::cout << "==========================================================" << std::endl;
 	std::cout << "MQOutputStorage, 32 Writers, 4 Group 8 Reader\n";
 	makeTest<ipxp::output::MQOutputStorage>(32, {8, 8, 8, 8}, false, 10'000'000);
+
+	std::cout << "==========================================================" << std::endl;
+	std::cout << "MQ2OutputStorage, 1 Writers, 1 Reader\n";
+	makeTest<ipxp::output::MQ2OutputStorage>(1, {1}, false, 30'000'000);
+
+	std::cout << "==========================================================" << std::endl;
+	std::cout << "MQ2OutputStorage, 32 Writers, 1 Reader\n";
+	makeTest<ipxp::output::MQ2OutputStorage>(32, {1}, false, 5'000'064);
+
+	std::cout << "==========================================================" << std::endl;
+	std::cout << "MQ2OutputStorage, 32 Writers, 32 Readers\n";
+	makeTest<ipxp::output::MQ2OutputStorage>(32, {32}, false, 5'000'064);
+
+	std::cout << "==========================================================" << std::endl;
+	std::cout << "MQ2OutputStorage, 4 Writers, 4 Group 1 Reader\n";
+	makeTest<ipxp::output::MQ2OutputStorage>(4, {1, 1, 1, 1}, false, 30'000'000);
+
+	std::cout << "==========================================================" << std::endl;
+	std::cout << "MQ2OutputStorage, 32 Writers, 4 Group 8 Reader\n";
+	makeTest<ipxp::output::MQ2OutputStorage>(32, {8, 8, 8, 8}, false, 10'000'000);
+
+	makePerformanceTest<ipxp::output::MC2OutputStorage>("MC2OutputStorage");
+	makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
+	makePerformanceTest<ipxp::output::B2OutputStorage>("B2OutputStorage");
+	makePerformanceTest<ipxp::output::BOutputStorage>("BOutputStorage");
+	makePerformanceTest<ipxp::output::FFQ2OutputStorage>("FFQ2OutputStorage");
+	makePerformanceTest<ipxp::output::LFNBOutputStorage>("LFNBOutputStorage");
+	makePerformanceTest<ipxp::output::FFQOutputStorage>("FFQOutputStorage");
+
+	std::cout << "Ring, 1 Writers, 1 Reader\n";
+	makeTest<ipxp::output::RingOutputStorage>(1, {1}, false, 30'000'000);
+	std::cout << "Ring, 32 Writers, 1 Reader\n";
+
+	makeTest<ipxp::output::RingOutputStorage>(32, {1}, false);
 	std::cout << std::endl;
 }
 
