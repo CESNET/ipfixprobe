@@ -25,17 +25,31 @@ public:
 
 	bool storeContainer(ContainerWrapper container, const uint8_t writerIndex) noexcept override
 	{
+		if (container.empty()) {
+			throw std::runtime_error("Trying to store empty container.");
+		}
 		WriterData& writerData = m_writersData[writerIndex].get();
 		const uint16_t containersLeft = writerData.bucketAllocation.containersLeft();
 		switch (containersLeft) {
-		case 1:
-			getNextContainer(writerData.bucketAllocation).assign(container, *m_allocationBuffer);
+		case 1: {
+			auto& y = getNextContainer(writerData.bucketAllocation);
+			if (!y.empty() && y.getContainer().readTimes == 0) {
+				throw std::runtime_error("XXX");
+			}
+			y.assign(container, *m_allocationBuffer);
+			// getNextContainer(writerData.bucketAllocation).assign(container, *m_allocationBuffer);
+		}
 			[[fallthrough]];
 		case 0:
 			break;
-		default:
-			getNextContainer(writerData.bucketAllocation).assign(container, *m_allocationBuffer);
+		default: {
+			auto& z = getNextContainer(writerData.bucketAllocation);
+			if (!z.empty() && z.getContainer().readTimes == 0) {
+				// throw std::runtime_error("XXX");
+			}
+			z.assign(container, *m_allocationBuffer);
 			return true;
+		}
 		}
 
 		uint8_t loopCounter = 0;
@@ -47,7 +61,7 @@ public:
 			if (overflowed) {
 				writerData.cachedLowestReaderGeneration = m_lowestReaderGeneration.load();
 				if (containersLeft == 0) {
-					container.deallocate(*m_allocationBuffer);
+					// container.deallocate(*m_allocationBuffer);
 				}
 				d_writerYields++;
 				backoffScheme.backoff();
@@ -74,13 +88,23 @@ public:
 			= writerData.bucketAllocation.reset(m_buckets[writerData.writePosition].bucketIndex);
 		std::atomic_thread_fence(std::memory_order_release);
 
-		writerData.generation = m_highestReaderGeneration + WINDOW_SIZE;
+		const uint64_t highestReaderGeneration
+			= m_highestReaderGeneration.load(std::memory_order_acquire);
+		if (writerData.generation < highestReaderGeneration + WINDOW_SIZE) {
+			writerData.generation = highestReaderGeneration + WINDOW_SIZE;
+			// casMax(m_highestWriterGeneration, writerData.generation);
+		}
 		m_buckets[writerData.writePosition].generation = writerData.generation;
 
 		m_buckets[writerData.writePosition].lock.unlock();
 
 		if (containersLeft == 0) {
-			getNextContainer(writerData.bucketAllocation).assign(container, *m_allocationBuffer);
+			auto& z = getNextContainer(writerData.bucketAllocation);
+			if (!z.empty() && z.getContainer().readTimes == 0) {
+				throw std::runtime_error("XXX");
+			}
+			z.assign(container, *m_allocationBuffer);
+			// getNextContainer(writerData.bucketAllocation).assign(container, *m_allocationBuffer);
 		}
 		return true;
 	}
@@ -140,10 +164,10 @@ public:
 			getReferenceCounter(getNextContainer(readerData.bucketAllocation)));
 	}
 
-	bool finished([[maybe_unused]] const std::size_t readerGroupIndex) noexcept override
+	/*bool finished([[maybe_unused]] const std::size_t readerGroupIndex) noexcept override
 	{
-		return !writersPresent() && getHighestWriterGeneration() < m_lowestReaderGeneration;
-	}
+		return !writersPresent() && m_highestWriterGeneration + 200000 < m_lowestReaderGeneration;
+	}*/
 
 protected:
 	void updateLowestReaderGeneration(const uint8_t globalReaderIndex) noexcept
@@ -155,7 +179,7 @@ protected:
 			  })
 			| std::ranges::to<boost::container::static_vector<uint64_t, MAX_READERS_COUNT>>();
 		const uint64_t highestReaderGeneration = *std::ranges::max_element(readerGenerations);
-		uint64_t expected;
+		/*uint64_t expected;
 		do {
 			expected = m_highestReaderGeneration.load();
 			if (highestReaderGeneration <= expected) {
@@ -164,11 +188,15 @@ protected:
 		} while (m_highestReaderGeneration.compare_exchange_weak(
 			expected,
 			highestReaderGeneration,
-			std::memory_order_release));
+			std::memory_order_release));*/
+		casMax(m_highestReaderGeneration, highestReaderGeneration);
 		// m_highestReaderGeneration = highestReaderGeneration;
 		const uint64_t lowestReaderGeneration = *std::ranges::min_element(readerGenerations);
+		// casMin(m_lowestReaderGeneration, lowestReaderGeneration);
 		m_lowestReaderGeneration = lowestReaderGeneration;
 	}
+
+	std::atomic<uint64_t> m_highestWriterGeneration {0};
 };
 
 } // namespace ipxp::output
