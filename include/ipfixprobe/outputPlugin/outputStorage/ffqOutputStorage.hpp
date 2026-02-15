@@ -69,10 +69,9 @@ public:
 
 	bool finished(const std::size_t readerGroupIndex) noexcept override
 	{
-		return !writersPresent() &&
-			// m_readRanks[readerGroupIndex].get() % ALLOCATION_BUFFER_CAPACITY
-			//== m_writeRank.load() % ALLOCATION_BUFFER_CAPACITY;
-			m_readRanks[readerGroupIndex].get() > m_writeRank.load();
+		return !writersPresent()
+			&& m_readRanks[readerGroupIndex].get() % ALLOCATION_BUFFER_CAPACITY
+			== m_writeRank.load() % ALLOCATION_BUFFER_CAPACITY;
 	}
 
 protected:
