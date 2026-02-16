@@ -250,6 +250,13 @@ TEST(TestOutputStorage, Debug)
 	}
 }
 
+TEST(TestOutputStorage, Perf)
+{
+		std::cout << "Perf test" << std::endl;
+		// makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
+		makeTest<ipxp::output::LFNBOutputStorage>(1, {1}, false, 1'000'064);
+}
+
 TEST(TestOutputStorage, TestB)
 {
 	std::cout << "1 Writers, 1 Reader\n";
