@@ -30,7 +30,7 @@ public:
 			= m_readerGroupHandler.getReaderHandler();
 		while (!readHandler.finished()) {
 			while (readHandler.getFlowRecord() != nullptr) {
-				if (counter++ % (1ULL << 35)) {
+				if (printCounter++ % (1ULL << 17)) {
 					const std::string message = "Reader  "
 						+ std::to_string(readHandler.getReaderIndex()) + " read "
 						+ std::to_string(readHandler.readContainers()) + " containers so far.";
