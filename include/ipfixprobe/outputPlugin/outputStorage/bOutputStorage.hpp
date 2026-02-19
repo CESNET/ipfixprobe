@@ -313,6 +313,7 @@ protected:
 
 		void shift(const uint8_t adjustment, const uint16_t initialPosition) noexcept
 		{
+			// TODO Better calculation
 			const uint16_t newReadPosition = readPosition + adjustment;
 			const bool overflow = newReadPosition >= BUCKET_COUNT;
 			readPosition = newReadPosition * !overflow + initialPosition * overflow;

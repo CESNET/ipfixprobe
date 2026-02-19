@@ -55,12 +55,12 @@ public:
 
 	bool finished(const std::size_t readerGroupIndex) noexcept override
 	{
-		return !this->writersPresent();
+		return !this->writersPresent() && ipx_ring_cnt(m_ring.get()) == 0;
 	}
 
 private:
 	std::unique_ptr<ipx_ring_t, decltype(&ipx_ring_destroy)> m_ring;
-	ElementType* m_lastReadContainer;
+	ElementType* m_lastReadContainer {nullptr};
 };
 
 } // namespace ipxp::output

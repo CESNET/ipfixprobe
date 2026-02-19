@@ -202,7 +202,7 @@ protected:
 				1,
 				std::memory_order_acq_rel);
 			if (readPos >= m_buffersSize) {
-				const uint64_t readPosOfWriteBuffer = readPos - currentState.readBuffer.size();
+				const uint64_t readPosOfWriteBuffer = readPos - m_buffersSize;
 				/*std::println(
 					std::cout,
 					"WRP {}, RP {}, written {}",
@@ -238,8 +238,7 @@ protected:
 				&& std::ranges::all_of(
 					   m_stateBuffer.getCurrentValue().readerGroupPositions,
 					   [&](const CacheAlligned<std::atomic<uint64_t>>& readPos) {
-						   return readPos->load(std::memory_order_acquire)
-							   >= currentState.readBuffer.size() + currentState.writeBuffer.size();
+						   return readPos->load(std::memory_order_acquire) >= 2 * m_buffersSize;
 					   });
 		}
 
@@ -274,8 +273,7 @@ protected:
 			return std::ranges::all_of(
 				currentState.readerGroupPositions,
 				[&](const CacheAlligned<std::atomic<uint64_t>>& readPos) {
-					return readPos->load(std::memory_order_acquire)
-						> currentState.readBuffer.size();
+					return readPos->load(std::memory_order_acquire) > m_buffersSize;
 				});
 		}
 
