@@ -11,22 +11,24 @@
 
 namespace ipxp::output {
 
-class LFNBOutputStorage : public OutputStorage {
+template<typename ElementType>
+class LFNBOutputStorage : public OutputStorage<ElementType> {
 public:
 	constexpr static std::size_t BUCKET_SIZE = 512;
 
 	explicit LFNBOutputStorage(const uint8_t writersCount) noexcept
-		: OutputStorage(writersCount)
+		: OutputStorage<ElementType>(writersCount)
 	{
 	}
 
-	ReaderGroupHandler& registerReaderGroup(const uint8_t groupSize) noexcept override
+	typename OutputStorage<ElementType>::ReaderGroupHandler&
+	registerReaderGroup(const uint8_t groupSize) noexcept override
 	{
 		std::lock_guard<std::mutex> lock(m_registrationMutex);
 		m_readerGroupPositions.emplace_back(m_nextWritePos.load());
 		m_alreadyReadGroupPositions.emplace_back(0);
 		m_readerData.resize(m_readerData.size() + groupSize);
-		return OutputStorage::registerReaderGroup(groupSize);
+		return OutputStorage<ElementType>::registerReaderGroup(groupSize);
 	}
 
 	/*void registerReader(
@@ -37,30 +39,29 @@ public:
 		m_readerData
 	}*/
 
-	bool storeContainer(
-		ContainerWrapper container,
-		[[maybe_unused]] const uint8_t writerId) noexcept override
+	bool write(ElementType* element, [[maybe_unused]] const uint8_t writerId) noexcept override
 	{
 		const uint64_t sequentialWritePosition = m_nextWritePos++;
-		const uint64_t writePosition = sequentialWritePosition % m_storage.size();
+		const uint64_t writePosition = sequentialWritePosition % this->m_storage.size();
 		/*const bool rightCircle
 			= m_writersFinished[writePosition / BUCKET_SIZE].load(std::memory_order_acquire)
 				/ BUCKET_SIZE
 			!= sequentialWritePosition / ALLOCATION_BUFFER_CAPACITY;*/
 		while (m_writersFinished[writePosition / BUCKET_SIZE].load(std::memory_order_acquire)
 					   / BUCKET_SIZE
-				   != sequentialWritePosition / ALLOCATION_BUFFER_CAPACITY
+				   != sequentialWritePosition
+					   / OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY
 			   || !bucketIsRead(writePosition / BUCKET_SIZE)) {
 			std::this_thread::yield();
 		}
 
-		m_storage[writePosition].assign(container, *m_allocationBuffer);
+		this->m_allocationBuffer->replace(this->m_storage[writePosition], element, writerId);
 		std::atomic_thread_fence(std::memory_order_release);
 		m_writersFinished[writePosition / BUCKET_SIZE]++;
 		return true;
 	}
 
-	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
+	const ElementType* read(
 		const std::size_t readerGroupIndex,
 		[[maybe_unused]] const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
@@ -71,35 +72,31 @@ public:
 		}
 
 		const uint64_t sequentialReadPosition = m_readerGroupPositions[readerGroupIndex]++;
-		const uint64_t readPosition = sequentialReadPosition % m_storage.size();
-		while ((m_readersFinished[readPosition / BUCKET_SIZE].load(std::memory_order_acquire)
-						/ (BUCKET_SIZE * m_readerGroupsCount)
-					!= sequentialReadPosition / ALLOCATION_BUFFER_CAPACITY
-				|| !bucketIsWritten(readPosition / BUCKET_SIZE))
-			   && writersPresent()) {
+		const uint64_t readPosition = sequentialReadPosition % this->m_storage.size();
+		while (
+			(m_readersFinished[readPosition / BUCKET_SIZE].load(std::memory_order_acquire)
+					 / (BUCKET_SIZE * this->m_readerGroupsCount)
+				 != sequentialReadPosition / OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY
+			 || !bucketIsWritten(readPosition / BUCKET_SIZE))
+			&& this->writersPresent()) {
 			std::this_thread::yield();
 		}
 
 		std::atomic_thread_fence(std::memory_order_acquire);
 		if (sequentialReadPosition >= m_nextWritePos.load()) {
 			readerData.lastReadPosition = std::nullopt;
-			return std::nullopt;
+			return nullptr;
 		}
-		if (m_storage[readPosition].empty()) {
+		/*if (this->m_storage[readPosition] == nullptr) {
 			throw std::runtime_error("Should not happen");
-		}
+		}*/
 		readerData.lastReadPosition = readPosition;
-		ContainerWrapper& container = m_storage[readPosition];
-		if (container.getContainer().readTimes == 4) {
-			throw std::runtime_error("Bad read times");
-		}
-		return std::make_optional<ReferenceCounterHandler<OutputContainer>>(
-			getReferenceCounter(container));
+		return this->m_storage[readPosition];
 	}
 
 	bool finished(const std::size_t readerGroupIndex) noexcept override
 	{
-		return !writersPresent()
+		return !this->writersPresent()
 			&& std::ranges::all_of(m_readerGroupPositions, [&](const auto& position) {
 				   return position.load(std::memory_order_acquire) >= m_nextWritePos.load();
 			   });
@@ -111,7 +108,7 @@ private:
 		const uint64_t writersFinished
 			= m_writersFinished[bucketIndex].load(std::memory_order_acquire);
 		return writersFinished % BUCKET_SIZE == 0
-			&& writersFinished * m_readerGroupsCount
+			&& writersFinished * this->m_readerGroupsCount
 			> m_readersFinished[bucketIndex].load(std::memory_order_acquire);
 	}
 
@@ -119,10 +116,11 @@ private:
 	{
 		const uint64_t readersFinished
 			= m_readersFinished[bucketIndex].load(std::memory_order_acquire);
-		auto x = readersFinished % (BUCKET_SIZE * m_readerGroupsCount) == 0
-			&& m_writersFinished[bucketIndex].load(std::memory_order_acquire) * m_readerGroupsCount
+		auto x = readersFinished % (BUCKET_SIZE * this->m_readerGroupsCount) == 0
+			&& m_writersFinished[bucketIndex].load(std::memory_order_acquire)
+						* this->m_readerGroupsCount
 					- readersFinished
-				< BUCKET_SIZE * m_readerGroupsCount;
+				< BUCKET_SIZE * this->m_readerGroupsCount;
 		return x;
 	}
 
@@ -130,13 +128,26 @@ private:
 		std::optional<uint64_t> lastReadPosition;
 	};
 
-	boost::container::static_vector<std::atomic_uint64_t, MAX_WRITERS_COUNT> m_readerGroupPositions;
-	boost::container::static_vector<std::atomic_uint64_t, MAX_WRITERS_COUNT>
-		m_alreadyReadGroupPositions;
-	std::array<std::atomic<uint64_t>, ALLOCATION_BUFFER_CAPACITY / BUCKET_SIZE> m_writersFinished;
-	std::array<std::atomic<uint64_t>, ALLOCATION_BUFFER_CAPACITY / BUCKET_SIZE> m_readersFinished;
-	boost::container::static_vector<CacheAlligned<ReaderData>, MAX_READERS_COUNT> m_readerData;
-	std::span<CacheAlligned<ReaderData>> d_readerData {m_readerData.data(), MAX_READERS_COUNT};
+	boost::container::
+		static_vector<std::atomic_uint64_t, OutputStorage<ElementType>::MAX_WRITERS_COUNT>
+			m_readerGroupPositions;
+	boost::container::
+		static_vector<std::atomic_uint64_t, OutputStorage<ElementType>::MAX_WRITERS_COUNT>
+			m_alreadyReadGroupPositions;
+	std::array<
+		std::atomic<uint64_t>,
+		OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY / BUCKET_SIZE>
+		m_writersFinished;
+	std::array<
+		std::atomic<uint64_t>,
+		OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY / BUCKET_SIZE>
+		m_readersFinished;
+	boost::container::
+		static_vector<CacheAlligned<ReaderData>, OutputStorage<ElementType>::MAX_READERS_COUNT>
+			m_readerData;
+	std::span<CacheAlligned<ReaderData>> d_readerData {
+		m_readerData.data(),
+		OutputStorage<ElementType>::MAX_READERS_COUNT};
 	std::atomic_uint64_t m_nextWritePos {0};
 	std::atomic_uint64_t m_confirmedPos {0};
 	std::atomic_uint64_t m_writtenPos {0};

@@ -31,7 +31,7 @@ public:
 	void registerWriter() noexcept override { m_controlBlock->registerWriter(); }
 	void unregisterWriter() noexcept override { m_controlBlock->unregisterWriter(); }
 
-	ElementType* allocate() noexcept override
+	ElementType* allocate([[maybe_unused]] const uint8_t writerId) noexcept override
 	{
 		const std::optional<uint16_t> readPos = std::invoke([&]() {
 			std::optional<uint16_t> res = std::nullopt;
@@ -49,7 +49,7 @@ public:
 		return res;
 	}
 
-	void deallocate(ElementType* element) noexcept override
+	void deallocate(ElementType* element, [[maybe_unused]] const uint8_t writerId) noexcept override
 	{
 		const std::optional<uint16_t> writePos = m_controlBlock->getWritePos();
 		if (!writePos.has_value()) {

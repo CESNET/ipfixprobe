@@ -27,7 +27,7 @@ public:
 		}
 	}
 
-	ElementType* allocate() noexcept override
+	ElementType* allocate([[maybe_unused]] const uint8_t writerId) noexcept override
 	{
 		static thread_local std::mt19937 gen(std::random_device {}());
 		static thread_local std::uniform_int_distribution<> dist(0, 31);
@@ -35,15 +35,16 @@ public:
 		while (true) {
 			threadQueueIndex = (threadQueueIndex + 1) % m_queues.size();
 			// const uint64_t queueIndex = m_nextQueue++ % m_queues.size();
-			const std::optional<ElementType*> res = m_queues[threadQueueIndex].tryPop();
-
-			if (res.has_value()) {
-				return *res;
+			ElementType* res = m_queues[threadQueueIndex].tryPop();
+			if (res != nullptr) {
+				res->ElementType::~ElementType();
+				new (res) ElementType();
+				return res;
 			}
 		}
 	}
 
-	void deallocate(ElementType* element) noexcept override
+	void deallocate(ElementType* element, [[maybe_unused]] const uint8_t writerId) noexcept override
 	{
 		static thread_local std::mt19937 gen(std::random_device {}());
 		static thread_local std::uniform_int_distribution<> dist(0, 31);
@@ -60,14 +61,14 @@ public:
 private:
 	class Queue {
 	public:
-		std::optional<ElementType*> tryPop() noexcept
+		ElementType* tryPop() noexcept
 		{
 			if (!tryLock()) {
-				return std::nullopt;
+				return nullptr;
 			}
 			if (pointers.empty()) {
 				unlock();
-				return std::nullopt;
+				return nullptr;
 			}
 			ElementType* res = pointers.back();
 			pointers.pop_back();

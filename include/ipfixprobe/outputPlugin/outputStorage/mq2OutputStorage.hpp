@@ -21,55 +21,61 @@
 
 namespace ipxp::output {
 
-class MQ2OutputStorage : public MQOutputStorage {
+template<typename ElementType>
+class MQ2OutputStorage : public MQOutputStorage<ElementType> {
 public:
 	explicit MQ2OutputStorage(const uint8_t writersCount) noexcept
-		: MQOutputStorage(writersCount)
+		: MQOutputStorage<ElementType>(writersCount)
 	{
 		std::cout << std::endl;
 	}
 
-	bool storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept override
+	bool write(ElementType* element, const uint8_t writerId) noexcept override
 	{
 		BackoffScheme backoff(3, std::numeric_limits<std::size_t>::max());
-		while (!m_queues[writerId].tryWrite(
-			std::move(container),
-			*m_allocationBuffer,
-			m_readerGroupsCount,
-			std::numeric_limits<std::size_t>::max())) {
+		while (!this->m_queues[writerId].tryWrite(
+			element,
+			*this->m_allocationBuffer,
+			this->m_readerGroupsCount,
+			std::numeric_limits<std::size_t>::max(),
+			writerId)) {
 			backoff.backoff();
 		}
 		return true;
 	}
 
-	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
+	const ElementType* read(
 		const std::size_t readerGroupIndex,
 		const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
 	{
-		const size_t tries = m_totalWritersCount / m_readerGroupSizes[readerGroupIndex] + 1;
+		const size_t tries
+			= this->m_totalWritersCount / this->m_readerGroupSizes[readerGroupIndex] + 1;
 		BackoffScheme backoff(3, 5);
 		for (const auto _ : std::views::iota(0U, tries)) {
-			const uint8_t sequenceIndex = m_readersData[globalReaderIndex]->sequenceIndex++;
-			const uint8_t queueIndex = m_readersData[globalReaderIndex]
-										   ->queueJumpSequence[sequenceIndex % MAX_WRITERS_COUNT];
-			ContainerWrapper* container = m_queues[queueIndex].tryRead(readerGroupIndex);
-			if (container != nullptr) {
-				return std::make_optional<ReferenceCounterHandler<OutputContainer>>(
-					getReferenceCounter(*container));
+			const uint8_t sequenceIndex = this->m_readersData[globalReaderIndex]->sequenceIndex++;
+			const uint8_t queueIndex
+				= this->m_readersData[globalReaderIndex]->queueJumpSequence
+					  [sequenceIndex % OutputStorage<ElementType>::MAX_WRITERS_COUNT];
+			ElementType* element = this->m_queues[queueIndex].tryRead(readerGroupIndex);
+			if (element != nullptr) {
+				return element;
 			}
 			// std::this_thread::yield();
 			backoff.backoff();
 		}
-		return std::nullopt;
+		return nullptr;
 	}
 
 	bool finished(const std::size_t readerGroupIndex) noexcept override
 	{
-		return m_readerGroupSizes[readerGroupIndex] > m_totalWritersCount
-			|| (!writersPresent() && std::ranges::all_of(m_queues, [&](const Queue& queue) {
-				   return queue.finished();
-			   }));
+		return this->m_readerGroupSizes[readerGroupIndex] > this->m_totalWritersCount
+			|| (!this->writersPresent()
+				&& std::ranges::all_of(
+					this->m_queues,
+					[&](const typename MQOutputStorage<ElementType>::Queue& queue) {
+						return queue.finished();
+					}));
 	}
 
 private:

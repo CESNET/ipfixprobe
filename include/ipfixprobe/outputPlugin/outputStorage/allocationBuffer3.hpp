@@ -28,7 +28,7 @@ public:
 		}
 	}
 
-	ElementType* allocate() noexcept override
+	ElementType* allocate([[maybe_unused]] const uint8_t writerId) noexcept override
 	{
 		static thread_local std::mt19937 gen(std::random_device {}());
 		static thread_local std::uniform_int_distribution<> dist(0, 31);
@@ -44,7 +44,7 @@ public:
 		}
 	}
 
-	void deallocate(ElementType* element) noexcept override
+	void deallocate(ElementType* element, [[maybe_unused]] const uint8_t writerId) noexcept override
 	{
 		static thread_local std::mt19937 gen(std::random_device {}());
 		static thread_local std::uniform_int_distribution<> dist(0, 31);

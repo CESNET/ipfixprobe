@@ -20,34 +20,27 @@
 
 namespace ipxp::output {
 
-class MQOutputStorage : public OutputStorage {
+template<typename ElementType>
+class MQOutputStorage : public OutputStorage<ElementType> {
 public:
 	explicit MQOutputStorage(const uint8_t writersCount) noexcept
-		: OutputStorage(writersCount)
+		: OutputStorage<ElementType>(writersCount)
 	{
-		ContainerWrapper* begin = m_storage.data();
+		ElementType** begin = this->m_storage.data();
 		for (const auto _ : std::views::iota(0U, writersCount)) {
 			m_queues.emplace_back(
-				std::span<ContainerWrapper>(
+				std::span<ElementType*>(
 					begin,
-					OutputStorage::ALLOCATION_BUFFER_CAPACITY / writersCount));
-			begin += OutputStorage::ALLOCATION_BUFFER_CAPACITY / writersCount;
-			// m_locks.emplace_back();
+					OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY / writersCount));
+			begin += OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY / writersCount;
 		}
 	}
 
-	OutputStorage::WriteHandler registerWriter() noexcept override
+	typename OutputStorage<ElementType>::WriteHandler registerWriter() noexcept override
 	{
 		std::unique_lock<std::mutex> lock(m_registrationMutex);
-		// m_threadIdToWriterIndexMap.emplace(getThreadId(), m_threadIdToWriterIndexMap.size());
-		/*m_writersRegistered++;
-		m_allReadersRegisteredCondition.notify_all();
-		m_allReadersRegisteredCondition.wait(lock, [&]() {
-			return m_writersRegistered == m_totalWritersCount;
-		});
-		m_allReadersRegisteredCondition.notify_all();*/
 		lock.unlock();
-		return OutputStorage::registerWriter();
+		return OutputStorage<ElementType>::registerWriter();
 	}
 
 	void registerReader(
@@ -55,12 +48,15 @@ public:
 		[[maybe_unused]] const uint8_t localReaderIndex,
 		[[maybe_unused]] const uint8_t globalReaderIndex) noexcept override
 	{
-		OutputStorage::registerReader(readerGroupIndex, localReaderIndex, globalReaderIndex);
+		OutputStorage<ElementType>::registerReader(
+			readerGroupIndex,
+			localReaderIndex,
+			globalReaderIndex);
 
 		uint8_t currentIndex = localReaderIndex;
 		for (uint8_t& index : m_readersData[globalReaderIndex]->queueJumpSequence) {
 			index = currentIndex;
-			currentIndex += m_readerGroupSizes[readerGroupIndex];
+			currentIndex += this->m_readerGroupSizes[readerGroupIndex];
 			if (currentIndex >= m_queues.size()) {
 				currentIndex = localReaderIndex;
 			}
@@ -84,58 +80,59 @@ public:
 
 	void unregisterWriter([[maybe_unused]] const uint8_t writerId) noexcept override
 	{
-		OutputStorage::unregisterWriter(writerId);
+		OutputStorage<ElementType>::unregisterWriter(writerId);
 		m_queues[writerId].setWriterFinished();
 	}
 
-	ReaderGroupHandler& registerReaderGroup(const uint8_t groupSize) noexcept override
+	typename OutputStorage<ElementType>::ReaderGroupHandler&
+	registerReaderGroup(const uint8_t groupSize) noexcept override
 	{
 		std::lock_guard<std::mutex> lock(m_registrationMutex);
 		// m_threadIdToQueueIndexMaps.emplace_back();
 		std::ranges::for_each(m_queues, [&](Queue& queue) { queue.addReaderGroup(); });
-		return OutputStorage::registerReaderGroup(groupSize);
+		return OutputStorage<ElementType>::registerReaderGroup(groupSize);
 	}
 
-	bool storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept override
+	bool write(ElementType* element, const uint8_t writerId) noexcept override
 	{
-		// const uint16_t writeQueueIndex = m_threadIdToWriterIndexMap.at(getThreadId());
-		//  WriteLockGuard lockGuard(m_locks[writeQueueIndex]);
-
-		if (!m_queues[writerId]
-				 .tryWrite(std::move(container), *m_allocationBuffer, m_readerGroupsCount, 3)) {
+		if (!m_queues[writerId].tryWrite(
+				element,
+				*this->m_allocationBuffer,
+				this->m_readerGroupsCount,
+				3,
+				writerId)) {
 			return false;
 		}
 		return true;
 	}
 
-	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
+	const ElementType* read(
 		const std::size_t readerGroupIndex,
 		const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
 	{
-		const size_t tries = m_totalWritersCount / m_readerGroupSizes[readerGroupIndex] + 1;
+		const size_t tries
+			= this->m_totalWritersCount / this->m_readerGroupSizes[readerGroupIndex] + 1;
 		BackoffScheme backoff(3, 5);
 		for (const auto _ : std::views::iota(0U, tries)) {
 			const uint8_t sequenceIndex = m_readersData[globalReaderIndex]->sequenceIndex++;
-			const uint8_t queueIndex = m_readersData[globalReaderIndex]
-										   ->queueJumpSequence[sequenceIndex % MAX_WRITERS_COUNT];
-			// ReadLockGuard lockGuard(m_locks[offset]);
-			// ReadLockGuard lockGuard = m_queues[offset].lockRead();
-			ContainerWrapper* container = m_queues[queueIndex].tryRead(readerGroupIndex);
-			if (container != nullptr) {
-				return std::make_optional<ReferenceCounterHandler<OutputContainer>>(
-					getReferenceCounter(*container));
+			const uint8_t queueIndex
+				= m_readersData[globalReaderIndex]->queueJumpSequence
+					  [sequenceIndex % OutputStorage<ElementType>::MAX_WRITERS_COUNT];
+			ElementType* element = m_queues[queueIndex].tryRead(readerGroupIndex);
+			if (element != nullptr) {
+				return element;
 			}
 			std::this_thread::yield();
 			// backoff.backoff();
 		}
-		return std::nullopt;
+		return nullptr;
 	}
 
 	bool finished(const std::size_t readerGroupIndex) noexcept override
 	{
-		return m_readerGroupSizes[readerGroupIndex] > m_totalWritersCount
-			|| (!writersPresent() && std::ranges::all_of(m_queues, [&](const Queue& queue) {
+		return this->m_readerGroupSizes[readerGroupIndex] > this->m_totalWritersCount
+			|| (!this->writersPresent() && std::ranges::all_of(m_queues, [&](const Queue& queue) {
 				   return queue.finished();
 			   }));
 	}
@@ -148,7 +145,7 @@ protected:
 
 	class Queue {
 	public:
-		explicit Queue(std::span<ContainerWrapper> allocatedSpace) noexcept
+		explicit Queue(std::span<ElementType*> allocatedSpace) noexcept
 		{
 			/*m_buffers[0] = {allocatedSpace.data(), allocatedSpace.size() / 2};
 			m_buffers[1]
@@ -167,10 +164,11 @@ protected:
 		}
 
 		bool tryWrite(
-			ContainerWrapper container,
-			AllocationBufferBase<ReferenceCounter<OutputContainer>>& origin,
+			ElementType* element,
+			AllocationBufferBase<ElementType>& origin,
 			const uint8_t readerGroupCount,
-			const std::size_t longBackoffTries) noexcept
+			const std::size_t longBackoffTries,
+			const uint8_t writerId) noexcept
 		{
 			State* currentState = &m_stateBuffer.getCurrentValue();
 
@@ -178,7 +176,7 @@ protected:
 				BackoffScheme backoff(7, longBackoffTries);
 				while (!allReadersFinished()) {
 					if (!backoff.backoff()) {
-						container.deallocate(origin);
+						origin.deallocate(element, writerId);
 						d_deallocated++;
 						return false;
 					}
@@ -193,19 +191,13 @@ protected:
 						.written = 0,
 					});
 				currentState = &m_stateBuffer.getCurrentValue();
-
-				/*std::ranges::for_each(
-					*currentState.readBuffer,
-					[&origin](ContainerWrapper& wrapper) { wrapper.deallocate(origin); });
-				currentState.readBuffer->clear();*/
 			}
-			currentState->writeBuffer[currentState->written].assign(container, origin);
+			origin.replace(currentState->writeBuffer[currentState->written], element, writerId);
 			currentState->written++;
-			// currentState.writeBuffer->emplace_back(std::move(container));
 			return true;
 		}
 
-		ContainerWrapper* tryRead(const std::size_t readerGroupIndex) noexcept
+		ElementType* tryRead(const std::size_t readerGroupIndex) noexcept
 		{
 			State& currentState = m_stateBuffer.getCurrentValue();
 			const uint64_t readPos = currentState.readerGroupPositions[readerGroupIndex]->fetch_add(
@@ -221,11 +213,11 @@ protected:
 					currentState.written);*/
 				if (m_writerFinished.load(std::memory_order_acquire)
 					&& readPosOfWriteBuffer < currentState.written) [[unlikely]] {
-					return &currentState.writeBuffer[readPosOfWriteBuffer];
+					return currentState.writeBuffer[readPosOfWriteBuffer];
 				}
 				return nullptr;
 			}
-			ContainerWrapper* res = &currentState.readBuffer[readPos];
+			ElementType* res = currentState.readBuffer[readPos];
 			return res;
 		}
 
@@ -266,21 +258,17 @@ protected:
 						> currentState.readBuffer.size();
 				});
 		}
-		// std::vector<ContainerWrapper> m_readBuffer;
-		// std::vector<ContainerWrapper> m_writeBuffer;
-		// std::span<ContainerWrapper> m_readBuffer;
-		// std::span<ContainerWrapper> m_writeBuffer;
-		// std::array<std::span<ContainerWrapper>, 2> m_buffers;
+
 		uint8_t m_swapped {0};
 		RWSpinlock m_lock;
 		std::atomic<bool> m_writerFinished {false};
 
 		struct State {
-			std::span<ContainerWrapper> readBuffer;
-			std::span<ContainerWrapper> writeBuffer;
+			std::span<ElementType*> readBuffer;
+			std::span<ElementType*> writeBuffer;
 			boost::container::static_vector<
 				CacheAlligned<std::atomic<uint64_t>>,
-				OutputStorage::MAX_READERS_COUNT>
+				OutputStorage<ElementType>::MAX_READERS_COUNT>
 				readerGroupPositions;
 			uint64_t written;
 
@@ -303,23 +291,15 @@ protected:
 
 	static inline std::atomic<uint64_t> d_deallocated;
 	std::mutex m_registrationMutex;
-	// std::atomic_uint64_t m_queueDistributionIndex;
-	boost::container::static_vector<Queue, OutputStorage::MAX_WRITERS_COUNT> m_queues;
+	boost::container::static_vector<Queue, OutputStorage<ElementType>::MAX_WRITERS_COUNT> m_queues;
 
 	struct ReaderData {
-		std::array<uint8_t, OutputStorage::MAX_WRITERS_COUNT> queueJumpSequence;
+		std::array<uint8_t, OutputStorage<ElementType>::MAX_WRITERS_COUNT> queueJumpSequence;
 		uint8_t sequenceIndex {0};
 	};
 
-	std::array<CacheAlligned<ReaderData>, MAX_READERS_COUNT> m_readersData;
-
-	/*boost::container::static_vector<RWSpinlock, OutputStorage::MAX_WRITERS_COUNT> m_locks;
-	boost::container::
-		static_vector<std::unordered_map<uint16_t, QueueIndex>,
-	OutputStorage::MAX_WRITERS_COUNT> m_threadIdToQueueIndexMaps; std::unordered_map<uint16_t,
-	uint16_t> m_threadIdToWriterIndexMap; uint16_t m_writeIndex {0};* std::vector<uint8_t>
-	m_readersRegisteredInGroup; std::condition_variable m_allReadersRegisteredCondition;
-	uint16_t m_writersRegistered {0};*/
+	std::array<CacheAlligned<ReaderData>, OutputStorage<ElementType>::MAX_READERS_COUNT>
+		m_readersData;
 };
 
 } // namespace ipxp::output

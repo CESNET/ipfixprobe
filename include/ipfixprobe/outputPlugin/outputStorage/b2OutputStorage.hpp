@@ -16,109 +16,100 @@
 
 namespace ipxp::output {
 
-class B2OutputStorage : public BOutputStorage {
+template<typename ElementType>
+class B2OutputStorage : public BOutputStorage<ElementType> {
 public:
 	explicit B2OutputStorage(const uint8_t writersCount) noexcept
-		: BOutputStorage(writersCount)
+		: BOutputStorage<ElementType>(writersCount)
 	{
 	}
 
-	bool storeContainer(ContainerWrapper container, const uint8_t writerIndex) noexcept override
+	bool write(ElementType* element, const uint8_t writerIndex) noexcept override
 	{
-		if (container.empty()) {
-			throw std::runtime_error("Trying to store empty container.");
-		}
-		WriterData& writerData = m_writersData[writerIndex].get();
+		typename BOutputStorage<ElementType>::WriterData& writerData
+			= this->m_writersData[writerIndex].get();
 		const uint16_t containersLeft = writerData.bucketAllocation.containersLeft();
 		switch (containersLeft) {
 		case 1: {
-			auto& y = getNextContainer(writerData.bucketAllocation);
-			if (!y.empty() && y.getContainer().readTimes == 0) {
-				throw std::runtime_error("XXX");
-			}
-			y.assign(container, *m_allocationBuffer);
-			// getNextContainer(writerData.bucketAllocation).assign(container, *m_allocationBuffer);
+			this->m_allocationBuffer->replace(
+				this->getNextElement(writerData.bucketAllocation),
+				element,
+				writerIndex);
 		}
 			[[fallthrough]];
 		case 0:
 			break;
 		default: {
-			auto& z = getNextContainer(writerData.bucketAllocation);
-			if (!z.empty() && z.getContainer().readTimes == 0) {
-				// throw std::runtime_error("XXX");
-			}
-			z.assign(container, *m_allocationBuffer);
+			this->m_allocationBuffer->replace(
+				this->getNextElement(writerData.bucketAllocation),
+				element,
+				writerIndex);
 			return true;
 		}
 		}
 
 		uint8_t loopCounter = 0;
 		BackoffScheme backoffScheme(2, std::numeric_limits<std::size_t>::max());
-		// const uint16_t initialPosition = writerData.writePosition;
 		do {
 			const bool overflowed = writerData.randomShift();
-			d_writerShifts++;
 			if (overflowed) {
-				writerData.cachedLowestReaderGeneration = m_lowestReaderGeneration.load();
-				if (containersLeft == 0) {
-					// container.deallocate(*m_allocationBuffer);
-				}
-				d_writerYields++;
+				writerData.cachedLowestReaderGeneration = this->m_lowestReaderGeneration.load();
+				if (containersLeft == 0) {}
 				backoffScheme.backoff();
 			}
 
-			if (m_buckets[writerData.writePosition].generation
+			if (this->m_buckets[writerData.writePosition].generation
 					>= writerData.cachedLowestReaderGeneration
-				|| !BucketAllocation::isValidBucketIndex(
-					m_buckets[writerData.writePosition].bucketIndex)
-				|| !m_buckets[writerData.writePosition].lock.try_lock()) {
+				|| !BOutputStorage<ElementType>::BucketAllocation::isValidBucketIndex(
+					this->m_buckets[writerData.writePosition].bucketIndex)
+				|| !this->m_buckets[writerData.writePosition].lock.try_lock()) {
 				continue;
 			}
-			if (m_buckets[writerData.writePosition].generation
+			if (this->m_buckets[writerData.writePosition].generation
 					>= writerData.cachedLowestReaderGeneration
-				|| !BucketAllocation::isValidBucketIndex(
-					m_buckets[writerData.writePosition].bucketIndex)) {
-				m_buckets[writerData.writePosition].lock.unlock();
+				|| !BOutputStorage<ElementType>::BucketAllocation::isValidBucketIndex(
+					this->m_buckets[writerData.writePosition].bucketIndex)) {
+				this->m_buckets[writerData.writePosition].lock.unlock();
 				continue;
 			}
 			break;
 		} while (true);
 
-		m_buckets[writerData.writePosition].bucketIndex
-			= writerData.bucketAllocation.reset(m_buckets[writerData.writePosition].bucketIndex);
+		this->m_buckets[writerData.writePosition].bucketIndex = writerData.bucketAllocation.reset(
+			this->m_buckets[writerData.writePosition].bucketIndex);
 		std::atomic_thread_fence(std::memory_order_release);
 
 		const uint64_t highestReaderGeneration
-			= m_highestReaderGeneration.load(std::memory_order_acquire);
-		if (writerData.generation < highestReaderGeneration + WINDOW_SIZE) {
-			writerData.generation = highestReaderGeneration + WINDOW_SIZE;
+			= this->m_highestReaderGeneration.load(std::memory_order_acquire);
+		if (writerData.generation
+			< highestReaderGeneration + BOutputStorage<ElementType>::WINDOW_SIZE) {
+			writerData.generation
+				= highestReaderGeneration + BOutputStorage<ElementType>::WINDOW_SIZE;
 			// casMax(m_highestWriterGeneration, writerData.generation);
 		}
-		m_buckets[writerData.writePosition].generation = writerData.generation;
+		this->m_buckets[writerData.writePosition].generation = writerData.generation;
 
-		m_buckets[writerData.writePosition].lock.unlock();
+		this->m_buckets[writerData.writePosition].lock.unlock();
 
 		if (containersLeft == 0) {
-			auto& z = getNextContainer(writerData.bucketAllocation);
-			if (!z.empty() && z.getContainer().readTimes == 0) {
-				throw std::runtime_error("XXX");
-			}
-			z.assign(container, *m_allocationBuffer);
-			// getNextContainer(writerData.bucketAllocation).assign(container, *m_allocationBuffer);
+			this->m_allocationBuffer->replace(
+				this->getNextElement(writerData.bucketAllocation),
+				element,
+				writerIndex);
 		}
 		return true;
 	}
 
-	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
+	const ElementType* read(
 		const std::size_t readerGroupIndex,
 		const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
 	{
-		ReaderData& readerData = m_readersData[globalReaderIndex].get();
+		typename BOutputStorage<ElementType>::ReaderData& readerData
+			= this->m_readersData[globalReaderIndex].get();
 		// const uint64_t readPosition = readerData.readPosition;
 		if (readerData.bucketAllocation.containersLeft()) {
-			return std::make_optional<ReferenceCounterHandler<OutputContainer>>(
-				getReferenceCounter(getNextContainer(readerData.bucketAllocation)));
+			return this->getNextElement(readerData.bucketAllocation);
 		}
 
 		uint8_t loopCounter = 0;
@@ -126,42 +117,40 @@ public:
 		uint16_t cachedBucketIndex;
 		const uint16_t initialPosition = readerData.readPosition;
 		do {
-			readerData.shift(m_readerGroupSizes[readerGroupIndex], localReaderIndex);
-			d_readerShifts++;
+			readerData.shift(this->m_readerGroupSizes[readerGroupIndex], localReaderIndex);
 
-			auto& y = m_buckets[readerData.readPosition];
-			if (readerData.isOnBufferBegin(m_readerGroupSizes[readerGroupIndex])) {
-				if (!writersPresent()) {
+			auto& y = this->m_buckets[readerData.readPosition];
+			if (readerData.isOnBufferBegin(this->m_readerGroupSizes[readerGroupIndex])) {
+				if (!this->writersPresent()) {
 					readerData.generation++;
 					updateLowestReaderGeneration(globalReaderIndex);
-					return std::nullopt;
+					return nullptr;
 				}
 				if (!readerData.seenValidBucket) {
 					updateLowestReaderGeneration(globalReaderIndex);
 					std::this_thread::yield();
-					d_readerYields++;
 					readerData.skipLoop = true;
-					return std::nullopt;
+					return nullptr;
 				}
 				readerData.generation++;
 				readerData.seenValidBucket = false;
 				readerData.skipLoop = false;
 				updateLowestReaderGeneration(globalReaderIndex);
 			}
-			cachedGeneration = m_buckets[readerData.readPosition].generation;
+			cachedGeneration = this->m_buckets[readerData.readPosition].generation;
 			std::atomic_thread_fence(std::memory_order_acquire);
-			cachedBucketIndex = m_buckets[readerData.readPosition].bucketIndex;
+			cachedBucketIndex = this->m_buckets[readerData.readPosition].bucketIndex;
 			if (cachedGeneration >= readerData.generation + 2) {
 				readerData.seenValidBucket = true;
 			}
 		} while (cachedGeneration != readerData.generation
-				 || !BucketAllocation::isValidBucketIndex(cachedBucketIndex));
+				 || !BOutputStorage<ElementType>::BucketAllocation::isValidBucketIndex(
+					 cachedBucketIndex));
 
 		readerData.seenValidBucket = true;
-		readerData.bucketAllocation.reset(m_buckets[readerData.readPosition].bucketIndex);
+		readerData.bucketAllocation.reset(this->m_buckets[readerData.readPosition].bucketIndex);
 
-		return std::make_optional<ReferenceCounterHandler<OutputContainer>>(
-			getReferenceCounter(getNextContainer(readerData.bucketAllocation)));
+		return this->getNextElement(readerData.bucketAllocation);
 	}
 
 	/*bool finished([[maybe_unused]] const std::size_t readerGroupIndex) noexcept override
@@ -172,12 +161,14 @@ public:
 protected:
 	void updateLowestReaderGeneration(const uint8_t globalReaderIndex) noexcept
 	{
-		boost::container::static_vector<uint64_t, MAX_READERS_COUNT> readerGenerations
-			= m_readersData
-			| std::views::transform([](const CacheAlligned<ReaderData>& readerDataAlligned) {
-				  return readerDataAlligned->generation;
-			  })
-			| std::ranges::to<boost::container::static_vector<uint64_t, MAX_READERS_COUNT>>();
+		const auto readerGenerations
+			= this->m_readersData
+			| std::views::transform(
+				  [](const CacheAlligned<typename BOutputStorage<ElementType>::ReaderData>&
+						 readerDataAlligned) { return readerDataAlligned->generation; })
+			| std::ranges::to<boost::container::static_vector<
+				uint64_t,
+				OutputStorage<ElementType>::MAX_READERS_COUNT>>();
 		const uint64_t highestReaderGeneration = *std::ranges::max_element(readerGenerations);
 		/*uint64_t expected;
 		do {
@@ -189,11 +180,11 @@ protected:
 			expected,
 			highestReaderGeneration,
 			std::memory_order_release));*/
-		casMax(m_highestReaderGeneration, highestReaderGeneration);
+		casMax(this->m_highestReaderGeneration, highestReaderGeneration);
 		// m_highestReaderGeneration = highestReaderGeneration;
 		const uint64_t lowestReaderGeneration = *std::ranges::min_element(readerGenerations);
 		// casMin(m_lowestReaderGeneration, lowestReaderGeneration);
-		m_lowestReaderGeneration = lowestReaderGeneration;
+		this->m_lowestReaderGeneration = lowestReaderGeneration;
 	}
 
 	std::atomic<uint64_t> m_highestWriterGeneration {0};

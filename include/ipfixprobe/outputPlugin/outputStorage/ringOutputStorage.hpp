@@ -12,59 +12,55 @@
 
 namespace ipxp::output {
 
-class RingOutputStorage : public OutputStorage {
+template<typename ElementType>
+class RingOutputStorage : public OutputStorage<ElementType> {
 public:
 	explicit RingOutputStorage(const uint8_t writersCount) noexcept
-		: OutputStorage(writersCount)
+		: OutputStorage<ElementType>(writersCount)
 		, m_ring(
-			  ipx_ring_init(static_cast<uint32_t>(ALLOCATION_BUFFER_CAPACITY), writersCount > 1),
+			  ipx_ring_init(
+				  static_cast<uint32_t>(OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY),
+				  writersCount > 1),
 			  &ipx_ring_destroy)
-		, m_lastReadContainer(allocateNewContainer())
 	{
-		static_assert(sizeof(ContainerWrapper) == sizeof(void*));
 	}
 
-	bool storeContainer(
-		ContainerWrapper container,
-		[[maybe_unused]] const uint8_t writerId) noexcept override
+	bool write(ElementType* element, [[maybe_unused]] const uint8_t writerId) noexcept override
 	{
-		if (container.empty()) {
-			throw std::runtime_error("Attempt to store empty container");
-		}
-		ipx_ring_push(m_ring.get(), *reinterpret_cast<void**>(&container));
+		ipx_ring_push(m_ring.get(), element);
 		return true;
 	}
 
-	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
+	const ElementType* read(
 		const std::size_t readerGroupIndex,
 		[[maybe_unused]] const uint8_t localReaderIndex,
 		[[maybe_unused]] const uint8_t globalReaderIndex) noexcept override
 	{
-		if (!m_lastReadContainer.empty()) {
-			m_lastReadContainer.deallocate(*m_allocationBuffer);
+		if (m_lastReadContainer != nullptr) {
+			this->m_allocationBuffer->deallocate(m_lastReadContainer, 0);
+			m_lastReadContainer = nullptr;
 		}
 		if (ipx_ring_cnt(m_ring.get()) == 0) {
-			return std::nullopt;
+			return nullptr;
 		}
 
 		auto pop = ipx_ring_pop(m_ring.get());
 		if (pop == nullptr) {
-			return std::nullopt;
+			return nullptr;
 		}
-		ContainerWrapper& container = *reinterpret_cast<ContainerWrapper*>(&pop);
-		m_lastReadContainer.assign(container, *m_allocationBuffer);
-		return std::make_optional<ReferenceCounterHandler<OutputContainer>>(
-			getReferenceCounter(m_lastReadContainer));
+		ElementType* element = reinterpret_cast<ElementType*>(pop);
+		m_lastReadContainer = element;
+		return m_lastReadContainer;
 	}
 
 	bool finished(const std::size_t readerGroupIndex) noexcept override
 	{
-		return !writersPresent();
+		return !this->writersPresent();
 	}
 
 private:
 	std::unique_ptr<ipx_ring_t, decltype(&ipx_ring_destroy)> m_ring;
-	ContainerWrapper m_lastReadContainer;
+	ElementType* m_lastReadContainer;
 };
 
 } // namespace ipxp::output

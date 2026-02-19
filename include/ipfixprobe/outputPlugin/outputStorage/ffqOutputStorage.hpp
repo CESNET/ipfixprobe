@@ -5,42 +5,47 @@
 
 namespace ipxp::output {
 
-class FFQOutputStorage : public OutputStorage {
+template<typename ElementType>
+class FFQOutputStorage : public OutputStorage<ElementType> {
 	constexpr static uint32_t SHORT_TRIES = 5;
 	constexpr static uint32_t LONG_TRIES = 3;
 
 public:
 	explicit FFQOutputStorage(const uint8_t writersCount) noexcept
-		: OutputStorage(writersCount)
-		, m_cells(ALLOCATION_BUFFER_CAPACITY)
+		: OutputStorage<ElementType>(writersCount)
+		, m_cells(OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY)
 	{
 		// m_cells.resize(ALLOCATION_BUFFER_CAPACITY);
 	}
 
-	bool storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept override
+	bool write(ElementType* element, const uint8_t writerId) noexcept override
 	{
 		BackoffScheme backoffScheme(70, 1);
 		while (true) {
-			const uint64_t writeRank = m_writeRank++;
-			const uint64_t writeIndex = writeRank % ALLOCATION_BUFFER_CAPACITY;
+			const uint64_t writeRank = this->m_writeRank++;
+			const uint64_t writeIndex
+				= writeRank % OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY;
 			if (
 				/*(m_storage[writeIndex].empty()
 				 || !getReferenceCounter(m_storage[writeIndex]).hasUsers())&&*/
 				m_cells[writeIndex].state.allGroupsRead()
 				&& m_cells[writeIndex].state.tryToSetWriter()) {
-				m_storage[writeIndex].assign(container, *m_allocationBuffer);
+				// m_storage[writeIndex].assign(container, *m_allocationBuffer);
+
+				this->m_allocationBuffer->replace(this->m_storage[writeIndex], element, writerId);
 				std::atomic_thread_fence(std::memory_order_release);
-				m_cells[writeIndex].state.reset(m_readerGroupsCount.load());
+				m_cells[writeIndex].state.reset(this->m_readerGroupsCount.load());
 				return true;
 			}
 			if (!backoffScheme.backoff()) {
-				container.deallocate(*m_allocationBuffer);
+				// container.deallocate(*m_allocationBuffer);
+				this->m_allocationBuffer->deallocate(element, writerId);
 				return false;
 			}
 		}
 	}
 
-	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
+	const ElementType* read(
 		const std::size_t readerGroupIndex,
 		const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
@@ -52,31 +57,33 @@ public:
 		}
 		while (!finished(readerGroupIndex)) {
 			const uint64_t readRank = m_readRanks[readerGroupIndex].get()++;
-			const uint64_t readIndex = readRank % ALLOCATION_BUFFER_CAPACITY;
+			const uint64_t readIndex
+				= readRank % OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY;
 			if (m_cells[readIndex].state.tryToSetReadingStarted(readerGroupIndex)) {
 				std::atomic_thread_fence(std::memory_order_acquire);
 				m_readersData[globalReaderIndex]->lastReadIndex = readIndex;
-				return std::make_optional<ReferenceCounterHandler<OutputContainer>>(
-					getReferenceCounter(m_storage[readIndex]));
+				return this->m_storage[readIndex];
 			}
 			if (!backoffScheme.backoff()) {
 				m_readersData[globalReaderIndex]->lastReadIndex = std::nullopt;
-				return std::nullopt;
+				return nullptr;
 			}
 		}
-		return std::nullopt;
+		return nullptr;
 	}
 
 	bool finished(const std::size_t readerGroupIndex) noexcept override
 	{
-		return !writersPresent()
-			&& m_readRanks[readerGroupIndex].get() % ALLOCATION_BUFFER_CAPACITY
-			== m_writeRank.load() % ALLOCATION_BUFFER_CAPACITY;
+		return !this->writersPresent()
+			&& m_readRanks[readerGroupIndex].get()
+				% OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY
+			== m_writeRank.load() % OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY;
 	}
 
 protected:
 	class ReaderGroupState {
-		constexpr static uint8_t WRITER_INDEX = MAX_READER_GROUPS_COUNT - 1;
+		constexpr static uint8_t WRITER_INDEX
+			= OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT - 1;
 
 	public:
 		explicit ReaderGroupState() noexcept
@@ -144,11 +151,18 @@ protected:
 		std::optional<uint16_t> lastReadIndex {0};
 	};
 
-	boost::container::static_vector<Cell, ALLOCATION_BUFFER_CAPACITY> m_cells;
-	std::span<Cell> d_cells {m_cells.data(), ALLOCATION_BUFFER_CAPACITY};
+	boost::container::static_vector<Cell, OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY>
+		m_cells;
+	std::span<Cell> d_cells {
+		m_cells.data(),
+		OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY};
 	std::atomic<uint64_t> m_writeRank {0};
-	std::array<CacheAlligned<std::atomic<uint64_t>>, MAX_READER_GROUPS_COUNT> m_readRanks;
-	std::array<CacheAlligned<ReaderData>, MAX_READERS_COUNT> m_readersData;
+	std::array<
+		CacheAlligned<std::atomic<uint64_t>>,
+		OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT>
+		m_readRanks;
+	std::array<CacheAlligned<ReaderData>, OutputStorage<ElementType>::MAX_READERS_COUNT>
+		m_readersData;
 };
 
 } // namespace ipxp::output

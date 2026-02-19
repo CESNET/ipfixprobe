@@ -6,48 +6,45 @@
 
 namespace ipxp::output {
 
-class MC2OutputStorage : public MCOutputStorage {
+template<typename ElementType>
+class MC2OutputStorage : public MCOutputStorage<ElementType> {
 public:
 	explicit MC2OutputStorage(const uint8_t writersCount) noexcept
-		: MCOutputStorage(writersCount)
+		: MCOutputStorage<ElementType>(writersCount)
 	{
 	}
 
-	bool storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept override
+	bool write(ElementType* element, const uint8_t writerId) noexcept override
 	{
-		Queue& queue = m_queues[writerId];
+		typename MCOutputStorage<ElementType>::Queue& queue = this->m_queues[writerId];
 		const std::size_t writeIndex = queue.enqueCount % queue.storage.size();
 		if (queue.enqueCount >= queue.storage.size()
 			&& queue.enqueCount - queue.storage.size() >= queue.cachedLowestHeadIndex) {
-			d_writerUpdated++;
 			queue.cachedLowestHeadIndex = queue.lowestHeadIndex();
 		}
 		BackoffScheme backoffScheme(10, std::numeric_limits<std::size_t>::max());
 		while (queue.enqueCount >= queue.storage.size()
 			   && queue.enqueCount - queue.storage.size() >= queue.cachedLowestHeadIndex) {
-			/*d_deallocatedContainers++;
-			container.deallocate(*m_allocationBuffer);
-			std::this_thread::yield();
-			return false;*/
 			backoffScheme.backoff();
 			queue.cachedLowestHeadIndex = queue.lowestHeadIndex();
 		}
 
 		std::atomic_thread_fence(std::memory_order_seq_cst);
-		queue.storage[writeIndex].assign(container, *m_allocationBuffer);
+		this->m_allocationBuffer->replace(queue.storage[writeIndex], element, writerId);
 		std::atomic_thread_fence(std::memory_order_seq_cst);
 		queue.enqueCount++;
 		return true;
 	}
 
-	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
+	const ElementType* read(
 		const std::size_t readerGroupIndex,
 		const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
 	{
-		ReaderData& readerData = m_readersData[globalReaderIndex].get();
+		typename MCOutputStorage<ElementType>::ReaderData& readerData
+			= this->m_readersData[globalReaderIndex].get();
 		if (readerData.lastReadSuccessful) {
-			m_queues[readerData.lastQueueIndex % m_queues.size()]
+			this->m_queues[readerData.lastQueueIndex % this->m_queues.size()]
 				.groupData[readerGroupIndex]
 				->confirmedIndex++;
 		}
@@ -57,13 +54,13 @@ public:
 			readerData.lastQueueIndex++;
 			// readerData.cachedEnqueCount = 0;
 		}
-		for (uint8_t queueShifts = 0; queueShifts < m_totalWritersCount; queueShifts++) {
-			const uint8_t currentQueueIndex = readerData.lastQueueIndex % m_queues.size();
-			Queue& queue = m_queues[currentQueueIndex];
+		for (uint8_t queueShifts = 0; queueShifts < this->m_totalWritersCount; queueShifts++) {
+			const uint8_t currentQueueIndex = readerData.lastQueueIndex % this->m_queues.size();
+			typename MCOutputStorage<ElementType>::Queue& queue = this->m_queues[currentQueueIndex];
 			queue.sync(readerGroupIndex);
 			const std::size_t dequeCount = queue.groupData[readerGroupIndex]->dequeueCount++;
 			const std::size_t d_x = readerData.cachedEnqueCounts[currentQueueIndex];
-			const std::size_t d_enqueCount = queue.enqueCount.load();
+			// const std::size_t d_enqueCount = queue.enqueCount.load();
 			if (dequeCount >= readerData.cachedEnqueCounts[currentQueueIndex]) {
 				readerData.cachedEnqueCounts[currentQueueIndex] = queue.enqueCount;
 			}
@@ -79,7 +76,7 @@ public:
 			// TODO originally was 256
 			bool d_s = false;
 			if (readerData.readWithoutShift == queue.storage.size()) {
-				shiftAllQueues();
+				this->shiftAllQueues();
 				d_s = true;
 			}
 			std::atomic_thread_fence(std::memory_order_seq_cst);
@@ -91,27 +88,29 @@ public:
 			if (readerData.cachedEnqueCounts[currentQueueIndex] > queue.enqueCount) {
 				throw std::runtime_error("XXXXX");
 			}
-			if (queue.storage[readIndex].empty()) {
+			/*if (queue.storage[readIndex].empty()) {
 				throw std::runtime_error("Should not happen");
 			}
 			if (queue.storage[readIndex].getContainer().readTimes == 4) {
 				throw std::runtime_error("Bad read times");
-			}
+			}*/
 
 			readerData.lastReadSuccessful = true;
-			return std::make_optional<ReferenceCounterHandler<OutputContainer>>(
-				getReferenceCounter(queue.storage[readIndex]));
+			return queue.storage[readIndex];
 		}
-		d_nulloptsReturned++;
 		readerData.lastReadSuccessful = false;
 		std::this_thread::yield();
-		return std::nullopt;
+		return nullptr;
 	}
 
 	bool finished(const std::size_t readerGroupIndex) noexcept override
 	{
-		return !writersPresent()
-			&& std::ranges::all_of(m_queues, [&](const Queue& queue) { return queue.finished(); });
+		return !this->writersPresent()
+			&& std::ranges::all_of(
+				this->m_queues,
+				[&](const typename MCOutputStorage<ElementType>::Queue& queue) {
+					return queue.finished();
+				});
 	}
 
 private:

@@ -4,27 +4,32 @@
 
 namespace ipxp::output {
 
-class MCOutputStorage : public OutputStorage {
+template<typename ElementType>
+class MCOutputStorage : public OutputStorage<ElementType> {
 public:
 	explicit MCOutputStorage(const uint8_t writersCount) noexcept
-		: OutputStorage(writersCount)
+		: OutputStorage<ElementType>(writersCount)
 	{
-		const std::size_t queueStorageSize = ALLOCATION_BUFFER_CAPACITY / writersCount;
+		const std::size_t queueStorageSize
+			= OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY / writersCount;
 		for (std::size_t queueIndex = 0; queueIndex < writersCount; queueIndex++) {
 			m_queues.emplace_back(
-				std::span<ContainerWrapper> {
-					m_storage.data() + queueIndex * queueStorageSize,
-					queueStorageSize});
+				std::span<ElementType*>(
+					this->m_storage.data() + queueIndex * queueStorageSize,
+					queueStorageSize));
 		}
-		for (std::size_t readerIndex = 0; readerIndex < MAX_READERS_COUNT; readerIndex++) {
+		for (std::size_t readerIndex = 0;
+			 readerIndex < OutputStorage<ElementType>::MAX_READERS_COUNT;
+			 readerIndex++) {
 			m_readersData.emplace_back();
 		}
 	}
 
-	ReaderGroupHandler& registerReaderGroup(const uint8_t groupSize) noexcept override
+	typename OutputStorage<ElementType>::ReaderGroupHandler&
+	registerReaderGroup(const uint8_t groupSize) noexcept override
 	{
 		std::ranges::for_each(m_queues, [&](Queue& queue) { queue.groupData.emplace_back(); });
-		return OutputStorage::registerReaderGroup(groupSize);
+		return OutputStorage<ElementType>::registerReaderGroup(groupSize);
 	}
 
 	void registerReader(
@@ -33,42 +38,44 @@ public:
 		[[maybe_unused]] const uint8_t globalReaderIndex) noexcept override
 	{
 		m_readersData[globalReaderIndex]->lastQueueIndex = localReaderIndex;
-		OutputStorage::registerReader(readerGroupIndex, localReaderIndex, globalReaderIndex);
+		OutputStorage<ElementType>::registerReader(
+			readerGroupIndex,
+			localReaderIndex,
+			globalReaderIndex);
 	}
 
-	WriteHandler registerWriter() noexcept override
+	typename OutputStorage<ElementType>::WriteHandler registerWriter() noexcept override
 	{
 		std::unique_lock<std::mutex> lock(m_registrationMutex);
 
 		lock.unlock();
-		return OutputStorage::registerWriter();
+		return OutputStorage<ElementType>::registerWriter();
 	}
 
-	bool storeContainer(ContainerWrapper container, const uint8_t writerId) noexcept override
+	bool write(ElementType* element, const uint8_t writerId) noexcept override
 	{
 		Queue& queue = m_queues[writerId];
 		const std::size_t writeIndex = queue.enqueCount % queue.storage.size();
 		if (queue.enqueCount >= queue.storage.size()
 			&& queue.enqueCount - queue.storage.size() >= queue.cachedLowestHeadIndex) {
-			d_writerUpdated++;
 			queue.cachedLowestHeadIndex = queue.lowestHeadIndex();
 		}
 		if (queue.enqueCount >= queue.storage.size()
 			&& queue.enqueCount - queue.storage.size() >= queue.cachedLowestHeadIndex) {
-			d_deallocatedContainers++;
-			container.deallocate(*m_allocationBuffer);
+			this->m_allocationBuffer->deallocate(element, writerId);
 			std::this_thread::yield();
 			return false;
 		}
 
 		std::atomic_thread_fence(std::memory_order_seq_cst);
-		queue.storage[writeIndex].assign(container, *m_allocationBuffer);
+		// queue.storage[writeIndex].assign(container, *m_allocationBuffer);
+		this->m_allocationBuffer->replace(queue.storage[writeIndex], element, writerId);
 		std::atomic_thread_fence(std::memory_order_seq_cst);
 		queue.enqueCount++;
 		return true;
 	}
 
-	std::optional<ReferenceCounterHandler<OutputContainer>> getContainer(
+	const ElementType* read(
 		const std::size_t readerGroupIndex,
 		const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
@@ -80,27 +87,12 @@ public:
 				->confirmedIndex++;
 		}
 
-		/*auto& confirmedIndexAtomic = m_queues[readerData.lastQueueIndex % m_queues.size()]
-										 .groupData[readerGroupIndex]
-										 ->confirmedIndex;
-		const std::size_t confirmedIndex
-			= readerData.lastReadSuccessful ? confirmedIndexAtomic++ : confirmedIndexAtomic.load();
-		const std::size_t headIndex = m_queues[readerData.lastQueueIndex % m_queues.size()]
-										  .groupData[readerGroupIndex]
-										  ->headIndex.load(std::memory_order_acquire);
-		if (confirmedIndex + 1 == headIndex) {
-			m_queues[readerData.lastQueueIndex % m_queues.size()]
-				.groupData[readerGroupIndex]
-				->commitedIndex
-				= headIndex;
-		}*/
-
 		if (readerData.shiftQueue) {
 			readerData.shiftQueue = false;
 			readerData.lastQueueIndex++;
 			// readerData.cachedEnqueCount = 0;
 		}
-		for (uint8_t queueShifts = 0; queueShifts < m_totalWritersCount; queueShifts++) {
+		for (uint8_t queueShifts = 0; queueShifts < this->m_totalWritersCount; queueShifts++) {
 			const uint8_t currentQueueIndex = readerData.lastQueueIndex % m_queues.size();
 			Queue& queue = m_queues[currentQueueIndex];
 			queue.sync(readerGroupIndex);
@@ -122,7 +114,7 @@ public:
 			// TODO originally was 256
 			bool d_s = false;
 			if (readerData.readWithoutShift == queue.storage.size()) {
-				shiftAllQueues();
+				this->shiftAllQueues();
 				d_s = true;
 			}
 			std::atomic_thread_fence(std::memory_order_seq_cst);
@@ -134,26 +126,18 @@ public:
 			if (readerData.cachedEnqueCounts[currentQueueIndex] > queue.enqueCount) {
 				throw std::runtime_error("XXXXX");
 			}
-			if (queue.storage[readIndex].empty()) {
-				throw std::runtime_error("Should not happen");
-			}
-			if (queue.storage[readIndex].getContainer().readTimes == 4) {
-				throw std::runtime_error("Bad read times");
-			}
 
 			readerData.lastReadSuccessful = true;
-			return std::make_optional<ReferenceCounterHandler<OutputContainer>>(
-				getReferenceCounter(queue.storage[readIndex]));
+			return queue.storage[readIndex];
 		}
-		d_nulloptsReturned++;
 		readerData.lastReadSuccessful = false;
 		std::this_thread::yield();
-		return std::nullopt;
+		return nullptr;
 	}
 
 	bool finished(const std::size_t readerGroupIndex) noexcept override
 	{
-		return !writersPresent()
+		return !this->writersPresent()
 			&& std::ranges::all_of(m_queues, [&](const Queue& queue) { return queue.finished(); });
 	}
 
@@ -161,7 +145,7 @@ protected:
 	struct ReaderData {
 		// uint64_t cachedEnqueCount {0};
 		std::atomic<uint16_t> readWithoutShift {0};
-		std::array<uint64_t, MAX_WRITERS_COUNT> cachedEnqueCounts;
+		std::array<uint64_t, OutputStorage<ElementType>::MAX_WRITERS_COUNT> cachedEnqueCounts;
 		uint8_t lastQueueIndex {0};
 		bool shiftQueue {false};
 		bool lastReadSuccessful {false};
@@ -176,7 +160,7 @@ protected:
 	};
 
 	struct Queue {
-		Queue(std::span<ContainerWrapper> storage) noexcept
+		Queue(std::span<ElementType*> storage) noexcept
 			: storage(storage)
 		{
 		}
@@ -187,16 +171,10 @@ protected:
 				= groupData | std::views::transform([](const CacheAlligned<GroupData>& groupData) {
 					  return groupData->commitedIndex.load(std::memory_order_acquire);
 				  })
-				| std::ranges::to<
-					  boost::container::static_vector<std::size_t, MAX_READER_GROUPS_COUNT>>();
+				| std::ranges::to<boost::container::static_vector<
+					std::size_t,
+					OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT>>();
 			return *std::ranges::min_element(snapshot);
-			auto it = std::ranges::min_element(
-				groupData,
-				std::ranges::less {},
-				[](const CacheAlligned<GroupData>& groupData) {
-					return groupData->commitedIndex.load();
-				});
-			return it->get().commitedIndex.load();
 		}
 
 		void sync(const std::size_t readerGroupIndex) noexcept
@@ -208,20 +186,16 @@ protected:
 			}
 		}
 
-		bool finished() const noexcept
-		{
-			// xXXXXXXX
-			return lowestHeadIndex() >= enqueCount;
-		}
+		bool finished() const noexcept { return lowestHeadIndex() >= enqueCount; }
 
 		std::atomic<uint64_t> enqueCount {0};
 		uint64_t cachedLowestHeadIndex {0};
-		std::span<ContainerWrapper> storage;
-		boost::container::static_vector<CacheAlligned<GroupData>, MAX_READER_GROUPS_COUNT>
+		std::span<ElementType*> storage;
+		boost::container::static_vector<
+			CacheAlligned<GroupData>,
+			OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT>
 			groupData;
-		std::span<CacheAlligned<GroupData>, MAX_READER_GROUPS_COUNT> d_groupData {
-			groupData.data(),
-			MAX_READER_GROUPS_COUNT};
+		std::span<CacheAlligned<GroupData>> d_groupData {groupData.data(), groupData.capacity()};
 	};
 
 	void shiftAllQueues() noexcept
@@ -233,15 +207,10 @@ protected:
 	}
 
 	std::mutex m_registrationMutex;
-	boost::container::static_vector<Queue, MAX_WRITERS_COUNT> m_queues;
-	boost::container::static_vector<CacheAlligned<ReaderData>, MAX_READERS_COUNT> m_readersData;
-	std::span<CacheAlligned<ReaderData>, MAX_READERS_COUNT> d_readersData {
-		m_readersData.data(),
-		MAX_READERS_COUNT};
-	std::span<Queue> d_queues {m_queues.data(), MAX_WRITERS_COUNT};
-	std::atomic<uint64_t> d_nulloptsReturned {0};
-	std::atomic<uint64_t> d_writerUpdated {0};
-	std::atomic<uint64_t> d_deallocatedContainers {0};
+	boost::container::static_vector<Queue, OutputStorage<ElementType>::MAX_WRITERS_COUNT> m_queues;
+	boost::container::
+		static_vector<CacheAlligned<ReaderData>, OutputStorage<ElementType>::MAX_READERS_COUNT>
+			m_readersData;
 	// uint8_t m_queueShift {0};
 };
 

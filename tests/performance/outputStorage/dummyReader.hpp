@@ -12,8 +12,9 @@
 class DummyReader {
 public:
 	explicit DummyReader(
-		ipxp::output::OutputStorage& storage,
-		ipxp::output::OutputStorage::ReaderGroupHandler& readerGroupHandler,
+		ipxp::output::OutputStorage<ipxp::output::OutputContainer>& storage,
+		ipxp::output::OutputStorage<ipxp::output::OutputContainer>::ReaderGroupHandler&
+			readerGroupHandler,
 		const bool immitateWork) noexcept
 		: m_storage(storage)
 		, m_readerGroupHandler(readerGroupHandler)
@@ -25,27 +26,30 @@ public:
 	std::size_t readContainers() noexcept
 	{
 		// m_storage.registerReader(m_readerGroupIndex);
-		std::size_t printCounter{};
-		ipxp::output::OutputStorage::ReadHandler readHandler
+		std::size_t readContainers {};
+		ipxp::output::OutputStorage<ipxp::output::OutputContainer>::ReadHandler readHandler
 			= m_readerGroupHandler.getReaderHandler();
 		while (!readHandler.finished()) {
-			while (readHandler.getFlowRecord() != nullptr) {
-				if (printCounter++ % (1ULL << 28) == 0) {
-					const std::string message = "Reader  "
-						+ std::to_string(readHandler.getReaderIndex()) + " read "
-						+ std::to_string(readHandler.readContainers()) + " containers so far.";
-					std::cout << message << std::endl;
-					// m_lastPrintTime = std::chrono::steady_clock::now();
-				}
+			const ipxp::output::OutputContainer* container = readHandler.read();
+			if (container && readContainers++ % (1ULL << 22) == 0) {
+				const std::string message = "Reader  "
+					+ std::to_string(readHandler.getReaderIndex()) + " read "
+					+ std::to_string(readContainers) + " containers so far.";
+				std::cout << message << std::endl;
+				// m_lastPrintTime = std::chrono::steady_clock::now();
+			}
+			if (container && container->readTimes > 4) {
+				throw std::runtime_error("Container read more times than there are reader groups.");
 			}
 		}
-		return readHandler.readContainers();
+		return readContainers;
 	}
 
 private:
-	ipxp::output::OutputStorage& m_storage;
+	ipxp::output::OutputStorage<ipxp::output::OutputContainer>& m_storage;
 	// std::size_t m_readerGroupIndex;
-	ipxp::output::OutputStorage::ReaderGroupHandler& m_readerGroupHandler;
+	ipxp::output::OutputStorage<ipxp::output::OutputContainer>::ReaderGroupHandler&
+		m_readerGroupHandler;
 	bool m_immitateWork;
-	//std::chrono::steady_clock::time_point m_lastPrintTime = std::chrono::steady_clock::now();
+	// std::chrono::steady_clock::time_point m_lastPrintTime = std::chrono::steady_clock::now();
 };
