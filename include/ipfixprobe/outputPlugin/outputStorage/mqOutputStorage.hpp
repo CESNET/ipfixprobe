@@ -154,12 +154,12 @@ protected:
 			//  m_readBuffer.reserve(capacity);
 			m_stateBuffer.setNewValue(
 				State {
+					.written = 0,
 					.readBuffer = {allocatedSpace.data(), allocatedSpace.size() / 2},
 					.writeBuffer
 					= {allocatedSpace.data() + allocatedSpace.size() / 2,
 					   allocatedSpace.size() / 2},
 					.readerGroupPositions = {},
-					.written = 0,
 				});
 		}
 
@@ -184,11 +184,11 @@ protected:
 				// WriteLockGuard lockGuard(m_lock);
 				m_stateBuffer.setNewValue(
 					State {
+						.written = 0,
 						.readBuffer = currentState->writeBuffer,
 						.writeBuffer = currentState->readBuffer,
 						.readerGroupPositions
 						= decltype(currentState->readerGroupPositions)(readerGroupCount),
-						.written = 0,
 					});
 				currentState = &m_stateBuffer.getCurrentValue();
 			}
