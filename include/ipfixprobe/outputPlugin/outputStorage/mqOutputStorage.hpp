@@ -264,13 +264,13 @@ protected:
 		std::atomic<bool> m_writerFinished {false};
 
 		struct State {
+			uint64_t written;
 			std::span<ElementType*> readBuffer;
 			std::span<ElementType*> writeBuffer;
 			boost::container::static_vector<
 				CacheAlligned<std::atomic<uint64_t>>,
 				OutputStorage<ElementType>::MAX_READERS_COUNT>
 				readerGroupPositions;
-			uint64_t written;
 
 			State& operator=(const State& other) noexcept
 			{
