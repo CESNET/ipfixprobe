@@ -146,6 +146,7 @@ protected:
 	class Queue {
 	public:
 		explicit Queue(std::span<ElementType*> allocatedSpace) noexcept
+			: m_buffersSize(allocatedSpace.size() / 2)
 		{
 			/*m_buffers[0] = {allocatedSpace.data(), allocatedSpace.size() / 2};
 			m_buffers[1]
@@ -155,10 +156,8 @@ protected:
 			m_stateBuffer.setNewValue(
 				State {
 					.written = 0,
-					.readBuffer = {allocatedSpace.data(), allocatedSpace.size() / 2},
-					.writeBuffer
-					= {allocatedSpace.data() + allocatedSpace.size() / 2,
-					   allocatedSpace.size() / 2},
+					.readBuffer = {allocatedSpace.data(), m_buffersSize},
+					.writeBuffer = {allocatedSpace.data() + m_buffersSize, m_buffersSize},
 					.readerGroupPositions = {},
 				});
 		}
@@ -172,12 +171,11 @@ protected:
 		{
 			State* currentState = &m_stateBuffer.getCurrentValue();
 
-			if (currentState->written == currentState->writeBuffer.size()) {
+			if (currentState->written == m_buffersSize) {
 				BackoffScheme backoff(7, longBackoffTries);
 				while (!allReadersFinished()) {
 					if (!backoff.backoff()) {
 						origin.deallocate(element, writerId);
-						d_deallocated++;
 						return false;
 					}
 				}
@@ -203,7 +201,7 @@ protected:
 			const uint64_t readPos = currentState.readerGroupPositions[readerGroupIndex]->fetch_add(
 				1,
 				std::memory_order_acq_rel);
-			if (readPos >= currentState.readBuffer.size()) {
+			if (readPos >= m_buffersSize) {
 				const uint64_t readPosOfWriteBuffer = readPos - currentState.readBuffer.size();
 				/*std::println(
 					std::cout,
@@ -245,24 +243,7 @@ protected:
 					   });
 		}
 
-		ReadLockGuard lockRead() noexcept { return ReadLockGuard(m_lock); }
-
 	private:
-		bool allReadersFinished() const noexcept
-		{
-			const State& currentState = m_stateBuffer.getCurrentValue();
-			return std::ranges::all_of(
-				currentState.readerGroupPositions,
-				[&](const CacheAlligned<std::atomic<uint64_t>>& readPos) {
-					return readPos->load(std::memory_order_acquire)
-						> currentState.readBuffer.size();
-				});
-		}
-
-		uint8_t m_swapped {0};
-		RWSpinlock m_lock;
-		std::atomic<bool> m_writerFinished {false};
-
 		struct State {
 			uint64_t written;
 			std::span<ElementType*> readBuffer;
@@ -286,13 +267,25 @@ protected:
 				return *this;
 			}
 		};
+
+		bool allReadersFinished() const noexcept
+		{
+			const State& currentState = m_stateBuffer.getCurrentValue();
+			return std::ranges::all_of(
+				currentState.readerGroupPositions,
+				[&](const CacheAlligned<std::atomic<uint64_t>>& readPos) {
+					return readPos->load(std::memory_order_acquire)
+						> currentState.readBuffer.size();
+				});
+		}
+
+		std::atomic<bool> m_writerFinished {false};
 		DoubleBufferedValue<State> m_stateBuffer;
+		const std::size_t m_buffersSize;
 	};
 
-	static inline std::atomic<uint64_t> d_deallocated;
 	std::mutex m_registrationMutex;
 	boost::container::static_vector<Queue, OutputStorage<ElementType>::MAX_WRITERS_COUNT> m_queues;
-
 	struct ReaderData {
 		std::array<uint8_t, OutputStorage<ElementType>::MAX_WRITERS_COUNT> queueJumpSequence;
 		uint8_t sequenceIndex {0};
