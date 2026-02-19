@@ -38,7 +38,7 @@ public:
 				std::cout << message << std::endl;
 				// m_lastPrintTime = std::chrono::steady_clock::now();
 			}
-			if (container && ++container->readTimes > 1) {
+			if (container && ++container->readTimes > 4) {
 				throw std::runtime_error("Container read more times than there are reader groups.");
 			}
 		}

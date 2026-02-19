@@ -79,10 +79,10 @@ public:
 				this->shiftAllQueues();
 				d_s = true;
 			}
-			std::atomic_thread_fence(std::memory_order_seq_cst);
+			// std::atomic_thread_fence(std::memory_order_seq_cst);
 			const std::size_t readIndex
 				= queue.groupData[readerGroupIndex]->headIndex++ % queue.storage.size();
-			std::atomic_thread_fence(std::memory_order_seq_cst);
+			// std::atomic_thread_fence(std::memory_order_seq_cst);
 
 			// auto& y = queue.groupData[readerGroupIndex];
 			/*if (readerData.cachedEnqueCounts[currentQueueIndex] > queue.enqueCount) {
