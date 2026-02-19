@@ -67,8 +67,8 @@ public:
 			return false;
 		}
 
-		std::atomic_thread_fence(std::memory_order_seq_cst);
-		// queue.storage[writeIndex].assign(container, *m_allocationBuffer);
+		// std::atomic_thread_fence(std::memory_order_seq_cst);
+		//  queue.storage[writeIndex].assign(container, *m_allocationBuffer);
 		this->m_allocationBuffer->replace(queue.storage[writeIndex], element, writerId);
 		std::atomic_thread_fence(std::memory_order_seq_cst);
 		queue.enqueCount++;
@@ -117,15 +117,15 @@ public:
 				this->shiftAllQueues();
 				d_s = true;
 			}
-			std::atomic_thread_fence(std::memory_order_seq_cst);
+			// std::atomic_thread_fence(std::memory_order_seq_cst);
 			const std::size_t readIndex
 				= queue.groupData[readerGroupIndex]->headIndex++ % queue.storage.size();
-			std::atomic_thread_fence(std::memory_order_seq_cst);
+			// std::atomic_thread_fence(std::memory_order_seq_cst);
 
 			auto& y = queue.groupData[readerGroupIndex];
-			if (readerData.cachedEnqueCounts[currentQueueIndex] > queue.enqueCount) {
+			/*if (readerData.cachedEnqueCounts[currentQueueIndex] > queue.enqueCount) {
 				throw std::runtime_error("XXXXX");
-			}
+			}*/
 
 			readerData.lastReadSuccessful = true;
 			return queue.storage[readIndex];

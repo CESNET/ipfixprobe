@@ -307,9 +307,9 @@ TEST(TestOutputStorage, Perf)
 {
 	std::cout << "Perf test" << std::endl;
 	// makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
-	makeTest<ipxp::output::MC2OutputStorage<ipxp::output::OutputContainer>>(
-		1,
-		{1},
+	makeTest<ipxp::output::MCOutputStorage<ipxp::output::OutputContainer>>(
+		32,
+		{8, 8, 8, 8},
 		false,
 		10'000'064);
 }
