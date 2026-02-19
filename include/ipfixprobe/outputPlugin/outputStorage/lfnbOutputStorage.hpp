@@ -59,7 +59,7 @@ public:
 		return true;
 	}
 
-	const ElementType* read(
+	ElementType* read(
 		const std::size_t readerGroupIndex,
 		[[maybe_unused]] const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
@@ -70,7 +70,8 @@ public:
 		}
 
 		const uint64_t sequentialReadPosition = m_readerGroupPositions[readerGroupIndex]++;
-		const uint64_t readPosition = sequentialReadPosition % this->m_storage.size();
+		const uint64_t readPosition
+			= sequentialReadPosition % OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY;
 		while (
 			(m_readersFinished[readPosition / BUCKET_SIZE].load(std::memory_order_acquire)
 					 / (BUCKET_SIZE * this->m_readerGroupsCount)

@@ -196,7 +196,7 @@ public:
 
 		bool finished() noexcept { return m_storage.finished(m_readerGroupIndex); }
 
-		const ElementType* read() noexcept
+		ElementType* read() noexcept
 		{
 			return m_storage.read(m_readerGroupIndex, m_localReaderIndex, m_globalReaderIndex);
 		}
@@ -302,7 +302,7 @@ public:
 
 	virtual bool write(ElementType* element, const uint8_t writerId) noexcept = 0;
 
-	virtual const ElementType* read(
+	virtual ElementType* read(
 		const std::size_t readerGroupIndex,
 		const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept

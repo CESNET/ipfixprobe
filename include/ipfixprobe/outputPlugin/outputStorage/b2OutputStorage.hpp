@@ -100,7 +100,7 @@ public:
 		return true;
 	}
 
-	const ElementType* read(
+	ElementType* read(
 		const std::size_t readerGroupIndex,
 		const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override

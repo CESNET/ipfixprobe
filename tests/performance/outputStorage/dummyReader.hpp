@@ -30,15 +30,15 @@ public:
 		ipxp::output::OutputStorage<ipxp::output::OutputContainer>::ReadHandler readHandler
 			= m_readerGroupHandler.getReaderHandler();
 		while (!readHandler.finished()) {
-			const ipxp::output::OutputContainer* container = readHandler.read();
-			if (container && readContainers++ % (1ULL << 22) == 0) {
+			ipxp::output::OutputContainer* container = readHandler.read();
+			if (container && readContainers++ % (1ULL << 24) == 0) {
 				const std::string message = "Reader  "
 					+ std::to_string(readHandler.getReaderIndex()) + " read "
 					+ std::to_string(readContainers) + " containers so far.";
 				std::cout << message << std::endl;
 				// m_lastPrintTime = std::chrono::steady_clock::now();
 			}
-			if (container && container->readTimes > 4) {
+			if (container && ++container->readTimes > 1) {
 				throw std::runtime_error("Container read more times than there are reader groups.");
 			}
 		}

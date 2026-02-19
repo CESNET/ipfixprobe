@@ -29,14 +29,14 @@ public:
 			queue.cachedLowestHeadIndex = queue.lowestHeadIndex();
 		}
 
-		std::atomic_thread_fence(std::memory_order_seq_cst);
+		// std::atomic_thread_fence(std::memory_order_seq_cst);
 		this->m_allocationBuffer->replace(queue.storage[writeIndex], element, writerId);
 		std::atomic_thread_fence(std::memory_order_seq_cst);
 		queue.enqueCount++;
 		return true;
 	}
 
-	const ElementType* read(
+	ElementType* read(
 		const std::size_t readerGroupIndex,
 		const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
@@ -84,11 +84,11 @@ public:
 				= queue.groupData[readerGroupIndex]->headIndex++ % queue.storage.size();
 			std::atomic_thread_fence(std::memory_order_seq_cst);
 
-			auto& y = queue.groupData[readerGroupIndex];
-			if (readerData.cachedEnqueCounts[currentQueueIndex] > queue.enqueCount) {
+			// auto& y = queue.groupData[readerGroupIndex];
+			/*if (readerData.cachedEnqueCounts[currentQueueIndex] > queue.enqueCount) {
 				throw std::runtime_error("XXXXX");
 			}
-			/*if (queue.storage[readIndex].empty()) {
+			if (queue.storage[readIndex].empty()) {
 				throw std::runtime_error("Should not happen");
 			}
 			if (queue.storage[readIndex].getContainer().readTimes == 4) {
