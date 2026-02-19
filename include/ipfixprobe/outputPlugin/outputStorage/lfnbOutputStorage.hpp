@@ -42,11 +42,9 @@ public:
 	bool write(ElementType* element, [[maybe_unused]] const uint8_t writerId) noexcept override
 	{
 		const uint64_t sequentialWritePosition = m_nextWritePos++;
-		const uint64_t writePosition = sequentialWritePosition % this->m_storage.size();
-		/*const bool rightCircle
-			= m_writersFinished[writePosition / BUCKET_SIZE].load(std::memory_order_acquire)
-				/ BUCKET_SIZE
-			!= sequentialWritePosition / ALLOCATION_BUFFER_CAPACITY;*/
+		const uint64_t writePosition
+			= sequentialWritePosition % OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY;
+
 		while (m_writersFinished[writePosition / BUCKET_SIZE].load(std::memory_order_acquire)
 					   / BUCKET_SIZE
 				   != sequentialWritePosition
