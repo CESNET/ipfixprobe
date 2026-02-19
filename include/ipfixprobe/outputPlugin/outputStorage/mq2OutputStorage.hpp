@@ -52,7 +52,7 @@ public:
 		const size_t tries
 			= this->m_totalWritersCount / this->m_readerGroupSizes[readerGroupIndex] + 1;
 		BackoffScheme backoff(3, std::numeric_limits<std::size_t>::max());
-		for (const auto _ : std::views::iota(0U, tries)) {
+		for (const auto _ : std::views::iota(0U, std::numeric_limits<std::size_t>::max())) {
 			const uint8_t sequenceIndex = this->m_readersData[globalReaderIndex]->sequenceIndex++;
 			const uint8_t queueIndex
 				= this->m_readersData[globalReaderIndex]->queueJumpSequence
