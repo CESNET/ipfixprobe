@@ -161,11 +161,11 @@ void makePerformanceTest(std::string_view storageName)
 {
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 1 Writers, 1 Reader\n";
-	makeTest<OutputStorageType>(1, {1}, false, 30'000'000);
+	makeTest<OutputStorageType>(1, {1}, false, 80'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 32 Writers, 1 Reader\n";
-	makeTest<OutputStorageType>(32, {1}, false, 5'000'064);
+	makeTest<OutputStorageType>(32, {1}, false, 20'000'064);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 1 Writers, 32 Readers\n";
@@ -173,15 +173,15 @@ void makePerformanceTest(std::string_view storageName)
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 32 Writers, 32 Readers\n";
-	makeTest<OutputStorageType>(32, {32}, false, 5'000'064);
+	makeTest<OutputStorageType>(32, {32}, false, 20'000'064);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 4 Writers, 4 Group 1 Reader\n";
-	makeTest<OutputStorageType>(4, {1, 1, 1, 1}, false, 30'000'000);
+	makeTest<OutputStorageType>(4, {1, 1, 1, 1}, false, 80'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 32 Writers, 4 Group 8 Reader\n";
-	makeTest<OutputStorageType>(32, {8, 8, 8, 8}, false, 10'000'000);
+	makeTest<OutputStorageType>(32, {8, 8, 8, 8}, false, 20'000'000);
 	std::cout << std::endl;
 }
 
@@ -193,7 +193,7 @@ TEST(TestOutputStorage, XXX)
 		1,
 		{1},
 		false,
-		30'000'000);
+		80'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << "MQ2OutputStorage, 32 Writers, 1 Reader\n";
@@ -201,7 +201,7 @@ TEST(TestOutputStorage, XXX)
 		32,
 		{1},
 		false,
-		5'000'064);
+		20'000'064);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << "MQ2OutputStorage, 32 Writers, 32 Readers\n";
@@ -209,7 +209,7 @@ TEST(TestOutputStorage, XXX)
 		32,
 		{32},
 		false,
-		5'000'064);
+		20'000'064);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << "MQ2OutputStorage, 4 Writers, 4 Group 1 Reader\n";
@@ -217,7 +217,7 @@ TEST(TestOutputStorage, XXX)
 		4,
 		{1, 1, 1, 1},
 		false,
-		30'000'000);
+		80'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << "MQ2OutputStorage, 32 Writers, 4 Group 8 Reader\n";
@@ -225,7 +225,7 @@ TEST(TestOutputStorage, XXX)
 		32,
 		{8, 8, 8, 8},
 		false,
-		10'000'000);
+		20'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << "MQOutputStorage, 1 Writers, 1 Reader\n";
@@ -233,7 +233,7 @@ TEST(TestOutputStorage, XXX)
 		1,
 		{1},
 		false,
-		30'000'000);
+		80'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << "MQOutputStorage, 32 Writers, 1 Reader\n";
@@ -241,7 +241,7 @@ TEST(TestOutputStorage, XXX)
 		32,
 		{1},
 		false,
-		5'000'064);
+		20'000'064);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << "MQOutputStorage, 32 Writers, 32 Readers\n";
@@ -249,7 +249,7 @@ TEST(TestOutputStorage, XXX)
 		32,
 		{32},
 		false,
-		5'000'064);
+		20'000'064);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << "MQOutputStorage, 4 Writers, 4 Group 1 Reader\n";
@@ -257,7 +257,7 @@ TEST(TestOutputStorage, XXX)
 		4,
 		{1, 1, 1, 1},
 		false,
-		30'000'000);
+		80'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << "MQOutputStorage, 32 Writers, 4 Group 8 Reader\n";
@@ -265,7 +265,7 @@ TEST(TestOutputStorage, XXX)
 		32,
 		{8, 8, 8, 8},
 		false,
-		10'000'000);
+		20'000'000);
 
 	makePerformanceTest<ipxp::output::MC2OutputStorage<ipxp::output::OutputContainer>>(
 		"MC2OutputStorage");
