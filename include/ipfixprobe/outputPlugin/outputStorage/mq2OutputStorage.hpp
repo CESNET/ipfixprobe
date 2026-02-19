@@ -46,11 +46,9 @@ public:
 
 	ElementType* read(
 		const std::size_t readerGroupIndex,
-		const uint8_t localReaderIndex,
+		[[maybe_unused]] const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
 	{
-		const size_t tries
-			= this->m_totalWritersCount / this->m_readerGroupSizes[readerGroupIndex] + 1;
 		BackoffScheme backoff(3, std::numeric_limits<std::size_t>::max());
 		while (true) {
 			const uint8_t sequenceIndex = this->m_readersData[globalReaderIndex]->sequenceIndex++;
@@ -61,7 +59,6 @@ public:
 			if (element != nullptr) {
 				return element;
 			}
-			// std::this_thread::yield();
 			backoff.backoff();
 			if (finished(readerGroupIndex)) {
 				return nullptr;

@@ -47,7 +47,7 @@ public:
 
 	ElementType* read(
 		const std::size_t readerGroupIndex,
-		const uint8_t localReaderIndex,
+		[[maybe_unused]] const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
 	{
 		BackoffScheme backoffScheme(30, 1);

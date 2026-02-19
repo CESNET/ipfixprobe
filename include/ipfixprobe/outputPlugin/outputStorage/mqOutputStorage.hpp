@@ -108,7 +108,7 @@ public:
 
 	ElementType* read(
 		const std::size_t readerGroupIndex,
-		const uint8_t localReaderIndex,
+		[[maybe_unused]] const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
 	{
 		const size_t tries
@@ -123,8 +123,7 @@ public:
 			if (element != nullptr) {
 				return element;
 			}
-			std::this_thread::yield();
-			// backoff.backoff();
+			backoff.backoff();
 		}
 		return nullptr;
 	}
@@ -233,7 +232,7 @@ protected:
 
 		bool finished() const noexcept
 		{
-			const State& currentState = m_stateBuffer.getCurrentValue();
+			// const State& currentState = m_stateBuffer.getCurrentValue();
 			return m_writerFinished.load(std::memory_order_acquire)
 				&& std::ranges::all_of(
 					   m_stateBuffer.getCurrentValue().readerGroupPositions,

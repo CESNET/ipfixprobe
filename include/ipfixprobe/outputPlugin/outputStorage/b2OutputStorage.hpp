@@ -48,7 +48,7 @@ public:
 		}
 		}
 
-		uint8_t loopCounter = 0;
+		// uint8_t loopCounter = 0;
 		BackoffScheme backoffScheme(2, std::numeric_limits<std::size_t>::max());
 		do {
 			const bool overflowed = writerData.randomShift();
@@ -112,30 +112,31 @@ public:
 			return this->getNextElement(readerData.bucketAllocation);
 		}
 
-		uint8_t loopCounter = 0;
+		// uint8_t loopCounter = 0;
 		uint64_t cachedGeneration;
 		uint16_t cachedBucketIndex;
-		const uint16_t initialPosition = readerData.readPosition;
+		// 	const uint16_t initialPosition = readerData.readPosition;
+		BackoffScheme backoffScheme(0, std::numeric_limits<std::size_t>::max());
 		do {
 			readerData.shift(this->m_readerGroupSizes[readerGroupIndex], localReaderIndex);
 
-			auto& y = this->m_buckets[readerData.readPosition];
+			// auto& y = this->m_buckets[readerData.readPosition];
 			if (readerData.isOnBufferBegin(this->m_readerGroupSizes[readerGroupIndex])) {
 				if (!this->writersPresent()) {
 					readerData.generation++;
-					updateLowestReaderGeneration(globalReaderIndex);
+					updateLowestReaderGeneration();
 					return nullptr;
 				}
 				if (!readerData.seenValidBucket) {
-					updateLowestReaderGeneration(globalReaderIndex);
-					std::this_thread::yield();
+					updateLowestReaderGeneration();
+					backoffScheme.backoff();
 					readerData.skipLoop = true;
 					return nullptr;
 				}
 				readerData.generation++;
 				readerData.seenValidBucket = false;
 				readerData.skipLoop = false;
-				updateLowestReaderGeneration(globalReaderIndex);
+				updateLowestReaderGeneration();
 			}
 			cachedGeneration = this->m_buckets[readerData.readPosition].generation;
 			std::atomic_thread_fence(std::memory_order_acquire);
@@ -159,7 +160,7 @@ public:
 	}*/
 
 protected:
-	void updateLowestReaderGeneration(const uint8_t globalReaderIndex) noexcept
+	void updateLowestReaderGeneration() noexcept
 	{
 		const auto readerGenerations
 			= this->m_readersData
@@ -170,16 +171,6 @@ protected:
 				uint64_t,
 				OutputStorage<ElementType>::MAX_READERS_COUNT>>();
 		const uint64_t highestReaderGeneration = *std::ranges::max_element(readerGenerations);
-		/*uint64_t expected;
-		do {
-			expected = m_highestReaderGeneration.load();
-			if (highestReaderGeneration <= expected) {
-				break;
-			}
-		} while (m_highestReaderGeneration.compare_exchange_weak(
-			expected,
-			highestReaderGeneration,
-			std::memory_order_release));*/
 		casMax(this->m_highestReaderGeneration, highestReaderGeneration);
 		// m_highestReaderGeneration = highestReaderGeneration;
 		const uint64_t lowestReaderGeneration = *std::ranges::min_element(readerGenerations);

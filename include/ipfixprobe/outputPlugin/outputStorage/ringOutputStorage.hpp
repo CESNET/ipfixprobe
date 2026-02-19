@@ -32,7 +32,7 @@ public:
 	}
 
 	ElementType* read(
-		const std::size_t readerGroupIndex,
+		[[maybe_unused]] const std::size_t readerGroupIndex,
 		[[maybe_unused]] const uint8_t localReaderIndex,
 		[[maybe_unused]] const uint8_t globalReaderIndex) noexcept override
 	{
@@ -53,7 +53,7 @@ public:
 		return m_lastReadContainer;
 	}
 
-	bool finished(const std::size_t readerGroupIndex) noexcept override
+	bool finished([[maybe_unused]] const std::size_t readerGroupIndex) noexcept override
 	{
 		return !this->writersPresent() && ipx_ring_cnt(m_ring.get()) == 0;
 	}

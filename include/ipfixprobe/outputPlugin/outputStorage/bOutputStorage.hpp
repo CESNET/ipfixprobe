@@ -1,6 +1,7 @@
 #pragma once
 
 // #include "bucketAllocator.hpp"
+#include "backoffScheme.hpp"
 #include "fastRandomGenerator.hpp"
 #include "outputStorage.hpp"
 #include "spinlock.hpp"
@@ -91,10 +92,6 @@ public:
 	ElementType*& getNextElement(BucketAllocation& position) noexcept
 	{
 		const uint64_t containerIndex = position.containerIndex++;
-		if (position.bucketIndex * BUCKET_SIZE + containerIndex >= this->m_storage.size()
-			|| containerIndex >= BUCKET_SIZE) {
-			throw std::runtime_error("Should not happen");
-		}
 		return this->m_storage[position.bucketIndex * BUCKET_SIZE + containerIndex];
 	}
 
@@ -121,19 +118,18 @@ public:
 			return true;
 		}
 
-		uint8_t loopCounter = 0;
+		// uint8_t loopCounter = 0;
 		// const uint16_t initialPosition = writerData.writePosition;
+		BackoffScheme backoffScheme(0, std::numeric_limits<std::size_t>::max());
 		do {
 			const bool overflowed = writerData.randomShift();
-			d_writerShifts++;
 			if (overflowed) {
 				writerData.cachedLowestReaderGeneration = m_lowestReaderGeneration.load();
 				if (containersLeft == 0) {
 					// container.deallocate(*m_allocationBuffer);
 					this->m_allocationBuffer->deallocate(element, writerIndex);
 				}
-				d_writerYields++;
-				std::this_thread::yield();
+				backoffScheme.backoff();
 				return false;
 			}
 
@@ -181,43 +177,36 @@ public:
 		ReaderData& readerData = m_readersData[globalReaderIndex].get();
 		// const uint64_t readPosition = readerData.readPosition;
 		if (readerData.bucketAllocation.containersLeft()) {
-			if (!BucketAllocation::isValidBucketIndex(readerData.bucketAllocation.bucketIndex)) {
+			/*if (!BucketAllocation::isValidBucketIndex(readerData.bucketAllocation.bucketIndex)) {
 				throw std::runtime_error("Should not happen");
-			}
+			}*/
 			return getNextElement(readerData.bucketAllocation);
 		}
 
-		if (readerData.readPosition % this->m_readerGroupSizes[readerGroupIndex]
-			!= localReaderIndex) {
-			throw std::runtime_error("Should not happen");
-		}
-
-		uint8_t loopCounter = 0;
+		// uint8_t loopCounter = 0;
 		uint64_t cachedGeneration;
 		uint16_t cachedBucketIndex;
-		const uint16_t initialPosition = readerData.readPosition;
+		BackoffScheme backoffScheme(0, std::numeric_limits<std::size_t>::max());
 		do {
 			readerData.shift(this->m_readerGroupSizes[readerGroupIndex], localReaderIndex);
-			d_readerShifts++;
 
-			auto& y = m_buckets[readerData.readPosition];
+			// auto& y = m_buckets[readerData.readPosition];
 			if (readerData.isOnBufferBegin(this->m_readerGroupSizes[readerGroupIndex])) {
 				if (!this->writersPresent()) {
 					readerData.generation++;
-					updateLowestReaderGeneration(globalReaderIndex);
+					updateLowestReaderGeneration();
 					return nullptr;
 				}
 				if (!readerData.seenValidBucket) {
-					updateLowestReaderGeneration(globalReaderIndex);
-					std::this_thread::yield();
-					d_readerYields++;
+					updateLowestReaderGeneration();
+					backoffScheme.backoff();
 					readerData.skipLoop = true;
 					return nullptr;
 				}
 				readerData.generation++;
 				readerData.seenValidBucket = false;
 				readerData.skipLoop = false;
-				updateLowestReaderGeneration(globalReaderIndex);
+				updateLowestReaderGeneration();
 			}
 			cachedGeneration = m_buckets[readerData.readPosition].generation;
 			std::atomic_thread_fence(std::memory_order_acquire);
@@ -274,7 +263,7 @@ protected:
 		}
 	};
 
-	void updateLowestReaderGeneration(const uint8_t globalReaderIndex) noexcept
+	void updateLowestReaderGeneration() noexcept
 	{
 		boost::container::static_vector<uint64_t, OutputStorage<ElementType>::MAX_READERS_COUNT>
 			readerGenerations = m_readersData
@@ -376,15 +365,6 @@ protected:
 		static_vector<std::atomic_uint64_t, OutputStorage<ElementType>::MAX_WRITERS_COUNT>
 			m_alreadyReadGroupPositions;
 	std::mutex m_registrationMutex;
-	std::size_t d_writerShifts {0};
-	std::size_t d_writerYields {0};
-	std::size_t d_readerShifts {0};
-	std::size_t d_readerYields {0};
-	std::size_t d_readerJumps {0};
-	std::size_t d_writerJumps {0};
-	std::size_t d_writerGenerationBigger {0};
-	std::size_t d_readerGenerationBigger {0};
-	std::size_t d_writerInitialJumps {0};
 	/*std::array<std::atomic<uint64_t>, ALLOCATION_BUFFER_CAPACITY / BUCKET_SIZE>
 	m_writersFinished; std::atomic_uint64_t m_nextWritePos {0}; std::atomic_uint64_t
 	m_confirmedPos {0}; std::atomic_uint64_t m_writtenPos {0}; bool m_initialized {false};*/

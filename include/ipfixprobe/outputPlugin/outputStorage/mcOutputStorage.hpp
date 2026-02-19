@@ -63,7 +63,7 @@ public:
 		if (queue.enqueCount >= queue.storage.size()
 			&& queue.enqueCount - queue.storage.size() >= queue.cachedLowestHeadIndex) {
 			this->m_allocationBuffer->deallocate(element, writerId);
-			std::this_thread::yield();
+			BackoffScheme(0, 1).backoff();
 			return false;
 		}
 
@@ -77,7 +77,7 @@ public:
 
 	ElementType* read(
 		const std::size_t readerGroupIndex,
-		const uint8_t localReaderIndex,
+		[[maybe_unused]] const uint8_t localReaderIndex,
 		const uint8_t globalReaderIndex) noexcept override
 	{
 		ReaderData& readerData = m_readersData[globalReaderIndex].get();
@@ -97,12 +97,12 @@ public:
 			Queue& queue = m_queues[currentQueueIndex];
 			queue.sync(readerGroupIndex);
 			const std::size_t dequeCount = queue.groupData[readerGroupIndex]->dequeueCount++;
-			const std::size_t d_x = readerData.cachedEnqueCounts[currentQueueIndex];
-			const std::size_t d_enqueCount = queue.enqueCount.load();
+			// const std::size_t d_x = readerData.cachedEnqueCounts[currentQueueIndex];
+			// const std::size_t d_enqueCount = queue.enqueCount.load();
 			if (dequeCount >= readerData.cachedEnqueCounts[currentQueueIndex]) {
 				readerData.cachedEnqueCounts[currentQueueIndex] = queue.enqueCount;
 			}
-			const std::size_t d_y = readerData.cachedEnqueCounts[currentQueueIndex];
+			// const std::size_t d_y = readerData.cachedEnqueCounts[currentQueueIndex];
 			if (dequeCount >= readerData.cachedEnqueCounts[currentQueueIndex]) {
 				queue.groupData[readerGroupIndex]->dequeueCount--;
 				readerData.lastQueueIndex++;
@@ -112,17 +112,16 @@ public:
 			}
 			readerData.readWithoutShift++;
 			// TODO originally was 256
-			bool d_s = false;
+			// bool d_s = false;
 			if (readerData.readWithoutShift == queue.storage.size()) {
 				this->shiftAllQueues();
-				d_s = true;
+				// d_s = true;
 			}
 			// std::atomic_thread_fence(std::memory_order_seq_cst);
 			const std::size_t readIndex
 				= queue.groupData[readerGroupIndex]->headIndex++ % queue.storage.size();
 			// std::atomic_thread_fence(std::memory_order_seq_cst);
 
-			auto& y = queue.groupData[readerGroupIndex];
 			/*if (readerData.cachedEnqueCounts[currentQueueIndex] > queue.enqueCount) {
 				throw std::runtime_error("XXXXX");
 			}*/
@@ -131,11 +130,11 @@ public:
 			return queue.storage[readIndex];
 		}
 		readerData.lastReadSuccessful = false;
-		std::this_thread::yield();
+		BackoffScheme(0, 1).backoff();
 		return nullptr;
 	}
 
-	bool finished(const std::size_t readerGroupIndex) noexcept override
+	bool finished([[maybe_unused]] const std::size_t readerGroupIndex) noexcept override
 	{
 		return !this->writersPresent()
 			&& std::ranges::all_of(m_queues, [&](const Queue& queue) { return queue.finished(); });

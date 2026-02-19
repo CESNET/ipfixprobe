@@ -45,12 +45,13 @@ public:
 		const uint64_t writePosition
 			= sequentialWritePosition % OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY;
 
+		BackoffScheme backoffScheme(0, std::numeric_limits<std::size_t>::max());
 		while (m_writersFinished[writePosition / BUCKET_SIZE].load(std::memory_order_acquire)
 					   / BUCKET_SIZE
 				   != sequentialWritePosition
 					   / OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY
 			   || !bucketIsRead(writePosition / BUCKET_SIZE)) {
-			std::this_thread::yield();
+			backoffScheme.backoff();
 		}
 
 		this->m_allocationBuffer->replace(this->m_storage[writePosition], element, writerId);
@@ -72,15 +73,17 @@ public:
 		const uint64_t sequentialReadPosition = m_readerGroupPositions[readerGroupIndex]++;
 		const uint64_t readPosition
 			= sequentialReadPosition % OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY;
+		BackoffScheme backoffScheme(0, std::numeric_limits<std::size_t>::max());
 		while (
 			(m_readersFinished[readPosition / BUCKET_SIZE].load(std::memory_order_acquire)
 					 / (BUCKET_SIZE * this->m_readerGroupsCount)
 				 != sequentialReadPosition / OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY
 			 || !bucketIsWritten(readPosition / BUCKET_SIZE))
 			&& this->writersPresent()) {
-			std::this_thread::yield();
+			backoffScheme.backoff();
 		}
 
+		// TODO Maybe Remove
 		std::atomic_thread_fence(std::memory_order_acquire);
 		if (sequentialReadPosition >= m_nextWritePos.load()) {
 			readerData.lastReadPosition = std::nullopt;
@@ -93,7 +96,7 @@ public:
 		return this->m_storage[readPosition];
 	}
 
-	bool finished(const std::size_t readerGroupIndex) noexcept override
+	bool finished([[maybe_unused]] const std::size_t readerGroupIndex) noexcept override
 	{
 		return !this->writersPresent()
 			&& std::ranges::all_of(m_readerGroupPositions, [&](const auto& position) {
