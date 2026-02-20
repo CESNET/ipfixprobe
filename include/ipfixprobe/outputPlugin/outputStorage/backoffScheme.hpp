@@ -21,8 +21,7 @@ public:
 		if (m_waitCounter < m_shortWaitThreshold) {
 			for (volatile const auto _ : std::views::iota(0, 10'000)) {}
 		} else if (m_waitCounter < m_longWaitThreshold) {
-			// return false;
-			// std::this_thread::yield();
+			std::this_thread::yield();
 		} else {
 			return false;
 		}
