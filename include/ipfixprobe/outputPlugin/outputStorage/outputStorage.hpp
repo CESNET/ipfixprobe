@@ -263,7 +263,7 @@ public:
 		m_readerGroupSizes.push_back(groupSize);
 		m_readerGroupHandlers
 			.emplace_back(groupSize, *this, m_readerGroupsCount, m_readersRegisteredGlobally);
-		// const uint8_t readerGroupIndex = m_readerGroupsCount++;
+		m_readerGroupsCount++;
 		return m_readerGroupHandlers.back();
 	}
 
