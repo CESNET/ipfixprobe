@@ -125,7 +125,7 @@ void NdpReader::set_booted_fw()
 	}
 
 	std::string name = (const char*) prop;
-	if (name.find("NDK_") != std::string::npos) {
+	if (name.find("NDK_") != std::string::npos || name.find("DYNANIC") != std::string::npos) {
 		fw_type = NdpFwType::NDP_FW_NDK;
 		int header_id = 0;
 		do {
