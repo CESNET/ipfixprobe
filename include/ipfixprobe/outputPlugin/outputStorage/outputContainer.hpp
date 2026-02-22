@@ -12,14 +12,11 @@
 
 namespace ipxp::output {
 
+template<typename ElementType>
 struct OutputContainer {
 	constexpr static std::size_t SIZE = 64;
 	std::chrono::steady_clock::time_point creationTime;
-	boost::container::static_vector<FlowRecordUniquePtr, SIZE> flows;
-
-	// debug data
-	static inline std::atomic<uint64_t> globalSequenceNumber;
-	uint64_t sequenceNumber {0};
+	boost::container::static_vector<ElementType, SIZE> data;
 	std::atomic<uint8_t> readTimes {0};
 };
 
