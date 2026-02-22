@@ -18,6 +18,24 @@ class OutputStorageWriter {
 		, m_allocationBuffer(allocationBuffer)
 		, m_currentContainer(allocationBuffer->allocate(writerIndex))
 	{
+		m_allocationBuffer->registerWriter();
+		for (auto& storage : *m_storages) {
+			if (!storage) {
+				break;
+			}
+			storage->registerWriter(writerIndex);
+		}
+	}
+
+	~OutputStorageWriter() noexcept
+	{
+		for(auto& storage : *m_storages) {
+			if (!storage) {
+				break;
+			}
+			storage->unregisterWriter(m_writerIndex);
+		}
+		m_allocationBuffer->unregisterWriter();
 	}
 
 	void push(ElementType* element) noexcept

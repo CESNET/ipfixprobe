@@ -46,16 +46,16 @@ protected:
 public:
 	// constexpr static std::size_t BUCKET_INDEX_BIT_SIZE = std::countr_zero(BUCKET_COUNT);
 
-	explicit BOutputStorage(const uint8_t writersCount) noexcept
-		: OutputStorage<ElementType>(writersCount)
-		, m_randomGenerator(1, writersCount)
+	explicit BOutputStorage() noexcept
+		: OutputStorage<ElementType>()
+		, m_randomGenerator(1, OutputStorage<ElementType>::MAX_WRITERS_COUNT)
 	{
 		std::ranges::for_each(
 			std::views::repeat(std::ignore, BUCKET_COUNT),
 			[&, bucketIndex = 0](const auto) mutable { m_buckets.emplace_back(bucketIndex++); });
 	}
 
-	OutputStorage<ElementType>::WriteHandler registerWriter() noexcept override
+	void registerWriter(const uint8_t writerIndex) noexcept override
 	{
 		std::unique_lock<std::mutex> lock(m_registrationMutex);
 		m_writersData.emplace_back(m_randomGenerator);
@@ -63,27 +63,18 @@ public:
 			= m_writersData.back()->bucketAllocation.reset(
 				m_buckets[m_writersData.size() - 1].bucketIndex);
 		lock.unlock();
-		return OutputStorage<ElementType>::registerWriter();
+		OutputStorage<ElementType>::registerWriter();
 	}
 
-	OutputStorage<ElementType>::ReaderGroupHandler&
-	registerReaderGroup(const uint8_t groupSize) noexcept override
-	{
-		return OutputStorage<ElementType>::registerReaderGroup(groupSize);
-	}
-
-	void registerReader(
-		[[maybe_unused]] const uint8_t readerGroupIndex,
-		const uint8_t localReaderIndex,
-		[[maybe_unused]] const uint8_t globalReaderIndex) noexcept override
+	void registerReader(const uint8_t readerIndex) noexcept override
 	{
 		std::unique_lock<std::mutex> lock(m_registrationMutex);
-		m_readersData.resize(std::max<std::size_t>(m_readersData.size(), globalReaderIndex + 1));
-		m_readersData[globalReaderIndex]->readPosition = localReaderIndex;
-		m_readersData[globalReaderIndex]->generationIncreasePosition = localReaderIndex;
+		m_readersData.resize(std::max<std::size_t>(m_readersData.size(), readerIndex + 1));
+		m_readersData[globalReaderIndex]->readPosition = readerIndex;
+		//m_readersData[globalReaderIndex]->generationIncreasePosition = readerIndex;
 		lock.unlock();
 
-		return OutputStorage<ElementType>::registerReader(
+		OutputStorage<ElementType>::registerReader(
 			readerGroupIndex,
 			localReaderIndex,
 			globalReaderIndex);
@@ -118,15 +109,12 @@ public:
 			return true;
 		}
 
-		// uint8_t loopCounter = 0;
-		// const uint16_t initialPosition = writerData.writePosition;
 		BackoffScheme backoffScheme(0, std::numeric_limits<std::size_t>::max());
 		do {
 			const bool overflowed = writerData.randomShift();
 			if (overflowed) {
 				writerData.cachedLowestReaderGeneration = m_lowestReaderGeneration.load();
 				if (containersLeft == 0) {
-					// container.deallocate(*m_allocationBuffer);
 					this->m_allocationBuffer->deallocate(element, writerIndex);
 				}
 				backoffScheme.backoff();
@@ -160,7 +148,6 @@ public:
 		m_buckets[writerData.writePosition].lock.unlock();
 
 		if (containersLeft == 0) {
-			// getNextContainer(writerData.bucketAllocation).assign(element, *m_allocationBuffer);
 			this->m_allocationBuffer->replace(
 				getNextElement(writerData.bucketAllocation),
 				element,
@@ -169,12 +156,9 @@ public:
 		return true;
 	}
 
-	ElementType* read(
-		const std::size_t readerGroupIndex,
-		const uint8_t localReaderIndex,
-		const uint8_t globalReaderIndex) noexcept override
+	ElementType* read(const uint8_t readerIndex) noexcept override
 	{
-		ReaderData& readerData = m_readersData[globalReaderIndex].get();
+		ReaderData& readerData = m_readersData[readerIndex].get();
 		// const uint64_t readPosition = readerData.readPosition;
 		if (readerData.bucketAllocation.containersLeft()) {
 			/*if (!BucketAllocation::isValidBucketIndex(readerData.bucketAllocation.bucketIndex)) {
@@ -183,7 +167,6 @@ public:
 			return getNextElement(readerData.bucketAllocation);
 		}
 
-		// uint8_t loopCounter = 0;
 		uint64_t cachedGeneration;
 		uint16_t cachedBucketIndex;
 		BackoffScheme backoffScheme(0, std::numeric_limits<std::size_t>::max());
@@ -200,12 +183,12 @@ public:
 				if (!readerData.seenValidBucket) {
 					updateLowestReaderGeneration();
 					backoffScheme.backoff();
-					readerData.skipLoop = true;
+					//readerData.skipLoop = true;
 					return nullptr;
 				}
 				readerData.generation++;
 				readerData.seenValidBucket = false;
-				readerData.skipLoop = false;
+				//readerData.skipLoop = false;
 				updateLowestReaderGeneration();
 			}
 			cachedGeneration = m_buckets[readerData.readPosition].generation;
@@ -295,10 +278,10 @@ protected:
 	struct ReaderData {
 		BucketAllocation bucketAllocation {};
 		uint16_t readPosition;
-		uint16_t generationIncreasePosition;
+		//uint16_t generationIncreasePosition;
 		uint64_t generation {1};
 		bool seenValidBucket {false};
-		bool skipLoop {false};
+		//bool skipLoop {false};
 
 		void shift(const uint8_t adjustment, const uint16_t initialPosition) noexcept
 		{
@@ -328,15 +311,15 @@ protected:
 	};
 
 	boost::container::static_vector<Bucket, BUCKET_COUNT> m_buckets;
-	std::span<Bucket> debugBuckets {m_buckets.data(), BUCKET_COUNT};
+	std::span<Bucket> d_buckets {m_buckets.data(), BUCKET_COUNT};
 	std::vector<uint16_t> m_bucketIndices;
-	struct D {
+	/*struct D {
 		uint64_t bucketIndex;
 		uint64_t generation;
 		uint64_t readPos;
 		uint64_t generationIncreasePos;
 	};
-	std::vector<std::vector<D>> debugIndices;
+	std::vector<std::vector<D>> debugIndices;*/
 
 	FastRandomGenerator<uint8_t> m_randomGenerator;
 	/*BucketAllocator m_bucketAllocator {
