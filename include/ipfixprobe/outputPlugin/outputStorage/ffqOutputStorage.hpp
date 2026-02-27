@@ -11,73 +11,74 @@ class FFQOutputStorage : public OutputStorage<ElementType> {
 	constexpr static uint32_t LONG_TRIES = 3;
 
 public:
-	explicit FFQOutputStorage(const uint8_t writersCount) noexcept
-		: OutputStorage<ElementType>(writersCount)
-		, m_cells(OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY)
+	explicit FFQOutputStorage(
+		const uint8_t expectedWritersCount,
+		const uint8_t expectedReadersCount,
+		std::shared_ptr<AllocationBufferBase<ReferenceCounter<OutputContainer<ElementType>>>>
+			allocationBuffer) noexcept
+		: OutputStorage<ElementType>(expectedWritersCount, expectedReadersCount, allocationBuffer)
+		, m_cells(OutputStorage<ElementType>::STORAGE_CAPACITY)
 	{
-		// m_cells.resize(ALLOCATION_BUFFER_CAPACITY);
 	}
 
-	bool write(ElementType* element, const uint8_t writerId) noexcept override
+	bool write(
+		const Reference<OutputContainer<ElementType>>& container,
+		const uint8_t writerId) noexcept override
 	{
 		BackoffScheme backoffScheme(70, 1);
 		while (true) {
-			const uint64_t writeRank = this->m_writeRank++;
-			const uint64_t writeIndex
-				= writeRank % OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY;
+			const uint64_t writeRank = this->m_writeRank.fetch_add(1, std::memory_order_acq_rel);
+			const uint64_t writeIndex = writeRank % OutputStorage<ElementType>::STORAGE_CAPACITY;
 			if (
 				/*(m_storage[writeIndex].empty()
 				 || !getReferenceCounter(m_storage[writeIndex]).hasUsers())&&*/
-				m_cells[writeIndex].state.allGroupsRead()
-				&& m_cells[writeIndex].state.tryToSetWriter()) {
+				m_cells[writeIndex].state.isRead() && m_cells[writeIndex].state.tryToSetWriter()) {
 				// m_storage[writeIndex].assign(container, *m_allocationBuffer);
 
-				this->m_allocationBuffer->replace(this->m_storage[writeIndex], element, writerId);
-				std::atomic_thread_fence(std::memory_order_release);
-				m_cells[writeIndex].state.reset(this->m_readerGroupsCount.load());
+				// this->m_allocationBuffer->replace(this->m_storage[writeIndex], element,
+				// writerId);
+				this->m_storage[writeIndex].assign(
+					container,
+					this->makeDeallocationCallback(writerId));
+				// std::atomic_thread_fence(std::memory_order_release);
+				m_cells[writeIndex].state.reset();
 				return true;
 			}
 			if (!backoffScheme.backoff()) {
 				// container.deallocate(*m_allocationBuffer);
-				this->m_allocationBuffer->deallocate(element, writerId);
+				// this->m_allocationBuffer->deallocate(element, writerId);
 				return false;
 			}
 		}
 	}
 
-	ElementType* read(
-		const std::size_t readerGroupIndex,
-		[[maybe_unused]] const uint8_t localReaderIndex,
-		const uint8_t globalReaderIndex) noexcept override
+	OutputContainer<ElementType>* read(const uint8_t readerIndex) noexcept override
 	{
 		BackoffScheme backoffScheme(30, 1);
-		if (m_readersData[globalReaderIndex]->lastReadIndex.has_value()) {
-			m_cells[*m_readersData[globalReaderIndex]->lastReadIndex].state.setReadingFinished(
-				readerGroupIndex);
+		if (m_readersData[readerIndex]->lastReadIndex.has_value()) {
+			m_cells[*m_readersData[readerIndex]->lastReadIndex].state.setReadingFinished();
 		}
-		while (!finished(readerGroupIndex)) {
-			const uint64_t readRank = m_readRanks[readerGroupIndex].get()++;
-			const uint64_t readIndex
-				= readRank % OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY;
-			if (m_cells[readIndex].state.tryToSetReadingStarted(readerGroupIndex)) {
-				std::atomic_thread_fence(std::memory_order_acquire);
-				m_readersData[globalReaderIndex]->lastReadIndex = readIndex;
-				return this->m_storage[readIndex];
+		while (!finished()) {
+			const uint64_t readRank = m_readRank.fetch_add(1, std::memory_order_acq_rel);
+			const uint64_t readIndex = readRank % OutputStorage<ElementType>::STORAGE_CAPACITY;
+			if (m_cells[readIndex].state.tryToSetReadingStarted()) {
+				// std::atomic_thread_fence(std::memory_order_acquire);
+				m_readersData[readerIndex]->lastReadIndex = readIndex;
+				return &this->m_storage[readIndex].getData();
 			}
 			if (!backoffScheme.backoff()) {
-				m_readersData[globalReaderIndex]->lastReadIndex = std::nullopt;
+				m_readersData[readerIndex]->lastReadIndex = std::nullopt;
 				return nullptr;
 			}
 		}
 		return nullptr;
 	}
 
-	bool finished(const std::size_t readerGroupIndex) noexcept override
+	bool finished() noexcept override
 	{
 		return !this->writersPresent()
-			&& m_readRanks[readerGroupIndex].get()
-				% OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY
-			== m_writeRank.load() % OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY;
+			&& m_readRank % OutputStorage<ElementType>::STORAGE_CAPACITY
+			== m_writeRank.load() % OutputStorage<ElementType>::STORAGE_CAPACITY;
 	}
 
 protected:
@@ -87,37 +88,57 @@ protected:
 
 	public:
 		explicit ReaderGroupState() noexcept
-			: m_startedState(std::numeric_limits<uint64_t>::max() >> 8)
-			, m_finishedState(std::numeric_limits<uint64_t>::max())
+		//: m_startedState(std::numeric_limits<uint64_t>::max() >> 8)
+		//, m_finishedState(std::numeric_limits<uint64_t>::max())
 		{
 		}
 
-		bool tryToSetWriter() noexcept { return setByte(WRITER_INDEX, m_startedState); }
+		// bool tryToSetWriter() noexcept { return setByte(WRITER_INDEX, m_startedState); }
+		bool tryToSetWriter() noexcept
+		{
+			return m_writingStarted.exchange(true, std::memory_order_acq_rel) == false;
+		}
 
-		bool tryToSetReadingStarted(const uint8_t readerGroup) noexcept
+		/*bool tryToSetReadingStarted(const uint8_t readerGroup) noexcept
 		{
 			return setByte(readerGroup, m_startedState);
+		}*/
+		bool tryToSetReadingStarted() noexcept
+		{
+			return m_readingStarted.exchange(true, std::memory_order_acq_rel) == false;
 		}
 
-		void setReadingFinished(const uint8_t readerGroup) noexcept
+		/*void setReadingFinished(const uint8_t readerGroup) noexcept
 		{
 			setByte(readerGroup, m_finishedState);
-		}
-
-		void reset(const uint8_t groupsTotal)
+		}*/
+		void setReadingFinished() noexcept
 		{
-			m_finishedState = (std::numeric_limits<uint64_t>::max() << ((groupsTotal) * 8));
-			m_startedState = (std::numeric_limits<uint64_t>::max() << (groupsTotal * 8 + 1)) >> 8;
-			// m_state = (std::numeric_limits<uint64_t>::max() << ((groupsTotal * 2 + 1) * 8)) >> 8;
+			m_readingFinished.store(true, std::memory_order_release);
+			// setByte(readerGroup, m_finishedState);
 		}
 
-		bool allGroupsRead() noexcept
+		void reset()
+		{
+			m_readingFinished.store(false, std::memory_order_release);
+			m_writingStarted.store(false, std::memory_order_release);
+			m_readingStarted.store(false, std::memory_order_release);
+			// m_readingFinished = false;
+			// m_writingStarted = false;
+			// m_readingStarted = false;
+			//  m_finishedState = (std::numeric_limits<uint64_t>::max() << ((groupsTotal) * 8));
+			//  m_startedState = (std::numeric_limits<uint64_t>::max() << (groupsTotal * 8 + 1)) >>
+			//  8;
+		}
+
+		/*bool allGroupsRead() noexcept
 		{
 			return m_finishedState == std::numeric_limits<uint64_t>::max();
-		}
+		}*/
+		bool isRead() noexcept { return m_readingFinished.load(std::memory_order_acquire); }
 
 	private:
-		static bool setByte(const uint8_t index, std::atomic<uint64_t>& state) noexcept
+		/*static bool setByte(const uint8_t index, std::atomic<uint64_t>& state) noexcept
 		{
 			uint64_t expected;
 			uint64_t newState;
@@ -133,10 +154,13 @@ protected:
 				newGroups[index] = 0xFF;
 			} while (!state.compare_exchange_weak(expected, newState));
 			return true;
-		}
+		}*/
 
-		std::atomic<uint64_t> m_startedState;
-		std::atomic<uint64_t> m_finishedState;
+		// std::atomic<uint64_t> m_startedState;
+		// std::atomic<uint64_t> m_finishedState;
+		std::atomic<bool> m_readingStarted {false};
+		std::atomic<bool> m_readingFinished {false};
+		std::atomic<bool> m_writingStarted {false};
 	};
 
 	struct Cell {
@@ -151,16 +175,16 @@ protected:
 		std::optional<uint16_t> lastReadIndex {0};
 	};
 
-	boost::container::static_vector<Cell, OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY>
-		m_cells;
-	std::span<Cell> d_cells {
+	boost::container::static_vector<Cell, OutputStorage<ElementType>::STORAGE_CAPACITY> m_cells;
+	/*std::span<Cell> d_cells {
 		m_cells.data(),
-		OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY};
+		OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY};*/
 	std::atomic<uint64_t> m_writeRank {0};
-	std::array<
+	/*std::array<
 		CacheAlligned<std::atomic<uint64_t>>,
 		OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT>
-		m_readRanks;
+		m_readRanks;*/
+	std::atomic<uint64_t> m_readRank {0};
 	std::array<CacheAlligned<ReaderData>, OutputStorage<ElementType>::MAX_READERS_COUNT>
 		m_readersData;
 };

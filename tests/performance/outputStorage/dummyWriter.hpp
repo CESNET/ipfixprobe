@@ -7,41 +7,44 @@
 #include <ranges>
 #include <thread>
 
-#include <outputStorage/outputStorage.hpp>
+#include <outputStorage/outputStorageRegistrar.hpp>
+#include <outputStorage/outputStorageWriter.hpp>
 
+template<typename StorageType>
 class DummyWriter {
 public:
 	explicit DummyWriter(
 		const std::size_t containersToWrite,
-		ipxp::output::OutputStorage<ipxp::output::OutputContainer>& storage,
+		ipxp::output::OutputStorageRegistrar<StorageType>& storageRegistrar,
 		const bool immitateWork) noexcept
 		: m_containersToWrite(containersToWrite)
-		, m_storage(storage)
+		, m_storageRegistrar(storageRegistrar)
 		, m_immitateWork(immitateWork)
 	{
 	}
 
 	DummyWriter(const DummyWriter& other) noexcept
 		: m_containersToWrite(other.m_containersToWrite)
-		, m_storage(other.m_storage)
+		, m_storageRegistrar(other.m_storageRegistrar)
 		, m_immitateWork(other.m_immitateWork)
 	{
 	}
 
 	void writeContainers() noexcept
 	{
-		ipxp::output::OutputStorage<ipxp::output::OutputContainer>::WriteHandler writeHandler
-			= m_storage.registerWriter();
+		ipxp::output::OutputStorageWriter<void*> writer(m_storageRegistrar.registerWriter());
 		for (const auto _ : std::views::iota(0u, m_containersToWrite)) {
-			ipxp::output::OutputContainer* container = writeHandler.allocate();
-			writeHandler.write(container);
+			// ipxp::output::OutputContainer* container = m_writer.allocate();
+			writer.push(nullptr);
 		}
-		std::cout << "Writer finished writing " << std::endl;
+		std::cout << "Writer finished writing " << m_containersToWrite << " containers."
+				  << std::endl;
 	}
 
 private:
 	bool m_unregistered = false;
 	const std::size_t m_containersToWrite;
-	ipxp::output::OutputStorage<ipxp::output::OutputContainer>& m_storage;
+	ipxp::output::OutputStorageRegistrar<StorageType>& m_storageRegistrar;
+	// ipxp::output::OutputStorage<ipxp::output::OutputContainer>& m_storage;
 	bool m_immitateWork = false;
 };

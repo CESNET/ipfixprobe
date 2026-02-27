@@ -24,51 +24,52 @@ namespace ipxp::output {
 template<typename ElementType>
 class MQ2OutputStorage : public MQOutputStorage<ElementType> {
 public:
-	explicit MQ2OutputStorage(const uint8_t writersCount) noexcept
-		: MQOutputStorage<ElementType>(writersCount)
+	explicit MQ2OutputStorage(
+		const uint8_t expectedWritersCount,
+		const uint8_t expectedReadersCount,
+		std::shared_ptr<AllocationBufferBase<ReferenceCounter<OutputContainer<ElementType>>>>
+			allocationBuffer) noexcept
+		: MQOutputStorage<ElementType>(expectedWritersCount, expectedReadersCount, allocationBuffer)
 	{
-		std::cout << std::endl;
 	}
 
-	bool write(ElementType* element, const uint8_t writerId) noexcept override
+	bool write(
+		const Reference<OutputContainer<ElementType>>& container,
+		const uint8_t writerIndex) noexcept override
 	{
 		BackoffScheme backoff(3, std::numeric_limits<std::size_t>::max());
-		while (!this->m_queues[writerId].tryWrite(
-			element,
+		while (!this->m_queues[writerIndex].tryWrite(
+			container,
 			*this->m_allocationBuffer,
-			this->m_readerGroupsCount,
 			std::numeric_limits<std::size_t>::max(),
-			writerId)) {
+			writerIndex)) {
 			backoff.backoff();
 		}
 		return true;
 	}
 
-	ElementType* read(
-		const std::size_t readerGroupIndex,
-		[[maybe_unused]] const uint8_t localReaderIndex,
-		const uint8_t globalReaderIndex) noexcept override
+	OutputContainer<ElementType>* read(const uint8_t readerIndex) noexcept override
 	{
 		BackoffScheme backoff(3, std::numeric_limits<std::size_t>::max());
 		while (true) {
-			const uint8_t sequenceIndex = this->m_readersData[globalReaderIndex]->sequenceIndex++;
+			const uint8_t sequenceIndex = this->m_readersData[readerIndex]->sequenceIndex++;
 			const uint8_t queueIndex
-				= this->m_readersData[globalReaderIndex]->queueJumpSequence
+				= this->m_readersData[readerIndex]->queueJumpSequence
 					  [sequenceIndex % OutputStorage<ElementType>::MAX_WRITERS_COUNT];
-			ElementType* element = this->m_queues[queueIndex].tryRead(readerGroupIndex);
+			auto* element = this->m_queues[queueIndex].tryRead();
 			if (element != nullptr) {
 				return element;
 			}
 			backoff.backoff();
-			if (finished(readerGroupIndex)) {
+			if (finished()) {
 				return nullptr;
 			}
 		}
 	}
 
-	bool finished(const std::size_t readerGroupIndex) noexcept override
+	bool finished() noexcept override
 	{
-		return this->m_readerGroupSizes[readerGroupIndex] > this->m_totalWritersCount
+		return this->m_expectedReadersCount > this->m_expectedWritersCount
 			|| (!this->writersPresent()
 				&& std::ranges::all_of(
 					this->m_queues,

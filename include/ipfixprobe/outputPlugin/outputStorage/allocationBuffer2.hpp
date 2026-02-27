@@ -37,8 +37,8 @@ public:
 			// const uint64_t queueIndex = m_nextQueue++ % m_queues.size();
 			ElementType* res = m_queues[threadQueueIndex].tryPop();
 			if (res != nullptr) {
-				res->ElementType::~ElementType();
-				new (res) ElementType();
+				// res->ElementType::~ElementType();
+				//  new (res) ElementType();
 				return res;
 			}
 		}

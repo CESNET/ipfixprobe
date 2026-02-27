@@ -7,18 +7,19 @@
 #include <optional>
 #include <thread>
 
-#include <outputStorage/outputStorage.hpp>
+#include <outputStorage/outputStorageReader.hpp>
+#include <outputStorage/outputStorageReaderGroup.hpp>
 
 class DummyReader {
 public:
 	explicit DummyReader(
-		ipxp::output::OutputStorage<ipxp::output::OutputContainer>& storage,
-		ipxp::output::OutputStorage<ipxp::output::OutputContainer>::ReaderGroupHandler&
-			readerGroupHandler,
+		// std::shared_ptr<ipxp::output::OutputStorage<void*>> storage,
+		ipxp::output::OutputStorageReaderGroup<void*>& readerGroup,
 		const bool immitateWork) noexcept
-		: m_storage(storage)
-		, m_readerGroupHandler(readerGroupHandler)
+		: // m_storage(storage),
+		// m_reader(readerGroup.registerReader())
 		//, m_readerGroupIndex(readerGroupIndex)
+		m_readerGroup(readerGroup)
 		, m_immitateWork(immitateWork)
 	{
 	}
@@ -26,30 +27,28 @@ public:
 	std::size_t readContainers() noexcept
 	{
 		// m_storage.registerReader(m_readerGroupIndex);
+		auto reader = m_readerGroup.registerReader();
 		std::size_t readContainers {};
-		ipxp::output::OutputStorage<ipxp::output::OutputContainer>::ReadHandler readHandler
-			= m_readerGroupHandler.getReaderHandler();
-		while (!readHandler.finished()) {
-			ipxp::output::OutputContainer* container = readHandler.read();
-			if (container && readContainers++ % (1ULL << 24) == 0) {
-				const std::string message = "Reader  "
-					+ std::to_string(readHandler.getReaderIndex()) + " read "
-					+ std::to_string(readContainers) + " containers so far.";
+		while (!reader.finished()) {
+			void** object = reader.read();
+			if (object && readContainers++ % (1ULL << 24) == 0) {
+				const std::string message = "Reader  " + std::to_string(reader.getReaderIndex())
+					+ " read " + std::to_string(readContainers) + " containers so far.";
 				std::cout << message << std::endl;
 				// m_lastPrintTime = std::chrono::steady_clock::now();
 			}
-			if (container && ++container->readTimes > 4) {
-				throw std::runtime_error("Container read more times than there are reader groups.");
-			}
+			/*if (object && ++(*object)->readTimes > 4) {
+				throw std::runtime_error("Object read more times than there are reader groups.");
+			}*/
 		}
 		return readContainers;
 	}
 
 private:
-	ipxp::output::OutputStorage<ipxp::output::OutputContainer>& m_storage;
+	std::shared_ptr<ipxp::output::OutputStorage<void*>> m_storage;
 	// std::size_t m_readerGroupIndex;
-	ipxp::output::OutputStorage<ipxp::output::OutputContainer>::ReaderGroupHandler&
-		m_readerGroupHandler;
+	// ipxp::output::OutputStorageReader<void*> m_reader;
+	ipxp::output::OutputStorageReaderGroup<void*>& m_readerGroup;
 	bool m_immitateWork;
 	// std::chrono::steady_clock::time_point m_lastPrintTime = std::chrono::steady_clock::now();
 };

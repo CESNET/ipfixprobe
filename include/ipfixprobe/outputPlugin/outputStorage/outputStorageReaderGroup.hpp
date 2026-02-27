@@ -21,7 +21,7 @@ public:
 	OutputStorageReader<ElementType> registerReader() noexcept
 	{
 		const uint8_t readerIndex = m_readersRegistered++;
-		return OutputStorageReader<ElementType>(m_readerGroupIndex, readerIndex, m_storage);
+		return OutputStorageReader<ElementType>(readerIndex, m_storage);
 	}
 
 private:
