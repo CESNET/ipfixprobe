@@ -28,7 +28,7 @@ public:
 
 	T& getData() noexcept { return m_data; }
 
-	void incrementUserCount() noexcept { m_refCount++; }
+	void incrementUserCount() noexcept { m_refCount.fetch_add(1, std::memory_order_acq_rel); }
 
 	uint8_t decrementUserCount()
 	{
@@ -36,7 +36,7 @@ public:
 			throw std::runtime_error(
 				"ReferenceCounterHandler destructor called but user count is already zero.");
 		}
-		const uint8_t refCount = m_refCount--;
+		const uint8_t refCount = m_refCount.fetch_sub(1, std::memory_order_acq_rel);
 		if (refCount == 1) {
 			// m_data.~T();
 		}
