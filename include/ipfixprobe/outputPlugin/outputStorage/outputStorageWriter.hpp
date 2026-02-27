@@ -50,8 +50,8 @@ public:
 		}*/
 		m_currentContainer.getData().storage.emplace_back(std::move(element));
 		if (m_currentContainer.getData().storage.size() == OutputContainer<ElementType>::SIZE) {
-			m_currentContainer.getData().written = true;
-			// std::atomic_thread_fence(std::memory_order_seq_cst);
+			// m_currentContainer.getData().written = true;
+			//  std::atomic_thread_fence(std::memory_order_seq_cst);
 			write(m_currentContainer);
 			m_writeAttempts++;
 			m_currentContainer.assign(
