@@ -195,16 +195,19 @@ public:
 			// auto& y = m_buckets[readerData.readPosition];
 			if (overflowed) {
 				if (!this->writersPresent()) {
+					std::cout << "Leving\n";
 					readerData.generation.fetch_add(1, std::memory_order_release);
 					updateLowestReaderGeneration();
 					return nullptr;
 				}
 				if (!readerData.seenValidBucket) {
+					std::cout << "Hits\n";
 					updateLowestReaderGeneration();
 					backoffScheme.backoff();
 					// readerData.skipLoop = true;
 					return nullptr;
 				}
+				std::cout << "Normano\n";
 				readerData.generation.fetch_add(1, std::memory_order_release);
 				readerData.seenValidBucket = false;
 				// readerData.skipLoop = false;
@@ -217,6 +220,7 @@ public:
 			// if (cachedGeneration >= readerData.generation + WINDOW_SIZE) {
 			if (cachedGeneration
 				>= readerData.generation.load(std::memory_order_acquire) + WINDOW_SIZE) {
+				std::cout << "Shto\n";
 				readerData.seenValidBucket = true;
 			}
 		} while (cachedGeneration != readerData.generation.load(std::memory_order_acquire)
