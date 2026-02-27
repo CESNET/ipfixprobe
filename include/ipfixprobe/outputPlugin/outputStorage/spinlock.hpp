@@ -19,7 +19,7 @@ public:
 		}
 	}
 
-	bool try_lock() noexcept { return !flag.test_and_set(std::memory_order_acquire); }
+	bool tryLock() noexcept { return !flag.test_and_set(std::memory_order_acquire); }
 
 	void unlock() noexcept { flag.clear(std::memory_order_release); }
 };

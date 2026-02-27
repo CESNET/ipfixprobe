@@ -9,6 +9,7 @@
 #include "dummyAllocationBuffer.hpp"
 #include "outputContainer.hpp"
 #include "referenceCounter.hpp"
+#include "spinlock.hpp"
 
 #include <atomic>
 #include <condition_variable>
@@ -45,18 +46,31 @@ public:
 
 	virtual void registerReader([[maybe_unused]] const uint8_t readerIndex) noexcept
 	{
-		std::unique_lock<std::mutex> lock(m_registrationMutex);
 		m_readersCount++;
+		while (!m_registrationLock.tryLock()) {
+			if (m_writersCount.load(std::memory_order_acquire) != 0) {
+				m_registrationLock.unlock();
+				return;
+			}
+		}
+		/*std::unique_lock<std::mutex> lock(m_registrationMutex);
 		m_registrationCondition.notify_all();
-		m_registrationCondition.wait(lock, [&]() { return m_writersCount > 0; });
+		m_registrationCondition.wait(lock, [&]() { return m_writersCount > 0; });*/
 	}
 
 	virtual void registerWriter([[maybe_unused]] const uint8_t writerIndex) noexcept
 	{
-		std::unique_lock<std::mutex> lock(m_registrationMutex);
+		m_writersCount++;
+		while (!m_registrationLock.tryLock()) {
+			if (m_readersCount.load(std::memory_order_acquire) != 0) {
+				m_registrationLock.unlock();
+				return;
+			}
+		}
+		/*std::unique_lock<std::mutex> lock(m_registrationMutex);
 		m_writersCount++;
 		m_registrationCondition.notify_all();
-		m_registrationCondition.wait(lock, [&]() { return m_readersCount > 0; });
+		m_registrationCondition.wait(lock, [&]() { return m_readersCount > 0; });*/
 	}
 
 	virtual void unregisterWriter([[maybe_unused]] const uint8_t writerId) noexcept
@@ -118,6 +132,7 @@ protected:
 private:
 	std::condition_variable m_registrationCondition;
 	std::mutex m_registrationMutex;
+	Spinlock m_registrationLock;
 };
 
 } // namespace ipxp::output

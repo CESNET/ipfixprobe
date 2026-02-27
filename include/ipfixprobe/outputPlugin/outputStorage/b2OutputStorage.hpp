@@ -72,7 +72,7 @@ public:
 					>= writerData.cachedLowestReaderGeneration
 				|| !BOutputStorage<ElementType>::BucketAllocation::isValidBucketIndex(
 					this->m_buckets[writerData.writePosition].bucketIndex)
-				|| !this->m_buckets[writerData.writePosition].lock.try_lock()) {
+				|| !this->m_buckets[writerData.writePosition].lock.tryLock()) {
 				continue;
 			}
 			if (this->m_buckets[writerData.writePosition].generation.load(std::memory_order_acquire)
