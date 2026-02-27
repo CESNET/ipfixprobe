@@ -28,26 +28,26 @@ public:
 
 	T& getData() noexcept { return m_data; }
 
-	void incrementUserCount() noexcept { m_refCount.fetch_add(1, std::memory_order_acq_rel); }
+	void incrementUserCount() noexcept { m_refCount->fetch_add(1, std::memory_order_acq_rel); }
 
 	uint8_t decrementUserCount()
 	{
-		if (m_refCount == 0) {
+		/*if (m_refCount == 0) {
 			throw std::runtime_error(
 				"ReferenceCounterHandler destructor called but user count is already zero.");
-		}
-		const uint8_t refCount = m_refCount.fetch_sub(1, std::memory_order_acq_rel);
+		}*/
+		const uint8_t refCount = m_refCount->fetch_sub(1, std::memory_order_acq_rel);
 		if (refCount == 1) {
 			// m_data.~T();
 		}
 		return refCount;
 	}
 
-	bool hasUsers() const noexcept { return m_refCount.load() > 0; }
+	// bool hasUsers() const noexcept { return m_refCount.load(std::memory_order_acquire) > 0; }
 
 private:
 	T m_data;
-	std::atomic_uint8_t m_refCount {0};
+	CacheAlligned<std::atomic<uint8_t>> m_refCount {0};
 };
 
 template<typename T>
