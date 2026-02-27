@@ -26,7 +26,7 @@ public:
 	ReferenceCounter& operator=(const ReferenceCounter&) = delete;
 	ReferenceCounter(const ReferenceCounter&) = delete;
 
-	T& getData() noexcept { return m_data; }
+	T& getData() noexcept { return m_data.get(); }
 
 	void incrementUserCount() noexcept { m_refCount->fetch_add(1, std::memory_order_acq_rel); }
 
@@ -46,8 +46,8 @@ public:
 	// bool hasUsers() const noexcept { return m_refCount.load(std::memory_order_acquire) > 0; }
 
 private:
-	T m_data;
-	CacheAlligned<std::atomic<uint8_t>> m_refCount {0};
+	CacheAlligned<T> m_data;
+	CacheAlligned<std::atomic<uint32_t>> m_refCount {0};
 };
 
 template<typename T>
