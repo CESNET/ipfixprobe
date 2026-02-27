@@ -43,9 +43,9 @@ public:
 			this->m_allocationBuffer->deallocate(m_lastReadContainer, 0);
 			m_lastReadContainer = nullptr;
 		}*/
-		if (ipx_ring_cnt(m_ring.get()) == 0) {
+		/*if (ipx_ring_cnt(m_ring.get()) == 0) {
 			return nullptr;
-		}
+		}*/
 
 		auto pop = ipx_ring_pop(m_ring.get());
 		if (pop == nullptr) {
