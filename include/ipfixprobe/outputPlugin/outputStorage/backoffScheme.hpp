@@ -19,7 +19,10 @@ public:
 	bool backoff() noexcept
 	{
 		if (m_waitCounter < m_shortWaitThreshold) {
-			for (volatile const auto _ : std::views::iota(0, 10'000)) {}
+			for (const auto _ : std::views::iota(0, 10'000)) {
+				asm volatile("pause" ::: "memory");
+			}
+
 		} else if (m_waitCounter < m_longWaitThreshold) {
 			std::this_thread::yield();
 		} else {
