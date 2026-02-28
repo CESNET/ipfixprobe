@@ -27,7 +27,7 @@ public:
 	{
 		BackoffScheme backoffScheme(70, 1);
 		while (true) {
-			const uint64_t writeRank = this->m_writeRank.fetch_add(1, std::memory_order_acq_rel);
+			const uint64_t writeRank = this->m_writeRank->fetch_add(1, std::memory_order_acq_rel);
 			const uint64_t writeIndex = writeRank % OutputStorage<ElementType>::STORAGE_CAPACITY;
 			if (
 				/*(m_storage[writeIndex].empty()
@@ -59,7 +59,7 @@ public:
 			m_cells[*m_readersData[readerIndex]->lastReadIndex].state.setReadingFinished();
 		}
 		while (!finished()) {
-			const uint64_t readRank = m_readRank.fetch_add(1, std::memory_order_acq_rel);
+			const uint64_t readRank = m_readRank->fetch_add(1, std::memory_order_acq_rel);
 			const uint64_t readIndex = readRank % OutputStorage<ElementType>::STORAGE_CAPACITY;
 			if (m_cells[readIndex].state.tryToSetReadingStarted()) {
 				// std::atomic_thread_fence(std::memory_order_acquire);
@@ -77,8 +77,10 @@ public:
 	bool finished() noexcept override
 	{
 		return !this->writersPresent()
-			&& m_readRank % OutputStorage<ElementType>::STORAGE_CAPACITY
-			== m_writeRank.load() % OutputStorage<ElementType>::STORAGE_CAPACITY;
+			&& m_readRank->load(std::memory_order_acquire)
+				% OutputStorage<ElementType>::STORAGE_CAPACITY
+			== m_writeRank->load(std::memory_order_acquire)
+				% OutputStorage<ElementType>::STORAGE_CAPACITY;
 	}
 
 protected:
@@ -166,27 +168,20 @@ protected:
 	struct Cell {
 		constexpr static uint64_t INVALID_RANK = std::numeric_limits<uint64_t>::max();
 
-		uint64_t rank;
+		// uint64_t rank;
 		ReaderGroupState state;
-		bool gap;
+		// bool gap;
 	};
 
 	struct ReaderData {
 		std::optional<uint16_t> lastReadIndex {0};
 	};
 
-	boost::container::static_vector<Cell, OutputStorage<ElementType>::STORAGE_CAPACITY> m_cells;
-	/*std::span<Cell> d_cells {
-		m_cells.data(),
-		OutputStorage<ElementType>::ALLOCATION_BUFFER_CAPACITY};*/
-	std::atomic<uint64_t> m_writeRank {0};
-	/*std::array<
-		CacheAlligned<std::atomic<uint64_t>>,
-		OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT>
-		m_readRanks;*/
-	std::atomic<uint64_t> m_readRank {0};
 	std::array<CacheAlligned<ReaderData>, OutputStorage<ElementType>::MAX_READERS_COUNT>
 		m_readersData;
+	boost::container::static_vector<Cell, OutputStorage<ElementType>::STORAGE_CAPACITY> m_cells;
+	CacheAlligned<std::atomic<uint64_t>> m_writeRank {0};
+	CacheAlligned<std::atomic<uint64_t>> m_readRank {0};
 };
 
 } // namespace ipxp::output

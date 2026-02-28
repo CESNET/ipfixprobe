@@ -31,7 +31,7 @@ public:
 			throw std::runtime_error("Container read more times than there are reader groups.");
 		}*/
 		BackoffScheme backoffScheme(70, std::numeric_limits<std::size_t>::max());
-		const uint64_t writeRank = this->m_writeRank.fetch_add(1, std::memory_order_acq_rel);
+		const uint64_t writeRank = this->m_writeRank->fetch_add(1, std::memory_order_acq_rel);
 		const uint64_t writeIndex = writeRank % OutputStorage<ElementType>::STORAGE_CAPACITY;
 		while (!this->m_cells[writeIndex].state.tryToSetWriter()) {
 			backoffScheme.backoff();
@@ -56,13 +56,13 @@ public:
 				.state.setReadingFinished();
 			this->m_readersData[readerIndex]->lastReadIndex = std::nullopt;
 		}
-		const uint64_t readRank = this->m_readRank.fetch_add(1, std::memory_order_acq_rel);
+		const uint64_t readRank = this->m_readRank->fetch_add(1, std::memory_order_acq_rel);
 		const uint64_t readIndex = readRank % OutputStorage<ElementType>::STORAGE_CAPACITY;
-		while (readRank >= this->m_writeRank.load(std::memory_order_acquire)
+		while (readRank >= this->m_writeRank->load(std::memory_order_acquire)
 			   && this->writersPresent()) {
 			backoffScheme.backoff();
 		}
-		if (readRank >= this->m_writeRank.load(std::memory_order_acquire)) {
+		if (readRank >= this->m_writeRank->load(std::memory_order_acquire)) {
 			return nullptr;
 		}
 
@@ -82,8 +82,8 @@ public:
 		return !this->writersPresent() &&
 			// m_readRanks[readerGroupIndex].get() % ALLOCATION_BUFFER_CAPACITY
 			//== m_writeRank.load() % ALLOCATION_BUFFER_CAPACITY;
-			this->m_readRank.load(std::memory_order_acquire)
-			> this->m_writeRank.load(std::memory_order_acquire);
+			this->m_readRank->load(std::memory_order_acquire)
+			> this->m_writeRank->load(std::memory_order_acquire);
 	}
 
 private:
