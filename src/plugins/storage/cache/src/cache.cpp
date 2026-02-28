@@ -25,6 +25,7 @@
 #include <ipfixprobe/ring.h>
 #include <sys/time.h>
 
+	
 namespace ipxp {
 
 static const PluginManifest cachePluginManifest = {
@@ -163,6 +164,7 @@ NHTFlowCache::NHTFlowCache(const std::string& params, ipx_ring_t* queue)
 	, m_inactive(0)
 	, m_split_biflow(false)
 	, m_enable_fragmentation_cache(true)
+	, m_source_optimization(NULL)
 	, m_keylen(0)
 	, m_key()
 	, m_key_inv()
@@ -177,6 +179,9 @@ NHTFlowCache::NHTFlowCache(const std::string& params, ipx_ring_t* queue)
 NHTFlowCache::~NHTFlowCache()
 {
 	close();
+	if( m_source_optimization ) {
+		delete m_source_optimization;
+	}
 }
 
 void NHTFlowCache::init(const char* params)
@@ -220,7 +225,9 @@ void NHTFlowCache::init(const char* params)
 
 	m_split_biflow = parser.m_split_biflow;
 	m_enable_fragmentation_cache = parser.m_enable_fragmentation_cache;
-
+	if( parser.m_source_optimization_enabled ) {
+		m_source_optimization = new SourceOptimization( parser.m_source_optimization_networks );
+	}
 	if (m_enable_fragmentation_cache) {
 		try {
 			m_fragmentation_cache
@@ -321,19 +328,30 @@ void NHTFlowCache::flush(Packet& pkt, size_t flow_index, int ret, bool source_fl
 
 int NHTFlowCache::put_pkt(Packet& pkt)
 {
+	source_optimization_mode_t mode = MODE_NONE;
 	int ret = plugins_pre_create(pkt);
 
 	if (m_enable_fragmentation_cache) {
 		try_to_fill_ports_to_fragmented_packet(pkt);
 	}
-
-	if (!create_hash_key(pkt)) { // saves key value and key length into attributes NHTFlowCache::key
+	if( m_source_optimization ) {
+		mode = m_source_optimization->get_mode(pkt);
+	}
+	if (!create_hash_key(pkt, mode)) { // saves key value and key length into attributes NHTFlowCache::key
 								 // and NHTFlowCache::m_keylen
 		return 0;
 	}
 
 	prefetch_export_expired();
 
+	if( m_source_optimization ) {
+		if( mode == MODE_SRC ) {
+			pkt.src_port = 0;
+		}
+		else if( mode == MODE_DST ) {
+			pkt.dst_port = 0;
+		}
+	}
 	uint64_t hashval
 		= XXH64(m_key, m_keylen, 0); /* Calculates hash value from key created before. */
 
@@ -367,7 +385,15 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 			}
 		}
 	}
-
+	// Set all source/destination ports to 0 for source optimization based on flow direction
+	// this will consolidate more flows into single flow record
+	/*if (m_source_optimization_enabled) {
+		if( source_flow ) {
+			pkt.src_port = 0;
+		} else {
+			pkt.dst_port = 0;
+		}
+	}*/
 	if (found) {
 		/* Existing flow record was found, put flow record at the first index of flow line. */
 #ifdef FLOW_CACHE_STATS
@@ -425,8 +451,11 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 	flow = m_flow_table[flow_index];
 
 	uint8_t flw_flags = source_flow ? flow->m_flow.src_tcp_flags : flow->m_flow.dst_tcp_flags;
-	if ((pkt.tcp_flags & 0x02) && (flw_flags & (0x01 | 0x04))) {
-		// Flows with FIN or RST TCP flags are exported when new SYN packet arrives
+	if (!m_source_optimization && (pkt.tcp_flags & 0x02) && (flw_flags & (0x01 | 0x04))) {
+		// Flows with FIN or RST TCP flags are exported when new SYN packet arrives.
+		// When source optimization is enabled this case do not make any sence as the code would 
+		// trigger a record push even thow we are trying to collect all data to a destination with 
+		// in actvie timeout. 
 		m_flow_table[flow_index]->m_flow.end_reason = FLOW_END_EOF;
 		export_flow(flow_index);
 		put_pkt(pkt);
@@ -436,6 +465,7 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 	if (flow->is_empty()) {
 		m_flows_in_cache++;
 		flow->create(pkt, hashval);
+		
 		ret = plugins_post_create(flow->m_flow, pkt);
 
 		if (ret & FLOW_FLUSH) {
@@ -518,7 +548,7 @@ void NHTFlowCache::export_expired(time_t ts)
 	m_timeout_idx = (m_timeout_idx + m_line_new_idx) & (m_cache_size - 1);
 }
 
-bool NHTFlowCache::create_hash_key(Packet& pkt)
+bool NHTFlowCache::create_hash_key(Packet& pkt, int mode)
 {
 	if (pkt.ip_version == IP::v4) {
 		struct flow_key_v4_t* key_v4 = reinterpret_cast<struct flow_key_v4_t*>(m_key);
@@ -526,19 +556,38 @@ bool NHTFlowCache::create_hash_key(Packet& pkt)
 
 		key_v4->proto = pkt.ip_proto;
 		key_v4->ip_version = IP::v4;
-		key_v4->src_port = pkt.src_port;
-		key_v4->dst_port = pkt.dst_port;
+		// We get called again by timeout and then we can not do this again.
+		if( m_source_optimization && mode == MODE_SRC) {
+			key_v4->src_port = 0;
+			key_v4->dst_port = pkt.dst_port;
+		} else if( m_source_optimization && mode == MODE_DST ) {
+			key_v4->src_port = pkt.src_port;
+			key_v4->dst_port = 0;			
+		} else {
+			key_v4->src_port = pkt.src_port;
+			key_v4->dst_port = pkt.dst_port;
+		}
 		key_v4->src_ip = pkt.src_ip.v4;
 		key_v4->dst_ip = pkt.dst_ip.v4;
 		key_v4->vlan_id = pkt.vlan_id;
+		key_v4->vlan_id2 = pkt.vlan_id2;
 
 		key_v4_inv->proto = pkt.ip_proto;
 		key_v4_inv->ip_version = IP::v4;
-		key_v4_inv->src_port = pkt.dst_port;
-		key_v4_inv->dst_port = pkt.src_port;
+		if( m_source_optimization && mode == MODE_SRC ) {
+			key_v4_inv->src_port = 0;
+			key_v4_inv->dst_port = pkt.src_port;
+		} else if( m_source_optimization && mode == MODE_DST) {
+			key_v4_inv->src_port = pkt.dst_port;
+			key_v4_inv->dst_port = 0;			
+		} else {
+			key_v4_inv->src_port = pkt.dst_port;
+			key_v4_inv->dst_port = pkt.src_port;
+		}
 		key_v4_inv->src_ip = pkt.dst_ip.v4;
 		key_v4_inv->dst_ip = pkt.src_ip.v4;
 		key_v4_inv->vlan_id = pkt.vlan_id;
+		key_v4_inv->vlan_id2 = pkt.vlan_id2;
 
 		m_keylen = sizeof(flow_key_v4_t);
 		return true;
@@ -548,19 +597,38 @@ bool NHTFlowCache::create_hash_key(Packet& pkt)
 
 		key_v6->proto = pkt.ip_proto;
 		key_v6->ip_version = IP::v6;
-		key_v6->src_port = pkt.src_port;
-		key_v6->dst_port = pkt.dst_port;
+		if( m_source_optimization && mode == MODE_SRC ) {
+			key_v6->src_port = 0;
+			key_v6->dst_port = pkt.dst_port;
+		} else if( m_source_optimization && mode == MODE_DST ){
+			key_v6->src_port = pkt.src_port;
+			key_v6->dst_port = 0;	
+		} else {
+			key_v6->src_port = pkt.src_port;
+			key_v6->dst_port = pkt.dst_port;			
+		}
+		
 		memcpy(key_v6->src_ip, pkt.src_ip.v6, sizeof(pkt.src_ip.v6));
 		memcpy(key_v6->dst_ip, pkt.dst_ip.v6, sizeof(pkt.dst_ip.v6));
 		key_v6->vlan_id = pkt.vlan_id;
+		key_v6->vlan_id2 = pkt.vlan_id2;
 
 		key_v6_inv->proto = pkt.ip_proto;
 		key_v6_inv->ip_version = IP::v6;
-		key_v6_inv->src_port = pkt.dst_port;
-		key_v6_inv->dst_port = pkt.src_port;
+		if (m_source_optimization && mode == MODE_SRC) {
+			key_v6_inv->src_port = 0;
+			key_v6_inv->dst_port = pkt.src_port;
+		} else if( m_source_optimization && mode == MODE_DST) {
+			key_v6_inv->src_port = pkt.dst_port;
+			key_v6_inv->dst_port = 0;
+		} else {
+			key_v6_inv->dst_port = pkt.src_port;
+			key_v6_inv->src_port = pkt.dst_port;
+		}
 		memcpy(key_v6_inv->src_ip, pkt.dst_ip.v6, sizeof(pkt.dst_ip.v6));
 		memcpy(key_v6_inv->dst_ip, pkt.src_ip.v6, sizeof(pkt.src_ip.v6));
 		key_v6_inv->vlan_id = pkt.vlan_id;
+		key_v6_inv->vlan_id2 = pkt.vlan_id2;
 
 		m_keylen = sizeof(flow_key_v6_t);
 		return true;
