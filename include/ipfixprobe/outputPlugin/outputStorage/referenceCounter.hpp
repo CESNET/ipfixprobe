@@ -28,7 +28,7 @@ public:
 
 	T& getData() noexcept { return m_data.get(); }
 
-	void incrementUserCount() noexcept { m_refCount->fetch_add(1, std::memory_order_acq_rel); }
+	void incrementUserCount() noexcept { m_refCount->fetch_add(1, std::memory_order_relaxed); }
 
 	uint8_t decrementUserCount()
 	{
@@ -96,19 +96,13 @@ public:
 		if (m_counter == other.m_counter) {
 			throw std::runtime_error("Both references point to the same counter");
 		}
-		const uint8_t userCount = m_counter->decrementUserCount();
-		const bool noMoreUsers = userCount == 1;
+		other.m_counter->incrementUserCount();
 		auto* oldCounter = m_counter;
-		/*if (userCount == 0) {
-			allocationBuffer.deallocate(m_counter);
-		}*/
 		m_counter = other.m_counter;
-		m_counter->incrementUserCount();
-		if (noMoreUsers) {
+		const uint8_t userCount = oldCounter->decrementUserCount();
+		if (userCount == 1) {
 			onDestructorCallback(oldCounter);
 		}
-
-		// return noMoreUsers;
 	}
 
 	auto&& getCounter(this auto&& self) noexcept { return self.m_counter; }
