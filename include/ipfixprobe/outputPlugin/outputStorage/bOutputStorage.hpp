@@ -218,8 +218,7 @@ public:
 			// std::atomic_thread_fence(std::memory_order_acquire);
 			cachedBucketIndex = m_buckets[readerData.readPosition].bucketIndex;
 			// if (cachedGeneration >= readerData.generation + WINDOW_SIZE) {
-			if (cachedGeneration
-				>= readerData.generation.load(std::memory_order_acquire) + WINDOW_SIZE) {
+			if (cachedGeneration >= readerData.generation.load(std::memory_order_acquire) + 2) {
 				// std::cout << "Shto\n";
 				readerData.seenValidBucket = true;
 			}
