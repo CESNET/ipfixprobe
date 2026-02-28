@@ -93,7 +93,7 @@ public:
 				this->shiftAllQueues();
 			}
 
-			std::atomic_thread_fence(std::memory_order_seq_cst);
+			// std::atomic_thread_fence(std::memory_order_seq_cst);
 			const std::size_t readIndex
 				= queue.groupData->readRank.fetch_add(1, std::memory_order_acq_rel)
 				% queue.storage->size();
