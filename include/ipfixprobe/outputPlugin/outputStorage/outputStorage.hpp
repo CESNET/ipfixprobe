@@ -47,12 +47,8 @@ public:
 	virtual void registerReader([[maybe_unused]] const uint8_t readerIndex) noexcept
 	{
 		m_readersCount++;
-		while (!m_registrationLock.tryLock()) {
-			if (m_writersCount.load(std::memory_order_acquire) != 0) {
-				m_registrationLock.unlock();
-				return;
-			}
-		}
+		while (m_writersCount.load(std::memory_order_acquire) != m_expectedWritersCount)
+			;
 		/*std::unique_lock<std::mutex> lock(m_registrationMutex);
 		m_registrationCondition.notify_all();
 		m_registrationCondition.wait(lock, [&]() { return m_writersCount > 0; });*/
@@ -61,12 +57,8 @@ public:
 	virtual void registerWriter([[maybe_unused]] const uint8_t writerIndex) noexcept
 	{
 		m_writersCount++;
-		while (!m_registrationLock.tryLock()) {
-			if (m_readersCount.load(std::memory_order_acquire) != 0) {
-				m_registrationLock.unlock();
-				return;
-			}
-		}
+		while (m_readersCount.load(std::memory_order_acquire) != m_expectedReadersCount)
+			;
 		/*std::unique_lock<std::mutex> lock(m_registrationMutex);
 		m_writersCount++;
 		m_registrationCondition.notify_all();
