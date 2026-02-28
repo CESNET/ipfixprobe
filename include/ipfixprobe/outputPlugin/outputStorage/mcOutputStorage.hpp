@@ -41,23 +41,23 @@ public:
 		const Reference<OutputContainer<ElementType>>& container,
 		const uint8_t writerId) noexcept override
 	{
-		Queue& queue = m_queues[writerId];
+		Queue& queue = m_queues[writerId].get();
 		const std::size_t enqueCount = queue.enqueCount.load(std::memory_order_acquire);
-		const std::size_t writeIndex = enqueCount % queue.storage.size();
-		if (enqueCount >= queue.storage.size()
-			&& enqueCount - queue.storage.size() >= queue.cachedFinishedIndex) {
+		const std::size_t writeIndex = enqueCount % queue.storage->size();
+		if (enqueCount >= queue.storage->size()
+			&& enqueCount - queue.storage->size() >= queue.cachedFinishedIndex) {
 			queue.cachedFinishedIndex
-				= queue.groupData.finishedIndex.load(std::memory_order_acquire);
+				= queue.groupData->finishedIndex.load(std::memory_order_acquire);
 		}
-		if (enqueCount >= queue.storage.size()
-			&& enqueCount - queue.storage.size() >= queue.cachedFinishedIndex) {
+		if (enqueCount >= queue.storage->size()
+			&& enqueCount - queue.storage->size() >= queue.cachedFinishedIndex) {
 			// this->m_allocationBuffer->deallocate(container.getCounter(), writerId);
 			BackoffScheme(0, 1).backoff();
 			return false;
 		}
 
 		// std::atomic_thread_fence(std::memory_order_seq_cst);
-		queue.storage[writeIndex].assign(container, this->makeDeallocationCallback(writerId));
+		queue.storage.get()[writeIndex].assign(container, this->makeDeallocationCallback(writerId));
 		// this->assignAndDeallocate(queue.storage[writeIndex], container, writerId);
 		/*queue.storage[writeIndex].assign(
 			std::move(Reference<OutputContainer<ElementType>>(*container)),
@@ -72,7 +72,8 @@ public:
 	{
 		ReaderData& readerData = m_readersData[readerIndex].get();
 		if (readerData.lastReadSuccessful) {
-			m_queues[readerData.lastQueueIndex % m_queues.size()].groupData.readsFinished++;
+			m_queues[readerData.lastQueueIndex % m_queues.size()]
+				->groupData->readsFinished.fetch_add(1, std::memory_order_acq_rel);
 		}
 
 		if (readerData.shiftQueue) {
@@ -82,10 +83,10 @@ public:
 		}
 		for (uint8_t queueShifts = 0; queueShifts < this->m_expectedWritersCount; queueShifts++) {
 			const uint8_t currentQueueIndex = readerData.lastQueueIndex % m_queues.size();
-			Queue& queue = m_queues[currentQueueIndex];
+			Queue& queue = m_queues[currentQueueIndex].get();
 			queue.sync();
 			const std::size_t dequeTry
-				= queue.groupData.dequeueTries.fetch_add(1, std::memory_order_acq_rel);
+				= queue.groupData->dequeueTries.fetch_add(1, std::memory_order_acq_rel);
 			// const std::size_t d_x = readerData.cachedEnqueCounts[currentQueueIndex];
 			// const std::size_t d_enqueCount = queue.enqueCount.load();
 			if (dequeTry >= readerData.cachedEnqueCounts[currentQueueIndex]) {
@@ -94,7 +95,7 @@ public:
 			}
 			// const std::size_t d_y = readerData.cachedEnqueCounts[currentQueueIndex];
 			if (dequeTry >= readerData.cachedEnqueCounts[currentQueueIndex]) {
-				queue.groupData.dequeueTries.fetch_sub(1, std::memory_order_acq_rel);
+				queue.groupData->dequeueTries.fetch_sub(1, std::memory_order_acq_rel);
 				readerData.lastQueueIndex++;
 				readerData.readWithoutShift = 0;
 				// readerData.cachedEnqueCount = 0;
@@ -103,14 +104,14 @@ public:
 			readerData.readWithoutShift++;
 			// TODO originally was 256
 			// bool d_s = false;
-			if (readerData.readWithoutShift == queue.storage.size()) {
+			if (readerData.readWithoutShift == queue.storage->size()) {
 				this->shiftAllQueues();
 				// d_s = true;
 			}
 			// std::atomic_thread_fence(std::memory_order_seq_cst);
 			const std::size_t readIndex
-				= queue.groupData.readRank.fetch_add(1, std::memory_order_acq_rel)
-				% queue.storage.size();
+				= queue.groupData->readRank.fetch_add(1, std::memory_order_acq_rel)
+				% queue.storage->size();
 			// std::atomic_thread_fence(std::memory_order_seq_cst);
 
 			/*if (readerData.cachedEnqueCounts[currentQueueIndex] > queue.enqueCount) {
@@ -118,7 +119,7 @@ public:
 			}*/
 
 			readerData.lastReadSuccessful = true;
-			return &queue.storage[readIndex].getData();
+			return &queue.storage.get()[readIndex].getData();
 		}
 		readerData.lastReadSuccessful = false;
 		BackoffScheme(0, 1).backoff();
@@ -128,7 +129,9 @@ public:
 	bool finished() noexcept override
 	{
 		return !this->writersPresent()
-			&& std::ranges::all_of(m_queues, [&](const Queue& queue) { return queue.finished(); });
+			&& std::ranges::all_of(m_queues, [&](const CacheAlligned<Queue>& queue) {
+				   return queue->finished();
+			   });
 	}
 
 protected:
@@ -158,23 +161,23 @@ protected:
 		void sync() noexcept
 		{
 			const std::size_t readsFinished
-				= groupData.readsFinished.load(std::memory_order_acquire);
-			const std::size_t readIndex = groupData.readRank.load(std::memory_order_acquire);
+				= groupData->readsFinished.load(std::memory_order_acquire);
+			const std::size_t readIndex = groupData->readRank.load(std::memory_order_acquire);
 			if (readIndex == readsFinished) {
-				groupData.finishedIndex.store(readIndex, std::memory_order_release);
+				groupData->finishedIndex.store(readIndex, std::memory_order_release);
 			}
 		}
 
 		bool finished() const noexcept
 		{
-			return groupData.finishedIndex.load(std::memory_order_acquire)
+			return groupData->finishedIndex.load(std::memory_order_acquire)
 				>= enqueCount.load(std::memory_order_acquire);
 		}
 
 		std::atomic<uint64_t> enqueCount {0};
 		uint64_t cachedFinishedIndex {0};
-		std::span<Reference<OutputContainer<ElementType>>> storage;
-		GroupData groupData;
+		CacheAlligned<GroupData> groupData;
+		CacheAlligned<std::span<Reference<OutputContainer<ElementType>>>> storage;
 		// std::span<CacheAlligned<GroupData>> d_groupData {groupData.data(), groupData.capacity()};
 	};
 
@@ -187,7 +190,9 @@ protected:
 	}
 
 	std::mutex m_registrationMutex;
-	boost::container::static_vector<Queue, OutputStorage<ElementType>::MAX_WRITERS_COUNT> m_queues;
+	boost::container::
+		static_vector<CacheAlligned<Queue>, OutputStorage<ElementType>::MAX_WRITERS_COUNT>
+			m_queues;
 	std::array<CacheAlligned<ReaderData>, OutputStorage<ElementType>::MAX_READERS_COUNT>
 		m_readersData;
 	// uint8_t m_queueShift {0};
