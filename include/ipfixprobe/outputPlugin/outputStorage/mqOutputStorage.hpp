@@ -119,7 +119,7 @@ public:
 
 	bool finished() noexcept override
 	{
-		return this->m_expectedReadersCount >= this->m_expectedWritersCount
+		return this->m_expectedReadersCount > this->m_expectedWritersCount
 			|| (!this->writersPresent() && std::ranges::all_of(m_queues, [&](const Queue& queue) {
 				   return queue.finished();
 			   }));
