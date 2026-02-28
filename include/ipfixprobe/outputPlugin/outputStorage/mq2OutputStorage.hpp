@@ -37,7 +37,7 @@ public:
 		const Reference<OutputContainer<ElementType>>& container,
 		const uint8_t writerIndex) noexcept override
 	{
-		BackoffScheme backoff(3, std::numeric_limits<std::size_t>::max());
+		BackoffScheme backoff(30, std::numeric_limits<std::size_t>::max());
 		while (!this->m_queues[writerIndex].tryWrite(
 			container,
 			*this->m_allocationBuffer,
@@ -50,7 +50,7 @@ public:
 
 	OutputContainer<ElementType>* read(const uint8_t readerIndex) noexcept override
 	{
-		BackoffScheme backoff(3, std::numeric_limits<std::size_t>::max());
+		BackoffScheme backoff(30, std::numeric_limits<std::size_t>::max());
 		while (true) {
 			const uint8_t sequenceIndex = this->m_readersData[readerIndex]->sequenceIndex++;
 			const uint8_t queueIndex

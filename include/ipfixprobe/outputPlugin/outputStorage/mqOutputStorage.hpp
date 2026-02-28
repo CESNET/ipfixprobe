@@ -102,7 +102,7 @@ public:
 	OutputContainer<ElementType>* read(const uint8_t readerIndex) noexcept override
 	{
 		const size_t tries = this->m_expectedWritersCount / this->m_expectedReadersCount + 1;
-		BackoffScheme backoff(3, 5);
+		BackoffScheme backoff(30, 3);
 		for (const auto _ : std::views::iota(0U, tries)) {
 			const uint8_t sequenceIndex = m_readersData[readerIndex]->sequenceIndex++;
 			const uint8_t queueIndex
@@ -160,7 +160,7 @@ protected:
 			State* currentState = &m_stateBuffer.getCurrentValue();
 
 			if (currentState->written == m_buffersSize) {
-				BackoffScheme backoff(7, longBackoffTries);
+				BackoffScheme backoff(30, longBackoffTries);
 				while (!allReadersFinished()) {
 					if (!backoff.backoff()) {
 						// origin.deallocate(container, writerId);
