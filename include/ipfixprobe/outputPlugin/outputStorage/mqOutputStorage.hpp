@@ -196,12 +196,22 @@ protected:
 			const uint64_t readPos = currentState.read.fetch_add(1, std::memory_order_acq_rel);
 			if (readPos >= m_buffersSize) {
 				const uint64_t readPosOfWriteBuffer = readPos - m_buffersSize;
+				if (m_writerFinished.load(std::memory_order_acquire)) {
+					if (readPosOfWriteBuffer
+						< currentState.written.load(std::memory_order_acquire)) {
+						return &currentState.writeBuffer[readPosOfWriteBuffer].getData();
+					}
+					return nullptr;
+				}
+				currentState.read.fetch_sub(1, std::memory_order_acq_rel);
+				return nullptr;
+				/*const uint64_t readPosOfWriteBuffer = readPos - m_buffersSize;
 				if (m_writerFinished.load(std::memory_order_acquire)
 					&& readPosOfWriteBuffer < currentState.written.load(std::memory_order_acquire))
 					[[unlikely]] {
 					return &currentState.writeBuffer[readPosOfWriteBuffer].getData();
 				}
-				return nullptr;
+				return nullptr;*/
 			}
 			// ElementType* res = currentState.readBuffer[readPos];
 			return &currentState.readBuffer[readPos].getData();
@@ -221,10 +231,14 @@ protected:
 
 		bool finished() const noexcept
 		{
-			// const State& currentState = m_stateBuffer.getCurrentValue();
+			const State& currentState = m_stateBuffer.getCurrentValue();
 			return m_writerFinished.load(std::memory_order_acquire)
+				&& currentState.read.load(std::memory_order_acquire)
+				>= m_buffersSize + currentState.written.load(std::memory_order_acquire);
+			// const State& currentState = m_stateBuffer.getCurrentValue();
+			/*return m_writerFinished.load(std::memory_order_acquire)
 				&& m_stateBuffer.getCurrentValue().read.load(std::memory_order_acquire)
-				>= 2 * m_buffersSize;
+				>= 2 * m_buffersSize;*/
 			/*&& std::ranges::all_of(
 				   m_stateBuffer.getCurrentValue().,
 				   [&](const CacheAlligned<std::atomic<uint64_t>>& readPos) {

@@ -51,11 +51,9 @@ public:
 		if (pop == nullptr) {
 			return nullptr;
 		}
-		OutputContainer<ElementType>* element
-			= reinterpret_cast<OutputContainer<ElementType>*>(pop);
-		m_lastReadContainer = element;
-		return nullptr;
-		return m_lastReadContainer;
+		m_container.storage.clear();
+		m_container.storage.push_back(nullptr);
+		return &m_container;
 	}
 
 	bool finished() noexcept override
@@ -65,7 +63,7 @@ public:
 
 private:
 	std::unique_ptr<ipx_ring_t, decltype(&ipx_ring_destroy)> m_ring;
-	OutputContainer<ElementType>* m_lastReadContainer {nullptr};
+	OutputContainer<ElementType> m_container;
 };
 
 } // namespace ipxp::output
