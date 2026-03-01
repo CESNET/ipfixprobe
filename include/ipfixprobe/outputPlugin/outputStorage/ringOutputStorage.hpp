@@ -27,12 +27,23 @@ public:
 				  expectedWritersCount > 1),
 			  &ipx_ring_destroy)
 	{
+		uint16_t index = 0;
+		for (auto& writerData : m_writersData) {
+			writerData->index = index++;
+		}
 	}
 
 	bool write(
 		const Reference<OutputContainer<ElementType>>& container,
-		[[maybe_unused]] const uint8_t writerIndex) noexcept override
+		const uint8_t writerIndex) noexcept override
 	{
+		WriterData& writerData = m_writersData[writerIndex].get();
+		this->m_storage[writerData.index].assign(
+			container,
+			this->makeDeallocationCallback(writerIndex));
+		writerData.index = (writerData.index + this->m_expectedWritersCount)
+			% OutputStorage<ElementType>::STORAGE_CAPACITY;
+
 		ipx_ring_push(m_ring.get(), container.getCounter());
 		return true;
 	}
@@ -62,6 +73,13 @@ public:
 	}
 
 private:
+	struct WriterData {
+		uint16_t index;
+	};
+
+	std::array<CacheAlligned<WriterData>, OutputStorage<ElementType>::MAX_WRITERS_COUNT>
+		m_writersData;
+
 	std::unique_ptr<ipx_ring_t, decltype(&ipx_ring_destroy)> m_ring;
 	OutputContainer<ElementType> m_container;
 };
