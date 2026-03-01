@@ -69,6 +69,7 @@ public:
 		while (!this->m_cells[readIndex].state.tryToSetReadingStarted()) {
 			backoffScheme.backoff();
 		}
+
 		// std::atomic_thread_fence(std::memory_order_acquire);
 		this->m_readersData[readerIndex]->lastReadIndex = readIndex;
 		/*if (this->m_storage[readIndex].empty()) {

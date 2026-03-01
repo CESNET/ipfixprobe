@@ -70,7 +70,10 @@ public:
 		m_writersCount--;
 	}
 
-	bool writersPresent() const noexcept { return m_writersCount > 0; }
+	bool writersPresent() const noexcept
+	{
+		return m_writersCount.load(std::memory_order_acquire) > 0;
+	}
 
 	virtual bool finished() noexcept = 0;
 

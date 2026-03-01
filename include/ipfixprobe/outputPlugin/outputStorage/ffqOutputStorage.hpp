@@ -160,8 +160,8 @@ protected:
 
 		// std::atomic<uint64_t> m_startedState;
 		// std::atomic<uint64_t> m_finishedState;
-		std::atomic<bool> m_readingStarted {false};
-		std::atomic<bool> m_readingFinished {false};
+		std::atomic<bool> m_readingStarted {true};
+		std::atomic<bool> m_readingFinished {true};
 		std::atomic<bool> m_writingStarted {false};
 	};
 
@@ -174,7 +174,7 @@ protected:
 	};
 
 	struct ReaderData {
-		std::optional<uint16_t> lastReadIndex {0};
+		std::optional<uint16_t> lastReadIndex {};
 	};
 
 	std::array<CacheAlligned<ReaderData>, OutputStorage<ElementType>::MAX_READERS_COUNT>
