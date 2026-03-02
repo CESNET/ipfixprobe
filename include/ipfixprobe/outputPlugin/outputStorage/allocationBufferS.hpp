@@ -133,10 +133,21 @@ private:
 
 	void clearStealRequest(const uint8_t victimIndex) noexcept
 	{
-		HelpState currentValue = m_helpStates[victimIndex]->load(std::memory_order_acquire);
-		currentValue.stealingRequested = false;
-		m_helpStates[victimIndex]->store(currentValue, std::memory_order_release);
+		HelpState expected;
+		HelpState desired;
+		do {
+			expected = m_helpStates[victimIndex]->load(std::memory_order_acquire);
+			desired = expected;
+			desired.stealingRequested = false;
+		} while (!m_helpStates[victimIndex]->compare_exchange_weak(
+			expected,
+			desired,
+			std::memory_order_release,
+			std::memory_order_acquire));
 	}
+	/*= m_helpStates[victimIndex]->load(std::memory_order_acquire);
+	currentValue.stealingRequested = false;
+	m_helpStates[victimIndex]->store(currentValue, std::memory_order_release);*/
 
 	struct WriterData {
 		explicit WriterData(ElementType* begin, const std::size_t size) noexcept
