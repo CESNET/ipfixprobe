@@ -1,18 +1,19 @@
 #pragma once
 
 // #include "../../processPlugin/flowRecord.hpp"
-#include "allocationBuffer.hpp"
+/*#include "allocationBuffer.hpp"
 #include "allocationBuffer2.hpp"
 #include "allocationBuffer3.hpp"
-#include "allocationBufferBase.hpp"
 #include "allocationBufferR.hpp"
-#include "dummyAllocationBuffer.hpp"
+#include "dummyAllocationBuffer.hpp"*/
+#include "allocationBufferBase.hpp"
 #include "outputContainer.hpp"
 #include "referenceCounter.hpp"
 #include "spinlock.hpp"
 
 #include <atomic>
 #include <condition_variable>
+#include <ranges>
 
 #include <boost/container/static_vector.hpp>
 
@@ -38,10 +39,21 @@ public:
 		, m_expectedReadersCount(expectedReadersCount)
 		, m_allocationBuffer(allocationBuffer)
 	{
+		if (STORAGE_CAPACITY % expectedWritersCount != 0) {
+			throw std::runtime_error(
+				"Storage capacity must be divisible by expected writers count");
+		}
+
 		m_storage.reserve(STORAGE_CAPACITY);
-		std::generate_n(std::back_inserter(m_storage), STORAGE_CAPACITY, [&]() {
-			return Reference<OutputContainer<ElementType>>(*m_allocationBuffer->allocate(0));
-		});
+		for (const std::size_t writerIndex : std::views::iota(0U, expectedWritersCount)) {
+			std::generate_n(
+				std::back_inserter(m_storage),
+				STORAGE_CAPACITY / expectedWritersCount,
+				[&]() {
+					return Reference<OutputContainer<ElementType>>(
+						*m_allocationBuffer->allocate(writerIndex));
+				});
+		}
 	}
 
 	virtual void registerReader([[maybe_unused]] const uint8_t readerIndex) noexcept
@@ -59,13 +71,14 @@ public:
 		m_writersCount++;
 		while (m_readersCount.load(std::memory_order_acquire) != m_expectedReadersCount)
 			;
+
 		/*std::unique_lock<std::mutex> lock(m_registrationMutex);
 		m_writersCount++;
 		m_registrationCondition.notify_all();
 		m_registrationCondition.wait(lock, [&]() { return m_readersCount > 0; });*/
 	}
 
-	virtual void unregisterWriter([[maybe_unused]] const uint8_t writerId) noexcept
+	virtual void unregisterWriter([[maybe_unused]] const uint8_t writerIndex) noexcept
 	{
 		m_writersCount--;
 	}

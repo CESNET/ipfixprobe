@@ -3,6 +3,7 @@
 // #include "outputContainer.hpp"
 
 #include "allocationBufferBase.hpp"
+#include "cacheAlligned.hpp"
 
 #include <atomic>
 #include <cstddef>

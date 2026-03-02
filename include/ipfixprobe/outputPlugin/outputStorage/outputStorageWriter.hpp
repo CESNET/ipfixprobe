@@ -21,7 +21,7 @@ public:
 	{
 		m_currentContainer.getData().storage.clear();
 		m_currentContainer.getData().readTimes = 0;
-		m_allocationBuffer->registerWriter();
+		m_allocationBuffer->registerWriter(writerIndex);
 		for (std::size_t i = 0; i < OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT; ++i) {
 			OutputStorage<ElementType>* storage = m_storages[i].get();
 			if (!storage) {
@@ -40,7 +40,7 @@ public:
 			}
 			storage->unregisterWriter(m_writerIndex);
 		}
-		m_allocationBuffer->unregisterWriter();
+		m_allocationBuffer->unregisterWriter(m_writerIndex);
 	}
 
 	void push(ElementType element) noexcept

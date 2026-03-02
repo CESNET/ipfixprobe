@@ -19,6 +19,7 @@ public:
 	explicit AllocationBuffer3(const std::size_t capacity, const uint8_t writersCount) noexcept
 		: m_objectPool(capacity + writersCount * writersCount)
 	{
+		m_writersData.resize(writersCount);
 		for (auto&& [queue, objects] : std::views::zip(
 				 m_queues,
 				 m_objectPool | std::views::chunk(m_objectPool.size() / writersCount))) {
@@ -94,7 +95,11 @@ private:
 		void unlock() noexcept { lock.clear(std::memory_order_release); }
 	};
 
+	struct WriterData {};
+
 	std::vector<ElementType> m_objectPool;
+	std::vector<CacheAlligned<WriterData>> m_writersData;
+
 	std::array<CacheAlligned<Queue>, 32> m_queues;
 	std::atomic_uint64_t m_nextQueue {0};
 };

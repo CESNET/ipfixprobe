@@ -6,6 +6,7 @@
 #include "fastRandomGenerator.hpp"
 #include "outputStorage.hpp"
 #include "spinlock.hpp"
+#include "threadUtils.hpp"
 
 #include <bit>
 #include <cstddef>
@@ -37,10 +38,6 @@ public:
 		const uint16_t containersLeft = writerData.bucketAllocation.containersLeft();
 		switch (containersLeft) {
 		case 1: {
-			/*this->m_allocationBuffer->replace(
-				this->getNextElement(writerData.bucketAllocation),
-				container,
-				writerIndex);*/
 			this->getNextElement(writerData.bucketAllocation)
 				.assign(container, this->makeDeallocationCallback(writerIndex));
 		}
@@ -48,17 +45,12 @@ public:
 		case 0:
 			break;
 		default: {
-			/*this->m_allocationBuffer->replace(
-				this->getNextElement(writerData.bucketAllocation),
-				container,
-				writerIndex);*/
 			this->getNextElement(writerData.bucketAllocation)
 				.assign(container, this->makeDeallocationCallback(writerIndex));
 			return true;
 		}
 		}
 
-		// uint8_t loopCounter = 0;
 		BackoffScheme backoffScheme(2, std::numeric_limits<std::size_t>::max());
 		do {
 			const bool overflowed = writerData.randomShift();
@@ -87,7 +79,6 @@ public:
 
 		this->m_buckets[writerData.writePosition].bucketIndex = writerData.bucketAllocation.reset(
 			this->m_buckets[writerData.writePosition].bucketIndex);
-		// std::atomic_thread_fence(std::memory_order_release);
 
 		const uint64_t highestReaderGeneration
 			= this->m_highestReaderGeneration.load(std::memory_order_acquire);
@@ -96,7 +87,6 @@ public:
 			writerData.generation.store(
 				highestReaderGeneration + BOutputStorage<ElementType>::WINDOW_SIZE,
 				std::memory_order_release);
-			// casMax(m_highestWriterGeneration, writerData.generation);
 		}
 		this->m_buckets[writerData.writePosition].generation.store(
 			writerData.generation.load(std::memory_order_acquire),
@@ -120,10 +110,8 @@ public:
 			return &this->getNextElement(readerData.bucketAllocation).getData();
 		}
 
-		// uint8_t loopCounter = 0;
 		uint64_t cachedGeneration;
 		uint16_t cachedBucketIndex;
-		// 	const uint16_t initialPosition = readerData.readPosition;
 		BackoffScheme backoffScheme(0, std::numeric_limits<std::size_t>::max());
 		do {
 			const bool overflowed = readerData.shift(this->m_expectedReadersCount, readerIndex);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "allocationBufferS.hpp"
 #include "outputStorage.hpp"
 #include "outputStorageReader.hpp"
 #include "outputStorageReaderGroup.hpp"
@@ -21,10 +22,9 @@ public:
 		m_storages = std::make_shared<std::shared_ptr<OutputStorage<ElementType>>[]>(
 			OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT);
 		m_allocationBuffer
-			= std::make_shared<AllocationBuffer2<ReferenceCounter<OutputContainer<ElementType>>>>(
+			= std::make_shared<AllocationBufferS<ReferenceCounter<OutputContainer<ElementType>>>>(
 				OutputStorage<ElementType>::STORAGE_CAPACITY
-						* OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT
-					+ writersCount,
+					* OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT,
 				writersCount);
 	}
 

@@ -13,19 +13,19 @@ public:
 
 	virtual void deallocate(ElementType* element, const uint8_t writerId) noexcept = 0;
 
-	virtual void unregisterWriter() noexcept {}
+	virtual void unregisterWriter([[maybe_unused]] const uint8_t writerId) noexcept {}
 
-	virtual void registerWriter() noexcept {}
+	virtual void registerWriter([[maybe_unused]] const uint8_t writerId) noexcept {}
 
 	virtual ~AllocationBufferBase() = default;
 
-	void replace(ElementType*& oldValue, ElementType* newValue, const uint8_t writerId) noexcept
+	/*void replace(ElementType*& oldValue, ElementType* newValue, const uint8_t writerId) noexcept
 	{
 		if (oldValue != nullptr) {
 			deallocate(oldValue, writerId);
 		}
 		oldValue = newValue;
-	}
+	}*/
 };
 
 } // namespace ipxp::output
