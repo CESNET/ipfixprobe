@@ -89,6 +89,9 @@ private:
 		uint8_t stealVictimIndex = writerIndex;
 		while (writerData.storage.empty()) {
 			stealVictimIndex = (stealVictimIndex + 1) % m_writersData.size();
+			if (stealVictimIndex == writerIndex) {
+				continue;
+			}
 			if (!setStealRequest(stealVictimIndex)) {
 				continue;
 			}
