@@ -94,6 +94,7 @@ private:
 		uint64_t first_fragments;
 		uint64_t fragmented_packets;
 		uint64_t not_found_fragments;
+		uint64_t timeouted_fragments;
 		uint64_t total_packets;
 	};
 

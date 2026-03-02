@@ -74,6 +74,8 @@ void FragmentationCache::fill_missing_packet_data(
 {
 	if (!is_fragmentation_data_timedouted(packet, fragmentation_data)) {
 		fill_ports_to_packet(packet, fragmentation_data);
+	} else {
+		m_stats.timeouted_fragments++;
 	}
 }
 
@@ -104,6 +106,7 @@ telemetry::Content FragmentationCache::get_cache_telemetry()
 	dict["fragmentedTraffic"] = telemetry::ScalarWithUnit {trafficPercentage, "%"};
 	dict["fragmentedPackets"] = m_stats.fragmented_packets;
 	dict["notFoundFragments"] = m_stats.not_found_fragments;
+	dict["timeoutedFragments"] = m_stats.timeouted_fragments;
 
 	return dict;
 }

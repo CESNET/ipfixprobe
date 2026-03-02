@@ -308,6 +308,7 @@ private:
 	FlowEndReasonStats m_flow_end_reason_stats = {};
 	FlowRecordStats m_flow_record_stats = {};
 
+	int put_pkt_recursive(Packet& pkt);
 	void try_to_fill_ports_to_fragmented_packet(Packet& packet);
 	void flush(Packet& pkt, size_t flow_index, int ret, bool source_flow);
 	bool create_hash_key(Packet& pkt);
