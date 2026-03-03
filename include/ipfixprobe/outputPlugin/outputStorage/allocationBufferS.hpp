@@ -19,7 +19,7 @@ template<typename ElementType>
 class AllocationBufferS : public AllocationBufferBase<ElementType> {
 public:
 	explicit AllocationBufferS(const std::size_t capacity, const uint8_t writersCount) noexcept
-		: m_objectPool(capacity + writersCount)
+		: m_objectPool(capacity + writersCount * 4)
 	{
 		static_assert(
 			std::atomic<HelpState>::is_always_lock_free,
@@ -73,10 +73,21 @@ public:
 private:
 	void handleStealRequest(const uint8_t writerIndex) noexcept
 	{
-		if (!m_helpStates[writerIndex]->load(std::memory_order_acquire).stealingRequested) {
-			return;
-		}
-		m_helpStates[writerIndex]->store(HelpState {true, true}, std::memory_order_release);
+		HelpState expected;
+		HelpState desired;
+		do {
+			expected = m_helpStates[writerIndex]->load(std::memory_order_acquire);
+			if (!expected.stealingRequested) {
+				return;
+			}
+			desired = expected;
+			desired.stealingAllowed = true;
+		} while (!m_helpStates[writerIndex]->compare_exchange_weak(
+			expected,
+			desired,
+			std::memory_order_release,
+			std::memory_order_acquire));
+
 		while (m_helpStates[writerIndex]->load(std::memory_order_acquire).stealingRequested) {
 			BackoffScheme(1, 0).backoff();
 		}
@@ -95,8 +106,9 @@ private:
 			if (!setStealRequest(stealVictimIndex)) {
 				continue;
 			}
-			while (!isStealAllowed(stealVictimIndex)) {
-				BackoffScheme(1, 0).backoff();
+			if (!waitForStealApproval(stealVictimIndex)) {
+				clearStealRequest(stealVictimIndex);
+				continue;
 			}
 			WriterData& stealVictimData = m_writersData[stealVictimIndex].get();
 			for (std::size_t i = 0; i < stealVictimData.storage.size() / 2; i++) {
@@ -106,6 +118,17 @@ private:
 			}
 			clearStealRequest(stealVictimIndex);
 		}
+	}
+
+	bool waitForStealApproval(const uint8_t victimIndex) noexcept
+	{
+		BackoffScheme backoff(200, 5);
+		while (!isStealAllowed(victimIndex)) {
+			if (!backoff.backoff()) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	bool setStealRequest(const uint8_t victimIndex) noexcept

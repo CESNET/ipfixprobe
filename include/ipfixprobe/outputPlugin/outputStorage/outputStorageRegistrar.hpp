@@ -24,7 +24,8 @@ public:
 		m_allocationBuffer
 			= std::make_shared<AllocationBufferS<ReferenceCounter<OutputContainer<ElementType>>>>(
 				OutputStorage<ElementType>::STORAGE_CAPACITY
-					* OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT,
+				//* OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT
+				,
 				writersCount);
 	}
 
