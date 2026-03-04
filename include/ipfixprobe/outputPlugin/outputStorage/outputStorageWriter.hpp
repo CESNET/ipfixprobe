@@ -45,9 +45,9 @@ public:
 
 	void push(ElementType element) noexcept
 	{
-		/*if (m_currentContainer->getData().storage.size() != 0) {
+		if (m_currentContainer->getData().storage.size() != 0) {
 			throw std::runtime_error("ZZZ");
-		}*/
+		}
 		m_currentContainer.getData().storage.emplace_back(std::move(element));
 		if (m_currentContainer.getData().storage.size() == OutputContainer<ElementType>::SIZE) {
 			// m_currentContainer.getData().written = true;
