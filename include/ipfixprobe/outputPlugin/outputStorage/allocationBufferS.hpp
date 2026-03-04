@@ -24,13 +24,11 @@ public:
 		static_assert(
 			std::atomic<HelpState>::is_always_lock_free,
 			"HelpState must be lock-free atomic");
-		// m_writersData.resize(writersCount);
 
 		ElementType* begin = m_objectPool.data();
 		const std::size_t objectsPerWriter = m_objectPool.size() / writersCount;
 		for (const auto _ : std::views::iota(0U, writersCount)) {
 			m_writersData.emplace_back(begin, objectsPerWriter);
-			// writerData.storage = std::span<ElementType>(begin, objectsPerWriter);
 			begin += objectsPerWriter;
 		}
 	}
@@ -91,8 +89,23 @@ private:
 		while (m_helpStates[writerIndex]->load(std::memory_order_acquire).stealingRequested) {
 			BackoffScheme(1, 0).backoff();
 		}
-		m_helpStates[writerIndex]->store(HelpState {false, false}, std::memory_order_release);
+
+		do {
+			expected = m_helpStates[writerIndex]->load(std::memory_order_acquire);
+			desired = expected;
+			desired.stealingAllowed = false;
+		} while (!m_helpStates[writerIndex]->compare_exchange_weak(
+			expected,
+			desired,
+			std::memory_order_release,
+			std::memory_order_acquire));
+
+		while (m_helpStates[writerIndex]->load(std::memory_order_acquire).stealingRequested) {
+			BackoffScheme(1, 0).backoff();
+		}
 	}
+
+	// m_helpStates[writerIndex]->store(HelpState {false, false}, std::memory_order_release);
 
 	void steal(const uint8_t writerIndex) noexcept
 	{
@@ -168,13 +181,9 @@ private:
 			std::memory_order_release,
 			std::memory_order_acquire));
 	}
-	/*= m_helpStates[victimIndex]->load(std::memory_order_acquire);
-	currentValue.stealingRequested = false;
-	m_helpStates[victimIndex]->store(currentValue, std::memory_order_release);*/
 
 	struct WriterData {
 		explicit WriterData(ElementType* begin, const std::size_t size) noexcept
-		//	: currentUserIndex(writerIndex)
 		{
 			storage.reserve(size);
 			for (const auto _ : std::views::iota(0U, size)) {
@@ -183,11 +192,9 @@ private:
 		}
 
 		std::vector<ElementType*> storage;
-		// std::atomic<uint8_t> currentUserIndex {0};
 	};
 
 	struct HelpState {
-		// uint16_t helpRequests {0};
 		bool stealingRequested {false};
 		bool stealingAllowed {false};
 	};
@@ -196,7 +203,6 @@ private:
 	std::vector<CacheAlligned<WriterData>> m_writersData;
 	std::array<CacheAlligned<std::atomic<HelpState>>, 32> m_helpStates;
 	std::atomic<std::size_t> d_stolen {0};
-	// FastRandomGenerator m_randomGenerator;
 };
 
 } // namespace ipxp::output
