@@ -30,47 +30,41 @@ public:
 		}
 	}
 
-	ElementType* allocate([[maybe_unused]] const uint8_t writerId) noexcept override
+	ElementType* allocate(const uint8_t writerIndex) noexcept override
 	{
-		static thread_local std::mt19937 gen(std::random_device {}());
-		static thread_local std::uniform_int_distribution<> dist(0, 31);
-		static thread_local uint64_t threadQueueIndex = dist(gen);
+		WriterData& writerData = m_writersData[writerIndex].get();
 		while (true) {
-			threadQueueIndex = (threadQueueIndex + 1) % m_queues.size();
-			// const uint64_t queueIndex = m_nextQueue++ % m_queues.size();
-			const std::optional<ElementType*> res = m_queues[threadQueueIndex].get().tryPop();
-
-			if (res.has_value()) {
-				return *res;
+			writerData.queueIndex = (writerData.queueIndex + 1) % m_queues.size();
+			ElementType* res = m_queues[writerData.queueIndex]->tryPop();
+			if (res) {
+				return res;
 			}
 		}
 	}
 
-	void deallocate(ElementType* element, [[maybe_unused]] const uint8_t writerId) noexcept override
+	void deallocate(ElementType* element, const uint8_t writerIndex) noexcept override
 	{
-		static thread_local std::mt19937 gen(std::random_device {}());
-		static thread_local std::uniform_int_distribution<> dist(0, 31);
-		static thread_local uint64_t threadQueueIndex = dist(gen);
+		WriterData& writerData = m_writersData[writerIndex].get();
 		while (true) {
-			threadQueueIndex = (threadQueueIndex + 1) % m_queues.size();
+			writerData.queueIndex = (writerData.queueIndex + 1) % m_queues.size();
 			// const uint64_t queueIndex = m_nextQueue++ % m_queues.size();
-			if (m_queues[threadQueueIndex].get().tryPush(element)) {
+			if (m_queues[writerData.queueIndex]->tryPush(element)) {
 				return;
 			}
 		}
 	}
 
-private:
+protected:
 	class Queue {
 	public:
-		std::optional<ElementType*> tryPop() noexcept
+		ElementType* tryPop() noexcept
 		{
 			if (!tryLock()) {
-				return std::nullopt;
+				return nullptr;
 			}
 			if (pointers.empty()) {
 				unlock();
-				return std::nullopt;
+				return nullptr;
 			}
 			ElementType* res = pointers.back();
 			pointers.pop_back();
