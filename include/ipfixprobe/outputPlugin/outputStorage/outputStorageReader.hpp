@@ -48,9 +48,9 @@ public:
 		// x = m_container->written.load();
 		// while (m_container != nullptr && !m_container->written.load()) {};
 
-		if (++m_container->readTimes > 1) {
+		/*if (++m_container->readTimes > 1) {
 			throw std::runtime_error("Read times limit exceeded");
-		}
+		}*/
 		const std::size_t readPosition = m_readElements++;
 		// static void* dummy = nullptr;
 		//  return &dummy;
