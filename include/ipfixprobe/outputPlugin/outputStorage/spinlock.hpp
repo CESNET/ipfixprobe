@@ -16,8 +16,13 @@ public:
 	void lock() noexcept
 	{
 		BackoffScheme backoffScheme(20, std::numeric_limits<std::size_t>::max());
-		while (flag.test(std::memory_order_relaxed)
-			   || flag.test_and_set(std::memory_order_acquire)) {
+		while (true) {
+			while (flag.test(std::memory_order_relaxed)) {
+				backoffScheme.backoff();
+			}
+			if (!flag.test_and_set(std::memory_order_acquire)) {
+				return;
+			}
 			backoffScheme.backoff();
 		}
 	}
