@@ -294,7 +294,7 @@ TEST(TestOutputStorage, Debug)
 {
 	for (const auto testIndex : std::views::iota(0, 100)) {
 		std::cout << " Debug Loop Iteration " << testIndex << "\n";
-		makeTest<ipxp::output::FFQ2OutputStorage<void*>>(32, {8, 8, 8, 8}, false, 2'000'000);
+		makeTest<ipxp::output::BOutputStorage<void*>>(32, {32}, false, 10'000'000);
 	}
 }
 

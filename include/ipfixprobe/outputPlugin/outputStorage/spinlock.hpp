@@ -17,7 +17,7 @@ public:
 	{
 		BackoffScheme backoffScheme(20, std::numeric_limits<std::size_t>::max());
 		while (true) {
-			while (flag.test(std::memory_order_relaxed)) {
+			while (flag.test(std::memory_order_acquire)) {
 				backoffScheme.backoff();
 			}
 			if (!flag.test_and_set(std::memory_order_acquire)) {
