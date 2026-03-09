@@ -17,7 +17,7 @@ template<typename ElementType>
 class AllocationBufferR : public AllocationBufferBase<ElementType> {
 public:
 	explicit AllocationBufferR(const std::size_t capacity, const uint8_t writersCount) noexcept
-		: m_objectPool(capacity + 4 * writersCount)
+		: m_objectPool(capacity) // Too small for 8 reader groups
 		, m_writersCount(writersCount)
 	{
 		std::ranges::transform(
@@ -28,13 +28,20 @@ public:
 		m_controlBlock.emplace(m_pointers.size(), m_writersCount);
 	}
 
-	void registerWriter() noexcept override { m_controlBlock->registerWriter(); }
-	void unregisterWriter() noexcept override { m_controlBlock->unregisterWriter(); }
-
-	ElementType* allocate([[maybe_unused]] const uint8_t writerId) noexcept override
+	void registerWriter([[maybe_unused]] const uint8_t writerIndex) noexcept override
 	{
-		const std::optional<uint16_t> readPos = std::invoke([&]() {
-			std::optional<uint16_t> res = std::nullopt;
+		m_controlBlock->registerWriter();
+	}
+
+	void unregisterWriter([[maybe_unused]] const uint8_t writerIndex) noexcept override
+	{
+		m_controlBlock->unregisterWriter();
+	}
+
+	ElementType* allocate([[maybe_unused]] const uint8_t writerIndex) noexcept override
+	{
+		const std::optional<uint32_t> readPos = std::invoke([&]() {
+			std::optional<uint32_t> res = std::nullopt;
 			while (!res.has_value()) {
 				res = m_controlBlock->getReadPos();
 			}
@@ -49,9 +56,13 @@ public:
 		return res;
 	}
 
-	void deallocate(ElementType* element, [[maybe_unused]] const uint8_t writerId) noexcept override
+	void
+	deallocate(ElementType* element, [[maybe_unused]] const uint8_t writerIndex) noexcept override
 	{
-		const std::optional<uint16_t> writePos = m_controlBlock->getWritePos();
+		std::optional<uint32_t> writePos = m_controlBlock->getWritePos();
+		while (!writePos.has_value()) {
+			writePos = m_controlBlock->getWritePos();
+		}
 		if (!writePos.has_value()) {
 			throw std::runtime_error("Should not happen");
 		}

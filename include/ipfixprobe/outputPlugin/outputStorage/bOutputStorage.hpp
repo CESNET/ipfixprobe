@@ -18,6 +18,7 @@ namespace ipxp::output {
 template<typename ElementType>
 class BOutputStorage : public OutputStorage<ElementType> {
 protected:
+	constexpr static std::size_t WINDOW_SIZE = 15;
 	constexpr static std::size_t BUCKET_SIZE = 128;
 	constexpr static std::size_t BUCKET_COUNT
 		= OutputStorage<ElementType>::STORAGE_CAPACITY / BUCKET_SIZE;
@@ -74,6 +75,17 @@ public:
 				m_buckets[m_writersData.size() - 1].bucketIndex);
 		lock.unlock();*/
 		OutputStorage<ElementType>::registerWriter(writerIndex);
+	}
+
+	void unregisterWriter(const uint8_t writerIndex) noexcept override
+	{
+		WriterData& writerData = this->m_writersData[writerIndex].get();
+		/*const uint64_t highestReaderGeneration
+			= this->m_highestReaderGeneration.load(std::memory_order_acquire);*/
+		writerData.generation.store(
+			this->getHighestReaderGeneration() + WINDOW_SIZE,
+			std::memory_order_release);
+		OutputStorage<ElementType>::unregisterWriter(writerIndex);
 	}
 
 	void registerReader(const uint8_t readerIndex) noexcept override
@@ -158,11 +170,14 @@ public:
 			= writerData.bucketAllocation.reset(m_buckets[writerData.writePosition].bucketIndex);
 		// std::atomic_thread_fence(std::memory_order_release);
 
-		writerData.generation.store(
+		/*writerData.generation.store(
 			m_highestReaderGeneration.load(std::memory_order_acquire) + WINDOW_SIZE,
-			std::memory_order_release);
+			std::memory_order_release);*/
+		const uint8_t correspondingReaderIndex
+			= writerData.writePosition % this->m_expectedReadersCount;
 		m_buckets[writerData.writePosition].generation.store(
-			writerData.generation.load(std::memory_order_acquire),
+			m_readersData[correspondingReaderIndex]->generation.load(std::memory_order_acquire)
+				+ WINDOW_SIZE,
 			std::memory_order_release);
 
 		m_buckets[writerData.writePosition].lock.unlock();
@@ -237,13 +252,6 @@ public:
 	}
 
 protected:
-	uint16_t remap(const uint16_t index) noexcept
-	{
-		return index;
-		// TODO test another remap strategy
-		// return __builtin_bitreverse32(static_cast<uint32_t>(index)) & (BUCKET_SIZE - 1);
-	}
-
 	struct WriterData {
 		explicit WriterData(FastRandomGenerator<uint8_t>& randomGenerator) noexcept
 			: randomHandler(randomGenerator.getHandler())
@@ -281,8 +289,8 @@ protected:
 			| std::ranges::to<boost::container::static_vector<
 				uint64_t,
 				OutputStorage<ElementType>::MAX_READERS_COUNT>>();
-		const uint64_t highestReaderGeneration = *std::ranges::max_element(readerGenerations);
-		m_highestReaderGeneration.store(highestReaderGeneration, std::memory_order_release);
+		// const uint64_t highestReaderGeneration = *std::ranges::max_element(readerGenerations);
+		// m_highestReaderGeneration.store(highestReaderGeneration, std::memory_order_release);
 		const uint64_t lowestReaderGeneration = *std::ranges::min_element(readerGenerations);
 		m_lowestReaderGeneration.store(lowestReaderGeneration, std::memory_order_release);
 	}
@@ -301,6 +309,19 @@ protected:
 		return *std::ranges::max_element(writerGenerations);
 	}
 
+	uint64_t getHighestReaderGeneration() const noexcept
+	{
+		boost::container::static_vector<uint64_t, OutputStorage<ElementType>::MAX_READERS_COUNT>
+			readerGenerations
+			= m_readersData
+			| std::views::transform([](const CacheAlligned<ReaderData>& readerDataAlligned) {
+				  return readerDataAlligned->generation.load(std::memory_order_acquire);
+			  })
+			| std::ranges::to<boost::container::static_vector<
+				uint64_t,
+				OutputStorage<ElementType>::MAX_READERS_COUNT>>();
+		return *std::ranges::max_element(readerGenerations);
+	}
 	struct ReaderData {
 		BucketAllocation bucketAllocation {};
 		uint16_t readPosition;
@@ -361,7 +382,6 @@ protected:
 	// std::atomic<uint64_t> m_highestWriterGeneration {1};
 
 	// std::vector<uint16_t> m_readIndex;
-	constexpr static std::size_t WINDOW_SIZE = 4;
 	boost::container::
 		static_vector<CacheAlligned<ReaderData>, OutputStorage<ElementType>::MAX_READERS_COUNT>
 			m_readersData;
@@ -373,7 +393,7 @@ protected:
 		m_writersData.capacity()};
 
 	std::atomic<uint64_t> m_lowestReaderGeneration {1};
-	std::atomic<uint64_t> m_highestReaderGeneration {1};
+	// std::atomic<uint64_t> m_highestReaderGeneration {1};
 	boost::container::
 		static_vector<std::atomic_uint64_t, OutputStorage<ElementType>::MAX_WRITERS_COUNT>
 			m_alreadyReadGroupPositions;

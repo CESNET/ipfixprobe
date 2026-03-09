@@ -24,7 +24,7 @@ public:
 	{
 		typename MCOutputStorage<ElementType>::Queue& queue = this->m_queues[writerId].get();
 		const std::size_t enqueCount = queue.enqueCount.load(std::memory_order_acquire);
-		const std::size_t writeIndex = enqueCount % queue.storage->size();
+		const std::size_t writeIndex = remap(enqueCount) % queue.storage->size();
 		if (enqueCount >= queue.storage->size()
 			&& enqueCount - queue.storage->size() >= queue.cachedFinishedIndex) {
 			queue.cachedFinishedIndex
@@ -95,7 +95,7 @@ public:
 
 			// std::atomic_thread_fence(std::memory_order_seq_cst);
 			const std::size_t readIndex
-				= queue.groupData->readRank.fetch_add(1, std::memory_order_acq_rel)
+				= remap(queue.groupData->readRank.fetch_add(1, std::memory_order_acq_rel))
 				% queue.storage->size();
 			readerData.lastReadSuccessful = true;
 			/*const auto x = queue.storage[readIndex].getData().written.load();

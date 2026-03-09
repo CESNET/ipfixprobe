@@ -149,7 +149,7 @@ protected:
 		// std::atomic<uint64_t> overcommitCount {0};
 		std::atomic<uint64_t> readRank {0};
 		std::atomic<uint64_t> readsFinished {0};
-		std::atomic<uint64_t> finishedIndex {1};
+		std::atomic<uint64_t> finishedIndex {0};
 	};
 
 	struct Queue {

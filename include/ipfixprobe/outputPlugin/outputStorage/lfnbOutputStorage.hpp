@@ -52,6 +52,8 @@ public:
 			= m_nextWritePos.fetch_add(1, std::memory_order_acq_rel);
 		const uint64_t writePosition
 			= sequentialWritePosition % OutputStorage<ElementType>::STORAGE_CAPACITY;
+		const uint64_t remappedWritePosition
+			= remap(writePosition) % OutputStorage<ElementType>::STORAGE_CAPACITY;
 
 		BackoffScheme backoffScheme(0, std::numeric_limits<std::size_t>::max());
 		while (m_writersFinished[writePosition / BUCKET_SIZE].load(std::memory_order_acquire)
@@ -62,7 +64,7 @@ public:
 		}
 
 		// this->assignAndDeallocate(this->m_storage[writePosition], container, writerId);
-		this->m_storage[writePosition].assign(
+		this->m_storage[remappedWritePosition].assign(
 			container,
 			this->makeDeallocationCallback(writerIndex));
 		// this->m_allocationBuffer->replace(this->m_storage[writePosition], element, writerId);
@@ -85,6 +87,8 @@ public:
 			= m_readPosition.fetch_add(1, std::memory_order_acq_rel);
 		const uint64_t readPosition
 			= sequentialReadPosition % OutputStorage<ElementType>::STORAGE_CAPACITY;
+		const uint64_t remappedReadPosition
+			= remap(readPosition) % OutputStorage<ElementType>::STORAGE_CAPACITY;
 		BackoffScheme backoffScheme(0, std::numeric_limits<std::size_t>::max());
 		while ((m_readersFinished[readPosition / BUCKET_SIZE].load(std::memory_order_acquire)
 						/ (BUCKET_SIZE * 1)
@@ -109,7 +113,7 @@ public:
 			throw std::runtime_error("Attempting to read empty container.");
 		}*/
 		// readerData.lastReadPosition = readPosition;
-		return &this->m_storage[readPosition].getData();
+		return &this->m_storage[remappedReadPosition].getData();
 	}
 
 	bool finished() noexcept override

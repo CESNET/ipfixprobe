@@ -32,7 +32,7 @@ public:
 		}*/
 		BackoffScheme backoffScheme(70, std::numeric_limits<std::size_t>::max());
 		const uint64_t writeRank = this->m_writeRank->fetch_add(1, std::memory_order_acq_rel);
-		const uint64_t writeIndex = writeRank % OutputStorage<ElementType>::STORAGE_CAPACITY;
+		const uint64_t writeIndex = remap(writeRank) % OutputStorage<ElementType>::STORAGE_CAPACITY;
 		while (!this->m_cells[writeIndex].state.tryToSetWriter()) {
 			backoffScheme.backoff();
 		}
@@ -57,7 +57,7 @@ public:
 			this->m_readersData[readerIndex]->lastReadIndex = std::nullopt;
 		}
 		const uint64_t readRank = this->m_readRank->fetch_add(1, std::memory_order_acq_rel);
-		const uint64_t readIndex = readRank % OutputStorage<ElementType>::STORAGE_CAPACITY;
+		const uint64_t readIndex = remap(readRank) % OutputStorage<ElementType>::STORAGE_CAPACITY;
 		while (readRank >= this->m_writeRank->load(std::memory_order_acquire)
 			   && this->writersPresent()) {
 			backoffScheme.backoff();

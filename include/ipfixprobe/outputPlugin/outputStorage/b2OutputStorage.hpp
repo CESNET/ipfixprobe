@@ -14,6 +14,7 @@
 #include <random>
 
 #include <boost/container/static_vector.hpp>
+#include <immintrin.h>
 
 namespace ipxp::output {
 
@@ -28,6 +29,8 @@ public:
 		: BOutputStorage<ElementType>(expectedWritersCount, expectedReadersCount, allocationBuffer)
 	{
 	}
+
+	~B2OutputStorage() override { std::cout << "In loop: " << d_reads << std::endl; }
 
 	bool write(
 		const Reference<OutputContainer<ElementType>>& container,
@@ -80,18 +83,25 @@ public:
 		this->m_buckets[writerData.writePosition].bucketIndex = writerData.bucketAllocation.reset(
 			this->m_buckets[writerData.writePosition].bucketIndex);
 
-		const uint64_t highestReaderGeneration
-			= this->m_highestReaderGeneration.load(std::memory_order_acquire);
-		if (writerData.generation.load(std::memory_order_acquire)
-			< highestReaderGeneration + BOutputStorage<ElementType>::WINDOW_SIZE) {
-			writerData.generation.store(
-				highestReaderGeneration + BOutputStorage<ElementType>::WINDOW_SIZE,
-				std::memory_order_release);
-		}
-		this->m_buckets[writerData.writePosition].generation.store(
-			writerData.generation.load(std::memory_order_acquire),
-			std::memory_order_release);
+		/*if (this->m_highestReaderGeneration.load(std::memory_order_acquire) >= x) {
+			throw std::runtime_error("Shnejne?");
+		}*/
 
+		const uint8_t correspondingReaderIndex
+			= writerData.writePosition % this->m_expectedReadersCount;
+		uint64_t generationToStore = 0;
+		do {
+			generationToStore = this->m_readersData[correspondingReaderIndex]->generation.load(
+									std::memory_order_acquire)
+				+ BOutputStorage<ElementType>::WINDOW_SIZE;
+			this->m_buckets[writerData.writePosition].generation.store(
+				generationToStore,
+				std::memory_order_release);
+			// TODO REMOVE DEBUG COUNTER
+			d_reads.fetch_add(1, std::memory_order_acq_rel);
+		} while (this->m_readersData[correspondingReaderIndex]->generation.load(
+					 std::memory_order_acquire)
+				 >= generationToStore);
 		this->m_buckets[writerData.writePosition].lock.unlock();
 
 		if (containersLeft == 0) {
@@ -135,6 +145,7 @@ public:
 				readerData.skipLoop = false;
 				updateLowestReaderGeneration();
 			}
+			this->m_buckets[readerData.readPosition].lock.lock();
 			cachedGeneration = this->m_buckets[readerData.readPosition].generation.load(
 				std::memory_order_acquire);
 			// std::atomic_thread_fence(std::memory_order_acquire);
@@ -142,6 +153,7 @@ public:
 			if (cachedGeneration > readerData.generation.load(std::memory_order_acquire)) {
 				readerData.seenValidBucket = true;
 			}
+			this->m_buckets[readerData.readPosition].lock.unlock();
 		} while (cachedGeneration != readerData.generation.load(std::memory_order_acquire)
 				 || !BOutputStorage<ElementType>::BucketAllocation::isValidBucketIndex(
 					 cachedBucketIndex));
@@ -154,7 +166,8 @@ public:
 
 	/*bool finished([[maybe_unused]] const std::size_t readerGroupIndex) noexcept override
 	{
-		return !writersPresent() && m_highestWriterGeneration + 200000 < m_lowestReaderGeneration;
+		return !writersPresent() && m_highestWriterGeneration + 200000 <
+	m_lowestReaderGeneration;
 	}*/
 
 protected:
@@ -170,15 +183,16 @@ protected:
 			| std::ranges::to<boost::container::static_vector<
 				uint64_t,
 				OutputStorage<ElementType>::MAX_READERS_COUNT>>();
-		const uint64_t highestReaderGeneration = *std::ranges::max_element(readerGenerations);
-		casMax(this->m_highestReaderGeneration, highestReaderGeneration);
-		// m_highestReaderGeneration = highestReaderGeneration;
+		// const uint64_t highestReaderGeneration = *std::ranges::max_element(readerGenerations);
+		// casMax(this->m_highestReaderGeneration, highestReaderGeneration);
+		//  m_highestReaderGeneration = highestReaderGeneration;
 		const uint64_t lowestReaderGeneration = *std::ranges::min_element(readerGenerations);
 		// casMin(m_lowestReaderGeneration, lowestReaderGeneration);
 		this->m_lowestReaderGeneration.store(lowestReaderGeneration, std::memory_order_release);
 	}
 
 	std::atomic<uint64_t> m_highestWriterGeneration {0};
+	std::atomic<uint64_t> d_reads {0};
 };
 
 } // namespace ipxp::output

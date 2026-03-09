@@ -3,6 +3,7 @@
 #include "allocationBuffer3.hpp"
 #include "allocationBuffer3RD.hpp"
 #include "allocationBufferB.hpp"
+#include "allocationBufferR.hpp"
 #include "allocationBufferS.hpp"
 #include "outputStorage.hpp"
 #include "outputStorageReader.hpp"
@@ -25,7 +26,7 @@ public:
 		m_storages = std::make_shared<std::shared_ptr<OutputStorage<ElementType>>[]>(
 			OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT);
 		m_allocationBuffer
-			= std::make_shared<AllocationBufferB<ReferenceCounter<OutputContainer<ElementType>>>>(
+			= std::make_shared<AllocationBufferR<ReferenceCounter<OutputContainer<ElementType>>>>(
 				OutputStorage<ElementType>::STORAGE_CAPACITY
 					* OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT,
 				writersCount);

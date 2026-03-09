@@ -98,7 +98,7 @@ protected:
 	std::vector<CacheAlligned<WriterData>> m_writersData;
 
 	std::array<CacheAlligned<Queue>, 32> m_queues;
-	std::atomic_uint64_t m_nextQueue {0};
+	// std::atomic<uint64_t> m_nextQueue {0};
 };
 
 } // namespace ipxp::output
