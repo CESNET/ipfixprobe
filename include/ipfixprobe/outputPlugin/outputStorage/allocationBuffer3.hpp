@@ -19,13 +19,15 @@ public:
 	explicit AllocationBuffer3(const std::size_t capacity, const uint8_t writersCount) noexcept
 		: m_objectPool(capacity + writersCount * writersCount)
 	{
-		const std::size_t objectsPerWriter = m_objectPool.size() / writersCount;
+		const std::size_t objectsPerQueue = m_objectPool.size() / m_queues.size();
 		m_writersData.resize(writersCount);
 		for (const std::size_t writerIndex : std::views::iota(0U, writersCount)) {
 			m_writersData[writerIndex]->queueIndex = writerIndex;
-			for (const auto elementIndex : std::views::iota(0U, objectsPerWriter)) {
-				m_queues[writerIndex]->tryPush(
-					m_objectPool.data() + writerIndex * objectsPerWriter + elementIndex);
+		}
+		for (const std::size_t queueIndex : std::views::iota(0U, m_queues.size())) {
+			for (const std::size_t elementIndex : std::views::iota(0U, objectsPerQueue)) {
+				m_queues[queueIndex]->tryPush(
+					m_objectPool.data() + queueIndex * objectsPerQueue + elementIndex);
 			}
 		}
 	}
