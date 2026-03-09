@@ -32,10 +32,14 @@ public:
 
 	ElementType* allocate(const uint8_t writerIndex) noexcept override
 	{
+		static thread_local std::mt19937 gen(std::random_device {}());
+		static thread_local std::uniform_int_distribution<> dist(0, 31);
+		static thread_local uint64_t threadQueueIndex = dist(gen);
 		WriterData& writerData = m_writersData[writerIndex].get();
 		while (true) {
-			writerData.queueIndex = (writerData.queueIndex + 1) % m_queues.size();
-			ElementType* res = m_queues[writerData.queueIndex]->tryPop();
+			threadQueueIndex = (threadQueueIndex + 1) % m_queues.size();
+			// writerData.queueIndex = (writerData.queueIndex + 1) % m_queues.size();
+			ElementType* res = m_queues[threadQueueIndex]->tryPop();
 			if (res) {
 				return res;
 			}
@@ -44,11 +48,15 @@ public:
 
 	void deallocate(ElementType* element, const uint8_t writerIndex) noexcept override
 	{
+		static thread_local std::mt19937 gen(std::random_device {}());
+		static thread_local std::uniform_int_distribution<> dist(0, 31);
+		static thread_local uint64_t threadQueueIndex = dist(gen);
 		WriterData& writerData = m_writersData[writerIndex].get();
 		while (true) {
-			writerData.queueIndex = (writerData.queueIndex + 1) % m_queues.size();
-			// const uint64_t queueIndex = m_nextQueue++ % m_queues.size();
-			if (m_queues[writerData.queueIndex]->tryPush(element)) {
+			threadQueueIndex = (threadQueueIndex + 1) % m_queues.size();
+			// writerData.queueIndex = (writerData.queueIndex + 1) % m_queues.size();
+			//  const uint64_t queueIndex = m_nextQueue++ % m_queues.size();
+			if (m_queues[threadQueueIndex]->tryPush(element)) {
 				return;
 			}
 		}
