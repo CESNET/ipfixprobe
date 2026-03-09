@@ -1,5 +1,7 @@
 #pragma once
 
+#include "backoffScheme.hpp"
+
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -13,9 +15,10 @@ class Spinlock {
 public:
 	void lock() noexcept
 	{
+		BackoffScheme backoffScheme(20, std::numeric_limits<std::size_t>::max());
 		while (flag.test(std::memory_order_relaxed)
 			   || flag.test_and_set(std::memory_order_acquire)) {
-			std::this_thread::yield();
+			backoffScheme.backoff();
 		}
 	}
 
