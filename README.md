@@ -60,6 +60,8 @@ This lets you customize the build by enabling optional plugins and features as n
 
 **Note:** Some plugins may require additional dependencies beyond the basic requirements.
 
+⚠️ C++23 support required: Make sure your compiler supports C++23 (GCC ≥14 recommended).
+
 ### RHEL/CentOS:
 
 #### 🧰 Requirements
@@ -73,6 +75,16 @@ $ dnf install gcc-toolset-14-libatomic-devel
 
 # for RHEL 10+
 $ dnf install libatomic
+```
+
+#### 🟢 Optional: Install GCC 14 (for C++23 support)
+```bash
+# Enable devtoolset
+$ dnf install gcc-toolset-14
+$ scl enable gcc-toolset-14 bash
+
+# Verify version
+$ g++ --version  # should show GCC 14.x
 ```
 
 ### Debian/Ubuntu:
