@@ -105,8 +105,6 @@ private:
 		}
 	}
 
-	// m_helpStates[writerIndex]->store(HelpState {false, false}, std::memory_order_release);
-
 	void steal(const uint8_t writerIndex) noexcept
 	{
 		WriterData& writerData = m_writersData[writerIndex].get();

@@ -34,14 +34,10 @@ public:
 
 	ElementType* allocate(const uint8_t writerIndex) noexcept override
 	{
-		static thread_local std::mt19937 gen(std::random_device {}());
-		static thread_local std::uniform_int_distribution<> dist(0, 31);
-		static thread_local uint64_t threadQueueIndex = dist(gen);
 		WriterData& writerData = m_writersData[writerIndex].get();
 		while (true) {
-			threadQueueIndex = (threadQueueIndex + 1) % m_queues.size();
-			// writerData.queueIndex = (writerData.queueIndex + 1) % m_queues.size();
-			ElementType* res = m_queues[threadQueueIndex]->tryPop();
+			writerData.queueIndex = (writerData.queueIndex + 1) % m_queues.size();
+			ElementType* res = m_queues[writerData.queueIndex]->tryPop();
 			if (res) {
 				return res;
 			}
@@ -50,15 +46,10 @@ public:
 
 	void deallocate(ElementType* element, const uint8_t writerIndex) noexcept override
 	{
-		static thread_local std::mt19937 gen(std::random_device {}());
-		static thread_local std::uniform_int_distribution<> dist(0, 31);
-		static thread_local uint64_t threadQueueIndex = dist(gen);
 		WriterData& writerData = m_writersData[writerIndex].get();
 		while (true) {
-			threadQueueIndex = (threadQueueIndex + 1) % m_queues.size();
-			// writerData.queueIndex = (writerData.queueIndex + 1) % m_queues.size();
-			//  const uint64_t queueIndex = m_nextQueue++ % m_queues.size();
-			if (m_queues[threadQueueIndex]->tryPush(element)) {
+			writerData.queueIndex = (writerData.queueIndex + 1) % m_queues.size();
+			if (m_queues[writerData.queueIndex]->tryPush(element)) {
 				return;
 			}
 		}
@@ -108,7 +99,6 @@ protected:
 	std::vector<CacheAlligned<WriterData>> m_writersData;
 
 	std::array<CacheAlligned<Queue>, 32> m_queues;
-	// std::atomic<uint64_t> m_nextQueue {0};
 };
 
 } // namespace ipxp::output

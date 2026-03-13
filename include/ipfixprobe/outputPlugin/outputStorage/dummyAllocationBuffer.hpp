@@ -14,9 +14,16 @@ public:
 	{
 	}
 
-	ElementType* allocate() noexcept override { return new ElementType(); }
+	ElementType* allocate([[maybe_unused]] const uint8_t writerIndex) noexcept override
+	{
+		return new ElementType();
+	}
 
-	void deallocate(ElementType* element) noexcept override { delete element; }
+	void
+	deallocate(ElementType* element, [[maybe_unused]] const uint8_t writerIndex) noexcept override
+	{
+		delete element;
+	}
 };
 
 } // namespace ipxp::output

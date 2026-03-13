@@ -45,13 +45,11 @@ public:
 
 	void push(ElementType element) noexcept
 	{
-		if (m_currentContainer.getData().storage.size() != 0) {
+		/*if (m_currentContainer.getData().storage.size() != 0) {
 			throw std::runtime_error("ZZZ");
-		}
+		}*/
 		m_currentContainer.getData().storage.emplace_back(std::move(element));
 		if (m_currentContainer.getData().storage.size() == OutputContainer<ElementType>::SIZE) {
-			// m_currentContainer.getData().written = true;
-			//  std::atomic_thread_fence(std::memory_order_seq_cst);
 			write(m_currentContainer);
 			m_writeAttempts++;
 			m_currentContainer.assign(
@@ -60,17 +58,8 @@ public:
 				[&](ReferenceCounter<OutputContainer<ElementType>>* counter) {
 					m_allocationBuffer->deallocate(counter, m_writerIndex);
 				});
-			/*m_storages[0]->assignAndDeallocate(
-				m_currentContainer,
-				Reference<OutputContainer<ElementType>>(
-					*m_allocationBuffer->allocate(m_writerIndex)),
-				m_writerIndex);*/
-			// m_currentContainer = m_allocationBuffer->allocate(m_writerIndex);
-			/*if (m_currentContainer.getUserCount() != 1) {
-				throw std::runtime_error("YYYY");
-			}*/
 			m_currentContainer.getData().storage.clear();
-			m_currentContainer.getData().readTimes = 0;
+			// m_currentContainer.getData().readTimes = 0;
 		}
 	}
 

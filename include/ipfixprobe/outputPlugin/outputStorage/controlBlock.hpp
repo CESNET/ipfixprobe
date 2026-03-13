@@ -15,12 +15,6 @@ namespace ipxp::output {
 
 class ControlBlock {
 	enum class BufferHalf : uint8_t { LOWER = 0, UPPER = 1 };
-	/*struct Status {
-		uint16_t readPos;
-		uint16_t readEnd;
-		uint16_t writePos;
-		BufferHalf currentHalf;
-	};*/
 	struct Status {
 		uint64_t readPos : 21;
 		uint64_t readEnd : 21;
@@ -29,7 +23,7 @@ class ControlBlock {
 	};
 
 public:
-	explicit ControlBlock(const std::size_t capacity, const uint8_t writersCount) noexcept
+	explicit ControlBlock(const std::size_t capacity, const uint8_t writersCount)
 		: m_capacity(capacity)
 		, m_writersCount(writersCount)
 	{
@@ -101,7 +95,6 @@ private:
 	{
 		Status oldStatus;
 		Status newStatus;
-		// m_swapped++;
 		do {
 			oldStatus = m_status.load(std::memory_order_relaxed);
 			newStatus = Status {
@@ -121,9 +114,6 @@ private:
 	const std::size_t m_capacity;
 	std::atomic<uint32_t> m_swapped;
 	std::atomic<uint8_t> m_writersCount;
-	// std::atomic_uint8_t m_writersWaiting {0};
-	// std::atomic_uint8_t m_writersAwaken {0};
-	// std::atomic_bool m_reset;
 	std::mutex m_registrationMutex;
 	struct SwapFunctor {
 		ControlBlock* parent;

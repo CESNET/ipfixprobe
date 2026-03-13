@@ -57,21 +57,6 @@ public:
 				currentIndex = readerIndex;
 			}
 		}
-
-		// std::unique_lock<std::mutex> lock(m_registrationMutex);
-		/*m_threadIdToQueueIndexMaps[readerGroupIndex].emplace(
-			getThreadId(),
-			QueueIndex {
-				static_cast<uint16_t>(m_threadIdToQueueIndexMaps[readerGroupIndex].size()),
-				0});*/
-		/*m_readersRegisteredInGroup.resize(
-			std::max<uint8_t>(m_readersRegisteredInGroup.size(), readerGroupIndex + 1));
-		m_readersRegisteredInGroup[readerGroupIndex]++;*/
-		/*m_allReadersRegisteredCondition.wait(lock, [&]() {
-			return m_readersRegisteredInGroup[readerGroupIndex]
-				== m_readerGroupSizes[readerGroupIndex];
-		});
-		m_allReadersRegisteredCondition.notify_all();*/
 	}
 
 	void unregisterWriter([[maybe_unused]] const uint8_t writerId) noexcept override
@@ -79,15 +64,6 @@ public:
 		OutputStorage<ElementType>::unregisterWriter(writerId);
 		m_queues[writerId].setWriterFinished();
 	}
-
-	/*typename OutputStorage<ElementType>::ReaderGroupHandler&
-	registerReaderGroup(const uint8_t groupSize) noexcept override
-	{
-		std::lock_guard<std::mutex> lock(m_registrationMutex);
-		// m_threadIdToQueueIndexMaps.emplace_back();
-		std::ranges::for_each(m_queues, [&](Queue& queue) { queue.addReaderGroup(); });
-		return OutputStorage<ElementType>::registerReaderGroup(groupSize);
-	}*/
 
 	bool write(
 		const Reference<OutputContainer<ElementType>>& container,
@@ -136,18 +112,12 @@ protected:
 		explicit Queue(std::span<Reference<OutputContainer<ElementType>>> allocatedSpace) noexcept
 			: m_buffersSize(allocatedSpace.size() / 2)
 		{
-			/*m_buffers[0] = {allocatedSpace.data(), allocatedSpace.size() / 2};
-			m_buffers[1]
-				= {allocatedSpace.data() + allocatedSpace.size() / 2, allocatedSpace.size() / 2};*/
-			// m_writeBuffer.reserve(capacity);
-			//  m_readBuffer.reserve(capacity);
 			m_stateBuffer.setNewValue(
 				State {
 					.written = 0,
 					.readBuffer = {allocatedSpace.data(), m_buffersSize},
 					.writeBuffer = {allocatedSpace.data() + m_buffersSize, m_buffersSize},
 					.read = 0,
-					//.readerGroupPositions = {},
 				});
 		}
 
@@ -163,24 +133,18 @@ protected:
 				BackoffScheme backoff(30, longBackoffTries);
 				while (!allReadersFinished()) {
 					if (!backoff.backoff()) {
-						// origin.deallocate(container, writerId);
 						return false;
 					}
 				}
-				// WriteLockGuard lockGuard(m_lock);
 				m_stateBuffer.setNewValue(
 					State {
 						.written = 0,
 						.readBuffer = currentState->writeBuffer,
 						.writeBuffer = currentState->readBuffer,
-						//.readerGroupPositions=
-						// decltype(currentState->readerGroupPositions)(readerGroupCount),
 						.read = 0,
 					});
 				currentState = &m_stateBuffer.getCurrentValue();
 			}
-			// origin.replace(currentState->writeBuffer[currentState->written], container,
-			// writerId);
 			currentState->writeBuffer[currentState->written].assign(
 				container,
 				[&](ReferenceCounter<OutputContainer<ElementType>>* counter) {
@@ -205,24 +169,9 @@ protected:
 				}
 				currentState.read.fetch_sub(1, std::memory_order_acq_rel);
 				return nullptr;
-				/*const uint64_t readPosOfWriteBuffer = readPos - m_buffersSize;
-				if (m_writerFinished.load(std::memory_order_acquire)
-					&& readPosOfWriteBuffer < currentState.written.load(std::memory_order_acquire))
-					[[unlikely]] {
-					return &currentState.writeBuffer[readPosOfWriteBuffer].getData();
-				}
-				return nullptr;*/
 			}
-			// ElementType* res = currentState.readBuffer[readPos];
 			return &currentState.readBuffer[readPos].getData();
 		}
-
-		/*void addReaderGroup() noexcept
-		{
-			State& currentState = m_stateBuffer.getCurrentValue();
-			currentState.readerGroupPositions.emplace_back(currentState.readBuffer.size());
-			// m_readerGroupPositions.emplace_back(m_readBuffer.size());
-		}*/
 
 		void setWriterFinished() noexcept
 		{
@@ -235,15 +184,6 @@ protected:
 			return m_writerFinished.load(std::memory_order_acquire)
 				&& currentState.read.load(std::memory_order_acquire)
 				>= m_buffersSize + currentState.written.load(std::memory_order_acquire);
-			// const State& currentState = m_stateBuffer.getCurrentValue();
-			/*return m_writerFinished.load(std::memory_order_acquire)
-				&& m_stateBuffer.getCurrentValue().read.load(std::memory_order_acquire)
-				>= 2 * m_buffersSize;*/
-			/*&& std::ranges::all_of(
-				   m_stateBuffer.getCurrentValue().,
-				   [&](const CacheAlligned<std::atomic<uint64_t>>& readPos) {
-					   return readPos->load(std::memory_order_acquire) >= 2 * m_buffersSize;
-				   });*/
 		}
 
 	private:
@@ -252,21 +192,11 @@ protected:
 			std::span<Reference<OutputContainer<ElementType>>> readBuffer;
 			std::span<Reference<OutputContainer<ElementType>>> writeBuffer;
 			std::atomic<uint64_t> read {0};
-			/*boost::container::static_vector<
-				CacheAlligned<std::atomic<uint64_t>>,
-				OutputStorage<ElementType>::MAX_READERS_COUNT>
-				readerGroupPositions;*/
 
 			State& operator=(const State& other) noexcept
 			{
 				readBuffer = other.readBuffer;
 				writeBuffer = other.writeBuffer;
-				/*readerGroupPositions.resize(other.readerGroupPositions.size());
-				for (std::size_t i = 0; i < other.readerGroupPositions.size(); i++) {
-					readerGroupPositions[i]->store(
-						other.readerGroupPositions[i]->load(std::memory_order_acquire),
-						std::memory_order_release);
-				}*/
 				read.store(other.read.load(std::memory_order_acquire), std::memory_order_release);
 				written.store(
 					other.written.load(std::memory_order_acquire),
@@ -278,12 +208,6 @@ protected:
 		bool allReadersFinished() const noexcept
 		{
 			return m_stateBuffer.getCurrentValue().read > m_buffersSize;
-			/*const State& currentState = m_stateBuffer.getCurrentValue();
-			return std::ranges::all_of(
-				currentState.readerGroupPositions,
-				[&](const CacheAlligned<std::atomic<uint64_t>>& readPos) {
-					return readPos->load(std::memory_order_acquire) > m_buffersSize;
-				});*/
 		}
 
 		std::atomic<bool> m_writerFinished {false};

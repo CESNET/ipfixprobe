@@ -24,13 +24,6 @@ class AllocationBufferB : public AllocationBufferBase<ElementType> {
 	constexpr static std::size_t WINDOW_SIZE = 16;
 
 public:
-	/*__attribute__((noinline)) std::size_t d_test(auto& container)
-	{
-		return std::ranges::count_if(container, [](const auto& bucket) {
-			return bucket.load(std::memory_order_acquire) != std::numeric_limits<uint16_t>::max();
-		});
-	}*/
-
 	explicit AllocationBufferB(const std::size_t capacity, const uint8_t writersCount) noexcept
 		: m_objectPool(capacity + writersCount * BUCKET_SIZE)
 		, m_buckets(m_objectPool.size() / BUCKET_SIZE)
@@ -42,8 +35,6 @@ public:
 			throw std::invalid_argument("Number of buckets must be a multiple of writers count");
 		}
 
-		// m_fullBuckets.reserve(m_buckets.size());
-		// m_emptyBuckets.reserve(m_buckets.size());
 		for (ElementType& element : m_objectPool) {
 			const std::size_t elementIndex = &element - m_objectPool.data();
 			const std::size_t bucketIndex = elementIndex / BUCKET_SIZE;
@@ -68,8 +59,6 @@ public:
 			m_fullBuckets[writerIndex].store(Bucket::PLACEHOLDER);
 		}
 	}
-
-	// void unregisterWriter(const uint8_t writerIndex) noexcept override {}
 
 	ElementType* allocate(const uint8_t writerIndex) noexcept override
 	{
@@ -137,20 +126,11 @@ private:
 
 	void pushBucket(auto& buckets, const std::size_t bucketIndex, std::size_t& pushRank) noexcept
 	{
-		// std::size_t offset = 0;
 		while (true) {
 			uint16_t expected = buckets[pushRank].load(std::memory_order_acquire);
-			/*if (++offset % 100'000'000 == 0) {
-				std::cout << "d_test(push)=" << d_test(buckets) << "\n";
-			}*/
 			if (expected != Bucket::PLACEHOLDER) {
-				const std::size_t newPushRank
-					= ((pushRank / INDEXES_IN_CACHE_LINE + 1) * INDEXES_IN_CACHE_LINE)
+				pushRank = ((pushRank / INDEXES_IN_CACHE_LINE + 1) * INDEXES_IN_CACHE_LINE)
 					% buckets.size();
-				if (newPushRank < pushRank) {
-					// offset++;
-				}
-				pushRank = newPushRank;
 				continue;
 			}
 			if (buckets[pushRank].compare_exchange_weak(
@@ -166,12 +146,8 @@ private:
 
 	uint16_t popBucket(auto& buckets, std::size_t& popRank) noexcept
 	{
-		// std::size_t offset = 0;
 		popRank = (popRank - 1 + buckets.size()) % buckets.size();
 		while (true) {
-			/*if (++offset % 100'000'000 == 0) {
-				std::cout << "d_test(pop)=" << d_test(buckets) << "\n";
-			}*/
 			uint16_t expected = buckets[popRank].load(std::memory_order_acquire);
 			if (expected == Bucket::PLACEHOLDER) {
 				popRank
@@ -184,7 +160,6 @@ private:
 					Bucket::PLACEHOLDER,
 					std::memory_order_release,
 					std::memory_order_acquire)) {
-				// popRank = (popRank - 1 + buckets.size()) % buckets.size();
 				return expected;
 			}
 		}
@@ -192,8 +167,6 @@ private:
 
 	std::vector<ElementType> m_objectPool;
 	std::vector<Bucket> m_buckets;
-	// std::array<std::atomic<uint16_t>, 65536> m_fullBuckets;
-	// std::array<std::atomic<uint16_t>, 65536> m_emptyBuckets;
 	std::deque<std::atomic<uint16_t>> m_fullBuckets;
 	std::deque<std::atomic<uint16_t>> m_emptyBuckets;
 	std::vector<CacheAlligned<WriterData>> m_writersData;

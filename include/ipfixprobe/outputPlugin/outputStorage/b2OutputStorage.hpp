@@ -83,10 +83,6 @@ public:
 		this->m_buckets[writerData.writePosition].bucketIndex = writerData.bucketAllocation.reset(
 			this->m_buckets[writerData.writePosition].bucketIndex);
 
-		/*if (this->m_highestReaderGeneration.load(std::memory_order_acquire) >= x) {
-			throw std::runtime_error("Shnejne?");
-		}*/
-
 		const uint8_t correspondingReaderIndex
 			= writerData.writePosition % this->m_expectedReadersCount;
 		uint64_t generationToStore = 0;
@@ -98,7 +94,7 @@ public:
 				generationToStore,
 				std::memory_order_release);
 			// TODO REMOVE DEBUG COUNTER
-			d_reads.fetch_add(1, std::memory_order_acq_rel);
+			// d_reads.fetch_add(1, std::memory_order_acq_rel);
 		} while (this->m_readersData[correspondingReaderIndex]->generation.load(
 					 std::memory_order_acquire)
 				 >= generationToStore);
@@ -115,7 +111,6 @@ public:
 	{
 		typename BOutputStorage<ElementType>::ReaderData& readerData
 			= this->m_readersData[readerIndex].get();
-		// const uint64_t readPosition = readerData.readPosition;
 		if (readerData.bucketAllocation.containersLeft()) {
 			return &this->getNextElement(readerData.bucketAllocation).getData();
 		}
@@ -126,8 +121,6 @@ public:
 		do {
 			const bool overflowed = readerData.shift(this->m_expectedReadersCount, readerIndex);
 
-			// auto& y = this->m_buckets[readerData.readPosition];
-			// if (readerData.isOnBufferBegin(this->m_expectedReadersCount)) {
 			if (overflowed) {
 				if (!this->writersPresent()) {
 					readerData.generation.fetch_add(1, std::memory_order_release);
@@ -148,7 +141,6 @@ public:
 			this->m_buckets[readerData.readPosition].lock.lock();
 			cachedGeneration = this->m_buckets[readerData.readPosition].generation.load(
 				std::memory_order_acquire);
-			// std::atomic_thread_fence(std::memory_order_acquire);
 			cachedBucketIndex = this->m_buckets[readerData.readPosition].bucketIndex;
 			if (cachedGeneration > readerData.generation.load(std::memory_order_acquire)) {
 				readerData.seenValidBucket = true;
@@ -164,12 +156,6 @@ public:
 		return &this->getNextElement(readerData.bucketAllocation).getData();
 	}
 
-	/*bool finished([[maybe_unused]] const std::size_t readerGroupIndex) noexcept override
-	{
-		return !writersPresent() && m_highestWriterGeneration + 200000 <
-	m_lowestReaderGeneration;
-	}*/
-
 protected:
 	void updateLowestReaderGeneration() noexcept
 	{
@@ -183,11 +169,7 @@ protected:
 			| std::ranges::to<boost::container::static_vector<
 				uint64_t,
 				OutputStorage<ElementType>::MAX_READERS_COUNT>>();
-		// const uint64_t highestReaderGeneration = *std::ranges::max_element(readerGenerations);
-		// casMax(this->m_highestReaderGeneration, highestReaderGeneration);
-		//  m_highestReaderGeneration = highestReaderGeneration;
 		const uint64_t lowestReaderGeneration = *std::ranges::min_element(readerGenerations);
-		// casMin(m_lowestReaderGeneration, lowestReaderGeneration);
 		this->m_lowestReaderGeneration.store(lowestReaderGeneration, std::memory_order_release);
 	}
 

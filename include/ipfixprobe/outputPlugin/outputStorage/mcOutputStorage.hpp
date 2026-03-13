@@ -22,11 +22,6 @@ public:
 					this->m_storage.data() + queueIndex * queueStorageSize,
 					queueStorageSize));
 		}
-		/*for (std::size_t readerIndex = 0;
-			 readerIndex < OutputStorage<ElementType>::MAX_READERS_COUNT;
-			 readerIndex++) {
-			m_readersData.emplace_back();
-		}*/
 	}
 
 	void registerReader(const uint8_t readerIndex) noexcept override
@@ -34,8 +29,6 @@ public:
 		m_readersData[readerIndex]->lastQueueIndex = readerIndex;
 		OutputStorage<ElementType>::registerReader(readerIndex);
 	}
-
-	// void registerWriter() noexcept override { OutputStorage<ElementType>::registerWriter(); }
 
 	bool write(
 		const Reference<OutputContainer<ElementType>>& container,
@@ -51,19 +44,11 @@ public:
 		}
 		if (enqueCount >= queue.storage->size()
 			&& enqueCount - queue.storage->size() >= queue.cachedFinishedIndex) {
-			// this->m_allocationBuffer->deallocate(container.getCounter(), writerId);
 			BackoffScheme(0, 1).backoff();
 			return false;
 		}
 
-		// std::atomic_thread_fence(std::memory_order_seq_cst);
 		queue.storage.get()[writeIndex].assign(container, this->makeDeallocationCallback(writerId));
-		// this->assignAndDeallocate(queue.storage[writeIndex], container, writerId);
-		/*queue.storage[writeIndex].assign(
-			std::move(Reference<OutputContainer<ElementType>>(*container)),
-			*this->m_allocationBuffer);*/
-		// this->m_allocationBuffer->replace(queue.storage[writeIndex], element, writerId);
-		// std::atomic_thread_fence(std::memory_order_seq_cst);
 		queue.enqueCount.fetch_add(1, std::memory_order_release);
 		return true;
 	}
@@ -79,7 +64,6 @@ public:
 		if (readerData.shiftQueue) {
 			readerData.shiftQueue = false;
 			readerData.lastQueueIndex++;
-			// readerData.cachedEnqueCount = 0;
 		}
 		for (uint8_t queueShifts = 0; queueShifts < this->m_expectedWritersCount; queueShifts++) {
 			const uint8_t currentQueueIndex = readerData.lastQueueIndex % m_queues.size();
@@ -87,36 +71,23 @@ public:
 			queue.sync();
 			const std::size_t dequeTry
 				= queue.groupData->dequeueTries.fetch_add(1, std::memory_order_acq_rel);
-			// const std::size_t d_x = readerData.cachedEnqueCounts[currentQueueIndex];
-			// const std::size_t d_enqueCount = queue.enqueCount.load();
 			if (dequeTry >= readerData.cachedEnqueCounts[currentQueueIndex]) {
 				readerData.cachedEnqueCounts[currentQueueIndex]
 					= queue.enqueCount.load(std::memory_order_acquire);
 			}
-			// const std::size_t d_y = readerData.cachedEnqueCounts[currentQueueIndex];
 			if (dequeTry >= readerData.cachedEnqueCounts[currentQueueIndex]) {
 				queue.groupData->dequeueTries.fetch_sub(1, std::memory_order_acq_rel);
 				readerData.lastQueueIndex++;
 				readerData.readWithoutShift = 0;
-				// readerData.cachedEnqueCount = 0;
 				continue;
 			}
 			readerData.readWithoutShift++;
-			// TODO originally was 256
-			// bool d_s = false;
 			if (readerData.readWithoutShift == queue.storage->size()) {
 				this->shiftAllQueues();
-				// d_s = true;
 			}
-			// std::atomic_thread_fence(std::memory_order_seq_cst);
 			const std::size_t readIndex
 				= queue.groupData->readRank.fetch_add(1, std::memory_order_acq_rel)
 				% queue.storage->size();
-			// std::atomic_thread_fence(std::memory_order_seq_cst);
-
-			/*if (readerData.cachedEnqueCounts[currentQueueIndex] > queue.enqueCount) {
-				throw std::runtime_error("XXXXX");
-			}*/
 
 			readerData.lastReadSuccessful = true;
 			return &queue.storage.get()[readIndex].getData();
@@ -136,7 +107,6 @@ public:
 
 protected:
 	struct ReaderData {
-		// uint64_t cachedEnqueCount {0};
 		std::atomic<uint16_t> readWithoutShift {0};
 		std::array<uint64_t, OutputStorage<ElementType>::MAX_WRITERS_COUNT> cachedEnqueCounts;
 		uint8_t lastQueueIndex {0};
@@ -146,7 +116,6 @@ protected:
 
 	struct GroupData {
 		std::atomic<uint64_t> dequeueTries {0};
-		// std::atomic<uint64_t> overcommitCount {0};
 		std::atomic<uint64_t> readRank {0};
 		std::atomic<uint64_t> readsFinished {0};
 		std::atomic<uint64_t> finishedIndex {0};
@@ -178,7 +147,6 @@ protected:
 		uint64_t cachedFinishedIndex {0};
 		CacheAlligned<GroupData> groupData;
 		CacheAlligned<std::span<Reference<OutputContainer<ElementType>>>> storage;
-		// std::span<CacheAlligned<GroupData>> d_groupData {groupData.data(), groupData.capacity()};
 	};
 
 	void shiftAllQueues() noexcept
@@ -195,7 +163,6 @@ protected:
 			m_queues;
 	std::array<CacheAlligned<ReaderData>, OutputStorage<ElementType>::MAX_READERS_COUNT>
 		m_readersData;
-	// uint8_t m_queueShift {0};
 };
 
 } // namespace ipxp::output

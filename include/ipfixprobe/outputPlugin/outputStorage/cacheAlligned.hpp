@@ -17,9 +17,9 @@ public:
 		return *this;
 	}
 
-	auto& get(this auto& self) noexcept { return self.data; }
+	constexpr auto& get(this auto& self) noexcept { return self.data; }
 
-	auto operator->(this auto& self) noexcept { return &self.data; }
+	constexpr auto operator->(this auto& self) noexcept { return &self.data; }
 
 private:
 	static constexpr std::size_t EXPECTED_CACHE_LINE_SIZE = 64;

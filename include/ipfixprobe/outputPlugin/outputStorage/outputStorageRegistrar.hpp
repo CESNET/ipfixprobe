@@ -46,17 +46,6 @@ public:
 		return m_readerGroups.back();
 	}
 
-	/*void registerReader(
-		[[maybe_unused]] const uint8_t readerGroupIndex,
-		[[maybe_unused]] const uint8_t readerIndex) noexcept
-	{
-		for (const auto& storage : *m_storages) {
-			if (storage) {
-				storage->registerReader(readerGroupIndex, readerIndex);
-			}
-		}
-	}*/
-
 	OutputStorageWriter<ElementType> registerWriter()
 	{
 		const uint8_t writerIndex = m_activeWritersCount++;

@@ -34,7 +34,6 @@ template<typename ElementType>
 class OutputStorage {
 public:
 	constexpr static std::size_t STORAGE_CAPACITY = 65536;
-	// constexpr static std::size_t ALLOCATION_BUFFER_CAPACITY = 2048;
 	constexpr static std::size_t MAX_WRITERS_COUNT = 32;
 	constexpr static std::size_t MAX_READERS_COUNT = 32;
 	constexpr static std::size_t MAX_READER_GROUPS_COUNT = 8;
@@ -45,7 +44,7 @@ public:
 		const uint8_t expectedWritersCount,
 		const uint8_t expectedReadersCount,
 		std::shared_ptr<AllocationBufferBase<ReferenceCounter<OutputContainer<ElementType>>>>
-			allocationBuffer) noexcept
+			allocationBuffer)
 		: m_expectedWritersCount(expectedWritersCount)
 		, m_expectedReadersCount(expectedReadersCount)
 		, m_allocationBuffer(allocationBuffer)
@@ -72,9 +71,6 @@ public:
 		m_readersCount++;
 		while (m_writersCount.load(std::memory_order_acquire) != m_expectedWritersCount)
 			;
-		/*std::unique_lock<std::mutex> lock(m_registrationMutex);
-		m_registrationCondition.notify_all();
-		m_registrationCondition.wait(lock, [&]() { return m_writersCount > 0; });*/
 	}
 
 	virtual void registerWriter([[maybe_unused]] const uint8_t writerIndex) noexcept
@@ -82,11 +78,6 @@ public:
 		m_writersCount++;
 		while (m_readersCount.load(std::memory_order_acquire) != m_expectedReadersCount)
 			;
-
-		/*std::unique_lock<std::mutex> lock(m_registrationMutex);
-		m_writersCount++;
-		m_registrationCondition.notify_all();
-		m_registrationCondition.wait(lock, [&]() { return m_readersCount > 0; });*/
 	}
 
 	virtual void unregisterWriter([[maybe_unused]] const uint8_t writerIndex) noexcept
@@ -109,29 +100,6 @@ public:
 
 	virtual ~OutputStorage() = default;
 
-	/*void assignAndDeallocate(
-		Reference<OutputContainer<ElementType>>& storageElement,
-		const Reference<OutputContainer<ElementType>>& newContainer,
-		const uint8_t writerId) noexcept
-	{
-		// ReferenceCounter<OutputContainer<ElementType>>* oldCounter = storageElement.getCounter();
-		storageElement.assign(
-			newContainer,
-			makeDeallocationCallback(writerId)
-			[&](ReferenceCounter<OutputContainer<ElementType>>* counter) {
-				if (counter != oldCounter) {
-					throw std::runtime_error(
-						"Deallocation callback called with counter that does not match the old "
-						"counter.");
-				}
-				this->m_allocationBuffer->deallocate(counter, writerId);
-			});
-		if (oldCounter->hasUsers()) {
-			throw std::runtime_error("Old counter still has users after deallocation");
-		}
-		// this->m_allocationBuffer->deallocate(oldCounter, writerId);
-	}*/
-
 protected:
 	const uint8_t m_expectedWritersCount;
 	const uint8_t m_expectedReadersCount;
@@ -149,9 +117,9 @@ protected:
 	}
 
 private:
-	std::condition_variable m_registrationCondition;
-	std::mutex m_registrationMutex;
-	Spinlock m_registrationLock;
+	// std::condition_variable m_registrationCondition;
+	// std::mutex m_registrationMutex;
+	// Spinlock m_registrationLock;
 };
 
 } // namespace ipxp::output

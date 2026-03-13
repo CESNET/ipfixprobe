@@ -18,14 +18,6 @@ public:
 	virtual void registerWriter([[maybe_unused]] const uint8_t writerIndex) noexcept {}
 
 	virtual ~AllocationBufferBase() = default;
-
-	/*void replace(ElementType*& oldValue, ElementType* newValue, const uint8_t writerId) noexcept
-	{
-		if (oldValue != nullptr) {
-			deallocate(oldValue, writerId);
-		}
-		oldValue = newValue;
-	}*/
 };
 
 } // namespace ipxp::output
