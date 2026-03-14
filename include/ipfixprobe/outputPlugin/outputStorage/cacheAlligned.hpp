@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstddef>
+#include <new>
+
 namespace ipxp::output {
 
 template<typename Type>
@@ -22,10 +25,16 @@ public:
 	constexpr auto operator->(this auto& self) noexcept { return &self.data; }
 
 private:
-	static constexpr std::size_t EXPECTED_CACHE_LINE_SIZE = 64;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winterference-size"
+	static constexpr std::size_t EXPECTED_CACHE_LINE_SIZE
+		= std::hardware_destructive_interference_size;
+#pragma GCC diagnostic pop
+	static constexpr std::size_t PADDING_SIZE
+		= (sizeof(Type) < EXPECTED_CACHE_LINE_SIZE) ? (EXPECTED_CACHE_LINE_SIZE - sizeof(Type)) : 0;
 
 	alignas(EXPECTED_CACHE_LINE_SIZE) Type data;
-	// const std::array<std::byte, EXPECTED_CACHE_LINE_SIZE - sizeof(Type)> m_padding {};
+	const std::array<std::byte, PADDING_SIZE> m_padding {};
 };
 
 } // namespace ipxp::output
