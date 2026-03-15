@@ -113,8 +113,9 @@ public:
 			= this->m_readersData[readerIndex].get();
 		if (readerData.bucketAllocation.containersLeft()) {
 			__builtin_prefetch(
-				&readerData.bucketAllocation.bucketIndex * this->BUCKET_SIZE
-					+ readerData.bucketAllocation.containerIndex + 1,
+				&this->m_storage
+					 [readerData.bucketAllocation.bucketIndex * this->BUCKET_SIZE
+					  + readerData.bucketAllocation.containerIndex + 1],
 				PrefetchMode::Read,
 				Locality::High);
 			return &this->getNextElement(readerData.bucketAllocation).getData();
