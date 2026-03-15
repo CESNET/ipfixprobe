@@ -12,7 +12,7 @@ namespace ipxp::output {
 
 class ThreadAffinitySetter {
 public:
-	static void setNumaNode(const size_t nodeIndex)
+	static void setExactCoreOnNumaNode(const size_t nodeIndex)
 	{
 		const uint16_t threadIndex = getThreadId();
 		const std::size_t numaIndex = nodeIndex % m_architectureInfo.cpusByNumaNode.size();
@@ -23,6 +23,21 @@ public:
 		cpu_set_t cpuset;
 		CPU_ZERO(&cpuset);
 		CPU_SET(cpuToBind, &cpuset);
+		const pthread_t current_thread = pthread_self();
+		const int errCode = pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+		if (errCode != 0) {
+			throw std::system_error(errCode, std::generic_category(), "Failed to pin thread");
+		}
+	}
+
+	static void setNumaNode(const size_t nodeIndex)
+	{
+		const std::size_t numaIndex = nodeIndex % m_architectureInfo.cpusByNumaNode.size();
+		cpu_set_t cpuset;
+		CPU_ZERO(&cpuset);
+		for (const int cpuToBind : m_architectureInfo.cpusByNumaNode[numaIndex]) {
+			CPU_SET(cpuToBind, &cpuset);
+		}
 		const pthread_t current_thread = pthread_self();
 		const int errCode = pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
 		if (errCode != 0) {
