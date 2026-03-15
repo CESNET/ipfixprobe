@@ -174,15 +174,15 @@ void makePerformanceTest(std::string_view storageName)
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 32 Writers, 1 Reader\n";
-	makeTest<OutputStorageType>(32, {1}, false, 20'000'064);
+	makeTest<OutputStorageType>(32, {1}, false, 20'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 1 Writers, 32 Readers\n";
-	makeTest<OutputStorageType>(1, {32}, false, 70'000'000);
+	makeTest<OutputStorageType>(1, {32}, false, 80'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 32 Writers, 32 Readers\n";
-	makeTest<OutputStorageType>(32, {32}, false, 20'000'064);
+	makeTest<OutputStorageType>(32, {32}, false, 20'000'000);
 
 	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 4 Writers, 4 Group 1 Reader\n";

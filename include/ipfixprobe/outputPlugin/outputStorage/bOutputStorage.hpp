@@ -18,7 +18,7 @@ namespace ipxp::output {
 template<typename ElementType>
 class BOutputStorage : public OutputStorage<ElementType> {
 protected:
-	constexpr static std::size_t WINDOW_SIZE = 15;
+	constexpr static std::size_t WINDOW_SIZE = 1;
 	constexpr static std::size_t BUCKET_SIZE = 128;
 	constexpr static std::size_t BUCKET_COUNT
 		= OutputStorage<ElementType>::STORAGE_CAPACITY / BUCKET_SIZE;
