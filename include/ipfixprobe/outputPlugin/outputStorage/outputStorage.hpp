@@ -19,6 +19,10 @@
 
 namespace ipxp::output {
 
+enum class PrefetchMode : int { Read = 0, Write = 1 };
+
+enum class Locality : int { None = 0, Low = 1, Medium = 2, High = 3 };
+
 constexpr std::size_t remap(const std::size_t index) noexcept
 {
 	/*if (index > std::numeric_limits<uint16_t>::max()) {
