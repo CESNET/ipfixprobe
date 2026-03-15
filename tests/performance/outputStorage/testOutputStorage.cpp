@@ -295,6 +295,9 @@ TEST(TestOutputStorage, YYY)
 
 TEST(TestOutputStorage, Debug)
 {
+	ipxp::output::ThreadAffinitySetter::setNumaNode(0);
+	makePerformanceTest<ipxp::output::B2OutputStorage<void*>>("B2OutputStorage");
+	return;
 	for (const auto testIndex : std::views::iota(0, 100)) {
 		std::cout << " Debug Loop Iteration " << testIndex << "\n";
 		makeTest<ipxp::output::BOutputStorage<void*>>(32, {32}, false, 10'000'000);
