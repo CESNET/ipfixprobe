@@ -10,19 +10,19 @@ class CacheAlligned {
 public:
 	template<typename... Args>
 	explicit CacheAlligned(Args&&... args) noexcept
-		: data(std::forward<Args>(args)...)
+		: m_data(std::forward<Args>(args)...)
 	{
 	}
 
 	CacheAlligned<Type>& operator=(const Type& other) noexcept
 	{
-		data = other;
+		m_data = other;
 		return *this;
 	}
 
-	constexpr auto& get(this auto& self) noexcept { return self.data; }
+	constexpr auto& get(this auto& self) noexcept { return self.m_data; }
 
-	constexpr auto operator->(this auto& self) noexcept { return &self.data; }
+	constexpr auto operator->(this auto& self) noexcept { return &self.m_data; }
 
 private:
 #pragma GCC diagnostic push
@@ -33,7 +33,7 @@ private:
 	static constexpr std::size_t PADDING_SIZE
 		= (sizeof(Type) < EXPECTED_CACHE_LINE_SIZE) ? (EXPECTED_CACHE_LINE_SIZE - sizeof(Type)) : 0;
 
-	alignas(EXPECTED_CACHE_LINE_SIZE) Type data;
+	alignas(EXPECTED_CACHE_LINE_SIZE) Type m_data;
 	const std::array<std::byte, PADDING_SIZE> m_padding {};
 };
 

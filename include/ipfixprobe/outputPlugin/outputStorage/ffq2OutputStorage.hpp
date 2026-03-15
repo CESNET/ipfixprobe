@@ -7,8 +7,8 @@ namespace ipxp::output {
 
 template<typename ElementType>
 class FFQ2OutputStorage : public FFQOutputStorage<ElementType> {
-	constexpr static uint32_t SHORT_TRIES = 5;
-	constexpr static uint32_t LONG_TRIES = 3;
+	// constexpr static uint32_t SHORT_TRIES = 5;
+	// constexpr static uint32_t LONG_TRIES = 3;
 
 public:
 	explicit FFQ2OutputStorage(
@@ -30,6 +30,7 @@ public:
 		BackoffScheme backoffScheme(70, std::numeric_limits<std::size_t>::max());
 		const uint64_t writeRank = this->m_writeRank->fetch_add(1, std::memory_order_acq_rel);
 		const uint64_t writeIndex = remap(writeRank) % OutputStorage<ElementType>::STORAGE_CAPACITY;
+		__builtin_prefetch(&this->m_cells[writeIndex + 1], PrefetchMode::Write, Locality::High);
 		while (!this->m_cells[writeIndex].state.tryToSetWriter()) {
 			backoffScheme.backoff();
 		}
@@ -52,6 +53,7 @@ public:
 		}
 		const uint64_t readRank = this->m_readRank->fetch_add(1, std::memory_order_acq_rel);
 		const uint64_t readIndex = remap(readRank) % OutputStorage<ElementType>::STORAGE_CAPACITY;
+		__builtin_prefetch(&this->m_cells[readIndex + 1], PrefetchMode::Write, Locality::High);
 		while (readRank >= this->m_writeRank->load(std::memory_order_acquire)
 			   && this->writersPresent()) {
 			backoffScheme.backoff();
