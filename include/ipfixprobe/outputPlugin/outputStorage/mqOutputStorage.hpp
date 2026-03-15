@@ -207,7 +207,8 @@ protected:
 
 		bool allReadersFinished() const noexcept
 		{
-			return m_stateBuffer.getCurrentValue().read > m_buffersSize;
+			// TODO changed to >= from >
+			return m_stateBuffer.getCurrentValue().read >= m_buffersSize;
 		}
 
 		std::atomic<bool> m_writerFinished {false};
