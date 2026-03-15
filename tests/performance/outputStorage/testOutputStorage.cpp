@@ -18,6 +18,7 @@
 #include <outputStorage/mq2OutputStorage.hpp>
 #include <outputStorage/mqOutputStorage.hpp>
 #include <outputStorage/ringOutputStorage.hpp>
+#include <outputStorage/threadAffinitySetter.hpp>
 // #include <outputStorage/serializedOutputStorage.hpp>
 // #include <outputStorage/serializedOutputStorageBlocking.hpp>
 #include <outputStorage/outputStorageRegistrar.hpp>
@@ -67,6 +68,7 @@ void makeTest(
 		for (DummyReader& reader : readerGroup) {
 			readContainers.back().emplace_back(
 				std::async(std::launch::async, [&reader, &readersLatch]() {
+					ipxp::output::ThreadAffinitySetter::setNumaNode(0);
 					readersLatch.count_down();
 					return reader.readContainers();
 				}));
@@ -76,12 +78,14 @@ void makeTest(
 	readersLatch.wait();
 	std::vector<std::future<void>> writerFutures
 		= writers | std::views::transform([&](DummyWriter<OutputStorageType>& writer) {
-			  return std::async(std::launch::async, [&]() { writer.writeContainers(); });
+			  return std::async(std::launch::async, [&]() {
+				  ipxp::output::ThreadAffinitySetter::setNumaNode(0);
+				  writer.writeContainers();
+			  });
 		  })
 		| std::ranges::to<std::vector<std::future<void>>>();
 
 	std::ranges::for_each(writerFutures, [](std::future<void>& future) { future.get(); });
-	// writers.clear();
 
 	const std::vector<std::size_t> containersReadInGroups
 		= readContainers
@@ -165,10 +169,6 @@ template<typename OutputStorageType>
 void makePerformanceTest(std::string_view storageName)
 {
 	std::cout << "==========================================================" << std::endl;
-	std::cout << storageName << ", 32 Writers, 4 Group 8 Reader\n";
-	makeTest<OutputStorageType>(32, {8, 8, 8, 8}, false, 20'000'000);
-
-	std::cout << "==========================================================" << std::endl;
 	std::cout << storageName << ", 1 Writers, 1 Reader\n";
 	makeTest<OutputStorageType>(1, {1}, false, 80'000'000);
 
@@ -188,11 +188,14 @@ void makePerformanceTest(std::string_view storageName)
 	std::cout << storageName << ", 4 Writers, 4 Group 1 Reader\n";
 	makeTest<OutputStorageType>(4, {1, 1, 1, 1}, false, 80'000'000);
 
-	std::cout << std::endl;
+	std::cout << "==========================================================" << std::endl;
+	std::cout << storageName << ", 32 Writers, 4 Group 8 Reader\n";
+	makeTest<OutputStorageType>(32, {8, 8, 8, 8}, false, 20'000'000);
 }
 
 TEST(TestOutputStorage, XXX)
 {
+	ipxp::output::ThreadAffinitySetter::setNumaNode(0);
 	std::cout << "==========================================================" << std::endl;
 	std::cout << "MQ2OutputStorage, 1 Writers, 1 Reader\n";
 	makeTest<ipxp::output::MQ2OutputStorage<void*>>(1, {1}, false, 80'000'000);

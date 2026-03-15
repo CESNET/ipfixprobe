@@ -17,6 +17,7 @@ target_link_libraries(testOutputStorage PRIVATE
     GTest::gtest
     GTest::gtest_main
     ipfixprobe-core
+    numa::numa
 )
 
 add_test(NAME testOutputStorage COMMAND testOutputStorage)

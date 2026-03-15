@@ -8,6 +8,7 @@ find_package(Unwind REQUIRED)
 find_package(LZ4 REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(Boost REQUIRED)
+find_package(NUMA REQUIRED)
 
 if (ENABLE_INPUT_PCAP)
 	pkg_check_modules(PCAP REQUIRED libpcap)
@@ -19,7 +20,6 @@ endif()
 
 if (ENABLE_INPUT_NFB)
 	find_package(NFB REQUIRED)
-	find_package(NUMA REQUIRED)
 endif()
 
 if (ENABLE_OUTPUT_UNIREC OR ENABLE_NEMEA)

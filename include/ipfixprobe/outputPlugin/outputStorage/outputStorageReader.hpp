@@ -1,6 +1,7 @@
 #pragma once
 
 #include "outputStorage.hpp"
+#include "threadAffinitySetter.hpp"
 
 #include <memory>
 
