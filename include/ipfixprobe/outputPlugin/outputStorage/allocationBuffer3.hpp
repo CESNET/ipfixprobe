@@ -37,6 +37,8 @@ public:
 		WriterData& writerData = m_writersData[writerIndex].get();
 		while (true) {
 			writerData.queueIndex = (writerData.queueIndex + 1) % m_queues.size();
+			const uint64_t nextQueueIndex = (writerData.queueIndex + 1) % m_queues.size();
+			m_queues[nextQueueIndex]->prefetch();
 			ElementType* res = m_queues[writerData.queueIndex]->tryPop();
 			if (res) {
 				return res;
@@ -49,6 +51,8 @@ public:
 		WriterData& writerData = m_writersData[writerIndex].get();
 		while (true) {
 			writerData.queueIndex = (writerData.queueIndex + 1) % m_queues.size();
+			const uint64_t nextQueueIndex = (writerData.queueIndex + 1) % m_queues.size();
+			m_queues[nextQueueIndex]->prefetch();
 			if (m_queues[writerData.queueIndex]->tryPush(element)) {
 				return;
 			}
@@ -83,6 +87,16 @@ protected:
 			return true;
 		}
 
+		void prefetch() noexcept
+		{
+			__builtin_prefetch(
+				pointers.data() + pointers.size() - 1,
+				PrefetchMode::Read,
+				Locality::High);
+			__builtin_prefetch(&pointers, PrefetchMode::Write, Locality::High);
+			__builtin_prefetch(&lock, PrefetchMode::Write, Locality::High);
+		}
+
 	private:
 		std::vector<ElementType*> pointers;
 		std::atomic_flag lock {false};
@@ -92,7 +106,7 @@ protected:
 	};
 
 	struct WriterData {
-		uint16_t queueIndex;
+		uint64_t queueIndex;
 	};
 
 	std::vector<ElementType> m_objectPool;
