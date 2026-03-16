@@ -129,7 +129,7 @@ public:
 			__builtin_prefetch(
 				&this->m_buckets[readerData.readPosition + this->m_expectedReadersCount],
 				PrefetchMode::Write,
-				Locality::Medium);
+				Locality::High);
 			if (overflowed) {
 				if (!this->writersPresent()) {
 					readerData.generation.fetch_add(1, std::memory_order_release);
@@ -173,7 +173,8 @@ protected:
 			| std::views::transform(
 				  [](const CacheAlligned<typename BOutputStorage<ElementType>::ReaderData>&
 						 readerDataAlligned) {
-					  return readerDataAlligned->generation.load(std::memory_order_acquire);
+					  // TODO get back acquired
+					  return readerDataAlligned->generation.load(std::memory_order_relaxed);
 				  })
 			| std::ranges::to<boost::container::static_vector<
 				uint64_t,

@@ -219,7 +219,8 @@ protected:
 			readerGenerations
 			= m_readersData
 			| std::views::transform([](const CacheAlligned<ReaderData>& readerDataAlligned) {
-				  return readerDataAlligned->generation.load(std::memory_order_acquire);
+				  // TODO changed to relaxed from acquire
+				  return readerDataAlligned->generation.load(std::memory_order_relaxed);
 			  })
 			| std::ranges::to<boost::container::static_vector<
 				uint64_t,
@@ -242,7 +243,7 @@ protected:
 		return *std::ranges::max_element(writerGenerations);
 	}
 
-	uint64_t getHighestReaderGeneration() const noexcept
+	/*uint64_t getHighestReaderGeneration() const noexcept
 	{
 		boost::container::static_vector<uint64_t, OutputStorage<ElementType>::MAX_READERS_COUNT>
 			readerGenerations
@@ -254,7 +255,8 @@ protected:
 				uint64_t,
 				OutputStorage<ElementType>::MAX_READERS_COUNT>>();
 		return *std::ranges::max_element(readerGenerations);
-	}
+	}*/
+
 	struct ReaderData {
 		BucketAllocation bucketAllocation {};
 		uint16_t readPosition;
