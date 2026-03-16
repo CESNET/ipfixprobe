@@ -28,10 +28,10 @@ constexpr std::size_t remap(const std::size_t index) noexcept
 	/*if (index > std::numeric_limits<uint16_t>::max()) {
 		throw std::runtime_error("ZZZz");
 	}*/
-	return index;
-	// return index * 27644437;
-	//   return ~index;
-	//  return std::byteswap(static_cast<uint16_t>(index));
+	// return index;
+	//  return index * 27644437;
+	//    return ~index;
+	return std::byteswap(index);
 }
 
 template<typename ElementType>

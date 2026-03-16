@@ -37,8 +37,6 @@ public:
 		WriterData& writerData = m_writersData[writerIndex].get();
 		while (true) {
 			writerData.queueIndex = (writerData.queueIndex + 1) % m_queues.size();
-			const uint64_t nextQueueIndex = (writerData.queueIndex + 1) % m_queues.size();
-			m_queues[nextQueueIndex]->prefetch();
 			ElementType* res = m_queues[writerData.queueIndex]->tryPop();
 			if (res) {
 				return res;
@@ -51,8 +49,6 @@ public:
 		WriterData& writerData = m_writersData[writerIndex].get();
 		while (true) {
 			writerData.queueIndex = (writerData.queueIndex + 1) % m_queues.size();
-			const uint64_t nextQueueIndex = (writerData.queueIndex + 1) % m_queues.size();
-			m_queues[nextQueueIndex]->prefetch();
 			if (m_queues[writerData.queueIndex]->tryPush(element)) {
 				return;
 			}
