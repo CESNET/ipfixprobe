@@ -306,7 +306,8 @@ TEST(TestOutputStorage, Debug)
 
 TEST(TestOutputStorage, Perf)
 {
+	ipxp::output::ThreadAffinitySetter::setNumaNode(0);
 	std::cout << "Perf test" << std::endl;
 	// makePerformanceTest<ipxp::output::MCOutputStorage>("MCOutputStorage");
-	makeTest<ipxp::output::RingOutputStorage<void*>>(1, {1}, false, 10'000'064);
+	makeTest<ipxp::output::B2OutputStorage<void*>>(32, {32}, false, 80'000'000);
 }
