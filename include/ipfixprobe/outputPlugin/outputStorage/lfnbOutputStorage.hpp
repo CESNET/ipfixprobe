@@ -36,7 +36,20 @@ public:
 			= sequentialWritePosition % OutputStorage<ElementType>::STORAGE_CAPACITY;
 		const uint64_t remappedWritePosition
 			= remap(writePosition) % OutputStorage<ElementType>::STORAGE_CAPACITY;
-
+		const uint64_t nextRemappedWritePosition
+			= remap(writePosition + 1) % OutputStorage<ElementType>::STORAGE_CAPACITY;
+		__builtin_prefetch(
+			&this->m_storage[nextRemappedWritePosition],
+			PrefetchMode::Write,
+			Locality::High);
+		__builtin_prefetch(
+			&this->m_writersFinished[nextRemappedWritePosition / BUCKET_SIZE],
+			PrefetchMode::Write,
+			Locality::High);
+		__builtin_prefetch(
+			&this->m_readersFinished[nextRemappedWritePosition / BUCKET_SIZE],
+			PrefetchMode::Write,
+			Locality::High);
 		BackoffScheme backoffScheme(0, std::numeric_limits<std::size_t>::max());
 		while (m_writersFinished[writePosition / BUCKET_SIZE].load(std::memory_order_acquire)
 					   / BUCKET_SIZE
@@ -67,6 +80,20 @@ public:
 			= sequentialReadPosition % OutputStorage<ElementType>::STORAGE_CAPACITY;
 		const uint64_t remappedReadPosition
 			= remap(readPosition) % OutputStorage<ElementType>::STORAGE_CAPACITY;
+		const uint64_t nextRemappedReadPosition
+			= remap(readPosition + 1) % OutputStorage<ElementType>::STORAGE_CAPACITY;
+		__builtin_prefetch(
+			&this->m_storage[nextRemappedReadPosition],
+			PrefetchMode::Write,
+			Locality::High);
+		__builtin_prefetch(
+			&this->m_writersFinished[nextRemappedReadPosition / BUCKET_SIZE],
+			PrefetchMode::Write,
+			Locality::High);
+		__builtin_prefetch(
+			&this->m_readersFinished[nextRemappedReadPosition / BUCKET_SIZE],
+			PrefetchMode::Write,
+			Locality::High);
 		BackoffScheme backoffScheme(0, std::numeric_limits<std::size_t>::max());
 		while ((m_readersFinished[readPosition / BUCKET_SIZE].load(std::memory_order_acquire)
 						/ (BUCKET_SIZE * 1)
