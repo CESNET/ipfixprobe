@@ -351,6 +351,12 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 		else if( mode == MODE_DST ) {
 			pkt.dst_port = 0;
 		}
+		else {
+			fprintf(stderr, "Not matching any rule: src_ip:");
+			fprintf(stderr, "%u.%u.%u.%u", pkt.src_ip.v4 & 0xFF, (pkt.src_ip.v4 >> 8)  & 0xFF, (pkt.src_ip.v4 >> 16) & 0xFF, (pkt.src_ip.v4 >> 24) & 0xFF);
+			fprintf(stderr, " dest_ip:");
+			fprintf(stderr, "%u.%u.%u.%u", pkt.dst_ip.v4 & 0xFF, (pkt.dst_ip.v4 >> 8)  & 0xFF, (pkt.dst_ip.v4 >> 16) & 0xFF, (pkt.dst_ip.v4 >> 24) & 0xFF);
+		}
 	}
 	uint64_t hashval
 		= XXH64(m_key, m_keylen, 0); /* Calculates hash value from key created before. */

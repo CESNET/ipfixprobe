@@ -65,11 +65,11 @@ SourceOptimization::SourceOptimization(std::vector<std::string>& vnets) {
                 }
             }
             if( pos == std::string::npos ) {
-                net_count++;
                 break;
             }
             arg.erase(0, pos + delimiter.length());
         }
+        net_count++;
     }
 }
 
