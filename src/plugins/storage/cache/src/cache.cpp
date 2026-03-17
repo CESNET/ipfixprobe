@@ -355,7 +355,7 @@ int NHTFlowCache::put_pkt(Packet& pkt)
 			fprintf(stderr, "Not matching any rule: src_ip:");
 			fprintf(stderr, "%u.%u.%u.%u", pkt.src_ip.v4 & 0xFF, (pkt.src_ip.v4 >> 8)  & 0xFF, (pkt.src_ip.v4 >> 16) & 0xFF, (pkt.src_ip.v4 >> 24) & 0xFF);
 			fprintf(stderr, " dest_ip:");
-			fprintf(stderr, "%u.%u.%u.%u", pkt.dst_ip.v4 & 0xFF, (pkt.dst_ip.v4 >> 8)  & 0xFF, (pkt.dst_ip.v4 >> 16) & 0xFF, (pkt.dst_ip.v4 >> 24) & 0xFF);
+			fprintf(stderr, "%u.%u.%u.%u\n", pkt.dst_ip.v4 & 0xFF, (pkt.dst_ip.v4 >> 8)  & 0xFF, (pkt.dst_ip.v4 >> 16) & 0xFF, (pkt.dst_ip.v4 >> 24) & 0xFF);
 		}
 	}
 	uint64_t hashval
@@ -581,11 +581,11 @@ bool NHTFlowCache::create_hash_key(Packet& pkt, int mode)
 		key_v4_inv->proto = pkt.ip_proto;
 		key_v4_inv->ip_version = IP::v4;
 		if( m_source_optimization && mode == MODE_SRC ) {
+			key_v4_inv->src_port = pkt.dst_port;
+			key_v4_inv->dst_port = 0;
+		} else if( m_source_optimization && mode == MODE_DST) {
 			key_v4_inv->src_port = 0;
 			key_v4_inv->dst_port = pkt.src_port;
-		} else if( m_source_optimization && mode == MODE_DST) {
-			key_v4_inv->src_port = pkt.dst_port;
-			key_v4_inv->dst_port = 0;			
 		} else {
 			key_v4_inv->src_port = pkt.dst_port;
 			key_v4_inv->dst_port = pkt.src_port;
