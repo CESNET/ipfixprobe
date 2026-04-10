@@ -42,7 +42,11 @@ public:
 			m_expectedWritersCount,
 			readersCount,
 			m_allocationBuffer);
-		m_readerGroups.emplace_back(readerGroupIndex, m_storages[readerGroupIndex]);
+		m_readerGroups.push_back(
+			std::move(
+				OutputStorageReaderGroup<ElementType>(
+					readerGroupIndex,
+					m_storages[readerGroupIndex])));
 		return m_readerGroups.back();
 	}
 

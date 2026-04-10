@@ -9,7 +9,40 @@ namespace ipxp::output {
 
 template<typename ElementType>
 class OutputStorageWriter {
+	template<typename T>
+	friend class OutputStorageRegistrar;
+
 public:
+	~OutputStorageWriter() noexcept
+	{
+		for (std::size_t i = 0; i < OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT; ++i) {
+			OutputStorage<ElementType>* storage = m_storages[i].get();
+			if (!storage) {
+				break;
+			}
+			storage->unregisterWriter(m_writerIndex);
+		}
+		m_allocationBuffer->unregisterWriter(m_writerIndex);
+	}
+
+	void push(ElementType element) noexcept
+	{
+		m_currentContainer.getData().storage.emplace_back(std::move(element));
+		if (m_currentContainer.getData().storage.size() == OutputContainer<ElementType>::SIZE) {
+			write(m_currentContainer);
+			m_writeAttempts++;
+			m_currentContainer.assign(
+				Reference<OutputContainer<ElementType>>(
+					*m_allocationBuffer->allocate(m_writerIndex)),
+				[&](ReferenceCounter<OutputContainer<ElementType>>* counter) {
+					m_allocationBuffer->deallocate(counter, m_writerIndex);
+				});
+			m_currentContainer.getData().storage.clear();
+			// m_currentContainer.getData().readTimes = 0;
+		}
+	}
+
+private:
 	explicit OutputStorageWriter(
 		const uint8_t writerIndex,
 		std::shared_ptr<std::shared_ptr<OutputStorage<ElementType>>[]> storages,
@@ -32,39 +65,6 @@ public:
 		}
 	}
 
-	~OutputStorageWriter() noexcept
-	{
-		for (std::size_t i = 0; i < OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT; ++i) {
-			OutputStorage<ElementType>* storage = m_storages[i].get();
-			if (!storage) {
-				break;
-			}
-			storage->unregisterWriter(m_writerIndex);
-		}
-		m_allocationBuffer->unregisterWriter(m_writerIndex);
-	}
-
-	void push(ElementType element) noexcept
-	{
-		/*if (m_currentContainer.getData().storage.size() != 0) {
-			throw std::runtime_error("ZZZ");
-		}*/
-		m_currentContainer.getData().storage.emplace_back(std::move(element));
-		if (m_currentContainer.getData().storage.size() == OutputContainer<ElementType>::SIZE) {
-			write(m_currentContainer);
-			m_writeAttempts++;
-			m_currentContainer.assign(
-				Reference<OutputContainer<ElementType>>(
-					*m_allocationBuffer->allocate(m_writerIndex)),
-				[&](ReferenceCounter<OutputContainer<ElementType>>* counter) {
-					m_allocationBuffer->deallocate(counter, m_writerIndex);
-				});
-			m_currentContainer.getData().storage.clear();
-			// m_currentContainer.getData().readTimes = 0;
-		}
-	}
-
-private:
 	bool write(const Reference<OutputContainer<ElementType>>& element) noexcept
 	{
 		bool allWritten = true;

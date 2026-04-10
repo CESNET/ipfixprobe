@@ -63,9 +63,6 @@ public:
 		while (!writePos.has_value()) {
 			writePos = m_controlBlock->getWritePos();
 		}
-		if (!writePos.has_value()) {
-			throw std::runtime_error("Should not happen");
-		}
 		m_pointers[*writePos] = element;
 	}
 

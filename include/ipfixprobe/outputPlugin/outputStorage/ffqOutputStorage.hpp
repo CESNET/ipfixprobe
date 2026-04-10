@@ -15,7 +15,7 @@ public:
 		const uint8_t expectedWritersCount,
 		const uint8_t expectedReadersCount,
 		std::shared_ptr<AllocationBufferBase<ReferenceCounter<OutputContainer<ElementType>>>>
-			allocationBuffer) noexcept
+			allocationBuffer)
 		: OutputStorage<ElementType>(expectedWritersCount, expectedReadersCount, allocationBuffer)
 		, m_cells(OutputStorage<ElementType>::STORAGE_CAPACITY)
 	{
@@ -78,7 +78,7 @@ protected:
 			= OutputStorage<ElementType>::MAX_READER_GROUPS_COUNT - 1;
 
 	public:
-		explicit ReaderGroupState() noexcept {}
+		explicit ReaderGroupState() noexcept { }
 
 		bool tryToSetWriter() noexcept
 		{

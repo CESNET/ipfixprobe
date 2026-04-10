@@ -1,11 +1,5 @@
 #pragma once
 
-// #include "../../processPlugin/flowRecord.hpp"
-/*#include "allocationBuffer.hpp"
-#include "allocationBuffer2.hpp"
-#include "allocationBuffer3.hpp"
-#include "allocationBufferR.hpp"
-#include "dummyAllocationBuffer.hpp"*/
 #include "allocationBufferBase.hpp"
 #include "outputContainer.hpp"
 #include "referenceCounter.hpp"
@@ -25,9 +19,6 @@ enum class Locality : int { None = 0, Low = 1, Medium = 2, High = 3 };
 
 constexpr std::size_t remap(const std::size_t index) noexcept
 {
-	/*if (index > std::numeric_limits<uint16_t>::max()) {
-		throw std::runtime_error("ZZZz");
-	}*/
 	return index;
 	//  return index * 27644437;
 	//    return ~index;
@@ -36,13 +27,33 @@ constexpr std::size_t remap(const std::size_t index) noexcept
 
 template<typename ElementType>
 class OutputStorage {
+	template<class T>
+	friend class OutputStorageRegistrar;
+
+	template<typename T>
+	friend class OutputStorageReader;
+
+	template<typename T>
+	friend class OutputStorageWriter;
+
 public:
+	using value_type = ElementType;
+
+	virtual bool
+	write(const Reference<OutputContainer<ElementType>>& container, const uint8_t writerId) noexcept
+		= 0;
+
+	virtual OutputContainer<ElementType>* read(const uint8_t readerIndex) noexcept = 0;
+
+	virtual bool finished() noexcept = 0;
+
+	virtual ~OutputStorage() = default;
+
+protected:
 	constexpr static std::size_t STORAGE_CAPACITY = 65536;
 	constexpr static std::size_t MAX_WRITERS_COUNT = 32;
 	constexpr static std::size_t MAX_READERS_COUNT = 32;
 	constexpr static std::size_t MAX_READER_GROUPS_COUNT = 8;
-
-	using value_type = ElementType;
 
 	explicit OutputStorage(
 		const uint8_t expectedWritersCount,
@@ -53,6 +64,15 @@ public:
 		, m_expectedReadersCount(expectedReadersCount)
 		, m_allocationBuffer(allocationBuffer)
 	{
+		if (expectedWritersCount == 0) {
+			throw std::invalid_argument("Expected writers count must be greater than 0");
+		}
+
+		if (expectedWritersCount > MAX_WRITERS_COUNT || expectedReadersCount > MAX_READERS_COUNT) {
+			throw std::invalid_argument(
+				"Expected writers/readers count must not exceed maximum allowed");
+		}
+
 		if (STORAGE_CAPACITY % expectedWritersCount != 0) {
 			throw std::runtime_error(
 				"Storage capacity must be divisible by expected writers count");
@@ -84,34 +104,12 @@ public:
 			;
 	}
 
-	virtual void unregisterWriter([[maybe_unused]] const uint8_t writerIndex) noexcept
-	{
-		m_writersCount--;
-	}
+	virtual void unregisterWriter([[maybe_unused]] const uint8_t writerIndex) { m_writersCount--; }
 
 	bool writersPresent() const noexcept
 	{
 		return m_writersCount.load(std::memory_order_acquire) > 0;
 	}
-
-	virtual bool finished() noexcept = 0;
-
-	virtual bool
-	write(const Reference<OutputContainer<ElementType>>& container, const uint8_t writerId) noexcept
-		= 0;
-
-	virtual OutputContainer<ElementType>* read(const uint8_t readerIndex) noexcept = 0;
-
-	virtual ~OutputStorage() = default;
-
-protected:
-	const uint8_t m_expectedWritersCount;
-	const uint8_t m_expectedReadersCount;
-	std::shared_ptr<AllocationBufferBase<ReferenceCounter<OutputContainer<ElementType>>>>
-		m_allocationBuffer;
-	std::vector<Reference<OutputContainer<ElementType>>> m_storage;
-	std::atomic<uint8_t> m_writersCount {0};
-	std::atomic<uint8_t> m_readersCount {0};
 
 	auto makeDeallocationCallback(const uint8_t writerId)
 	{
@@ -120,10 +118,13 @@ protected:
 		};
 	}
 
-private:
-	// std::condition_variable m_registrationCondition;
-	// std::mutex m_registrationMutex;
-	// Spinlock m_registrationLock;
+	const uint8_t m_expectedWritersCount;
+	const uint8_t m_expectedReadersCount;
+	std::shared_ptr<AllocationBufferBase<ReferenceCounter<OutputContainer<ElementType>>>>
+		m_allocationBuffer;
+	std::vector<Reference<OutputContainer<ElementType>>> m_storage;
+	std::atomic<uint8_t> m_writersCount {0};
+	std::atomic<uint8_t> m_readersCount {0};
 };
 
 } // namespace ipxp::output

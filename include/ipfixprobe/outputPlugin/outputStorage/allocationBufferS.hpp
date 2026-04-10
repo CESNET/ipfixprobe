@@ -122,11 +122,20 @@ private:
 				continue;
 			}
 			WriterData& stealVictimData = m_writersData[stealVictimIndex].get();
-			for (std::size_t i = 0; i < stealVictimData.storage.size() / 2; i++) {
+			const std::size_t numToSteal = stealVictimData.storage.size() / 2;
+			const std::size_t startIndex = stealVictimData.storage.size() - numToSteal;
+			const std::size_t oldSize = writerData.storage.size();
+			writerData.storage.resize(oldSize + numToSteal);
+			std::memcpy(
+				&writerData.storage[oldSize],
+				&stealVictimData.storage[startIndex],
+				numToSteal * sizeof(ElementType*));
+			stealVictimData.storage.resize(startIndex);
+			/*for (std::size_t i = 0; i < stealVictimData.storage.size() / 2; i++) {
 				ElementType* stolenElement = stealVictimData.storage.back();
 				stealVictimData.storage.pop_back();
 				writerData.storage.push_back(stolenElement);
-			}
+			}*/
 			clearStealRequest(stealVictimIndex);
 		}
 	}

@@ -20,7 +20,7 @@ namespace ipxp::output {
 template<typename ElementType>
 class AllocationBufferB : public AllocationBufferBase<ElementType> {
 	constexpr static std::size_t BUCKET_SIZE = 16;
-	constexpr static std::size_t INDEXES_IN_CACHE_LINE = 64 / sizeof(uint16_t);
+	constexpr static std::size_t INDEXES_IN_CACHE_LINE = 64 / sizeof(std::atomic<uint16_t>);
 	constexpr static std::size_t WINDOW_SIZE = 16;
 
 public:

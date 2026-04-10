@@ -9,16 +9,10 @@ namespace ipxp::output {
 
 template<typename ElementType>
 class OutputStorageReader {
-public:
-	explicit OutputStorageReader(
-		const uint8_t readerIndex,
-		std::shared_ptr<OutputStorage<ElementType>> storage) noexcept
-		: m_readerIndex(readerIndex)
-		, m_storage(std::move(storage))
-	{
-		m_storage->registerReader(readerIndex);
-	}
+	template<typename T>
+	friend class OutputStorageReaderGroup;
 
+public:
 	ElementType* read() noexcept
 	{
 		if (m_container == nullptr || m_readElements == m_container->storage.size()) {
@@ -41,6 +35,15 @@ public:
 	uint8_t getReaderIndex() const noexcept { return m_readerIndex; }
 
 private:
+	explicit OutputStorageReader(
+		const uint8_t readerIndex,
+		std::shared_ptr<OutputStorage<ElementType>> storage) noexcept
+		: m_readerIndex(readerIndex)
+		, m_storage(std::move(storage))
+	{
+		m_storage->registerReader(readerIndex);
+	}
+
 	const uint8_t m_readerIndex;
 	std::shared_ptr<OutputStorage<ElementType>> m_storage;
 	OutputContainer<ElementType>* m_container {nullptr};

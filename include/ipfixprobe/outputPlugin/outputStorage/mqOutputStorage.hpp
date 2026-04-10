@@ -27,7 +27,7 @@ public:
 		const uint8_t expectedWritersCount,
 		const uint8_t expectedReadersCount,
 		std::shared_ptr<AllocationBufferBase<ReferenceCounter<OutputContainer<ElementType>>>>
-			allocationBuffer) noexcept
+			allocationBuffer)
 		: OutputStorage<ElementType>(expectedWritersCount, expectedReadersCount, allocationBuffer)
 	{
 		auto begin = this->m_storage.data();
@@ -59,7 +59,7 @@ public:
 		}
 	}
 
-	void unregisterWriter([[maybe_unused]] const uint8_t writerId) noexcept override
+	void unregisterWriter([[maybe_unused]] const uint8_t writerId) override
 	{
 		OutputStorage<ElementType>::unregisterWriter(writerId);
 		m_queues[writerId].setWriterFinished();

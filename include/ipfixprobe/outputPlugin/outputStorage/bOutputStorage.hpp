@@ -49,7 +49,7 @@ public:
 		const uint8_t expectedWritersCount,
 		const uint8_t expectedReadersCount,
 		std::shared_ptr<AllocationBufferBase<ReferenceCounter<OutputContainer<ElementType>>>>
-			allocationBuffer) noexcept
+			allocationBuffer)
 		: OutputStorage<ElementType>(expectedWritersCount, expectedReadersCount, allocationBuffer)
 		, m_randomGenerator(1, OutputStorage<ElementType>::MAX_WRITERS_COUNT)
 	{

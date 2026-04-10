@@ -20,7 +20,7 @@ public:
 		const uint8_t expectedWritersCount,
 		const uint8_t expectedReadersCount,
 		std::shared_ptr<AllocationBufferBase<ReferenceCounter<OutputContainer<ElementType>>>>
-			allocationBuffer) noexcept
+			allocationBuffer)
 		: OutputStorage<ElementType>(expectedWritersCount, expectedReadersCount, allocationBuffer)
 	{
 		m_readerData.resize(expectedReadersCount);
@@ -150,15 +150,7 @@ private:
 	std::span<CacheAlligned<ReaderData>> d_readerData {
 		m_readerData.data(),
 		OutputStorage<ElementType>::MAX_READERS_COUNT};
-	std::atomic_uint64_t m_nextWritePos {0};
-	// std::atomic_uint64_t m_confirmedPos {0};
-	// std::atomic_uint64_t m_writtenPos {0};
-	// std::atomic_uint64_t d_writerYields {0};
-	// std::atomic_uint64_t d_writerShifts {0};
-	// uint64_t d_readerYields {0};
-	//  std::mutex m_registrationMutex;
-	//  bool m_initialized {false};
-	//  std::condition_variable m_initializationCV;
+	std::atomic<uint64_t> m_nextWritePos {0};
 };
 
 } // namespace ipxp::output

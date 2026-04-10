@@ -25,7 +25,7 @@ public:
 		const uint8_t expectedWritersCount,
 		const uint8_t expectedReadersCount,
 		std::shared_ptr<AllocationBufferBase<ReferenceCounter<OutputContainer<ElementType>>>>
-			allocationBuffer) noexcept
+			allocationBuffer)
 		: BOutputStorage<ElementType>(expectedWritersCount, expectedReadersCount, allocationBuffer)
 	{
 	}

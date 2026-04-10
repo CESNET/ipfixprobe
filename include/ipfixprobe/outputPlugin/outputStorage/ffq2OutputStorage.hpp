@@ -15,7 +15,7 @@ public:
 		const uint8_t expectedWritersCount,
 		const uint8_t expectedReadersCount,
 		std::shared_ptr<AllocationBufferBase<ReferenceCounter<OutputContainer<ElementType>>>>
-			allocationBuffer) noexcept
+			allocationBuffer)
 		: FFQOutputStorage<ElementType>(
 			  expectedWritersCount,
 			  expectedReadersCount,

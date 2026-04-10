@@ -28,7 +28,7 @@ public:
 		const uint8_t expectedWritersCount,
 		const uint8_t expectedReadersCount,
 		std::shared_ptr<AllocationBufferBase<ReferenceCounter<OutputContainer<ElementType>>>>
-			allocationBuffer) noexcept
+			allocationBuffer)
 		: MQOutputStorage<ElementType>(expectedWritersCount, expectedReadersCount, allocationBuffer)
 	{
 	}
@@ -77,8 +77,6 @@ public:
 						return queue.finished();
 					}));
 	}
-
-private:
 };
 
 } // namespace ipxp::output
