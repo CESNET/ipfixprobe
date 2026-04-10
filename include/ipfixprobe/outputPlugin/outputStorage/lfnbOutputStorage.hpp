@@ -79,7 +79,7 @@ public:
 		const uint64_t readPosition
 			= sequentialReadPosition % OutputStorage<ElementType>::STORAGE_CAPACITY;
 		const uint64_t remappedReadPosition
-			= remap(readPosition) % OutputStorage<ElementType>::STORAGE_CAPACITY;
+			= remap(sequentialReadPosition) % OutputStorage<ElementType>::STORAGE_CAPACITY;
 		const uint64_t nextRemappedReadPosition
 			= remap(readPosition + 1) % OutputStorage<ElementType>::STORAGE_CAPACITY;
 		__builtin_prefetch(
