@@ -17,12 +17,13 @@ enum class PrefetchMode : int { Read = 0, Write = 1 };
 
 enum class Locality : int { None = 0, Low = 1, Medium = 2, High = 3 };
 
+[[gnu::always_inline]]
 constexpr std::size_t remap(const std::size_t index) noexcept
 {
 	return index;
 	//  return index * 27644437;
 	//    return ~index;
-	// return std::byteswap(index);
+	// return std::byteswap(index) >> 48;
 }
 
 template<typename ElementType>

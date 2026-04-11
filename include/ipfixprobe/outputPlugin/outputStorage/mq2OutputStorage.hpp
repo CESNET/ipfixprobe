@@ -53,9 +53,14 @@ public:
 		BackoffScheme backoff(30, std::numeric_limits<std::size_t>::max());
 		while (true) {
 			const uint8_t sequenceIndex = this->m_readersData[readerIndex]->sequenceIndex++;
+			const uint8_t nextSequenceIndex = sequenceIndex + 1;
 			const uint8_t queueIndex
 				= this->m_readersData[readerIndex]->queueJumpSequence
 					  [sequenceIndex % OutputStorage<ElementType>::MAX_WRITERS_COUNT];
+			const uint8_t nextQueueIndex 
+				= this->m_readersData[readerIndex]->queueJumpSequence
+					  [nextSequenceIndex % OutputStorage<ElementType>::MAX_WRITERS_COUNT];
+			this->m_queues[nextQueueIndex].prefetch();
 			auto* element = this->m_queues[queueIndex].tryRead();
 			if (element != nullptr) {
 				return element;

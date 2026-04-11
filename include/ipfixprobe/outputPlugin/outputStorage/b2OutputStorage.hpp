@@ -112,12 +112,6 @@ public:
 		typename BOutputStorage<ElementType>::ReaderData& readerData
 			= this->m_readersData[readerIndex].get();
 		if (readerData.bucketAllocation.containersLeft()) {
-			__builtin_prefetch(
-				&this->m_storage
-					 [readerData.bucketAllocation.bucketIndex * this->BUCKET_SIZE
-					  + readerData.bucketAllocation.containerIndex + 1],
-				PrefetchMode::Read,
-				Locality::High);
 			return &this->getNextElement(readerData.bucketAllocation).getData();
 		}
 
@@ -126,10 +120,10 @@ public:
 		BackoffScheme backoffScheme(0, std::numeric_limits<std::size_t>::max());
 		do {
 			const bool overflowed = readerData.shift(this->m_expectedReadersCount, readerIndex);
-			__builtin_prefetch(
+			/*__builtin_prefetch(
 				&this->m_buckets[readerData.readPosition + this->m_expectedReadersCount],
 				PrefetchMode::Write,
-				Locality::High);
+				Locality::High);*/
 			if (overflowed) {
 				if (!this->writersPresent()) {
 					readerData.generation.fetch_add(1, std::memory_order_release);

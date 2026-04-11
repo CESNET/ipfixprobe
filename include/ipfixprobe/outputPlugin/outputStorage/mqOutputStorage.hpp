@@ -186,6 +186,15 @@ protected:
 				>= m_buffersSize + currentState.written.load(std::memory_order_acquire);
 		}
 
+		void prefetch() const noexcept
+		{
+			const State& currentState = m_stateBuffer.getCurrentValue();
+			__builtin_prefetch(
+				&currentState.writeBuffer[currentState.written],
+				PrefetchMode::Read,
+				Locality::High);
+		}
+
 	private:
 		struct State {
 			std::atomic<uint64_t> written {0};
