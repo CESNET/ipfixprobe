@@ -29,6 +29,10 @@ public:
 		while (true) {
 			const uint64_t writeRank = this->m_writeRank->fetch_add(1, std::memory_order_acq_rel);
 			const uint64_t writeIndex = writeRank % OutputStorage<ElementType>::STORAGE_CAPACITY;
+			__builtin_prefetch(
+				&this->m_storage[writeIndex + this->m_writersCount.load(std::memory_order_relaxed)],
+				PrefetchMode::Write,
+				Locality::High);
 			if (m_cells[writeIndex].state.isRead() && m_cells[writeIndex].state.tryToSetWriter()) {
 				this->m_storage[writeIndex].assign(
 					container,
@@ -51,6 +55,11 @@ public:
 		while (!finished()) {
 			const uint64_t readRank = m_readRank->fetch_add(1, std::memory_order_acq_rel);
 			const uint64_t readIndex = readRank % OutputStorage<ElementType>::STORAGE_CAPACITY;
+
+			__builtin_prefetch(
+				&this->m_storage[readIndex + this->m_readersCount.load(std::memory_order_relaxed)],
+				PrefetchMode::Read,
+				Locality::High);
 			if (m_cells[readIndex].state.tryToSetReadingStarted()) {
 				m_readersData[readerIndex]->lastReadIndex = readIndex;
 				return &this->m_storage[readIndex].getData();
