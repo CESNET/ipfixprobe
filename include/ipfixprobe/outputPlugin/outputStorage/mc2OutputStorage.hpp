@@ -61,6 +61,11 @@ public:
 			const uint8_t currentQueueIndex = readerData.lastQueueIndex % this->m_queues.size();
 			typename MCOutputStorage<ElementType>::Queue& queue
 				= this->m_queues[currentQueueIndex].get();
+			__builtin_prefetch(
+				&queue.storage.get()[remap(queue.groupData->readRank.load(std::memory_order_acquire))
+				% queue.storage->size()],
+				PrefetchMode::Read,
+				Locality::High);
 			queue.sync();
 			const std::size_t dequeTry
 				= queue.groupData->dequeueTries.fetch_add(1, std::memory_order_acq_rel);
