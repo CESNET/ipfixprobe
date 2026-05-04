@@ -818,10 +818,8 @@ void IPFIXExporter::send_data()
 	 * Loop ends when len = create_data_packet() is 0
 	 */
 	while (true) {
-		pkt.data = packetDataBuffer.getWriteBuffer(mtu);
+		pkt.data = packetDataBuffer.getWriteBufferOrReset(mtu);
 		if (!pkt.data) {
-			// this should never happen because packetDataBuffer
-			// should already have enough allocated memory
 			return;
 		}
 
@@ -1225,6 +1223,16 @@ int CompressBuffer::init(bool compress, size_t compressSize, size_t writeSize)
 	shouldResetConnection = true;
 
 	return 0;
+}
+
+uint8_t* CompressBuffer::getWriteBufferOrReset(size_t requiredSize)
+{
+	uint8_t* buffer = getWriteBuffer(requiredSize);
+	if (buffer != nullptr) {
+		return buffer;
+	}
+	shrinkTo(0);
+	return getWriteBuffer(requiredSize);
 }
 
 uint8_t* CompressBuffer::getWriteBuffer(size_t requiredSize)
