@@ -338,6 +338,7 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 		if (outputPlugin == nullptr) {
 			throw IPXPError("invalid output plugin " + output_name);
 		}
+		outputPlugin->set_telemetry_dirs(output_dir);
 		conf.outputPlugin = outputPlugin;
 	} catch (PluginError& e) {
 		throw IPXPError(output_name + std::string(": ") + e.what());

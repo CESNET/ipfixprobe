@@ -12,6 +12,7 @@ set_target_properties(ipfixprobe-output-unirec PROPERTIES
 
 target_include_directories(ipfixprobe-output-unirec PRIVATE
 	${CMAKE_SOURCE_DIR}/include/
+	${telemetry_SOURCE_DIR}/include
 )
 
 target_link_libraries(ipfixprobe-output-unirec PRIVATE

@@ -11,6 +11,7 @@ add_library(ipfixprobe-core STATIC
 	workers.cpp
 	workers.hpp
 	inputPlugin.cpp
+	outputPlugin.cpp
 	pluginManager.cpp
 	pluginManager.hpp
 )
