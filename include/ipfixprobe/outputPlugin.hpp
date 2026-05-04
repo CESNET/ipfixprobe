@@ -17,11 +17,14 @@
 #include "flowifc.hpp"
 #include "plugin.hpp"
 #include "processPlugin.hpp"
+#include "telemetry-utils.hpp"
 
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <telemetry.hpp>
 
 namespace ipxp {
 
@@ -30,7 +33,9 @@ namespace ipxp {
 /**
  * \brief Base class for flow exporters.
  */
-class IPXP_API OutputPlugin : public Plugin {
+class IPXP_API OutputPlugin
+	: public TelemetryUtils
+	, public Plugin {
 public:
 	using ProcessPlugins = std::vector<std::pair<std::string, std::shared_ptr<ProcessPlugin>>>;
 	uint64_t m_flows_seen; /**< Number of flows received to export. */
@@ -52,6 +57,12 @@ public:
 	 * \return 0 on success
 	 */
 	virtual int export_flow(const Flow& flow) = 0;
+
+	/**
+	 * \brief Set the telemetry directory for this plugin.
+	 * \param [in] output_dir The telemetry directory for this plugin.
+	 */
+	void set_telemetry_dirs(std::shared_ptr<telemetry::Directory> output_dir);
 
 	/**
 	 * \brief Force exporter to flush flows to collector.

@@ -10,7 +10,10 @@ set_target_properties(ipfixprobe-output-text PROPERTIES
 	VISIBILITY_INLINES_HIDDEN YES
 )
 
-target_include_directories(ipfixprobe-output-text PRIVATE ${CMAKE_SOURCE_DIR}/include/)
+target_include_directories(ipfixprobe-output-text PRIVATE
+	${CMAKE_SOURCE_DIR}/include/
+	${telemetry_SOURCE_DIR}/include
+)
 
 install(
 	TARGETS ipfixprobe-output-text
