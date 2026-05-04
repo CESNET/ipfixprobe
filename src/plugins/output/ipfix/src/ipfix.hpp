@@ -458,6 +458,17 @@ public:
 	uint8_t* getWriteBuffer(size_t requiredSize);
 
 	/**
+	 * @brief Attempts to get a write buffer, resetting internal state on failure and retrying once.
+	 *
+	 *        This can happen in compress mode when a previous send failed without calling
+	 * compress(), leaving readSize non-zero and causing getWriteBuffer() to return null.
+	 *
+	 * @param requiredSize required size of the buffer
+	 * @return pointer to the buffer with the required size, null on failure
+	 */
+	uint8_t* getWriteBufferOrReset(size_t requiredSize);
+
+	/**
 	 * @brief compresses data written after last compress() call
 	 *
 	 *        In non-compression mode returns the size of the written data.
