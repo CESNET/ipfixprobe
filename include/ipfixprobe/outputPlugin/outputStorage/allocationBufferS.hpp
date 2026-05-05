@@ -131,11 +131,6 @@ private:
 				&stealVictimData.storage[startIndex],
 				numToSteal * sizeof(ElementType*));
 			stealVictimData.storage.resize(startIndex);
-			/*for (std::size_t i = 0; i < stealVictimData.storage.size() / 2; i++) {
-				ElementType* stolenElement = stealVictimData.storage.back();
-				stealVictimData.storage.pop_back();
-				writerData.storage.push_back(stolenElement);
-			}*/
 			clearStealRequest(stealVictimIndex);
 		}
 	}
