@@ -56,7 +56,8 @@ public:
 		uint16_t memPoolSize,
 		uint16_t mbufsCount,
 		uint16_t mtuSize,
-		uint64_t rssOffload);
+		uint64_t rssOffload,
+		bool     rssOffloadSuppress);
 
 	/**
 	 * @brief Receives packets from the specified receive queue of the DPDK device.
@@ -105,6 +106,7 @@ private:
 	int m_rxTimestampDynflag;
 	uint16_t m_mtuSize;
 	uint64_t m_rssOffload = 0;
+	bool m_rssOffloadSuppress;
 };
 
 } // namespace ipxp

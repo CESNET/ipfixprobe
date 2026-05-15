@@ -35,7 +35,7 @@ private:
 	std::string eal_;
 	uint16_t mtu_;
 	uint64_t rss_offload_ = 0;
-
+	bool rss_offload_suppress_ = false;
 	std::vector<uint16_t> parsePortNumbers(std::string arg)
 	{
 		std::string delimiter = ",";
@@ -139,6 +139,17 @@ public:
 			},
 			RequiredArgument);
 		register_option(
+			"s",
+			"rss_offload_suppress",
+			"",
+			"RSS offload suppress value, ignore if rss is missing for multiqueue (Used for VM to VM where packets are ordered by the inserting process). Default: false",
+			[this](const char* arg) {
+				(void)arg;
+				rss_offload_suppress_ = true;
+				return true;
+			},
+			OptionFlags::NoArgument);
+		register_option(
 			"e",
 			"eal",
 			"EAL",
@@ -177,6 +188,8 @@ public:
 	uint16_t mtu_size() const { return mtu_; }
 
 	uint64_t rss_offload() const { return rss_offload_; }
+
+	bool rss_offload_suppress() const { return rss_offload_suppress_; }
 };
 
 class DpdkCore {

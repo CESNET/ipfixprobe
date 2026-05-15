@@ -87,13 +87,13 @@ void DpdkCore::configure(const char* params)
 	m_mBufsCount = parser.pkt_buffer_size();
 	uint16_t mtuSize = parser.mtu_size();
 	uint64_t rssOffload = parser.rss_offload();
-
+	bool rssOffloadSuppress = parser.rss_offload_suppress();
 	configureEal(parser.eal_params());
 
 	m_dpdkDevices.reserve(parser.port_numbers().size());
 	for (auto portID : parser.port_numbers()) {
 		m_dpdkDevices
-			.emplace_back(portID, rxQueueCount, mempoolSize, m_mBufsCount, mtuSize, rssOffload);
+			.emplace_back(portID, rxQueueCount, mempoolSize, m_mBufsCount, mtuSize, rssOffload, rssOffloadSuppress);
 	}
 
 	isConfigured = true;

@@ -188,6 +188,9 @@
                     "integer",
                     "null"
                   ]
+                },
+                "rss_offload_suppress": {
+                  "type": "boolean"
                 }
               },
               "required": [
