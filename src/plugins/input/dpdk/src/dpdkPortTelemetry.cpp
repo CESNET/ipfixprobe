@@ -205,6 +205,7 @@ static telemetry::Dict getDeviceStatsByPortId(uint16_t portId)
 	return statsDict;
 }
 
+#if RTE_VERSION < RTE_VERSION_NUM(25, 0, 0, 0)
 static telemetry::Dict getDeviceQueueStatsByPortId(uint16_t portId)
 {
 	struct rte_eth_stats stats;
@@ -242,6 +243,7 @@ static telemetry::Dict getDeviceQueueStatsByPortId(uint16_t portId)
 
 	return dict;
 }
+#endif
 
 static telemetry::Dict getDeviceXStatsByPortId(uint16_t portId)
 {
@@ -306,12 +308,14 @@ static std::vector<AppFsFile> getAppFsFiles(uint16_t portId)
                 .read = [portId]() { return getDeviceStatsByPortId(portId); },
             },
         },
+#if RTE_VERSION < RTE_VERSION_NUM(25, 0, 0, 0)
         {
             .name = "devstats_queues",
             .ops = {
                 .read = [portId]() { return getDeviceQueueStatsByPortId(portId); },
             },
         },
+#endif
         {
             .name = "devxstats",
             .ops = {
