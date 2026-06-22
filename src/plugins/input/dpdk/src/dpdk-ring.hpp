@@ -133,16 +133,16 @@ private:
 		int dynfield_byte_index;
 	};
 
-	struct NfbTimestamp {
+	struct [[gnu::packed]] NfbTimestamp {
 		uint32_t timestamp_ns;
 		uint32_t timestamp_s;
-	} __rte_packed;
+	};
 
-	struct NfbMetadata {
+	struct [[gnu::packed]] NfbMetadata {
 		NfbTimestamp timestamp;
 		uint16_t matched;
 		uint32_t hash;
-	} __rte_packed;
+	};
 
 	telemetry::Content get_queue_telemetry();
 	void getDynfieldInfo();
