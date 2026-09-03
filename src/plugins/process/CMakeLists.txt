@@ -21,6 +21,7 @@ add_subdirectory(smtp)
 add_subdirectory(quic)
 add_subdirectory(tls)
 add_subdirectory(http)
+add_subdirectory(tcpRtt)
 
 if (ENABLE_PROCESS_EXPERIMENTAL)
 	add_subdirectory(sip)
