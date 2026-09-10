@@ -253,9 +253,12 @@ struct Flow : public Record {
 	uint32_t dst_packets;
 	uint8_t src_tcp_flags;
 	uint8_t dst_tcp_flags;
+	uint32_t drop_packets;
+	uint32_t ing_phy_interface;
 
 	uint8_t ip_version;
 
+	uint8_t ip_tos;
 	uint8_t ip_proto;
 	uint16_t src_port;
 	uint16_t dst_port;

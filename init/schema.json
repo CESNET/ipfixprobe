@@ -35,6 +35,26 @@
         {
           "type": "object",
           "properties": {
+            "sock": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "sock"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
             "pcap_file": {
               "type": "object",
               "properties": {

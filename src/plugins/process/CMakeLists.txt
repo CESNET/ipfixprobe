@@ -29,3 +29,7 @@ if (ENABLE_PROCESS_EXPERIMENTAL)
 	add_subdirectory(ntp)
 	add_subdirectory(nettisa)
 endif()
+
+if (ENABLE_INPUT_SOCK)
+	add_subdirectory(sockpktinfo)
+endif()

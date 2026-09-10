@@ -89,6 +89,8 @@ namespace ipxp {
 #define OUTPUT_INTERFACE(F) F(0, 14, 2, nullptr)
 #define FLOW_END_REASON(F) F(0, 136, 1, &flow.end_reason)
 #define FLOW_ID(F) F(0, 148, 8, &flow.flow_hash)
+#define DROPS(F)                      F(0,      133,    4,   &flow.drop_packets)
+#define ING_PHY_INTERFACE(F)          F(0,      252,    4,   &flow.ing_phy_interface)
 
 #define ETHERTYPE(F) F(0, 256, 2, nullptr)
 
@@ -100,9 +102,10 @@ namespace ipxp {
 #define L3_PROTO(F) F(0, 60, 1, &flow.ip_version)
 #define L3_IPV4_ADDR_SRC(F) F(0, 8, 4, &flow.src_ip.v4)
 #define L3_IPV4_ADDR_DST(F) F(0, 12, 4, &flow.dst_ip.v4)
-#define L3_IPV4_TOS(F) F(0, 5, 1, nullptr)
+#define L3_IPV4_TOS(F) F(0, 5, 1, &flow.ip_tos)
 #define L3_IPV6_ADDR_SRC(F) F(0, 27, 16, &flow.src_ip.v6)
 #define L3_IPV6_ADDR_DST(F) F(0, 28, 16, &flow.dst_ip.v6)
+#define L3_IPV6_TOS(F) F(0, 5, 1, &flow.ip_tos)
 #define L3_IPV4_IDENTIFICATION(F) F(0, 54, 2, nullptr)
 #define L3_IPV4_FRAGMENT(F) F(0, 88, 2, nullptr)
 #define L3_IPV4_TTL(F) F(0, 192, 1, nullptr)
@@ -343,7 +346,8 @@ namespace ipxp {
 	F(L3_IPV4_ADDR_SRC)                                                                            \
 	F(L3_IPV4_ADDR_DST)                                                                            \
 	F(L2_SRC_MAC)                                                                                  \
-	F(L2_DST_MAC)
+	F(L2_DST_MAC)                                                                                  \
+	F(L3_IPV4_TOS)
 
 #define BASIC_TMPLT_V6(F)                                                                          \
 	F(FLOW_END_REASON)                                                                             \
@@ -363,7 +367,8 @@ namespace ipxp {
 	F(L3_IPV6_ADDR_SRC)                                                                            \
 	F(L3_IPV6_ADDR_DST)                                                                            \
 	F(L2_SRC_MAC)                                                                                  \
-	F(L2_DST_MAC)
+	F(L2_DST_MAC)                                                                                  \
+	F(L3_IPV6_TOS)
 
 #define IPFIX_HTTP_TEMPLATE(F)                                                                     \
 	F(HTTP_USERAGENT)                                                                              \
@@ -583,6 +588,10 @@ namespace ipxp {
 
 #define IPFIX_MPLS_TEMPLATE(F) F(MPLS_TOP_LABEL_STACK_SECTION)
 
+#define IPFIX_SOCKPKTINFO_TEMPLATE(F) \
+	F(ING_PHY_INTERFACE) \
+	F(DROPS)
+
 /**
  * List of all known templated.
  *
@@ -616,7 +625,8 @@ namespace ipxp {
 	IPFIX_ICMP_TEMPLATE(F)                                                                         \
 	IPFIX_VLAN_TEMPLATE(F)                                                                         \
 	IPFIX_NETTISA_TEMPLATE(F)                                                                      \
-	IPFIX_FLOW_HASH_TEMPLATE(F)
+	IPFIX_FLOW_HASH_TEMPLATE(F)                                                                    \
+	IPFIX_SOCKPKTINFO_TEMPLATE(F)
 
 /**
  * Helper macro, convert FIELD into its name as a C literal.

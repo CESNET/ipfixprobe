@@ -3,8 +3,13 @@ find_package(PkgConfig REQUIRED)
 
 find_package(Threads REQUIRED)
 find_package(Atomic REQUIRED)
-find_package(Unwind REQUIRED)
-find_package(LZ4 REQUIRED)
+if (ENABLE_UNWIND)
+	find_package(Unwind REQUIRED)
+endif()
+
+if (ENABLE_OUTPUT_LZ4)
+	find_package(LZ4 REQUIRED)
+endif()
 find_package(OpenSSL REQUIRED)
 
 if (ENABLE_INPUT_PCAP)
