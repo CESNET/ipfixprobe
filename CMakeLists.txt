@@ -17,6 +17,7 @@ option(ENABLE_INPUT_DPDK            "Enable build of input DPDK plugin"         
 option(ENABLE_INPUT_NFB             "Enable build of input NFB plugin"                        OFF)
 option(ENABLE_OUTPUT_UNIREC         "Enable build of output UNIREC plugin"                    OFF)
 option(ENABLE_PROCESS_EXPERIMENTAL  "Enable build of experimental process plugins"            OFF)
+option(ENABLE_PROCESS_QUIC          "Enable build of QUIC process plugin (requires OpenSSL)"  ON)
 option(ENABLE_MILLISECONDS_TIMESTAMP "Compile ipfixprobe with miliseconds timestamp precesion" OFF)
 option(ENABLE_NEMEA                 "Enable build of NEMEA plugins"                           OFF)
 
