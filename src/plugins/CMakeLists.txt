@@ -15,8 +15,13 @@ if(ENABLE_NEMEA OR ENABLE_OUTPUT_UNIREC)
 		${OUTPUT_DIR}/fields.h
 	)
 
+	find_program(UR_PROCESSOR ur_processor.sh
+		PATHS /usr/bin/nemea
+		REQUIRED
+	)
+
 	execute_process(
-		COMMAND /usr/bin/nemea/ur_processor.sh -i ${CMAKE_CURRENT_SOURCE_DIR} -o ${OUTPUT_DIR}
+		COMMAND ${UR_PROCESSOR} -i ${CMAKE_CURRENT_SOURCE_DIR} -o ${OUTPUT_DIR}
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		RESULT_VARIABLE SCRIPT_RESULT
 	)
