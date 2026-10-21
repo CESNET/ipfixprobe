@@ -80,7 +80,7 @@ struct RecordExtTLS : public RecordExt {
 		ur_set_string(tmplt, record, F_TLS_ALPN, alpn);
 		ur_set_var(tmplt, record, F_TLS_JA3, ja3, sizeof(ja3));
 		ur_set_string(tmplt, record, F_TLS_JA4, ja4);
-		ur_array_allocate(tmplt, record, F_QUIC_TLS_EXT_TYPE, extensions_buffer_size);
+		ur_array_allocate(tmplt, record, F_TLS_EXT_TYPE, extensions_buffer_size);
 		for (auto i = 0U; i < extensions_buffer_size; i++) {
 			ur_array_set(tmplt, record, F_TLS_EXT_TYPE, i, extension_types[i]);
 		}
