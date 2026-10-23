@@ -307,9 +307,9 @@ static std::string get_ja4_string(const TLSParser& parser, uint8_t ip_proto)
 
 	const char sni_label = parser.get_server_names().empty() ? 'i' : 'd';
 
-	const uint8_t ciphers_count = std::min(parser.get_cipher_suits().size(), 99UL);
+	const uint8_t ciphers_count = std::min<size_t>(parser.get_cipher_suits().size(), 99);
 
-	const uint8_t extension_count = std::min(parser.get_extensions().size(), 99UL);
+	const uint8_t extension_count = std::min<size_t>(parser.get_extensions().size(), 99);
 
 	const auto alpn_label = get_alpn_label(parser);
 

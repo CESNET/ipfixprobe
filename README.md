@@ -117,6 +117,7 @@ You can enable or disable optional plugins and features via CMake flags:
 | `-DENABLE_INPUT_DPDK=ON`             | OFF     | Enable high-speed DPDK input plugin    (requires `dpdk-devel`) |
 | `-DENABLE_INPUT_NFB=ON`              | OFF     | Enable input plugin for CESNET NFB/NDP cards (requires `netcope-common`) |
 | `-DENABLE_PROCESS_EXPERIMENTAL=ON`   | OFF     | Enable experimental process plugins                            |
+| `-DENABLE_PROCESS_QUIC=OFF`          | ON      | Disable QUIC process plugin (drops the `openssl` dependency)   |
 | `-DENABLE_NEMEA=ON`                  | OFF     | Enable support for NEMEA modules (requires `nemea-framework-devel` ) |
 
 Run the command to view all available build options:
