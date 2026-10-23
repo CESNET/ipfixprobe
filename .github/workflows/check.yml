@@ -19,9 +19,9 @@ jobs:
 
   editor-config:
     runs-on: ubuntu-latest
-    container: mstruebing/editorconfig-checker
+    container: mstruebing/editorconfig-checker:4
     steps:
     - name: Check out repository code
       uses: actions/checkout@v4
     - name: Check editorconfig
-      run: ec --exclude .git --exclude tests/functional/inputs
+      run: editorconfig-checker --exclude .git --exclude tests/functional/inputs
