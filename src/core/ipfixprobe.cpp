@@ -315,8 +315,9 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 		}
 	}
 
-	// telemetry
+	// telemetry, filled only when AppFs (-t) makes it readable
 	conf.telemetry_root_node = telemetry::Directory::create();
+	const bool telemetryEnabled = !parser.m_appfs_mount_point.empty();
 
 	// Output
 	auto output_dir = conf.telemetry_root_node->addDir("output");
@@ -325,10 +326,13 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 		throw IPXPError("unable to initialize ring buffer");
 	}
 
-	auto ipxRingTelemetryDir = output_dir->addDir("ipxRing");
-	telemetry::FileOps statsOps = {[=]() { return get_ipx_ring_telemetry(output_queue); }, nullptr};
-	auto statsFile = ipxRingTelemetryDir->addFile("stats", statsOps);
-	conf.holder.add(statsFile);
+	if (telemetryEnabled) {
+		auto ipxRingTelemetryDir = output_dir->addDir("ipxRing");
+		telemetry::FileOps statsOps
+			= {[=]() { return get_ipx_ring_telemetry(output_queue); }, nullptr};
+		auto statsFile = ipxRingTelemetryDir->addFile("stats", statsOps);
+		conf.holder.add(statsFile);
+	}
 
 	std::shared_ptr<OutputPlugin> outputPlugin;
 
@@ -338,7 +342,9 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 		if (outputPlugin == nullptr) {
 			throw IPXPError("invalid output plugin " + output_name);
 		}
-		outputPlugin->set_telemetry_dirs(output_dir);
+		if (telemetryEnabled) {
+			outputPlugin->set_telemetry_dirs(output_dir);
+		}
 		conf.outputPlugin = outputPlugin;
 	} catch (PluginError& e) {
 		throw IPXPError(output_name + std::string(": ") + e.what());
@@ -396,11 +402,13 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 			if (inputPlugin == nullptr) {
 				throw IPXPError("invalid input plugin " + input_name);
 			}
-			inputPlugin->set_telemetry_dirs(
-				input_plugin_dir,
-				pipeline_queue_dir,
-				summary_dir,
-				pipeline_dir);
+			if (telemetryEnabled) {
+				inputPlugin->set_telemetry_dirs(
+					input_plugin_dir,
+					pipeline_queue_dir,
+					summary_dir,
+					pipeline_dir);
+			}
 			conf.inputPlugins.emplace_back(inputPlugin);
 		} catch (PluginError& e) {
 			throw IPXPError(input_name + std::string(": ") + e.what());
@@ -417,7 +425,9 @@ bool process_plugin_args(ipxp_conf_t& conf, IpfixprobeOptParser& parser)
 			if (storagePlugin == nullptr) {
 				throw IPXPError("invalid storage plugin " + storage_name);
 			}
-			storagePlugin->set_telemetry_dir(pipeline_queue_dir);
+			if (telemetryEnabled) {
+				storagePlugin->set_telemetry_dir(pipeline_queue_dir);
+			}
 			conf.storagePlugins.emplace_back(storagePlugin);
 		} catch (PluginError& e) {
 			throw IPXPError(storage_name + std::string(": ") + e.what());
