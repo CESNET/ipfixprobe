@@ -80,9 +80,9 @@ public:
 		} else if (bucket == 4) {
 			return "512-1023";
 		} else if (bucket == 5) {
-			return "1024-1518";
+			return "1024-1517";
 		} else if (bucket == 6) {
-			return "1519-2047";
+			return "1518-2047";
 		} else if (bucket == 7) {
 			return "2048-4095";
 		} else if (bucket == 8) {
