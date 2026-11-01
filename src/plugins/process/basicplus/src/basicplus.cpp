@@ -16,6 +16,7 @@
 
 #include <ipfixprobe/pluginFactory/pluginManifest.hpp>
 #include <ipfixprobe/pluginFactory/pluginRegistrar.hpp>
+#include <netinet/tcp.h>
 
 namespace ipxp {
 
@@ -67,7 +68,8 @@ int BASICPLUSPlugin::post_create(Flow& rec, const Packet& pkt)
 	p->tcp_mss[0] = pkt.tcp_mss;
 	p->tcp_opt[0] = pkt.tcp_options;
 	p->tcp_win[0] = pkt.tcp_window;
-	if (pkt.tcp_flags == 0x02) { // check syn packet
+	// SYN without ACK, RST and FIN, other flags (ECE and CWR of an ECN setup SYN) are ignored
+	if ((pkt.tcp_flags & (TH_SYN | TH_ACK | TH_RST | TH_FIN)) == TH_SYN) {
 		p->tcp_syn_size = pkt.ip_len;
 	}
 
