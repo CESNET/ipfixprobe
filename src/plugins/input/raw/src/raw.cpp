@@ -258,11 +258,13 @@ void RawReader::open_ifc(const std::string& ifc)
 bool RawReader::get_block()
 {
 	if ((m_pbd->hdr.bh1.block_status & TP_STATUS_USER) == 0) {
-		// No data available at the moment
-		if (poll(&m_pfd, 1, 0) == -1) {
+		// No data available at the moment, wait for it shortly
+		if (poll(&m_pfd, 1, 1) == -1 && errno != EINTR) {
 			throw PluginError(std::string("poll: ") + strerror(errno));
 		}
-		return false;
+		if ((m_pbd->hdr.bh1.block_status & TP_STATUS_USER) == 0) {
+			return false;
+		}
 	}
 	return true;
 }
