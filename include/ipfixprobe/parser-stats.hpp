@@ -47,37 +47,10 @@ public:
 		uint64_t bytes = 0;
 	};
 
-	PacketSizeHistogram()
-	{
-		for (uint16_t bucketID = 0; bucketID < 8192; ++bucketID) {
-			if (bucketID <= 64) {
-				m_size_to_bucket[bucketID] = 0;
-			} else if (bucketID < 128) {
-				m_size_to_bucket[bucketID] = 1;
-			} else if (bucketID < 256) {
-				m_size_to_bucket[bucketID] = 2;
-			} else if (bucketID < 512) {
-				m_size_to_bucket[bucketID] = 3;
-			} else if (bucketID < 1024) {
-				m_size_to_bucket[bucketID] = 4;
-			} else if (bucketID < 1518) {
-				m_size_to_bucket[bucketID] = 5;
-			} else if (bucketID < 2048) {
-				m_size_to_bucket[bucketID] = 6;
-			} else if (bucketID < 4096) {
-				m_size_to_bucket[bucketID] = 7;
-			} else if (bucketID < 8192) {
-				m_size_to_bucket[bucketID] = 8;
-			} else {
-				m_size_to_bucket[bucketID] = 9;
-			}
-		}
-	}
-
 	void update(uint16_t size)
 	{
 		if (size < 8192) {
-			const std::size_t bucket = m_size_to_bucket[size];
+			const std::size_t bucket = SIZE_TO_BUCKET[size];
 			m_histogram[bucket].packets++;
 			m_histogram[bucket].bytes += size;
 		} else {
@@ -107,9 +80,9 @@ public:
 		} else if (bucket == 4) {
 			return "512-1023";
 		} else if (bucket == 5) {
-			return "1024-1518";
+			return "1024-1517";
 		} else if (bucket == 6) {
-			return "1519-2047";
+			return "1518-2047";
 		} else if (bucket == 7) {
 			return "2048-4095";
 		} else if (bucket == 8) {
@@ -119,8 +92,33 @@ public:
 	}
 
 private:
+	static constexpr std::array<uint8_t, 8192> SIZE_TO_BUCKET = [] {
+		std::array<uint8_t, 8192> sizeToBucket {};
+		for (std::size_t size = 0; size < sizeToBucket.size(); ++size) {
+			if (size <= 64) {
+				sizeToBucket[size] = 0;
+			} else if (size < 128) {
+				sizeToBucket[size] = 1;
+			} else if (size < 256) {
+				sizeToBucket[size] = 2;
+			} else if (size < 512) {
+				sizeToBucket[size] = 3;
+			} else if (size < 1024) {
+				sizeToBucket[size] = 4;
+			} else if (size < 1518) {
+				sizeToBucket[size] = 5;
+			} else if (size < 2048) {
+				sizeToBucket[size] = 6;
+			} else if (size < 4096) {
+				sizeToBucket[size] = 7;
+			} else {
+				sizeToBucket[size] = 8;
+			}
+		}
+		return sizeToBucket;
+	}();
+
 	std::array<Value, HISTOGRAM_SIZE> m_histogram = {};
-	std::array<uint8_t, 8192> m_size_to_bucket = {};
 };
 
 struct VlanStats {

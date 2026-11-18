@@ -53,9 +53,10 @@ public:
 			"Activates processing of all txt records. Allow to specify whitelist txt records file "
 			"(file line format: service.domain,txt_key1,txt_key2,...)",
 			[this](const char* arg) {
-				m_txt_all = true;
 				if (arg != nullptr) {
 					m_config_file = arg;
+				} else {
+					m_txt_all = true;
 				}
 				return true;
 			},
